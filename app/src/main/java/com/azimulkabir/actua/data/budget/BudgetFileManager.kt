@@ -3,6 +3,7 @@ package com.azimulkabir.actua.data.budget
 import android.content.Context
 import androidx.annotation.StringRes
 import com.azimulkabir.actua.data.preferences.withAppLanguage
+import com.azimulkabir.actua.data.receipts.ReceiptPhotoStore
 import org.json.JSONObject
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
@@ -37,6 +38,7 @@ data class CloudFileIdentity(val fileId: String, val groupId: String?, val encry
 class BudgetFileManager(context: Context) {
     private val root = File(context.applicationContext.filesDir, "Budgets")
     private val localizedContext = context.applicationContext.withAppLanguage()
+    private val receiptPhotos = ReceiptPhotoStore(context)
 
     init {
         check(root.mkdirs() || root.isDirectory) { "Unable to create the budgets directory" }
@@ -121,6 +123,8 @@ class BudgetFileManager(context: Context) {
         val directory = budgetDirectory(budgetId)
         require(directory.isDirectory) { "Budget no longer exists on this device" }
         check(directory.deleteRecursively()) { "Unable to remove budget from this device" }
+        // Receipt photos are local to this device and belong to the budget; they go with it.
+        receiptPhotos.deleteAll(budgetId)
     }
 
     fun listLocalBudgets(): List<BudgetMetadata> = root.listFiles()

@@ -31,6 +31,16 @@ class BackupRulesTest {
         assertEquals(credentialStores, excludedSharedPrefs(parse("src/main/res/xml/backup_rules.xml")))
     }
 
+    @Test
+    fun `receipt photos are excluded from cloud backup, device transfer and legacy full backup`() {
+        val rules = parse("src/main/res/xml/data_extraction_rules.xml")
+        for (section in listOf("cloud-backup", "device-transfer")) {
+            val node = rules.getElementsByTagName(section).item(0) as Element
+            assertEquals(section, setOf("ReceiptPhotos"), excludedFiles(node))
+        }
+        assertEquals(setOf("ReceiptPhotos"), excludedFiles(parse("src/main/res/xml/backup_rules.xml")))
+    }
+
     private fun parse(path: String): Element =
         DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(File(path)).documentElement
 
@@ -38,6 +48,14 @@ class BackupRulesTest {
         val excludes = parent.getElementsByTagName("exclude")
         return (0 until excludes.length).map { excludes.item(it) as Element }
             .filter { it.getAttribute("domain") == "sharedpref" }
+            .map { it.getAttribute("path") }
+            .toSet()
+    }
+
+    private fun excludedFiles(parent: Element): Set<String> {
+        val excludes = parent.getElementsByTagName("exclude")
+        return (0 until excludes.length).map { excludes.item(it) as Element }
+            .filter { it.getAttribute("domain") == "file" }
             .map { it.getAttribute("path") }
             .toSet()
     }

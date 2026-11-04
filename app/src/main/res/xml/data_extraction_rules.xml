@@ -3,7 +3,7 @@
    Android 12+ backup and device-to-device transfer rules. android:allowBackup="false"
    turns off cloud backup, but not device-to-device transfer, so credential stores are
    excluded from both explicitly. Their Keystore keys never leave the device, so a copied
-   value would be unreadable anyway.
+   value would be unreadable anyway. Receipt photos are local to this device and are excluded too.
 -->
 <data-extraction-rules>
     <cloud-backup>
@@ -13,6 +13,7 @@
         <exclude domain="sharedpref" path="actua_gdrive_auth.xml" />
         <exclude domain="sharedpref" path="gdrive_backup_encryption.xml" />
         <exclude domain="sharedpref" path="webdav_backup.xml" />
+        <exclude domain="file" path="ReceiptPhotos" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="connection.xml" />
@@ -21,5 +22,6 @@
         <exclude domain="sharedpref" path="actua_gdrive_auth.xml" />
         <exclude domain="sharedpref" path="gdrive_backup_encryption.xml" />
         <exclude domain="sharedpref" path="webdav_backup.xml" />
+        <exclude domain="file" path="ReceiptPhotos" />
     </device-transfer>
 </data-extraction-rules>

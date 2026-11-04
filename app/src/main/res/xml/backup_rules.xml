@@ -10,4 +10,6 @@
     <exclude domain="sharedpref" path="actua_gdrive_auth.xml" />
     <exclude domain="sharedpref" path="gdrive_backup_encryption.xml" />
     <exclude domain="sharedpref" path="webdav_backup.xml" />
+    <!-- Receipt photos are local to this device only. -->
+    <exclude domain="file" path="ReceiptPhotos" />
 </full-backup-content>

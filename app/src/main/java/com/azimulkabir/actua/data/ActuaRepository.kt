@@ -18,6 +18,7 @@ import com.azimulkabir.actua.data.budget.BudgetMovementNote
 import com.azimulkabir.actua.data.budget.PayeeSuggestions
 import com.azimulkabir.actua.data.budget.ActualBudgetWriter
 import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
+import com.azimulkabir.actua.data.receipts.ReceiptPhotoStore
 import com.azimulkabir.actua.data.bank.BankSyncAccountSettings
 import com.azimulkabir.actua.data.bank.BankSyncFlag
 import com.azimulkabir.actua.data.bank.BankSyncMappings
@@ -1893,7 +1894,8 @@ class ActuaRepository(context: Context) {
         }.getOrNull()
     }
 
-    fun saveTransaction(transaction: Transaction) {
+    /** Saves [transaction]. Returns the id of a newly created ordinary or split transaction, else null. */
+    fun saveTransaction(transaction: Transaction): String? {
         actualDatabase?.let { db ->
             val accounts = db.fetchAccounts().filterNot { it.closed }
             val account = accounts.byIdOrName(transaction.accountId, transaction.account, { it.id }, { it.name })
@@ -1916,7 +1918,7 @@ class ActuaRepository(context: Context) {
             }
             val original = transaction.id.takeIf(String::isNotBlank)?.let(db::fetchTransaction)
             val logBeforeSave = db.maxMessageTimestamp()
-            actualForms!!.save(
+            val createdId = actualForms!!.save(
                 ActualTransactionForm(
                     accountId = account.id,
                     type = when (transaction.type) {
@@ -1957,7 +1959,7 @@ class ActuaRepository(context: Context) {
                 applyRules = !transaction.rulesApplied,
             )
             learnCategoriesFromSave(db, logBeforeSave)
-            return
+            return createdId
         }
         error("Connect to Actual and download a budget before adding transactions")
     }
@@ -2572,6 +2574,7 @@ class ActuaRepository(context: Context) {
     fun deleteTransaction(id: String): Boolean {
         val transaction = actualDatabase?.fetchTransaction(id) ?: return false
         actualWriter!!.deleteTransaction(transaction)
+        forgetReceiptPhotos(listOf(id))
         return true
     }
 
@@ -2580,7 +2583,26 @@ class ActuaRepository(context: Context) {
         val writer = actualWriter ?: return 0
         val transactions = ids.mapNotNull(db::fetchTransaction)
         writer.deleteTransactions(transactions)
+        forgetReceiptPhotos(transactions.map { it.id })
         return transactions.size
+    }
+
+    private val receiptPhotos = ReceiptPhotoStore(appContext)
+
+    /** The kept receipt photo of [transactionId] in the open budget, if there is one on this device. */
+    fun receiptPhoto(transactionId: String): java.io.File? =
+        activeMetadata?.id?.let { receiptPhotos.photoFile(it, transactionId) }
+
+    /** Keeps [pending] (a compressed copy made by a scan) as the receipt photo of [transactionId]. */
+    fun keepReceiptPhoto(transactionId: String, pending: java.io.File): Boolean =
+        activeMetadata?.id?.let { receiptPhotos.keep(it, transactionId, pending) } ?: false
+
+    /** Removes the kept receipt photo of [transactionId]; the transaction itself is not changed. */
+    fun deleteReceiptPhoto(transactionId: String) = forgetReceiptPhotos(listOf(transactionId))
+
+    /** A deleted transaction takes its photo with it. The photo is local only, so nothing is synced. */
+    private fun forgetReceiptPhotos(transactionIds: Collection<String>) {
+        activeMetadata?.id?.let { receiptPhotos.delete(it, transactionIds) }
     }
 
     /** Merge two transactions, in selection order, into one (Actual's `transactions-merge`). */

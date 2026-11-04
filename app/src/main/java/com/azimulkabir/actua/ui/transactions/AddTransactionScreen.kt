@@ -44,6 +44,7 @@ import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -116,6 +117,7 @@ import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
 import com.azimulkabir.actua.ui.theme.Spacing
 import java.time.Instant
+import java.io.File
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.launch
@@ -150,6 +152,11 @@ fun AddTransactionScreen(
     newTransactionDate: () -> LocalDate = { LocalDate.now() },
     /** Reads receipts on the device; null (the `fdroid` flavor) hides every scan entry. */
     receiptScanner: ReceiptScanner? = null,
+    /** The receipt photo kept with the edited transaction on this device, if any. */
+    receiptPhoto: File? = null,
+    /** Called with the scanned photo while "Keep the receipt photo" is on, or null; the caller saves or discards it. */
+    onKeptReceiptPhotoChange: (File?) -> Unit = {},
+    onDeleteReceiptPhoto: () -> Unit = {},
     onPreviewRules: (Transaction) -> Transaction = { it },
     onFindNearbyPayees: (suspend () -> NearbyPayeeSearchResult)? = null,
     onSavePayeeLocation: (suspend (String) -> PayeeLocationSaveResult)? = null,
@@ -315,7 +322,21 @@ fun AddTransactionScreen(
     var receiptSplitOffer by remember { mutableStateOf<ParsedReceipt?>(null) }
     val scanContext = LocalContext.current
     val scanLocale = LocalConfiguration.current.locales[0]
-    val applyReceipt: (List<String>) -> Unit = { rows ->
+    var scannedPhoto by remember { mutableStateOf<File?>(null) }
+    var keepScannedPhoto by remember { mutableStateOf(false) }
+    var showReceiptPhoto by remember { mutableStateOf(false) }
+    LaunchedEffect(scannedPhoto, keepScannedPhoto) {
+        onKeptReceiptPhotoChange(scannedPhoto.takeIf { keepScannedPhoto })
+    }
+    // The scanned photo is only a cache file until a save moves it into the receipt photo folder (before this
+    // form goes away); anything left when the form closes is deleted.
+    DisposableEffect(Unit) {
+        onDispose { scannedPhoto?.delete() }
+    }
+    val applyReceipt: (List<String>, File?) -> Unit = { rows, photo ->
+        scannedPhoto?.delete()
+        scannedPhoto = photo
+        keepScannedPhoto = false
         val parsed = ReceiptTextParser.parse(
             rows = rows,
             decimalPlaces = CurrencyDisplay.decimalPlaces,
@@ -666,6 +687,29 @@ fun AddTransactionScreen(
                 icon = Icons.Outlined.Event,
             )
         }
+        if (editing == null && scannedPhoto != null) {
+            ActuaFormCard {
+                ActuaFormRow(
+                    icon = Icons.Outlined.CameraAlt,
+                    label = stringResource(R.string.receipt_photo_keep),
+                    value = null,
+                    caption = stringResource(R.string.receipt_photo_keep_caption),
+                    checked = keepScannedPhoto,
+                    onClick = { keepScannedPhoto = !keepScannedPhoto },
+                )
+            }
+        }
+        if (editing != null && receiptPhoto != null) {
+            ActuaFormCard {
+                ActuaFormRow(
+                    icon = Icons.Outlined.CameraAlt,
+                    label = stringResource(R.string.receipt_photo_title),
+                    value = stringResource(R.string.receipt_photo_view),
+                    caption = stringResource(R.string.receipt_photo_keep_caption),
+                    onClick = { showReceiptPhoto = true },
+                )
+            }
+        }
         ActuaPrimaryActionBar(
             text = stringResource(R.string.action_save),
             onClick = saveTransaction,
@@ -673,6 +717,13 @@ fun AddTransactionScreen(
             icon = Icons.Outlined.Check,
         )
         }
+    }
+    if (showReceiptPhoto && receiptPhoto != null) {
+        ReceiptPhotoDialog(
+            photo = receiptPhoto,
+            onDismiss = { showReceiptPhoto = false },
+            onRemove = { showReceiptPhoto = false; onDeleteReceiptPhoto() },
+        )
     }
     receiptSplitOffer?.let { offer ->
         val taxNote = stringResource(R.string.receipt_split_tax_note)
@@ -700,7 +751,7 @@ fun AddTransactionScreen(
             scanner = receiptScanner,
             show = showReceiptScan,
             onDismiss = { showReceiptScan = false },
-            onRows = applyReceipt,
+            onScanned = applyReceipt,
         )
     }
     // The type the keypad's own sign is applied to: the form's type when it opened, flipped by ±.

@@ -570,6 +570,18 @@ lists what was ported, what was only checked by reading, and what is not ported.
 - iCloud/Keychain/background-task APIs: replaced with Android storage, Keystore,
   and WorkManager equivalents
 
+## Actua-only features (not in Actual)
+
+- **Receipt photos** (Google Play and `-full.apk` builds): a scanned receipt photo can be kept with a
+  transaction. Actual has no receipt or attachment field, so this is local to the device and outside
+  every sync and copy: the photo is a file under `files/ReceiptPhotos/<budget id>/<transaction id>.jpg`,
+  never in `db.sqlite`, the message log or the backup/export archive (which hold only `db.sqlite` and
+  `metadata.json`), and excluded from Android backup and device transfer. No synced field, table or
+  message exists for it, so Actual and other Actua devices never see it. Restoring a backup or
+  downloading a budget elsewhere brings the transactions without their photos. Deleting a transaction
+  through Actua, or removing a budget from the device, deletes its photos; a transaction deleted by a
+  sync from another device, or merged away, can leave an unreferenced photo on this device.
+
 ## Port maintenance
 
 When upstream Actuali changes, compare the relevant Swift model, service, test,
