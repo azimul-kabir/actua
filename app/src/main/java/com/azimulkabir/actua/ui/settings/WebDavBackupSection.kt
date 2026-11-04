@@ -1,6 +1,5 @@
 package com.azimulkabir.actua.ui.settings
 
-import android.content.res.Resources
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -47,6 +46,7 @@ import com.azimulkabir.actua.data.budget.backup.RemoteBackupItem
 import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveEncryptionStore
 import com.azimulkabir.actua.data.budget.webdav.WebDavBackupManager
 import com.azimulkabir.actua.data.budget.webdav.WebDavConfig
+import com.azimulkabir.actua.data.budget.webdav.WebDavErrorMessages
 import com.azimulkabir.actua.data.budget.webdav.WebDavException
 import com.azimulkabir.actua.data.network.ServerCertificateInfo
 import com.azimulkabir.actua.data.network.TrustedCertificateStore
@@ -151,7 +151,7 @@ fun WebDavBackupSection(
                             setupError = resources.getString(R.string.could_not_inspect_certificate)
                         }
                     } else {
-                        setupError = webDavErrorMessage(resources, error)
+                        setupError = WebDavErrorMessages.describe(resources, error)
                     }
                 }
             onBusyChange(false)
@@ -175,7 +175,7 @@ fun WebDavBackupSection(
                 onMessage(resources.getString(R.string.webdav_uploaded))
                 refreshRemote()
             }.onFailure { error ->
-                val text = webDavErrorMessage(resources, error)
+                val text = WebDavErrorMessages.describe(resources, error)
                 manager.recordError(text)
                 onMessage(text)
             }
@@ -219,7 +219,7 @@ fun WebDavBackupSection(
                         restorePassphrasePrompt = true
                     }
                     else -> {
-                        onMessage(webDavErrorMessage(resources, error))
+                        onMessage(WebDavErrorMessages.describe(resources, error))
                         pendingRestore = null
                         restorePassphrasePrompt = false
                     }
@@ -577,7 +577,7 @@ fun WebDavBackupSection(
         }
     }
     Text(
-        stringResource(R.string.webdav_encryption_note),
+        stringResource(R.string.webdav_encryption_note) + " " + stringResource(R.string.webdav_schedule_note),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -617,26 +617,4 @@ private fun webDavFileSize(bytes: Long): String = when {
     bytes < 1024L -> "$bytes B"
     bytes < 1024L * 1024L -> "${bytes / 1024L} KB"
     else -> String.format(Locale.US, "%.1f MB", bytes.toDouble() / (1024L * 1024L))
-}
-
-/** The Backups screen's wording for each way a WebDAV operation can fail. */
-internal fun webDavErrorMessage(resources: Resources, error: Throwable): String = when (error) {
-    is WebDavException.InvalidSettings -> resources.getString(
-        when (error.reason) {
-            WebDavException.InvalidSettings.Reason.MISSING_CREDENTIALS -> R.string.webdav_error_missing_credentials
-            WebDavException.InvalidSettings.Reason.INVALID_URL -> R.string.webdav_error_invalid_url
-            WebDavException.InvalidSettings.Reason.INSECURE_HTTP -> R.string.webdav_error_insecure_http
-            WebDavException.InvalidSettings.Reason.INVALID_FOLDER -> R.string.webdav_error_invalid_folder
-        },
-    )
-    is WebDavException.Unauthorized -> resources.getString(R.string.webdav_error_unauthorized)
-    is WebDavException.NotFound -> resources.getString(R.string.webdav_error_not_found)
-    is WebDavException.InsufficientStorage -> resources.getString(R.string.webdav_error_storage_full)
-    is WebDavException.Tls -> resources.getString(R.string.webdav_error_tls)
-    is WebDavException.Redirect -> resources.getString(R.string.webdav_error_redirect)
-    is WebDavException.MoveUnsupported -> resources.getString(R.string.webdav_error_move_unsupported)
-    is WebDavException.UploadIncomplete -> resources.getString(R.string.webdav_error_incomplete)
-    is WebDavException.Server -> resources.getString(R.string.webdav_error_server, error.status)
-    is WebDavException.Network -> resources.getString(R.string.webdav_error_network)
-    else -> error.message ?: resources.getString(R.string.webdav_error_generic)
 }

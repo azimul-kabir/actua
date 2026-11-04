@@ -42,12 +42,29 @@ ever listed, downloaded or deleted; retention removes old backups there and noth
 
 ## What is covered
 
-Back up now, list, and restore into the open budget (with the usual confirmation and safety copy). Restoring on a
-fresh install, and scheduled automatic backups, are separate slices of
-[#1345](https://github.com/azimul-kabir/actua/issues/1345).
+Back up now, list, and restore into the open budget (with the usual confirmation and safety copy), and
+scheduled backups. Restoring on a fresh install from the no-budget screen is still to do
+([#1345](https://github.com/azimul-kabir/actua/issues/1345)).
 
 Only standard WebDAV is supported. SMB, SFTP, S3 and vendor sync protocols (Synology Drive, Qsync, UGREEN's own
 sync) are not.
+
+## Scheduled backups
+
+Like Google Drive, WebDAV has no schedule setting of its own. Every time Actua makes a local backup (when you
+leave the app, and on a manual backup), it queues an upload of the newest local backup, as long as WebDAV is set up
+and a backup password is saved. So the frequency, and the retention that follows it (the newest three backups of
+the day, one per earlier day, at most ten), are the same as for Google Drive.
+
+- The upload runs in the background when the phone has a network connection, and a newer backup replaces one that
+  is still waiting.
+- A failure that might pass (no network, a server error, a short upload) is retried with growing delays, up to
+  three more times. Only if it still fails is the error shown under WebDAV backup in Backups.
+- A failure that waiting cannot fix (a wrong app password, a missing folder, an untrusted certificate, a server
+  without rename support, a full server) is shown at once; the next backup tries again.
+- Retention only ever deletes `.actuabkp` files in the configured folder, never other files, `.part` files or
+  folders.
+- Disconnecting cancels queued uploads. Local backups are never affected by an upload failure.
 
 ## Tested servers
 
