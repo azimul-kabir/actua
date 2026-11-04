@@ -33,8 +33,23 @@ class TagAutocompleteTest {
         assertFalse(canCreateTag("bad#tag", tags))
     }
 
-    @Test fun replacesWholeTokenAndReturnsCursor() {
+    @Test fun replacesWholeTokenAndStepsOverExistingSpace() {
         val token = activeTagToken("Pay #gro today", 8)!!
-        assertEquals("Pay #groceries today" to 14, replaceActiveTag("Pay #gro today", token, "groceries"))
+        assertEquals("Pay #groceries today" to 15, replaceActiveTag("Pay #gro today", token, "groceries"))
+    }
+
+    @Test fun addsTrailingSpaceAtEndOfNote() {
+        val token = activeTagToken("Wash #car", 9)!!
+        assertEquals("Wash #Carwash " to 14, replaceActiveTag("Wash #car", token, "Carwash"))
+    }
+
+    @Test fun addsSpaceBeforeFollowingTag() {
+        val token = activeTagToken("#gro#b", 4)!!
+        assertEquals("#groceries #b" to 11, replaceActiveTag("#gro#b", token, "groceries"))
+    }
+
+    @Test fun cursorAfterReplacementIsOutsideTheTag() {
+        val (text, cursor) = replaceActiveTag("Wash #car", activeTagToken("Wash #car", 9)!!, "Carwash")
+        assertNull(activeTagToken(text, cursor))
     }
 }

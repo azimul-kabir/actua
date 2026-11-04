@@ -28,8 +28,18 @@ internal fun canCreateTag(query: String, tags: List<ActualTag>): Boolean =
     query.isNotBlank() && query.none { it == '#' || it.isWhitespace() } &&
         tags.none { it.tag.equals(query, ignoreCase = false) }
 
+/**
+ * Replaces the active `#token` with the chosen tag and leaves the cursor after one trailing space, so the
+ * cursor is no longer inside the tag and the suggestion popup closes. A space is only added when the text
+ * after the token does not already start with whitespace; an existing one is stepped over instead.
+ */
 internal fun replaceActiveTag(text: String, token: ActiveTagToken, tag: String): Pair<String, Int> {
     val replacement = "#$tag"
+    val afterTag = token.start + replacement.length
     val updated = text.replaceRange(token.start, token.endExclusive, replacement)
-    return updated to token.start + replacement.length
+    return if (updated.getOrNull(afterTag)?.isWhitespace() == true) {
+        updated to afterTag + 1
+    } else {
+        updated.replaceRange(afterTag, afterTag, " ") to afterTag + 1
+    }
 }
