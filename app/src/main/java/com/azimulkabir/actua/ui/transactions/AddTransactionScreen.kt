@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.ui.transactions
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Event
@@ -57,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
@@ -95,6 +98,9 @@ import com.azimulkabir.actua.ui.components.centsToInput
 import com.azimulkabir.actua.ui.components.currencyInputPrefix
 import com.azimulkabir.actua.ui.components.withCurrencySymbol
 import com.azimulkabir.actua.ui.components.CalculatorAmountSheet
+import com.azimulkabir.actua.data.receipts.ReceiptScanner
+import com.azimulkabir.actua.data.receipts.ReceiptTextParser
+import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.formatDate
 import com.azimulkabir.actua.ui.components.parseStoredDate
 import com.azimulkabir.actua.ui.components.storageDate
@@ -140,6 +146,8 @@ fun AddTransactionScreen(
     hideDecimalPlaces: Boolean = false,
     conventionalAmountEntry: Boolean = false,
     newTransactionDate: () -> LocalDate = { LocalDate.now() },
+    /** Reads receipts on the device; null (the `fdroid` flavor) hides every scan entry. */
+    receiptScanner: ReceiptScanner? = null,
     onPreviewRules: (Transaction) -> Transaction = { it },
     onFindNearbyPayees: (suspend () -> NearbyPayeeSearchResult)? = null,
     onSavePayeeLocation: (suspend (String) -> PayeeLocationSaveResult)? = null,
@@ -301,6 +309,32 @@ fun AddTransactionScreen(
         }
     }
 
+    var showReceiptScan by remember { mutableStateOf(false) }
+    val scanContext = LocalContext.current
+    val scanLocale = LocalConfiguration.current.locales[0]
+    val applyReceipt: (List<String>) -> Unit = { rows ->
+        val parsed = ReceiptTextParser.parse(
+            rows = rows,
+            decimalPlaces = CurrencyDisplay.decimalPlaces,
+            today = LocalDate.now(),
+            knownPayees = payeeOptions,
+            dayFirst = localeIsDayFirst(scanLocale),
+        )
+        // The photo only suggests values; every field stays editable and nothing is saved here.
+        showCalculator = false
+        amountExpression = null
+        autoStep = null
+        parsed.payee?.let(onPayeeChange)
+        parsed.date?.let { date = it }
+        val total = parsed.totalCents
+        if (total != null) {
+            amountCents = total
+            incoming = false
+        } else {
+            Toast.makeText(scanContext, R.string.scan_receipt_no_total, Toast.LENGTH_LONG).show()
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().imePadding()) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
@@ -326,6 +360,13 @@ fun AddTransactionScreen(
                 .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
+            if (receiptScanner != null && editing == null && prefill == null) {
+                ActuaSecondaryButton(
+                    text = stringResource(R.string.scan_receipt),
+                    onClick = { showReceiptScan = true },
+                    icon = Icons.Outlined.CameraAlt,
+                )
+            }
             AmountHero(
                 amountText = when {
                     showCalculator && amountExpression != null -> amountExpression.orEmpty()
@@ -627,6 +668,14 @@ fun AddTransactionScreen(
         )
         }
     }
+    if (receiptScanner != null) {
+        ReceiptScanHost(
+            scanner = receiptScanner,
+            show = showReceiptScan,
+            onDismiss = { showReceiptScan = false },
+            onRows = applyReceipt,
+        )
+    }
     // The type the keypad's own sign is applied to: the form's type when it opened, flipped by ±.
     var keypadIncoming by remember(showCalculator) { mutableStateOf(incoming) }
     if (showCalculator) CalculatorAmountSheet(
@@ -648,6 +697,9 @@ fun AddTransactionScreen(
         },
         onExpressionChange = { amountExpression = it },
         onDone = { if (editing == null) autoStep = AddStep.Payee },
+        onScan = if (receiptScanner != null && editing == null && prefill == null) {
+            { showReceiptScan = true }
+        } else null,
         onToggleSign = {
             keypadIncoming = !keypadIncoming
             incoming = !incoming
@@ -773,6 +825,16 @@ internal fun resolveAddStep(
 }
 
 internal const val TRANSFER_PAYEE_PREFIX = "Transfer: "
+
+/** Whether the locale writes the day before the month in a short date (04/05/2026 is 4 May). */
+internal fun localeIsDayFirst(locale: java.util.Locale): Boolean? {
+    val pattern = java.time.format.DateTimeFormatterBuilder.getLocalizedDateTimePattern(
+        java.time.format.FormatStyle.SHORT, null, java.time.chrono.IsoChronology.INSTANCE, locale,
+    )
+    val day = pattern.indexOf('d')
+    val month = pattern.indexOf('M')
+    return if (day < 0 || month < 0) null else day < month
+}
 
 /**
  * Whether the transaction is incoming after the keypad produced [signedCents]: a negative result is the
