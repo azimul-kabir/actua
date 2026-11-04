@@ -1244,6 +1244,20 @@ fun ConnectionScreen(
         }
     }
 
+    // Restoring from a WebDAV server: connect, pick a backup, enter its password, open the new budget.
+    val webDavRestore = rememberWebDavRestore(
+        onRestored = { imported ->
+            onBeforeBudgetReplacement()
+            activeBudget.budgetId = imported.id
+            message = resources.getString(R.string.webdav_restore_done, imported.budgetName ?: imported.id)
+            localBudgetsGeneration++
+            refreshBackups()
+            onBudgetInstalled()
+        },
+        onError = { message = it },
+    )
+    webDavRestore.dialogs()
+
     if (showConnectDriveDialog) AlertDialog(
         onDismissRequest = { showConnectDriveDialog = false },
         title = { Text(stringResource(R.string.connect_to_drive_title)) },
@@ -1449,6 +1463,14 @@ fun ConnectionScreen(
                 shape = MaterialTheme.shapes.large,
             ) {
                 Text(stringResource(R.string.restore_from_drive))
+            }
+            OutlinedButton(
+                onClick = { webDavRestore.start() },
+                enabled = !loading && downloadingId == null && !syncing,
+                modifier = Modifier.fillMaxWidth().height(Sizes.secondaryButtonHeight),
+                shape = MaterialTheme.shapes.large,
+            ) {
+                Text(stringResource(R.string.webdav_restore_from))
             }
             val localBudgets = remember(localBudgetsGeneration, activeBudget.budgetId) {
                 files.listLocalBudgets().filterNot { it.isDemo }

@@ -10,6 +10,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added a Clear button, with Undo, to the amount keypad ([#1453](https://github.com/azimul-kabir/actua/pull/1453))
 - Added encrypted backup to a WebDAV server such as Nextcloud, ownCloud or a NAS, with manual backup, list and restore ([#1455](https://github.com/azimul-kabir/actua/pull/1455))
 - Added automatic uploads of each backup to the WebDAV server, retried when they fail ([#1457](https://github.com/azimul-kabir/actua/pull/1457))
+- Added restoring a backup from a WebDAV server on a fresh install, from the no-budget screen and Connection and Data ([#1459](https://github.com/azimul-kabir/actua/pull/1459))
 
 ### Fixed
 
