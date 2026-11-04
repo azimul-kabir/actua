@@ -42,12 +42,23 @@ ever listed, downloaded or deleted; retention removes old backups there and noth
 
 ## What is covered
 
-Back up now, list, and restore into the open budget (with the usual confirmation and safety copy), and
-scheduled backups. Restoring on a fresh install from the no-budget screen is still to do
-([#1345](https://github.com/azimul-kabir/actua/issues/1345)).
+Back up now, list, and restore into the open budget (with the usual confirmation and safety copy), scheduled
+backups, and restoring on a fresh install.
 
 Only standard WebDAV is supported. SMB, SFTP, S3 and vendor sync protocols (Synology Drive, Qsync, UGREEN's own
 sync) are not.
+
+## Restore on a fresh install
+
+With no budget on the phone, the first screen has **Restore from WebDAV** next to Restore from Google Drive; it is
+also in Connection and Data under "On this device". It connects to the server (asking for the address, username
+and app password, and offering the certificate trust prompt if the server is self-signed), lists the backups of
+every budget in the folder, asks for the backup password and restores the chosen backup as a new budget. It never
+overwrites an existing budget.
+
+Connecting saves the address and app password, as setting up WebDAV in Backups does, and the backup password you
+typed is saved as the WebDAV backup password, so the next backup uploads without asking again. You can change or
+remove them in Backups.
 
 ## Scheduled backups
 

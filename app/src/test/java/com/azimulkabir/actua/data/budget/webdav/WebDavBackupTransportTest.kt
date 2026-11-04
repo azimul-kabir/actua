@@ -227,6 +227,73 @@ class WebDavBackupTransportTest {
         assertTrue("/dav/files/alice/Documents/2026-11-04_06-00-00.actuabkp" in fake.files)
     }
 
+    // --- Restoring on a fresh install: no passphrase stored, every budget's backups listed ---------------------
+
+    private fun freshInstallPipeline(sink: RecordingSink) = EncryptedBackupPipeline(
+        transport = transport,
+        passphraseProvider = { null },
+        budgetNameOf = { null },
+        restoreSink = sink,
+        workDir = temporary.newFolder(),
+        clock = { Instant.parse("2026-11-04T18:00:00Z") },
+    )
+
+    private fun uploadedBy(budgetId: String, name: String, content: ByteArray, passphrase: String): String {
+        val pipeline = EncryptedBackupPipeline(
+            transport = transport,
+            passphraseProvider = { passphrase.toCharArray() },
+            budgetNameOf = { null },
+            restoreSink = RecordingSink(),
+            workDir = temporary.newFolder(),
+            clock = { Instant.parse("2026-11-04T18:00:00Z") },
+        )
+        val archive = File(temporary.newFolder(), name).also { it.writeBytes(content) }
+        return pipeline.upload(budgetId, archive).id
+    }
+
+    @Test fun aFreshInstallListsEveryBudgetsBackupsNewestFirst() {
+        val a = uploadedBy("budget-1", "2026-11-01_10-00-00.zip", ByteArray(40), "correct-horse-battery-staple-42")
+        val b = uploadedBy("budget-2", "2026-11-03_10-00-00.zip", ByteArray(40), "correct-horse-battery-staple-42")
+        val c = uploadedBy("budget-1", "2026-11-02_10-00-00.zip", ByteArray(40), "correct-horse-battery-staple-42")
+        fake.modified["$root/budget-1/2026-11-01_10-00-00.actuabkp"] = "Sun, 01 Nov 2026 10:00:00 GMT"
+        fake.modified["$root/budget-2/2026-11-03_10-00-00.actuabkp"] = "Tue, 03 Nov 2026 10:00:00 GMT"
+        fake.modified["$root/budget-1/2026-11-02_10-00-00.actuabkp"] = "Mon, 02 Nov 2026 10:00:00 GMT"
+
+        val listed = freshInstallPipeline(RecordingSink()).listBackups(null)
+
+        assertEquals(listOf(b, c, a), listed.map { it.id })
+        assertEquals(listOf("budget-2", "budget-1", "budget-1"), listed.map { it.budgetId })
+    }
+
+    @Test fun aFreshInstallRestoresTheChosenBackupAsANewBudgetWithTheTypedPassword() {
+        val plaintext = "PK-synthetic-archive-bytes-for-a-fresh-install".toByteArray()
+        val id = uploadedBy("budget-1", "2026-11-04_13-00-00.zip", plaintext, "correct-horse-battery-staple-42")
+        val sink = RecordingSink()
+
+        freshInstallPipeline(sink).restore(id, passphrase = "correct-horse-battery-staple-42".toCharArray())
+
+        assertArrayEquals(plaintext, sink.importedAsNew)
+    }
+
+    @Test fun aFreshInstallWithoutAPasswordOrWithAWrongOneImportsNothing() {
+        val id = uploadedBy("budget-1", "2026-11-04_13-00-00.zip", ByteArray(64), "correct-horse-battery-staple-42")
+        val sink = RecordingSink()
+        val pipeline = freshInstallPipeline(sink)
+
+        assertThrows(com.azimulkabir.actua.data.budget.backup.PassphraseRequiredException::class.java) {
+            pipeline.restore(id)
+        }
+        assertThrows(com.azimulkabir.actua.data.budget.backup.InvalidPassphraseException::class.java) {
+            pipeline.restore(id, passphrase = "not-the-password-99".toCharArray())
+        }
+
+        assertEquals(null, sink.importedAsNew)
+    }
+
+    @Test fun anEmptyServerListsNothing() {
+        assertTrue(freshInstallPipeline(RecordingSink()).listBackups(null).isEmpty())
+    }
+
     private class RecordingSink : BackupRestoreSink {
         var importedAsNew: ByteArray? = null
         private val metadata = BudgetMetadata("restored", "Restored", null, null, null, null, null)

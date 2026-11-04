@@ -10,7 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -33,11 +32,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.text.KeyboardOptions
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.budget.BackupService
 import com.azimulkabir.actua.data.budget.backup.InvalidPassphraseException
@@ -47,10 +44,7 @@ import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveEncryptionStore
 import com.azimulkabir.actua.data.budget.webdav.WebDavBackupManager
 import com.azimulkabir.actua.data.budget.webdav.WebDavConfig
 import com.azimulkabir.actua.data.budget.webdav.WebDavErrorMessages
-import com.azimulkabir.actua.data.budget.webdav.WebDavException
-import com.azimulkabir.actua.data.network.ServerCertificateInfo
 import com.azimulkabir.actua.data.network.TrustedCertificateStore
-import com.azimulkabir.actua.data.network.inspectServerCertificate
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
 import com.azimulkabir.actua.ui.components.ActuaGroupLabel
@@ -59,13 +53,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
-
-/** A certificate the user has not trusted yet, and the connection that should be retried once they do. */
-private class PendingWebDavTrust(
-    val info: ServerCertificateInfo,
-    val replacingExistingTrust: Boolean,
-    val config: WebDavConfig,
-)
 
 /**
  * The WebDAV part of the Backups screen: set up a server, back up now, list what is there and restore.
@@ -94,12 +81,7 @@ fun WebDavBackupSection(
     var statusRevision by remember { mutableStateOf(0) }
 
     var showSetup by remember { mutableStateOf(false) }
-    var urlInput by remember { mutableStateOf("") }
-    var userInput by remember { mutableStateOf("") }
-    var passwordInput by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var folderInput by remember { mutableStateOf(WebDavConfig.DEFAULT_FOLDER) }
-    var allowHttpInput by remember { mutableStateOf(false) }
+    var setupInitial by remember { mutableStateOf<WebDavConfig?>(null) }
     var setupError by remember { mutableStateOf<String?>(null) }
     var pendingTrust by remember { mutableStateOf<PendingWebDavTrust?>(null) }
 
@@ -131,29 +113,16 @@ fun WebDavBackupSection(
         onBusyChange(true)
         setupError = null
         scope.launch {
-            runCatching { withContext(Dispatchers.IO) { manager.connect(newConfig) } }
-                .onSuccess {
+            when (val result = connectWebDav(manager, certificates, resources, newConfig)) {
+                is WebDavConnectResult.Connected -> {
                     config = manager.config()
                     showSetup = false
-                    passwordInput = ""
                     onMessage(resources.getString(R.string.webdav_connected))
                     refreshRemote()
                 }
-                .onFailure { error ->
-                    if (error is WebDavException.Tls) {
-                        // Offer to trust the certificate the server presents, like Actual servers do.
-                        val info = runCatching {
-                            withContext(Dispatchers.IO) { inspectServerCertificate(newConfig.serverUrl.trim()) }
-                        }.getOrNull()
-                        if (info != null) {
-                            pendingTrust = PendingWebDavTrust(info, certificates.hasTrust(info.host), newConfig)
-                        } else {
-                            setupError = resources.getString(R.string.could_not_inspect_certificate)
-                        }
-                    } else {
-                        setupError = WebDavErrorMessages.describe(resources, error)
-                    }
-                }
+                is WebDavConnectResult.NeedsTrust -> pendingTrust = result.pending
+                is WebDavConnectResult.Failed -> setupError = result.message
+            }
             onBusyChange(false)
             statusRevision++
         }
@@ -233,126 +202,25 @@ fun WebDavBackupSection(
     // --- Dialogs -----------------------------------------------------------------------------------------
 
     if (showSetup) {
-        AlertDialog(
-            onDismissRequest = { if (!busy) showSetup = false },
-            title = { Text(stringResource(R.string.webdav_setup_title)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = urlInput,
-                        onValueChange = { urlInput = it; setupError = null },
-                        label = { Text(stringResource(R.string.webdav_server_url)) },
-                        placeholder = { Text(stringResource(R.string.webdav_server_url_hint)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = userInput,
-                        onValueChange = { userInput = it; setupError = null },
-                        label = { Text(stringResource(R.string.webdav_username)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = passwordInput,
-                        onValueChange = { passwordInput = it; setupError = null },
-                        label = { Text(stringResource(R.string.webdav_app_password)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                Icon(
-                                    imageVector = if (passwordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                                    contentDescription = stringResource(
-                                        if (passwordVisible) R.string.hide_password else R.string.show_password,
-                                    ),
-                                )
-                            }
-                        },
-                    )
-                    OutlinedTextField(
-                        value = folderInput,
-                        onValueChange = { folderInput = it; setupError = null },
-                        label = { Text(stringResource(R.string.webdav_folder)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Row(
-                        Modifier.fillMaxWidth().clickable { allowHttpInput = !allowHttpInput },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Checkbox(checked = allowHttpInput, onCheckedChange = { allowHttpInput = it })
-                        Text(stringResource(R.string.webdav_allow_http), style = MaterialTheme.typography.bodyMedium)
-                    }
-                    if (allowHttpInput) {
-                        Text(
-                            stringResource(R.string.webdav_http_warning),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                    setupError?.let {
-                        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = !busy && urlInput.isNotBlank() && userInput.isNotBlank() && passwordInput.isNotEmpty(),
-                    onClick = {
-                        connect(
-                            WebDavConfig(
-                                serverUrl = urlInput,
-                                username = userInput,
-                                password = passwordInput,
-                                folder = folderInput,
-                                allowInsecureHttp = allowHttpInput,
-                            ),
-                        )
-                    },
-                ) {
-                    if (busy) CircularProgressIndicator(Modifier.padding(end = 8.dp))
-                    Text(stringResource(R.string.connect))
-                }
-            },
-            dismissButton = {
-                TextButton(enabled = !busy, onClick = { showSetup = false }) { Text(stringResource(R.string.cancel)) }
-            },
+        WebDavSetupDialog(
+            initial = setupInitial,
+            busy = busy,
+            error = setupError,
+            onEdited = { setupError = null },
+            onConnect = ::connect,
+            onDismiss = { showSetup = false },
         )
     }
 
     pendingTrust?.let { pending ->
-        AlertDialog(
-            onDismissRequest = { pendingTrust = null },
-            title = { Text(stringResource(R.string.server_certificate_untrusted)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(stringResource(R.string.server_certificate_untrusted_description))
-                    Text(stringResource(R.string.certificate_host, pending.info.host), fontWeight = FontWeight.SemiBold)
-                    Text(stringResource(R.string.certificate_issuer, pending.info.issuer), style = MaterialTheme.typography.bodySmall)
-                    Text(stringResource(R.string.certificate_valid_from, pending.info.validFrom), style = MaterialTheme.typography.bodySmall)
-                    Text(stringResource(R.string.certificate_valid_until, pending.info.validUntil), style = MaterialTheme.typography.bodySmall)
-                    Text(stringResource(R.string.sha256_fingerprint), fontWeight = FontWeight.SemiBold)
-                    Text(pending.info.sha256Fingerprint, style = MaterialTheme.typography.bodySmall)
-                    Text(
-                        stringResource(R.string.certificate_trust_scope, pending.info.host),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+        WebDavCertificateDialog(
+            pending = pending,
+            onTrust = {
+                certificates.trust(pending.info.host, pending.info.sha256Fingerprint)
+                pendingTrust = null
+                connect(pending.config)
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    certificates.trust(pending.info.host, pending.info.sha256Fingerprint)
-                    pendingTrust = null
-                    connect(pending.config)
-                }) { Text(stringResource(R.string.trust_certificate)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingTrust = null }) { Text(stringResource(R.string.cancel)) }
-            },
+            onDismiss = { pendingTrust = null },
         )
     }
 
@@ -531,17 +399,12 @@ fun WebDavBackupSection(
                 }
                 if (config == null) {
                     TextButton(enabled = !busy, onClick = {
-                        urlInput = ""; userInput = ""; passwordInput = ""; passwordVisible = false
-                        folderInput = WebDavConfig.DEFAULT_FOLDER; allowHttpInput = false; setupError = null
+                        setupInitial = null; setupError = null
                         showSetup = true
                     }) { Text(stringResource(R.string.connect)) }
                 } else {
                     TextButton(enabled = !busy, onClick = {
-                        val current = config
-                        urlInput = current?.serverUrl.orEmpty(); userInput = current?.username.orEmpty()
-                        passwordInput = current?.password.orEmpty(); passwordVisible = false
-                        folderInput = current?.folder ?: WebDavConfig.DEFAULT_FOLDER
-                        allowHttpInput = current?.allowInsecureHttp ?: false; setupError = null
+                        setupInitial = config; setupError = null
                         showSetup = true
                     }) { Text(stringResource(R.string.change)) }
                     TextButton(enabled = !busy, onClick = { showDisconnect = true }) {

@@ -50,6 +50,7 @@ import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveBackupItem
 import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveBackupManager
 import com.azimulkabir.actua.data.budget.gdrive.InvalidPassphraseException
 import com.azimulkabir.actua.data.budget.gdrive.PassphraseRequiredException
+import com.azimulkabir.actua.ui.settings.rememberWebDavRestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -69,6 +70,15 @@ internal fun NoBudgetScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
     var newBudgetName by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Restoring from a WebDAV server: connect, pick a backup, enter its password, open the new budget.
+    val webDavRestore = rememberWebDavRestore(
+        onRestored = { imported ->
+            ActiveBudgetStore(context).budgetId = imported.id
+            onBudgetInstalled()
+        },
+        onError = { errorMessage = it },
+    )
 
     // Google Drive restore states
     var showConnectDriveDialog by remember { mutableStateOf(false) }
@@ -143,6 +153,8 @@ internal fun NoBudgetScreen(
             }
         }
     }
+
+    webDavRestore.dialogs()
 
     // Connect to Google Drive Dialog
     if (showConnectDriveDialog) {
@@ -385,8 +397,15 @@ internal fun NoBudgetScreen(
                     }
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
         ) { Text(stringResource(R.string.navigation_restore_from_google_drive)) }
+        OutlinedButton(
+            onClick = {
+                errorMessage = null
+                webDavRestore.start()
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text(stringResource(R.string.webdav_restore_from)) }
 
         errorMessage?.let { error ->
             Text(

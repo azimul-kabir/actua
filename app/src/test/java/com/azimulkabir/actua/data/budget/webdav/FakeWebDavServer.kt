@@ -20,6 +20,8 @@ class FakeWebDavServer(
 ) : Dispatcher() {
     val files = linkedMapOf<String, ByteArray>()
     val collections = linkedSetOf(root)
+    /** Last-modified times (RFC 1123) by path; anything not listed here answers with [DEFAULT_MODIFIED]. */
+    val modified = mutableMapOf<String, String>()
     val requests: MutableList<RecordedRequest> = java.util.Collections.synchronizedList(mutableListOf())
 
     /** Answer 501 to MOVE, like a server that cannot rename. */
@@ -74,7 +76,7 @@ class FakeWebDavServer(
                 append("<d:response><d:href>${encode(entry)}${if (collection) "/" else ""}</d:href><d:propstat><d:prop>")
                 append(if (collection) "<d:resourcetype><d:collection/></d:resourcetype>" else "<d:resourcetype/>")
                 if (!collection) append("<d:getcontentlength>${files.getValue(entry).size}</d:getcontentlength>")
-                append("<d:getlastmodified>Wed, 04 Nov 2026 12:00:00 GMT</d:getlastmodified>")
+                append("<d:getlastmodified>${modified[entry] ?: DEFAULT_MODIFIED}</d:getlastmodified>")
                 append("</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>")
             }
             append("</d:multistatus>")
@@ -112,4 +114,8 @@ class FakeWebDavServer(
 
     private fun encode(path: String): String =
         path.split('/').joinToString("/") { URLEncoder.encode(it, "UTF-8").replace("+", "%20") }
+
+    companion object {
+        const val DEFAULT_MODIFIED = "Wed, 04 Nov 2026 12:00:00 GMT"
+    }
 }

@@ -38,4 +38,10 @@
     <string name="webdav_error_password_missing">A senha de backup não está definida, então nada foi enviado.</string>
     <string name="backup_created_and_queued_webdav">Backup criado e na fila para envio ao WebDAV.</string>
     <string name="backup_created_and_queued_drive_webdav">Backup criado e na fila para envio ao Google Drive e ao WebDAV.</string>
+    <string name="webdav_restore_from">Restaurar do WebDAV</string>
+    <string name="webdav_restore_loading">Procurando backups…</string>
+    <string name="webdav_restore_restoring">Restaurando o backup…</string>
+    <string name="webdav_restore_no_backups">Nenhum backup do Actua foi encontrado na pasta WebDAV.</string>
+    <string name="webdav_restore_change_connection">Alterar conexão</string>
+    <string name="webdav_restore_done">%1$s restaurado do WebDAV.</string>
 </resources>
