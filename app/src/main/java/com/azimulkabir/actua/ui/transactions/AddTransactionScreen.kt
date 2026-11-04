@@ -59,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
@@ -310,13 +311,14 @@ fun AddTransactionScreen(
 
     var showReceiptScan by remember { mutableStateOf(false) }
     val scanContext = LocalContext.current
+    val scanLocale = LocalConfiguration.current.locales[0]
     val applyReceipt: (List<String>) -> Unit = { rows ->
         val parsed = ReceiptTextParser.parse(
             rows = rows,
             decimalPlaces = CurrencyDisplay.decimalPlaces,
             today = LocalDate.now(),
             knownPayees = payeeOptions,
-            dayFirst = localeIsDayFirst(scanContext.resources.configuration.locales[0]),
+            dayFirst = localeIsDayFirst(scanLocale),
         )
         // The photo only suggests values; every field stays editable and nothing is saved here.
         showCalculator = false
