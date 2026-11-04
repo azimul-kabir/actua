@@ -34,4 +34,8 @@
     <string name="webdav_error_server">The server answered with error %1$d.</string>
     <string name="webdav_error_network">Could not reach the server. Check the address and your connection.</string>
     <string name="webdav_error_generic">The WebDAV backup failed.</string>
+    <string name="webdav_schedule_note">After each automatic backup, Actua uploads the newest one when the phone has a connection, and tries again if it fails. The last error shows here.</string>
+    <string name="webdav_error_password_missing">The backup password is not set, so nothing was uploaded.</string>
+    <string name="backup_created_and_queued_webdav">Backup created and queued for WebDAV upload.</string>
+    <string name="backup_created_and_queued_drive_webdav">Backup created and queued for Google Drive and WebDAV upload.</string>
 </resources>
