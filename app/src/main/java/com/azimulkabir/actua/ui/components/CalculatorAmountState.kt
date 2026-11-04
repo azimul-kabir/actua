@@ -141,6 +141,38 @@ class CalculatorAmountState(
         expressionParts.clear()
     }
 
+    /** True when there is nothing to clear: no amount, pending operator or typed factor. */
+    val isEmpty: Boolean
+        get() = operandCents == 0L && accumulatorCents == null && pending == null && factor == null
+
+    /** Everything that makes up the entry, so a Clear can be undone with [restore]. */
+    class Snapshot internal constructor(
+        internal val operandCents: Long,
+        internal val accumulatorCents: Long?,
+        internal val pending: Operator?,
+        internal val hasOperand: Boolean,
+        internal val decimalDigits: Int?,
+        internal val factor: String?,
+        internal val expressionParts: List<String>,
+    )
+
+    fun snapshot(): Snapshot = Snapshot(
+        operandCents, accumulatorCents, pending, hasOperand, decimalDigits, factor, expressionParts.toList(),
+    )
+
+    /** Puts the entry back exactly as it was when [snapshot] was taken. */
+    fun restore(snapshot: Snapshot) {
+        operandCents = snapshot.operandCents
+        accumulatorCents = snapshot.accumulatorCents
+        pending = snapshot.pending
+        hasOperand = snapshot.hasOperand
+        decimalDigits = snapshot.decimalDigits
+        factor = snapshot.factor
+        expressionParts.clear()
+        expressionParts.addAll(snapshot.expressionParts)
+        version++
+    }
+
     /** Replaces the entry with [value], discarding any pending expression. */
     fun setCents(value: Long) {
         clear()

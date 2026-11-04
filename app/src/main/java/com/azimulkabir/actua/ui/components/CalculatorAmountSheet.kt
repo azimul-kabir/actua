@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -43,7 +44,9 @@ import com.azimulkabir.actua.R
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 
 @Composable
@@ -62,6 +65,8 @@ fun CalculatorAmountSheet(
     val calculator = remember(conventionalAmountEntry) {
         CalculatorAmountState(initialCents, conventionalAmountEntry = conventionalAmountEntry)
     }
+    // Set by Clear and dropped by the next key, Paste or Undo; while set, the Clear button reads Undo.
+    var undoSnapshot by remember { mutableStateOf<CalculatorAmountState.Snapshot?>(null) }
     Popup(
         alignment = Alignment.BottomCenter,
         onDismissRequest = onDismiss,
@@ -74,8 +79,24 @@ fun CalculatorAmountSheet(
             tonalElevation = 3.dp,
         ) {
             Column {
-                PasteAmountButton(
+                KeypadActionRow(
+                    undoAvailable = undoSnapshot != null,
+                    onClear = {
+                        if (!calculator.isEmpty) {
+                            undoSnapshot = calculator.snapshot()
+                            calculator.clear()
+                            onApply(calculator.cents)
+                            onExpressionChange(calculator.expressionDisplay)
+                        }
+                    },
+                    onUndo = {
+                        undoSnapshot?.let(calculator::restore)
+                        undoSnapshot = null
+                        onApply(calculator.cents)
+                        onExpressionChange(calculator.expressionDisplay)
+                    },
                     onPasted = { cents ->
+                        undoSnapshot = null
                         calculator.setCents(cents)
                         onApply(calculator.cents)
                         onExpressionChange(calculator.expressionDisplay)
@@ -85,7 +106,8 @@ fun CalculatorAmountSheet(
                     calculator = calculator,
                     conventionalAmountEntry = conventionalAmountEntry,
                     showDisplay = false,
-                    onValueChange = onApply,
+                    // Any key press commits a Clear, so Undo only lasts until the next key.
+                    onValueChange = { cents -> undoSnapshot = null; onApply(cents) },
                     onExpressionChange = onExpressionChange,
                     onDone = { onApply(calculator.finish()); onDismiss(); onDone() },
                     onToggleSign = onToggleSign,
@@ -97,33 +119,75 @@ fun CalculatorAmountSheet(
 }
 
 /**
- * A text-only Paste button on the keypad's top edge. The clipboard is read only when it is tapped (Android 12+ tells
- * the user when an app reads it), the amount replaces the current entry, and a clipboard without a single
- * amount leaves the entry unchanged and says so.
+ * The slim row of text actions above the keys: Clear (which becomes Undo right after it is used) on the left
+ * and Paste on the right. Each label stays on one line and is cut with an ellipsis rather than wrapping.
  */
 @Composable
-private fun PasteAmountButton(onPasted: (Long) -> Unit) {
-    val context = LocalContext.current
-    val label = stringResource(R.string.amount_paste)
-    val description = stringResource(R.string.amount_paste_description)
-    val notFound = stringResource(R.string.amount_paste_not_found)
+private fun KeypadActionRow(
+    undoAvailable: Boolean,
+    onClear: () -> Unit,
+    onUndo: () -> Unit,
+    onPasted: (Long) -> Unit,
+) {
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(top = 4.dp),
-        horizontalArrangement = Arrangement.End,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        TextButton(
-            onClick = {
-                val text = context.getSystemService(ClipboardManager::class.java)
-                    ?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)
-                val cents = PastedAmount.parseCents(text, CurrencyDisplay.decimalPlaces)
-                if (cents != null) onPasted(cents) else Toast.makeText(context, notFound, Toast.LENGTH_SHORT).show()
-            },
-            // Text only and one line tall; a long label (large font, other language) is cut with an ellipsis.
-            modifier = Modifier.weight(1f, fill = false).height(36.dp).semantics { contentDescription = description },
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-        ) {
-            Text(label, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
-        }
+        KeypadTextButton(
+            label = stringResource(if (undoAvailable) R.string.amount_undo else R.string.amount_clear),
+            description = stringResource(
+                if (undoAvailable) R.string.amount_undo_description else R.string.amount_clear_description,
+            ),
+            onClick = if (undoAvailable) onUndo else onClear,
+            announceChanges = true,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        PasteAmountButton(onPasted, Modifier.weight(1f, fill = false))
+    }
+}
+
+/**
+ * A Paste button. The clipboard is read only when it is tapped (Android 12+ tells the user when an app reads
+ * it), the amount replaces the current entry, and a clipboard without a single amount leaves the entry
+ * unchanged and says so.
+ */
+@Composable
+private fun PasteAmountButton(onPasted: (Long) -> Unit, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val notFound = stringResource(R.string.amount_paste_not_found)
+    KeypadTextButton(
+        label = stringResource(R.string.amount_paste),
+        description = stringResource(R.string.amount_paste_description),
+        onClick = {
+            val text = context.getSystemService(ClipboardManager::class.java)
+                ?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)
+            val cents = PastedAmount.parseCents(text, CurrencyDisplay.decimalPlaces)
+            if (cents != null) onPasted(cents) else Toast.makeText(context, notFound, Toast.LENGTH_SHORT).show()
+        },
+        modifier = modifier,
+    )
+}
+
+/** A text-only button one line tall; a long label (large font, other language) is cut with an ellipsis. */
+@Composable
+private fun KeypadTextButton(
+    label: String,
+    description: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    /** Has TalkBack announce the new label when it changes, as Clear becomes Undo. */
+    announceChanges: Boolean = false,
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = modifier.height(36.dp).semantics {
+            contentDescription = description
+            if (announceChanges) liveRegion = LiveRegionMode.Polite
+        },
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+    ) {
+        Text(label, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
     }
 }
 

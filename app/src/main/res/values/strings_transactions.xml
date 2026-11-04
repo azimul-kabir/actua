@@ -245,4 +245,8 @@
     <string name="amount_paste">Paste</string>
     <string name="amount_paste_description">Paste amount from clipboard</string>
     <string name="amount_paste_not_found">No amount found on the clipboard</string>
+    <string name="amount_clear">Clear</string>
+    <string name="amount_clear_description">Clear amount</string>
+    <string name="amount_undo">Undo</string>
+    <string name="amount_undo_description">Undo clear</string>
 </resources>

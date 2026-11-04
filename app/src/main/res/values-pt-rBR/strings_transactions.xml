@@ -245,4 +245,8 @@
     <string name="amount_paste">Colar</string>
     <string name="amount_paste_description">Colar valor da área de transferência</string>
     <string name="amount_paste_not_found">Nenhum valor encontrado na área de transferência</string>
+    <string name="amount_clear">Limpar</string>
+    <string name="amount_clear_description">Limpar valor</string>
+    <string name="amount_undo">Desfazer</string>
+    <string name="amount_undo_description">Desfazer limpeza</string>
 </resources>

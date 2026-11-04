@@ -1,6 +1,8 @@
 package com.azimulkabir.actua.ui.components
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CalculatorAmountStateTest {
@@ -213,5 +215,85 @@ class CalculatorAmountStateTest {
         assertEquals(100, state.cents)
         state.backspace()
         assertEquals(0, state.cents)
+    }
+
+    @Test fun isEmptyOnlyWhenThereIsNothingToClear() {
+        val state = CalculatorAmountState()
+        assertTrue(state.isEmpty)
+        state.digit(1)
+        assertFalse(state.isEmpty)
+        state.clear()
+        assertTrue(state.isEmpty)
+        state.digit(1)
+        state.operator(CalculatorAmountState.Operator.ADD)
+        assertFalse(state.isEmpty)
+        state.clear()
+        assertTrue(state.isEmpty)
+        state.setCents(5)
+        assertFalse(state.isEmpty)
+    }
+
+    @Test fun restoreBringsBackATypedAmountAfterClear() {
+        val state = CalculatorAmountState()
+        state.digit(1); state.digit(2); state.digit(0)
+        val snapshot = state.snapshot()
+        state.clear()
+        assertEquals(0, state.cents)
+        assertEquals("0.00", state.display)
+        state.restore(snapshot)
+        assertEquals(120, state.cents)
+        assertEquals("1.20", state.display)
+    }
+
+    @Test fun restoreBringsBackAPendingOperator() {
+        val state = CalculatorAmountState()
+        state.digit(1); state.digit(0); state.digit(0)
+        state.operator(CalculatorAmountState.Operator.ADD)
+        state.digit(2); state.digit(0); state.digit(0)
+        val display = state.display
+        val expression = state.expressionDisplay
+        val snapshot = state.snapshot()
+        state.clear()
+        state.restore(snapshot)
+        assertEquals(display, state.display)
+        assertEquals(expression, state.expressionDisplay)
+        assertEquals(300, state.finish())
+    }
+
+    @Test fun restoreBringsBackATypedFactorAndTypingContinues() {
+        val state = CalculatorAmountState()
+        state.digit(1); state.digit(2); state.digit(0); state.digit(0)
+        state.operator(CalculatorAmountState.Operator.MULTIPLY)
+        state.digit(1); state.decimalPoint(); state.digit(5)
+        val snapshot = state.snapshot()
+        state.clear()
+        state.restore(snapshot)
+        assertEquals("12.00 × 1.5", state.display)
+        assertEquals(1_800, state.cents)
+        state.digit(2)
+        assertEquals("12.00 × 1.52", state.display)
+    }
+
+    @Test fun restoreBringsBackAnAmountSetFromTheClipboard() {
+        val state = CalculatorAmountState()
+        state.setCents(1_250)
+        val snapshot = state.snapshot()
+        state.clear()
+        state.restore(snapshot)
+        assertEquals(1_250, state.cents)
+        assertEquals("12.50", state.display)
+    }
+
+    @Test fun snapshotIsNotChangedByLaterEntry() {
+        val state = CalculatorAmountState()
+        state.digit(1); state.digit(0); state.digit(0)
+        state.operator(CalculatorAmountState.Operator.ADD)
+        state.digit(5)
+        val snapshot = state.snapshot()
+        state.clear()
+        state.digit(9); state.operator(CalculatorAmountState.Operator.SUBTRACT)
+        state.restore(snapshot)
+        assertEquals("1.00 + 0.05", state.display)
+        assertEquals(105, state.cents)
     }
 }
