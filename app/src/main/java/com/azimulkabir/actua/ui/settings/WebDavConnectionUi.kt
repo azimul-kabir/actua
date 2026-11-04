@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.budget.webdav.WebDavBackupManager
 import com.azimulkabir.actua.data.budget.webdav.WebDavConfig
-import com.azimulkabir.actua.data.budget.webdav.WebDavErrorMessages
 import com.azimulkabir.actua.data.budget.webdav.WebDavException
 import com.azimulkabir.actua.data.network.ServerCertificateInfo
 import com.azimulkabir.actua.data.network.TrustedCertificateStore
@@ -86,7 +85,8 @@ internal suspend fun connectWebDav(
 } catch (error: kotlinx.coroutines.CancellationException) {
     throw error
 } catch (error: Exception) {
-    WebDavConnectResult.Failed(WebDavErrorMessages.describe(resources, error))
+    // Explaining the error may resolve the server's host, so it is done off the main thread.
+    WebDavConnectResult.Failed(withContext(Dispatchers.IO) { manager.describe(error) })
 }
 
 /**

@@ -32,6 +32,11 @@ ever listed, downloaded or deleted; retention removes old backups there and noth
 - **Self-signed certificates** (common on home NAS devices) can be trusted for that one server after you compare
   its SHA-256 fingerprint. Hostname checking stays on. This uses the same trusted-certificate store as Actual
   servers.
+- **Servers on your home network on Android 17 or later** need the "Nearby devices" permission, which Actua asks
+  for the first time you connect, restore or back up to such a server (a NAS or an address like `192.168.x.x` or
+  `nas.local`). Public servers never trigger the prompt, and neither does Android 16 or earlier. If you decline, Actua
+  says why it cannot connect and where to allow it. Background uploads cannot ask, so if the permission is later
+  turned off they fail with the same explanation under WebDAV backup in Backups.
 - Redirects between `http` and `https` are not followed, so credentials are never resent to another scheme. If the
   server redirects, use the address it redirects to.
 - The app password and the backup password are encrypted with an Android Keystore key and are excluded from Android

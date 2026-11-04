@@ -1,6 +1,11 @@
 package com.azimulkabir.actua.data.budget.webdav
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.budget.BackupService
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.BudgetMetadata
@@ -43,6 +48,28 @@ class WebDavBackupManager(
 
     fun recordError(error: String?) {
         store.lastBackupError = error
+    }
+
+    /**
+     * The wording for [error]. A server that cannot be reached is explained as the missing Nearby devices
+     * permission when that is the likely cause (Android 17 or later, server on the local network, permission not
+     * granted). It resolves the server's host, so call it off the main thread.
+     */
+    fun describe(error: Throwable): String {
+        val missingPermission = Build.VERSION.SDK_INT >= WebDavLocalNetwork.FIRST_RESTRICTED_SDK &&
+            ContextCompat.checkSelfPermission(appContext, Manifest.permission.ACCESS_LOCAL_NETWORK) !=
+            PackageManager.PERMISSION_GRANTED
+        val explainedByPermission = WebDavLocalNetwork.explainsFailure(
+            error = error,
+            serverUrl = store.load()?.serverUrl,
+            sdkInt = Build.VERSION.SDK_INT,
+            permissionGranted = !missingPermission,
+        )
+        return if (explainedByPermission) {
+            appContext.getString(R.string.webdav_error_local_network_denied)
+        } else {
+            WebDavErrorMessages.describe(appContext.resources, error)
+        }
     }
 
     /**

@@ -42,7 +42,7 @@ class WebDavUploadWorker(
             },
             upload = { id, archive -> manager.uploadBackup(id, archive) },
             recordError = manager::recordError,
-            describe = { error -> WebDavErrorMessages.describe(applicationContext.resources, error) },
+            describe = manager::describe,
             passphraseMissingMessage = applicationContext.getString(R.string.webdav_error_password_missing),
         ).run(budgetId, runAttemptCount)
 
