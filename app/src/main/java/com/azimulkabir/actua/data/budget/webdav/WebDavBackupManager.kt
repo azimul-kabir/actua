@@ -60,6 +60,7 @@ class WebDavBackupManager(
     }
 
     fun disconnect() {
+        WebDavBackupScheduler.cancelAll(appContext)
         store.clear()
     }
 

@@ -42,6 +42,9 @@ class BackupService(
             runCatching {
                 com.azimulkabir.actua.data.budget.gdrive.GoogleDriveBackupScheduler.scheduleUpload(context, budgetId)
             }
+            runCatching {
+                com.azimulkabir.actua.data.budget.webdav.WebDavBackupScheduler.scheduleUpload(context, budgetId)
+            }
             return archive
         } finally {
             snapshot.delete()
@@ -96,6 +99,9 @@ class BackupService(
             runCatching { destinations.mirror(budgetId, destination) }
             runCatching {
                 com.azimulkabir.actua.data.budget.gdrive.GoogleDriveBackupScheduler.scheduleUpload(context, budgetId)
+            }
+            runCatching {
+                com.azimulkabir.actua.data.budget.webdav.WebDavBackupScheduler.scheduleUpload(context, budgetId)
             }
             return destination
         } finally {

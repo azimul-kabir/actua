@@ -55,6 +55,7 @@ import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveBackupItem
 import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveBackupManager
 import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveConfig
 import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveEncryptionStore
+import com.azimulkabir.actua.data.budget.webdav.WebDavBackupStore
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
 import com.azimulkabir.actua.ui.components.ActuaGroupLabel
@@ -86,6 +87,7 @@ fun BackupsScreen(
     val service = remember { BackupService(context) }
     val destinations = remember { BackupDestinationManager(context) }
     val driveManager = remember { GoogleDriveBackupManager(context) }
+    val webDavStore = remember { WebDavBackupStore(context) }
     val authState by GoogleDriveAuthManager.authState.collectAsState()
     val scope = rememberCoroutineScope()
 
@@ -138,8 +140,13 @@ fun BackupsScreen(
             runCatching { withContext(Dispatchers.IO) { service.makeBackup(budgetId) } }
                 .onSuccess {
                     message = resources.getString(R.string.backup_created)
-                    if (driveManager.isConnected() && driveManager.hasEncryptionPassphrase()) {
-                        message = resources.getString(R.string.backup_created_and_queued_drive)
+                    val driveQueued = driveManager.isConnected() && driveManager.hasEncryptionPassphrase()
+                    val webDavQueued = webDavStore.isConfigured() && webDavStore.hasPassphrase()
+                    when {
+                        driveQueued && webDavQueued ->
+                            message = resources.getString(R.string.backup_created_and_queued_drive_webdav)
+                        driveQueued -> message = resources.getString(R.string.backup_created_and_queued_drive)
+                        webDavQueued -> message = resources.getString(R.string.backup_created_and_queued_webdav)
                     }
                 }
                 .onFailure { message = it.message ?: resources.getString(R.string.could_not_create_backup) }
