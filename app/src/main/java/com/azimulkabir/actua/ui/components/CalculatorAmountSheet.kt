@@ -1,5 +1,7 @@
 package com.azimulkabir.actua.ui.components
 
+import android.content.ClipboardManager
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,8 +10,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.ZeroCornerSize
@@ -17,9 +21,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -27,11 +33,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.R
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -65,16 +74,57 @@ fun CalculatorAmountSheet(
             color = MaterialTheme.colorScheme.surfaceContainer,
             tonalElevation = 3.dp,
         ) {
-            CompactCalculatorPad(
-                calculator = calculator,
-                conventionalAmountEntry = conventionalAmountEntry,
-                showDisplay = false,
-                onValueChange = onApply,
-                onExpressionChange = onExpressionChange,
-                onDone = { onApply(calculator.finish()); onDismiss(); onDone() },
-                onToggleSign = onToggleSign,
-                toggleSignLabel = toggleSignLabel,
-            )
+            Column {
+                PasteAmountButton(
+                    onPasted = { cents ->
+                        calculator.setCents(cents)
+                        onApply(calculator.cents)
+                        onExpressionChange(calculator.expressionDisplay)
+                    },
+                )
+                CompactCalculatorPad(
+                    calculator = calculator,
+                    conventionalAmountEntry = conventionalAmountEntry,
+                    showDisplay = false,
+                    onValueChange = onApply,
+                    onExpressionChange = onExpressionChange,
+                    onDone = { onApply(calculator.finish()); onDismiss(); onDone() },
+                    onToggleSign = onToggleSign,
+                    toggleSignLabel = toggleSignLabel,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * A Paste button on the keypad's top edge. The clipboard is read only when it is tapped (Android 12+ tells
+ * the user when an app reads it), the amount replaces the current entry, and a clipboard without a single
+ * amount leaves the entry unchanged and says so.
+ */
+@Composable
+private fun PasteAmountButton(onPasted: (Long) -> Unit) {
+    val context = LocalContext.current
+    val label = stringResource(R.string.amount_paste)
+    val description = stringResource(R.string.amount_paste_description)
+    val notFound = stringResource(R.string.amount_paste_not_found)
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(top = 4.dp),
+        horizontalArrangement = Arrangement.End,
+    ) {
+        TextButton(
+            onClick = {
+                val text = context.getSystemService(ClipboardManager::class.java)
+                    ?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)
+                val cents = PastedAmount.parseCents(text, CurrencyDisplay.decimalPlaces)
+                if (cents != null) onPasted(cents) else Toast.makeText(context, notFound, Toast.LENGTH_SHORT).show()
+            },
+            modifier = Modifier.height(36.dp).semantics { contentDescription = description },
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+        ) {
+            Icon(Icons.Outlined.ContentPaste, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(label)
         }
     }
 }

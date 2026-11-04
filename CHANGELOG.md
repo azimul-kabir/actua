@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added a Paste button to the amount keypad that fills the amount from the clipboard ([#1451](https://github.com/azimul-kabir/actua/pull/1451))
+
 ### Fixed
 
 - Fixed the keyboard covering the field being edited in Review captured ([#1449](https://github.com/azimul-kabir/actua/pull/1449))
