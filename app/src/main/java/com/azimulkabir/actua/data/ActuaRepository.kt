@@ -18,6 +18,8 @@ import com.azimulkabir.actua.data.budget.BudgetMovementNote
 import com.azimulkabir.actua.data.budget.PayeeSuggestions
 import com.azimulkabir.actua.data.budget.ActualBudgetWriter
 import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
+import com.azimulkabir.actua.data.receipts.ReceiptKeepResult
+import com.azimulkabir.actua.data.receipts.ReceiptPhoto
 import com.azimulkabir.actua.data.receipts.ReceiptPhotoStore
 import com.azimulkabir.actua.data.bank.BankSyncAccountSettings
 import com.azimulkabir.actua.data.bank.BankSyncFlag
@@ -2589,13 +2591,16 @@ class ActuaRepository(context: Context) {
 
     private val receiptPhotos = ReceiptPhotoStore(appContext)
 
-    /** The kept receipt photo of [transactionId] in the open budget, if there is one on this device. */
-    fun receiptPhoto(transactionId: String): java.io.File? =
-        activeMetadata?.id?.let { receiptPhotos.photoFile(it, transactionId) }
+    /** The kept receipt photo of [transactionId] in the open budget, if there is one here (private storage or the chosen folder). */
+    fun receiptPhoto(transactionId: String): ReceiptPhoto? =
+        activeMetadata?.id?.let { receiptPhotos.photo(it, transactionId) }
 
-    /** Keeps [pending] (a compressed copy made by a scan) as the receipt photo of [transactionId]. */
-    fun keepReceiptPhoto(transactionId: String, pending: java.io.File): Boolean =
-        activeMetadata?.id?.let { receiptPhotos.keep(it, transactionId, pending) } ?: false
+    /**
+     * Keeps [pending] (a compressed copy made by a scan) as the receipt photo of [transactionId], in the chosen
+     * receipt photo folder if there is one and it works, otherwise in private storage.
+     */
+    fun keepReceiptPhoto(transactionId: String, pending: java.io.File): ReceiptKeepResult =
+        activeMetadata?.id?.let { receiptPhotos.keepPreferred(it, transactionId, pending) } ?: ReceiptKeepResult.FAILED
 
     /** Removes the kept receipt photo of [transactionId]; the transaction itself is not changed. */
     fun deleteReceiptPhoto(transactionId: String) = forgetReceiptPhotos(listOf(transactionId))

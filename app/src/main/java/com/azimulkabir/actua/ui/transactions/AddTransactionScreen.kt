@@ -100,6 +100,7 @@ import com.azimulkabir.actua.ui.components.currencyInputPrefix
 import com.azimulkabir.actua.ui.components.withCurrencySymbol
 import com.azimulkabir.actua.ui.components.CalculatorAmountSheet
 import com.azimulkabir.actua.data.receipts.ParsedReceipt
+import com.azimulkabir.actua.data.receipts.ReceiptPhoto
 import com.azimulkabir.actua.data.receipts.ReceiptScanner
 import com.azimulkabir.actua.data.receipts.ReceiptSplits
 import com.azimulkabir.actua.data.receipts.ReceiptTextParser
@@ -153,7 +154,9 @@ fun AddTransactionScreen(
     /** Reads receipts on the device; null (the `fdroid` flavor) hides every scan entry. */
     receiptScanner: ReceiptScanner? = null,
     /** The receipt photo kept with the edited transaction on this device, if any. */
-    receiptPhoto: File? = null,
+    receiptPhoto: ReceiptPhoto? = null,
+    /** Name of the receipt photo folder the user chose, or null while photos are kept in private storage. */
+    receiptPhotoFolderName: String? = null,
     /** Called with the scanned photo while "Keep the receipt photo" is on, or null; the caller saves or discards it. */
     onKeptReceiptPhotoChange: (File?) -> Unit = {},
     onDeleteReceiptPhoto: () -> Unit = {},
@@ -693,7 +696,11 @@ fun AddTransactionScreen(
                     icon = Icons.Outlined.CameraAlt,
                     label = stringResource(R.string.receipt_photo_keep),
                     value = null,
-                    caption = stringResource(R.string.receipt_photo_keep_caption),
+                    caption = if (receiptPhotoFolderName != null) {
+                        stringResource(R.string.receipt_photo_keep_caption_folder, receiptPhotoFolderName)
+                    } else {
+                        stringResource(R.string.receipt_photo_keep_caption)
+                    },
                     checked = keepScannedPhoto,
                     onClick = { keepScannedPhoto = !keepScannedPhoto },
                 )
@@ -705,7 +712,10 @@ fun AddTransactionScreen(
                     icon = Icons.Outlined.CameraAlt,
                     label = stringResource(R.string.receipt_photo_title),
                     value = stringResource(R.string.receipt_photo_view),
-                    caption = stringResource(R.string.receipt_photo_keep_caption),
+                    caption = stringResource(
+                        if (receiptPhoto?.inFolder == true) R.string.receipt_photo_in_folder_caption
+                        else R.string.receipt_photo_keep_caption,
+                    ),
                     onClick = { showReceiptPhoto = true },
                 )
             }

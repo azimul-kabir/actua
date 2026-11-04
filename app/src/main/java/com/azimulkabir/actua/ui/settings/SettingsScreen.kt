@@ -189,6 +189,9 @@ fun SettingsScreen(
     onCustomizeTabBarClick: () -> Unit = {},
     conventionalAmountEntry: Boolean = true,
     onConventionalAmountEntryChange: (Boolean) -> Unit = {},
+    /** The receipt photo folder, or null where receipt scanning does not exist (the row is hidden). */
+    receiptPhotoFolder: com.azimulkabir.actua.data.receipts.ReceiptPhotoFolderState? = null,
+    onReceiptPhotoFolderChanged: () -> Unit = {},
     keepLastTransactionDate: Boolean = false,
     onKeepLastTransactionDateChange: (Boolean) -> Unit = {},
     /** Tab bar display options (labels, hide while scrolling); null hides those rows. */
@@ -605,6 +608,11 @@ fun SettingsScreen(
                             showCurrentBalanceSummary,
                             onShowCurrentBalanceSummaryChange,
                         )
+                    }
+                    if (receiptPhotoFolder != null) {
+                        SettingsGroup(stringResource(R.string.receipt_folder_group)) {
+                            ReceiptPhotoFolderSection(receiptPhotoFolder, onReceiptPhotoFolderChanged)
+                        }
                     }
                     SettingsGroup {
                         SettingsRow(

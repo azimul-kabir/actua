@@ -9,7 +9,39 @@ import android.net.Uri
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.util.UUID
+
+/** A kept receipt photo, in Actua's private storage or in the folder the user chose. */
+class ReceiptPhoto private constructor(private val file: File?, private val document: Uri?) {
+    /** True for a photo kept in the user's own folder, which the app lock does not protect. */
+    val inFolder: Boolean get() = document != null
+
+    /** The photo's bytes, or null when it can no longer be read (the folder is gone or no longer permitted). */
+    fun open(context: Context): InputStream? = runCatching {
+        file?.inputStream() ?: document?.let { context.contentResolver.openInputStream(it) }
+    }.getOrNull()
+
+    internal companion object {
+        fun ofFile(file: File) = ReceiptPhoto(file, null)
+        fun ofDocument(uri: Uri) = ReceiptPhoto(null, uri)
+    }
+}
+
+/** Where [ReceiptPhotoStore.keepPreferred] put a photo. */
+enum class ReceiptKeepResult {
+    /** In the folder the user chose. */
+    IN_FOLDER,
+
+    /** In Actua's private storage, as no folder is chosen. */
+    PRIVATE,
+
+    /** In private storage because the chosen folder could not be used (gone, unmounted or no longer permitted). */
+    PRIVATE_FOLDER_UNAVAILABLE,
+
+    /** Not kept at all. */
+    FAILED,
+}
 
 /**
  * Receipt photos kept with a transaction, on this device only.
@@ -20,9 +52,43 @@ import java.util.UUID
  * and its photo is just that file name. It is not written to the budget database or the message log, adds
  * no synced field, and isolates budgets by directory. A missing file simply means no photo. The folder is
  * excluded from Android backup and device transfer in `backup_rules.xml` and `data_extraction_rules.xml`.
+ *
+ * If the user chose a receipt photo folder ([ReceiptPhotoFolder]), new photos go there instead, in the same
+ * layout per budget and transaction. Photos already kept are not moved: lookups check the chosen folder first
+ * and then private storage, and deletes remove a photo from both.
  */
 class ReceiptPhotoStore(context: Context) {
     private val root = File(context.applicationContext.filesDir, DIRECTORY)
+    private val folder = ReceiptPhotoFolder(context)
+
+    /** The kept photo of [transactionId] in [budgetId], from the chosen folder or private storage, or null. */
+    fun photo(budgetId: String, transactionId: String): ReceiptPhoto? {
+        if (!isSafeName(budgetId) || !isSafeName(transactionId)) return null
+        folder.usableTree()?.let { tree ->
+            folder.find(tree, budgetId, transactionId)?.let { return ReceiptPhoto.ofDocument(it) }
+        }
+        return photoFile(budgetId, transactionId)?.let(ReceiptPhoto::ofFile)
+    }
+
+    /**
+     * Keeps [pending] as the photo of [transactionId]: in the chosen folder when there is one and it works,
+     * otherwise in private storage, and the result says which. The pending cache copy is consumed either way.
+     */
+    fun keepPreferred(budgetId: String, transactionId: String, pending: File): ReceiptKeepResult {
+        if (!isSafeName(budgetId) || !isSafeName(transactionId)) return ReceiptKeepResult.FAILED
+        val chosen = folder.state()
+        val tree = chosen.uri
+        if (tree != null && chosen.usable && pending.isFile && folder.write(tree, budgetId, transactionId, pending)) {
+            pending.delete()
+            return ReceiptKeepResult.IN_FOLDER
+        }
+        val kept = keep(budgetId, transactionId, pending)
+        return when {
+            !kept -> ReceiptKeepResult.FAILED
+            tree != null -> ReceiptKeepResult.PRIVATE_FOLDER_UNAVAILABLE
+            else -> ReceiptKeepResult.PRIVATE
+        }
+    }
 
     /** The kept photo of [transactionId] in [budgetId], or null when there is none or an id is not a safe name. */
     fun photoFile(budgetId: String, transactionId: String): File? {
@@ -47,9 +113,12 @@ class ReceiptPhotoStore(context: Context) {
         }
     }
 
-    /** Deletes the photo of [transactionId]; a no-op when there is none. */
+    /** Deletes the photo of [transactionId] from private storage and the chosen folder; a no-op when there is none. */
     fun delete(budgetId: String, transactionId: String) {
         fileFor(budgetId, transactionId)?.delete()
+        if (isSafeName(budgetId) && isSafeName(transactionId)) {
+            folder.usableTree()?.let { folder.delete(it, budgetId, transactionId) }
+        }
     }
 
     fun delete(budgetId: String, transactionIds: Collection<String>) {
@@ -60,6 +129,7 @@ class ReceiptPhotoStore(context: Context) {
     fun deleteAll(budgetId: String) {
         val directory = directoryFor(budgetId) ?: return
         directory.deleteRecursively()
+        folder.usableTree()?.let { folder.deleteBudget(it, budgetId) }
     }
 
     private fun directoryFor(budgetId: String): File? =

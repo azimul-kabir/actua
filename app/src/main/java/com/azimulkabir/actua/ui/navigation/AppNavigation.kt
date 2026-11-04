@@ -189,6 +189,8 @@ import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.EffectiveDisplayFormats
 import com.azimulkabir.actua.data.preferences.FavoritePreferences
 import com.azimulkabir.actua.data.preferences.RememberedEntryDate
+import com.azimulkabir.actua.data.receipts.ReceiptKeepResult
+import com.azimulkabir.actua.data.receipts.ReceiptPhotoFolder
 import com.azimulkabir.actua.data.receipts.createReceiptScanner
 import com.azimulkabir.actua.data.preferences.HomePreferences
 import com.azimulkabir.actua.data.preferences.TabBarPreferences
@@ -724,6 +726,8 @@ fun AppNavigation(
     // file until the transaction is saved, then moves into this device's receipt photo folder.
     var keptReceiptPhoto by remember { mutableStateOf<java.io.File?>(null) }
     var receiptPhotoVersion by remember { mutableIntStateOf(0) }
+    var receiptPhotoFolderVersion by remember { mutableIntStateOf(0) }
+    val receiptPhotoFolder = remember(receiptPhotoFolderVersion) { ReceiptPhotoFolder(context).state() }
     var keepLastTransactionDate by remember { mutableStateOf(displayPreferences.keepLastTransactionDate) }
     val tabBarScroll = remember { TabBarScrollState(displayPreferences) }
     val showBottomNavigationLabels = tabBarScroll.showLabels
@@ -2379,12 +2383,19 @@ fun AppNavigation(
                             WidgetUpdater.requestAll(context)
                             keptReceiptPhoto?.let { photo ->
                                 val createdId = result.getOrNull()
-                                withContext(Dispatchers.IO) {
+                                val outcome = withContext(Dispatchers.IO) {
                                     // A transfer has no single id to attach a photo to; the cache file goes away.
-                                    if (!wasEditing && createdId != null) repository.keepReceiptPhoto(createdId, photo)
+                                    val kept = if (!wasEditing && createdId != null) repository.keepReceiptPhoto(createdId, photo) else null
                                     photo.delete()
+                                    kept
                                 }
                                 keptReceiptPhoto = null
+                                val notice = when (outcome) {
+                                    ReceiptKeepResult.PRIVATE_FOLDER_UNAVAILABLE -> R.string.receipt_photo_folder_unavailable_kept_private
+                                    ReceiptKeepResult.FAILED -> R.string.receipt_photo_not_kept
+                                    else -> null
+                                }
+                                if (notice != null) coroutineScope.launch { snackbarHostState.showSnackbar(context.getString(notice)) }
                             }
                             if (!wasEditing && wasPlainNewEntry) {
                                 parseStoredDate(savedTransaction.date)?.let {
@@ -2484,7 +2495,9 @@ fun AppNavigation(
                     conventionalAmountEntry = conventionalAmountEntry,
                     newTransactionDate = { RememberedEntryDate.shared.startDate(keepLastTransactionDate) },
                     receiptScanner = receiptScanner,
-                    receiptPhoto = remember(editingTransaction?.id, receiptPhotoVersion, dataVersion) {
+                    receiptPhotoFolderName = receiptPhotoFolder.takeIf { it.usable }
+                        ?.let { it.name ?: context.getString(R.string.selected_folder) },
+                    receiptPhoto = remember(editingTransaction?.id, receiptPhotoVersion, dataVersion, receiptPhotoFolderVersion) {
                         editingTransaction?.id?.takeIf(String::isNotBlank)?.let(repository::receiptPhoto)
                     },
                     onKeptReceiptPhotoChange = { keptReceiptPhoto = it },
@@ -3507,6 +3520,8 @@ fun AppNavigation(
                     onCustomizeTabBarClick = { detail = DetailDestination.CustomizeTabBar },
                     conventionalAmountEntry = conventionalAmountEntry,
                     onConventionalAmountEntryChange = settingsConventionalAmountEntryChange,
+                    receiptPhotoFolder = receiptPhotoFolder.takeIf { receiptScanner != null },
+                    onReceiptPhotoFolderChanged = { receiptPhotoFolderVersion += 1 },
                     keepLastTransactionDate = keepLastTransactionDate,
                     onKeepLastTransactionDateChange = settingsKeepLastTransactionDateChange,
                     tabBarDisplay = tabBarScroll,
