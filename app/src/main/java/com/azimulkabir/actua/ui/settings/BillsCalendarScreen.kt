@@ -83,7 +83,7 @@ fun BillsCalendarScreen(
     loadItems: (Int, Int, Boolean) -> List<BillCalendarItem>,
     refreshKey: Int,
     hideDecimalPlaces: Boolean,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onAddSchedule: () -> Unit,
     onConfigureCards: () -> Unit,
     onEditSchedule: (String) -> Unit,
@@ -110,7 +110,7 @@ fun BillsCalendarScreen(
     val summary = BillsCalendarEngine.summarize(items)
     val visible = BillsCalendarEngine.filter(items, filter, selectedDate)
 
-    BackHandler(onBack = onBack)
+    if (onBack != null) BackHandler(onBack = onBack)
     Column(modifier.fillMaxSize()) {
         ActuaScreenHeader(title = stringResource(R.string.fs_bills), onBack = onBack) {
             IconButton(onClick = if (mode == BillsTabMode.RECURRING) onAddSchedule else onConfigureCards) {

@@ -13,19 +13,22 @@ class TabBarLayoutTest {
             listOf(TabItem.BUDGET, TabItem.ACCOUNTS, TabItem.ADD, TabItem.REPORTS, TabItem.MANAGE),
             default.visibleTabs,
         )
-        assertEquals(setOf(TabItem.HOME, TabItem.TRANSACTIONS), default.hidden)
+        assertEquals(setOf(TabItem.HOME, TabItem.TRANSACTIONS, TabItem.BILLS), default.hidden)
         assertEquals(TabItem.entries.toSet(), default.order.toSet())
     }
 
     @Test fun move_tab_reorders_and_leaves_manage_untouched() {
-        // default() order is [HOME, BUDGET, ACCOUNTS, ADD, REPORTS, TRANSACTIONS, MANAGE].
+        // default() order is [HOME, BUDGET, ACCOUNTS, ADD, REPORTS, TRANSACTIONS, BILLS, MANAGE].
         val moved = TabBarLayoutPlanner.moveTab(
             TabBarLayout.default().order,
             TabItem.ACCOUNTS,
             TabItem.BUDGET,
         )
         assertEquals(
-            listOf(TabItem.HOME, TabItem.ACCOUNTS, TabItem.BUDGET, TabItem.ADD, TabItem.REPORTS, TabItem.TRANSACTIONS, TabItem.MANAGE),
+            listOf(
+                TabItem.HOME, TabItem.ACCOUNTS, TabItem.BUDGET, TabItem.ADD, TabItem.REPORTS,
+                TabItem.TRANSACTIONS, TabItem.BILLS, TabItem.MANAGE,
+            ),
             moved,
         )
     }
@@ -48,8 +51,8 @@ class TabBarLayoutTest {
     }
 
     @Test fun move_down_from_the_last_position_is_a_no_op() {
-        // TRANSACTIONS is the last reorderable entry in default()'s order (Manage excluded).
-        assertNull(TabBarLayoutPlanner.moveTabDown(TabBarLayout.default().order, TabItem.TRANSACTIONS))
+        // BILLS is the last reorderable entry in default()'s order (Manage excluded).
+        assertNull(TabBarLayoutPlanner.moveTabDown(TabBarLayout.default().order, TabItem.BILLS))
     }
 
     @Test fun move_tab_with_unknown_or_equal_ids_is_a_no_op() {
@@ -133,7 +136,7 @@ class TabBarLayoutTest {
     }
 
     @Test fun sanitize_hides_extra_tabs_to_respect_the_maximum_visible_count() {
-        // All 7 TabItem entries visible at once exceeds the 5-tab maximum.
+        // All 8 TabItem entries visible at once exceeds the 5-tab maximum.
         val sanitized = TabBarLayoutPlanner.sanitize(TabBarLayout(TabItem.entries.toList(), emptySet()))
 
         assertEquals(5, sanitized.visibleTabs.size)
@@ -141,7 +144,7 @@ class TabBarLayoutTest {
     }
 
     @Test fun codec_round_trips_a_customized_layout() {
-        // A full, already-sanitized order (all TabItem entries, 5 of 7 visible) so encode()'s
+        // A full, already-sanitized order (all TabItem entries, 5 of 8 visible) so encode()'s
         // internal sanitize() pass is a no-op and the round trip is exact.
         val layout = TabBarLayout(
             order = listOf(
@@ -151,9 +154,10 @@ class TabBarLayoutTest {
                 TabItem.TRANSACTIONS,
                 TabItem.REPORTS,
                 TabItem.HOME,
+                TabItem.BILLS,
                 TabItem.ADD,
             ),
-            hidden = setOf(TabItem.TRANSACTIONS, TabItem.ADD),
+            hidden = setOf(TabItem.TRANSACTIONS, TabItem.ADD, TabItem.BILLS),
         )
         val encoded = TabBarLayoutCodec.encode(layout)
         assertEquals(layout, TabBarLayoutCodec.decode(encoded))
@@ -170,5 +174,84 @@ class TabBarLayoutTest {
         assertEquals(TabItem.entries.toSet(), decoded.order.toSet())
         assertTrue(decoded.hidden.none { it.name == "SOME_RETIRED_TAB" })
         assertEquals(TabItem.MANAGE, decoded.order.first())
+    }
+
+    // --- The Bills tab ---------------------------------------------------------------------------------------
+
+    /** The bar as it was saved before the Bills tab existed: the default arrangement without it. */
+    private val savedBeforeBills = TabBarLayout(
+        order = listOf(
+            TabItem.HOME, TabItem.BUDGET, TabItem.ACCOUNTS, TabItem.ADD,
+            TabItem.REPORTS, TabItem.TRANSACTIONS, TabItem.MANAGE,
+        ),
+        hidden = setOf(TabItem.HOME, TabItem.TRANSACTIONS),
+    )
+
+    @Test fun a_layout_saved_before_bills_existed_gets_it_hidden_and_keeps_its_visible_tabs() {
+        val sanitized = TabBarLayoutPlanner.sanitize(savedBeforeBills)
+
+        assertTrue(TabItem.BILLS in sanitized.hidden)
+        assertEquals(savedBeforeBills.visibleTabs, sanitized.visibleTabs)
+    }
+
+    @Test fun bills_does_not_appear_in_a_bar_with_room_for_it() {
+        // Only four tabs visible: a new tab must still not be added to the user's bar.
+        val fourVisible = savedBeforeBills.copy(hidden = savedBeforeBills.hidden + TabItem.ADD)
+        assertEquals(4, fourVisible.visibleTabs.size)
+
+        val sanitized = TabBarLayoutPlanner.sanitize(fourVisible)
+
+        assertEquals(fourVisible.visibleTabs, sanitized.visibleTabs)
+        assertTrue(TabItem.BILLS in sanitized.hidden)
+    }
+
+    @Test fun bills_is_placed_before_manage_when_manage_was_last() {
+        val order = TabBarLayoutPlanner.sanitize(savedBeforeBills).order
+
+        assertEquals(TabItem.MANAGE, order.last())
+        assertEquals(TabItem.BILLS, order[order.size - 2])
+        assertEquals(savedBeforeBills.order.dropLast(1), order.take(savedBeforeBills.order.size - 1))
+    }
+
+    @Test fun bills_can_be_shown_when_there_is_room_and_refuses_at_five() {
+        val withRoom = TabBarLayoutPlanner.sanitize(
+            savedBeforeBills.copy(hidden = savedBeforeBills.hidden + TabItem.ADD),
+        )
+        val shown = TabBarLayoutPlanner.setHidden(withRoom, TabItem.BILLS, hidden = false)
+        assertTrue(TabItem.BILLS in shown.visibleTabs)
+        assertEquals(5, shown.visibleTabs.size)
+
+        val atFive = TabBarLayoutPlanner.sanitize(savedBeforeBills)
+        assertEquals(5, atFive.visibleTabs.size)
+        assertEquals(atFive, TabBarLayoutPlanner.setHidden(atFive, TabItem.BILLS, hidden = false))
+    }
+
+    @Test fun bills_can_be_reordered_like_the_other_tabs() {
+        val moved = TabBarLayoutPlanner.moveTab(TabBarLayout.default().order, TabItem.BILLS, TabItem.BUDGET)
+        assertEquals(TabItem.BILLS, moved?.get(1))
+        assertEquals(TabItem.MANAGE, moved?.last())
+    }
+
+    @Test fun a_legacy_payload_without_bills_decodes_with_it_hidden() {
+        val legacy = """{"version":1,"order":["HOME","BUDGET","ACCOUNTS","ADD","REPORTS","TRANSACTIONS","MANAGE"],""" +
+            """"hidden":["HOME","TRANSACTIONS"]}"""
+
+        val decoded = TabBarLayoutCodec.decode(legacy)
+
+        assertEquals(TabBarLayout.default(), decoded)
+        assertEquals(
+            listOf(TabItem.BUDGET, TabItem.ACCOUNTS, TabItem.ADD, TabItem.REPORTS, TabItem.MANAGE),
+            decoded.visibleTabs,
+        )
+    }
+
+    @Test fun a_layout_with_bills_shown_survives_encoding() {
+        val shown = TabBarLayoutPlanner.setHidden(
+            TabBarLayoutPlanner.setHidden(TabBarLayout.default(), TabItem.ADD, hidden = true),
+            TabItem.BILLS, hidden = false,
+        )
+        assertTrue(TabItem.BILLS in shown.visibleTabs)
+
+        assertEquals(shown, TabBarLayoutCodec.decode(TabBarLayoutCodec.encode(shown)))
     }
 }

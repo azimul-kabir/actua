@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
@@ -70,6 +71,7 @@ private fun TabItem.icon(): ImageVector = when (this) {
     TabItem.TRANSACTIONS -> Icons.Outlined.ReceiptLong
     TabItem.ACCOUNTS -> Icons.Outlined.AccountBalanceWallet
     TabItem.REPORTS -> Icons.Outlined.BarChart
+    TabItem.BILLS -> Icons.Outlined.CalendarMonth
     TabItem.ADD -> Icons.Outlined.Add
     TabItem.MANAGE -> Icons.Outlined.Tune
 }
