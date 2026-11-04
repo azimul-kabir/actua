@@ -14,6 +14,7 @@ class BackupRulesTest {
         "trusted_server_certificates.xml",
         "actua_gdrive_auth.xml",
         "gdrive_backup_encryption.xml",
+        "webdav_backup.xml",
     )
 
     @Test

@@ -229,5 +229,6 @@ The following table summarizes feature availability between standalone and serve
 | **Automated Local Backups** | Yes | Yes | Rolling local backup snapshots saved to internal storage. |
 | **Archive Export / Import** | Yes | Yes | Standard `.zip` archives compatible with Actual web/desktop. |
 | **Google Drive Backup** | Optional | Optional | Off-device cloud backup if configured. |
+| **WebDAV Backup** | Optional | Optional | Off-device encrypted backup to a WebDAV server (Nextcloud, ownCloud, NAS) if configured. |
 | **Multi-Device Real-Time Sync** | No | Yes | Requires an Actual Budget server. |
 | **Bank Sync (SimpleFIN / GoCardless)** | No | Yes | Bank aggregation tokens and sync run through the server. |

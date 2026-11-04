@@ -341,6 +341,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] 2.4.0 Disconnect: with a reachable 26.11 server, Disconnect, then verify the old token no longer works (for example in Actual's session list); with the server unreachable, Disconnect still completes.
 - [ ] 2.4.0 Download safety: with a local budget present, download a different server budget and verify the local one is untouched and both open; verify Re-download over a local budget still works for the same server file.
 - [ ] 2.4.0 Sync deferral: sync a budget that a newer Actual changed in a table or column Actua does not know, verify nothing is lost for Actual afterwards and normal edits still sync.
+- [ ] WebDAV backup: against a real Nextcloud (and one NAS WebDAV server), in Backups connect with an app password and https, confirm a wrong password, a wrong address and a missing folder each show a clear message, set a backup password, Back up to WebDAV now, confirm one `.actuabkp` file under `<folder>/<budget id>/` and no `.part` file, restore it into the open budget (with and without re-entering the password, and with a wrong password), Disconnect and confirm the address and passwords are gone while the server file remains. With a self-signed certificate, confirm the trust prompt shows the fingerprint and that a later change of certificate is refused. Plain http:// must be refused until Allow unencrypted HTTP is on. Record the server, version and result in docs/WEBDAV_BACKUPS.md.
 
 ## Release/distribution
 

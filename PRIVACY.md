@@ -138,6 +138,28 @@ If you choose to enable Google Drive backup:
 - You can disconnect Google Drive and revoke access at any time from Settings →
   Backups.
 
+## WebDAV backup
+
+If you choose to set up WebDAV backup (for example with Nextcloud, ownCloud, or a
+NAS):
+- Actua connects directly to the WebDAV server whose address you enter. It does not
+  use any server of its own, and nothing is sent to the Actua developers.
+- Backup archives are encrypted on your phone before they are sent, with the same
+  client-side authenticated AES-256-GCM encryption used for Google Drive backups,
+  using a backup password you choose. The server only receives encrypted files and
+  the file and folder names Actua creates (a folder per budget and a date-based
+  file name).
+- Your WebDAV username and app password, and the backup password, are stored using
+  the Android Keystore in private app storage and are explicitly excluded from
+  Android cloud backups and device-to-device transfers.
+- Connections use HTTPS by default. Plain HTTP is only used if you turn it on
+  yourself, after a warning that your username and app password could then be read
+  on the network. If the server uses a self-signed certificate, you can review and
+  trust that one certificate for that server; hostname checking stays on.
+- You can disconnect WebDAV at any time from Settings → Backups. This makes Actua
+  forget the address and passwords on your phone; it does not delete backups
+  already on your server.
+
 ## Other on-device data
 
 Actua keeps app settings, which bank-synced transactions you haven't viewed

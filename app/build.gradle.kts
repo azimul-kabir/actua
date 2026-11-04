@@ -119,8 +119,11 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.work.runtime)
     implementation(libs.pdfbox.android)
+    // WebDAV backups need PROPFIND, MKCOL and MOVE, which HttpURLConnection rejects.
+    implementation(libs.okhttp)
     add("playstoreImplementation", libs.android.billing.ktx)
     testImplementation(libs.junit)
+    testImplementation(libs.okhttp.mockwebserver)
     // Real org.json impl for JVM unit tests — the Android stub jar throws on use.
     testImplementation("org.json:json:20240303")
     androidTestImplementation(platform(libs.androidx.compose.bom))
