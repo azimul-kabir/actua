@@ -45,7 +45,6 @@ import com.azimulkabir.actua.data.budget.backup.PassphraseRequiredException
 import com.azimulkabir.actua.data.budget.backup.RemoteBackupItem
 import com.azimulkabir.actua.data.budget.webdav.WebDavBackupManager
 import com.azimulkabir.actua.data.budget.webdav.WebDavConfig
-import com.azimulkabir.actua.data.budget.webdav.WebDavErrorMessages
 import com.azimulkabir.actua.data.network.TrustedCertificateStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -80,6 +79,7 @@ fun rememberWebDavRestore(
     val scope = rememberCoroutineScope()
     val manager = remember { WebDavBackupManager(context) }
     val certificates = remember { TrustedCertificateStore(context) }
+    val localNetwork = rememberLocalNetworkGate()
     val currentOnRestored by rememberUpdatedState(onRestored)
     val currentOnError by rememberUpdatedState(onError)
 
@@ -110,15 +110,14 @@ fun rememberWebDavRestore(
                 .onSuccess { backups = it }
                 .onFailure { error ->
                     backups = emptyList()
-                    listError = WebDavErrorMessages.describe(resources, error)
+                    listError = withContext(Dispatchers.IO) { manager.describe(error) }
                 }
             loading = false
         }
     }
 
-    fun connect(config: WebDavConfig) {
+    fun connectNow(config: WebDavConfig) {
         connecting = true
-        setupError = null
         scope.launch {
             when (val result = connectWebDav(manager, certificates, resources, config)) {
                 is WebDavConnectResult.Connected -> {
@@ -130,6 +129,16 @@ fun rememberWebDavRestore(
             }
             connecting = false
         }
+    }
+
+    fun connect(config: WebDavConfig) {
+        setupError = null
+        // On Android 17 a server on the home network needs the Nearby devices permission first.
+        localNetwork.check(
+            config.serverUrl.trim(),
+            { connectNow(config) },
+            { setupError = resources.getString(R.string.webdav_error_local_network_denied) },
+        )
     }
 
     fun restore(item: RemoteBackupItem, passphrase: String?) {
@@ -167,7 +176,7 @@ fun rememberWebDavRestore(
                     showBrowse = false
                     showPassphrase = false
                     selected = null
-                    currentOnError(WebDavErrorMessages.describe(resources, error))
+                    currentOnError(withContext(Dispatchers.IO) { manager.describe(error) })
                 }
             }
         }
@@ -176,7 +185,11 @@ fun rememberWebDavRestore(
     fun start() {
         setupError = null
         if (manager.isConfigured()) {
-            browse()
+            localNetwork.check(
+                manager.config()?.serverUrl.orEmpty(),
+                { browse() },
+                { currentOnError(resources.getString(R.string.webdav_error_local_network_denied)) },
+            )
         } else {
             setupInitial = null
             showSetup = true

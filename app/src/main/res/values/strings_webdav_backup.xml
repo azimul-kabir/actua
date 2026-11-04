@@ -44,4 +44,5 @@
     <string name="webdav_restore_no_backups">No Actua backups were found in the WebDAV folder.</string>
     <string name="webdav_restore_change_connection">Change connection</string>
     <string name="webdav_restore_done">Restored %1$s from WebDAV.</string>
+    <string name="webdav_error_local_network_denied">Actua needs the “Nearby devices” permission to reach a server on your home network. Allow it in Android Settings → Apps → Actua → Permissions, then try again.</string>
 </resources>

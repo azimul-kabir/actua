@@ -43,7 +43,6 @@ import com.azimulkabir.actua.data.budget.backup.RemoteBackupItem
 import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveEncryptionStore
 import com.azimulkabir.actua.data.budget.webdav.WebDavBackupManager
 import com.azimulkabir.actua.data.budget.webdav.WebDavConfig
-import com.azimulkabir.actua.data.budget.webdav.WebDavErrorMessages
 import com.azimulkabir.actua.data.network.TrustedCertificateStore
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
@@ -74,6 +73,7 @@ fun WebDavBackupSection(
     val scope = rememberCoroutineScope()
     val manager = remember { WebDavBackupManager(context) }
     val certificates = remember { TrustedCertificateStore(context) }
+    val localNetwork = rememberLocalNetworkGate()
 
     var config by remember { mutableStateOf(manager.config()) }
     var hasPassphrase by remember { mutableStateOf(manager.hasEncryptionPassphrase()) }
@@ -109,9 +109,8 @@ fun WebDavBackupSection(
         }
     }
 
-    fun connect(newConfig: WebDavConfig) {
+    fun connectNow(newConfig: WebDavConfig) {
         onBusyChange(true)
-        setupError = null
         scope.launch {
             when (val result = connectWebDav(manager, certificates, resources, newConfig)) {
                 is WebDavConnectResult.Connected -> {
@@ -128,11 +127,17 @@ fun WebDavBackupSection(
         }
     }
 
-    fun uploadNow() {
-        if (!manager.hasEncryptionPassphrase()) {
-            showPassphraseDialog = true
-            return
-        }
+    fun connect(newConfig: WebDavConfig) {
+        setupError = null
+        // On Android 17 a server on the home network needs the Nearby devices permission first.
+        localNetwork.check(
+            newConfig.serverUrl.trim(),
+            { connectNow(newConfig) },
+            { setupError = resources.getString(R.string.webdav_error_local_network_denied) },
+        )
+    }
+
+    fun uploadNowChecked() {
         onBusyChange(true)
         scope.launch {
             runCatching {
@@ -144,7 +149,7 @@ fun WebDavBackupSection(
                 onMessage(resources.getString(R.string.webdav_uploaded))
                 refreshRemote()
             }.onFailure { error ->
-                val text = WebDavErrorMessages.describe(resources, error)
+                val text = withContext(Dispatchers.IO) { manager.describe(error) }
                 manager.recordError(text)
                 onMessage(text)
             }
@@ -152,6 +157,18 @@ fun WebDavBackupSection(
             onLocalBackupsChanged()
             statusRevision++
         }
+    }
+
+    fun uploadNow() {
+        if (!manager.hasEncryptionPassphrase()) {
+            showPassphraseDialog = true
+            return
+        }
+        localNetwork.check(
+            manager.config()?.serverUrl.orEmpty(),
+            { uploadNowChecked() },
+            { onMessage(resources.getString(R.string.webdav_error_local_network_denied)) },
+        )
     }
 
     fun performRestore(item: RemoteBackupItem, passphrase: String?) {
@@ -188,7 +205,7 @@ fun WebDavBackupSection(
                         restorePassphrasePrompt = true
                     }
                     else -> {
-                        onMessage(WebDavErrorMessages.describe(resources, error))
+                        onMessage(withContext(Dispatchers.IO) { manager.describe(error) })
                         pendingRestore = null
                         restorePassphrasePrompt = false
                     }
