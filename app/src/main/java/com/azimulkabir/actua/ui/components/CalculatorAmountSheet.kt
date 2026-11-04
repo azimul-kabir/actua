@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.ZeroCornerSize
@@ -25,7 +24,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -39,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.R
 import androidx.compose.ui.window.Popup
@@ -98,7 +97,7 @@ fun CalculatorAmountSheet(
 }
 
 /**
- * A Paste button on the keypad's top edge. The clipboard is read only when it is tapped (Android 12+ tells
+ * A text-only Paste button on the keypad's top edge. The clipboard is read only when it is tapped (Android 12+ tells
  * the user when an app reads it), the amount replaces the current entry, and a clipboard without a single
  * amount leaves the entry unchanged and says so.
  */
@@ -119,12 +118,11 @@ private fun PasteAmountButton(onPasted: (Long) -> Unit) {
                 val cents = PastedAmount.parseCents(text, CurrencyDisplay.decimalPlaces)
                 if (cents != null) onPasted(cents) else Toast.makeText(context, notFound, Toast.LENGTH_SHORT).show()
             },
-            modifier = Modifier.height(36.dp).semantics { contentDescription = description },
+            // Text only and one line tall; a long label (large font, other language) is cut with an ellipsis.
+            modifier = Modifier.weight(1f, fill = false).height(36.dp).semantics { contentDescription = description },
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
         ) {
-            Icon(Icons.Outlined.ContentPaste, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp))
-            Text(label)
+            Text(label, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
         }
     }
 }
