@@ -175,13 +175,27 @@ class ReceiptPhotoStore(context: Context) {
         }
 
         private fun compress(context: Context, source: Uri, target: File) {
+            val bitmap = decodeUpright(context, source, ReceiptPhotoSizing.MAX_EDGE)
+            try {
+                FileOutputStream(target).use { check(bitmap.compress(Bitmap.CompressFormat.JPEG, ReceiptPhotoSizing.JPEG_QUALITY, it)) }
+            } finally {
+                bitmap.recycle()
+            }
+        }
+
+        /**
+         * Decodes [source] (a camera photo or a picked image), turns it upright and scales it down so its
+         * longest edge is at most [maxEdge]. The caller owns the bitmap and should recycle it. Throws
+         * [IOException] when the image cannot be opened or decoded. Blocking: call it off the main thread.
+         */
+        fun decodeUpright(context: Context, source: Uri, maxEdge: Int): Bitmap {
             val resolver = context.contentResolver
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             resolver.openInputStream(source)?.use { BitmapFactory.decodeStream(it, null, bounds) }
                 ?: throw IOException("Cannot open the image")
             if (bounds.outWidth <= 0 || bounds.outHeight <= 0) throw IOException("Not an image")
             val options = BitmapFactory.Options().apply {
-                inSampleSize = ReceiptPhotoSizing.sampleSize(bounds.outWidth, bounds.outHeight)
+                inSampleSize = ReceiptPhotoSizing.sampleSize(bounds.outWidth, bounds.outHeight, maxEdge)
             }
             val decoded = resolver.openInputStream(source)?.use { BitmapFactory.decodeStream(it, null, options) }
                 ?: throw IOException("Cannot decode the image")
@@ -192,17 +206,13 @@ class ReceiptPhotoStore(context: Context) {
                 bitmap = Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
                 if (bitmap !== decoded) decoded.recycle()
             }
-            val (width, height) = ReceiptPhotoSizing.fitWithin(bitmap.width, bitmap.height)
+            val (width, height) = ReceiptPhotoSizing.fitWithin(bitmap.width, bitmap.height, maxEdge)
             if (width != bitmap.width || height != bitmap.height) {
                 val scaled = Bitmap.createScaledBitmap(bitmap, width, height, true)
                 if (scaled !== bitmap) bitmap.recycle()
                 bitmap = scaled
             }
-            try {
-                FileOutputStream(target).use { check(bitmap.compress(Bitmap.CompressFormat.JPEG, ReceiptPhotoSizing.JPEG_QUALITY, it)) }
-            } finally {
-                bitmap.recycle()
-            }
+            return bitmap
         }
 
         private fun exifRotation(input: java.io.InputStream): Int = try {

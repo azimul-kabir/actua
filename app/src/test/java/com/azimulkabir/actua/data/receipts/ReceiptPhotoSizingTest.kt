@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.data.receipts
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ReceiptPhotoSizingTest {
@@ -27,5 +28,16 @@ class ReceiptPhotoSizingTest {
 
     @Test fun anImageExactlyAtTheCapIsNotScaled() {
         assertEquals(1600 to 800, ReceiptPhotoSizing.fitWithin(1600, 800))
+    }
+
+    @Test fun aHugeCameraImageIsSampledDownForRecognitionButKeepsDetail() {
+        val sample = ReceiptPhotoSizing.sampleSize(8160, 6120, ReceiptPhotoSizing.RECOGNITION_EDGE)
+        assertEquals(2, sample)
+        val (width, height) = ReceiptPhotoSizing.fitWithin(8160 / sample, 6120 / sample, ReceiptPhotoSizing.RECOGNITION_EDGE)
+        assertEquals(2400, maxOf(width, height))
+    }
+
+    @Test fun theRecognitionEdgeIsLargerThanTheKeptPhotoEdge() {
+        assertTrue(ReceiptPhotoSizing.RECOGNITION_EDGE > ReceiptPhotoSizing.MAX_EDGE)
     }
 }

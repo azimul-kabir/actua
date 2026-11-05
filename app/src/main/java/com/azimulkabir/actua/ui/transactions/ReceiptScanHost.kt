@@ -30,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.azimulkabir.actua.R
+import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
 import com.azimulkabir.actua.data.receipts.ReceiptLayout
 import com.azimulkabir.actua.data.receipts.ReceiptPhotoStore
 import com.azimulkabir.actua.data.receipts.ReceiptScanner
@@ -58,12 +59,16 @@ fun ReceiptScanHost(
     var busy by remember { mutableStateOf(false) }
     var pendingCapture by rememberSaveable { mutableStateOf<Uri?>(null) }
 
+    // Resolved here so it follows the configuration; the error type is substituted when a scan fails.
+    val failedMessage = stringResource(R.string.scan_receipt_failed_reason, REASON_TOKEN)
+
     fun toast(messageRes: Int) = Toast.makeText(context, messageRes, Toast.LENGTH_LONG).show()
 
     fun read(image: Uri, discardAfter: Boolean) {
         busy = true
         scope.launch {
             var photo: File? = null
+            var failure: Throwable? = null
             val lines = try {
                 scanner.recognize(image).also { recognized ->
                     if (recognized.isNotEmpty()) {
@@ -72,14 +77,27 @@ fun ReceiptScanHost(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                failure = error
+                null
+            } catch (error: OutOfMemoryError) {
+                failure = error
+                null
+            } catch (error: LinkageError) {
+                // The text recognizer's native code could not be loaded on this device.
+                failure = error
                 null
             } finally {
                 if (discardAfter) scanner.discard(image)
                 busy = false
             }
+            failure?.let { DiagnosticsLog.actionFailed("Scan receipt", it) }
             when {
-                lines == null -> toast(R.string.scan_receipt_failed)
+                lines == null -> Toast.makeText(
+                    context,
+                    failedMessage.replace(REASON_TOKEN, DiagnosticsLog.errorType(failure)),
+                    Toast.LENGTH_LONG,
+                ).show()
                 lines.isEmpty() -> toast(R.string.scan_receipt_no_text)
                 else -> onScanned(ReceiptLayout.rows(lines), photo)
             }
@@ -150,3 +168,5 @@ fun ReceiptScanHost(
         )
     }
 }
+
+private const val REASON_TOKEN = "\u0001"
