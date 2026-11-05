@@ -40,14 +40,15 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Native Material You Android interface
 - English and Brazilian Portuguese (pt-BR) with in-app language selection
 - Home dashboard with an at-a-glance financial overview (ready to budget, favorite categories/accounts, upcoming bills, this month, reports and recent activity), customizable via show/hide and drag-to-reorder, with an optional start day for the This Month summary to match mid-month pay cycles
-- Customizable floating bottom tab bar: show/hide and reorder tabs (Reports can be added as its own tab), plus an optional "Add" quick-add tab, and optional hiding while you scroll
+- Customizable floating bottom tab bar: show/hide and reorder tabs (Reports and Bills can be added as their own tabs), plus an optional "Add" quick-add tab, and optional hiding while you scroll
 - App-wide favorites for categories, accounts and reports, shared by Home, the Budget favorites filter and the home-screen widget
 - Password and OpenID/OIDC login
 - Standalone on-device budgets: full envelope budgeting without needing a server, with automated schedule posting, local backups, and export/import compatibility with Actual Budget archives (see [docs/STANDALONE_BUDGETS.md](docs/STANDALONE_BUDGETS.md))
 - Offline budgets with encrypted Actual sync
 - Budgeting, categories and money movement, including one-tap cover for overspent categories, switching budget type between Envelope and Tracking, category group deletion with target reassignment, and Actual's budget actions (3/6/12-month averages, copy last month or to year end, hold income)
 - Transactions, splits (including transfer lines in split transactions), transfers, Make transfer for two existing transactions, merging duplicates and reconciliation, including "Use last synced total" for bank-synced accounts
-- Amount keypad with + − × ÷ arithmetic
+- Amount keypad with + − × ÷ arithmetic, a leading minus, Paste, and Clear with Undo
+- Optional receipt scanning in the Google Play version and the `-full` APK: take or pick a receipt photo and Actua suggests the payee, date and total (and offers the tax and items as split lines) using on-device Google ML Kit, nothing leaves your phone; a kept photo stays on the device only (see [PRIVACY.md](PRIVACY.md))
 - Bank sync through your Actual server (SimpleFIN, GoCardless, Pluggy.ai, Akahu and Enable Banking), with per-account sync settings; newly synced transactions are marked until you view the account
 - Category targets and budget automations, including `#template` notes, checked against Actual's own template engine
 - Scheduled transactions and Bills calendar, with optional reminders before they are due, shown on your own weekend days and holidays when a schedule skips weekends
@@ -68,7 +69,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Built-in local demo budget
 - Privacy-safe Diagnostics report you can copy, save or email when reporting a problem
 
-See [BACKEND_PARITY.md](BACKEND_PARITY.md) for detailed compatibility and implementation status. Actua 2.4.0 is reviewed against Actual Budget 26.11 ([details](docs/ACTUAL_26_11_COMPATIBILITY.md)).
+See [BACKEND_PARITY.md](BACKEND_PARITY.md) for detailed compatibility and implementation status. Actua is reviewed against Actual Budget 26.11, as of 2.4.0 ([details](docs/ACTUAL_26_11_COMPATIBILITY.md)).
 
 ## Screenshots
 

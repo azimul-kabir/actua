@@ -4,6 +4,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [2.5.0] - 2026-11-05
+
 ### Added
 
 - Added a running total for a category's transactions when the list is filtered to that category ([#1478](https://github.com/azimul-kabir/actua/pull/1478))

@@ -2,7 +2,7 @@ Actua is an unofficial, open-source native Android client for Actual Budget. It 
 
 WHAT YOU CAN DO
 • View budgets and track category progress
-• Add, edit, search, and filter transactions
+• Add, edit, search, and filter transactions, scan a receipt to fill them in, and keep the receipt photo on your phone
 • Split transactions, make transfers, and reconcile accounts
 • Group and reorder accounts, and manage categories, targets, and budget templates
 • Track loans with a payoff planner and weekly, biweekly or monthly payments, and see goal and target progress on your balances
@@ -13,7 +13,7 @@ WHAT YOU CAN DO
 • Export an account, a filtered list or search results to CSV
 • Queue transactions from Tasker and other automation apps
 • Use automatic categorization and Actual Budget rules
-• Create local backups and restore your budget data, or back up to your own Google Drive with encryption
+• Create local backups and restore your budget data, or back up to your own Google Drive or WebDAV server (Nextcloud, ownCloud, NAS) with encryption
 • Budget on your device without a server, or import an Actual Budget archive
 • Lock Actua with biometrics or your device PIN, and hide it in the recents screen
 • Use home-screen widgets and launcher shortcuts
