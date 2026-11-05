@@ -59,6 +59,9 @@ fun ReceiptScanHost(
     var busy by remember { mutableStateOf(false) }
     var pendingCapture by rememberSaveable { mutableStateOf<Uri?>(null) }
 
+    // Resolved here so it follows the configuration; the error type is substituted when a scan fails.
+    val failedMessage = stringResource(R.string.scan_receipt_failed_reason, REASON_TOKEN)
+
     fun toast(messageRes: Int) = Toast.makeText(context, messageRes, Toast.LENGTH_LONG).show()
 
     fun read(image: Uri, discardAfter: Boolean) {
@@ -92,7 +95,7 @@ fun ReceiptScanHost(
             when {
                 lines == null -> Toast.makeText(
                     context,
-                    context.getString(R.string.scan_receipt_failed_reason, DiagnosticsLog.errorType(failure)),
+                    failedMessage.replace(REASON_TOKEN, DiagnosticsLog.errorType(failure)),
                     Toast.LENGTH_LONG,
                 ).show()
                 lines.isEmpty() -> toast(R.string.scan_receipt_no_text)
@@ -165,3 +168,5 @@ fun ReceiptScanHost(
         )
     }
 }
+
+private const val REASON_TOKEN = "\u0001"
