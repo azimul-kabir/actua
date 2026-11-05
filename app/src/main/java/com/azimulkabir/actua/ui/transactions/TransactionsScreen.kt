@@ -331,7 +331,7 @@ fun TransactionsScreen(
     val visible = remember(candidatesWithUpcoming, accountName, categoryName, month, hideReconciledTransactions, transactionStatusFilter, searchingDatabase, search) {
         candidatesWithUpcoming.filter {
             (accountName == null || it.account == accountName) &&
-                (categoryName == null || it.category == categoryName) &&
+                (categoryName == null || inCategory(it, categoryName)) &&
                 (month == null || it.date.filter(Char::isDigit).startsWith(month.replace("-", ""))) &&
                 !hiddenAsReconciled(it, transactionStatusFilter, hideReconciledTransactions) &&
                 (searchingDatabase || search.isBlank() ||
@@ -362,9 +362,15 @@ fun TransactionsScreen(
         val byId = visible.associateBy { it.id }
         transferablePair(selectedIds.mapNotNull(byId::get))
     }
-    val runningBalances = remember(allTransactions, accountName, showRunningBalance) {
-        if (showRunningBalance && accountName != null) accountRunningBalances(allTransactions, accountName)
-        else emptyMap()
+    // An account's register shows the account balance after each row. A category list has no balance of its
+    // own, so it shows the running total of exactly the rows listed (Actua only; see categoryRunningBalances).
+    val runningBalances = remember(allTransactions, visible, accountName, categoryName, showRunningBalance) {
+        when {
+            !showRunningBalance -> emptyMap()
+            categoryName != null -> categoryRunningBalances(visible, categoryName)
+            accountName != null -> accountRunningBalances(allTransactions, accountName)
+            else -> emptyMap()
+        }
     }
 
     AnimatedContent(
@@ -426,6 +432,13 @@ fun TransactionsScreen(
                                     stringResource(R.string.transactions_hide_reconciled),
                                     hideReconciledTransactions,
                                     onHideReconciledTransactionsChange,
+                                )
+                            }
+                            if (categoryName != null && account == null) {
+                                ActuaSwitchMenuItem(
+                                    stringResource(R.string.transactions_running_total_category),
+                                    showRunningBalance,
+                                    onShowRunningBalanceChange,
                                 )
                             }
                             account?.let { selectedAccount ->
@@ -1706,6 +1719,45 @@ internal fun accountRunningBalances(transactions: List<Transaction>, accountName
         if (transaction.account != accountName) continue
         balance += transaction.amountCents
         balances[transaction.id] = balance
+    }
+    return balances
+}
+
+/** Whether [transaction] belongs in a list filtered to [category]: its own category, or any of its split lines'. */
+internal fun inCategory(transaction: Transaction, category: String): Boolean =
+    transaction.category == category || transaction.splits.any { it.category == category }
+
+/**
+ * What [transaction] adds to [category]'s running total, in signed integer cents, or null when it adds nothing.
+ * A plain transaction adds its amount when its category matches. A split adds only its lines in [category]
+ * (a line's amount is a size, signed here by the parent's direction and the line's opposite flag, as Actual
+ * stores it). Transfers without a category, other categories and upcoming schedule projections add nothing.
+ */
+internal fun categoryContributionCents(transaction: Transaction, category: String): Long? {
+    if (transaction.isUpcoming) return null
+    if (transaction.splits.isNotEmpty()) {
+        val lines = transaction.splits.filter { it.category == category }
+        if (lines.isEmpty()) return null
+        val direction = if (transaction.amountCents < 0) -1L else 1L
+        return lines.sumOf { direction * if (it.isOpposite) -it.amountCents else it.amountCents }
+    }
+    return transaction.amountCents.takeIf { transaction.category == category }
+}
+
+/**
+ * Running total of a category's transactions after each row, oldest to newest, for a category-filtered list.
+ * Pass exactly the rows shown, newest first (as the list receives them): the total then covers those rows and
+ * no others, so with other filters on (account, month, search, hidden reconciled rows) it is the total of what
+ * is on screen. It is not the category's budget balance, which includes rollover and the budgeted amount, and
+ * Actual has no such figure, so this is Actua-only. Exact integer cents, no floating point.
+ */
+internal fun categoryRunningBalances(transactions: List<Transaction>, category: String): Map<String, Long> {
+    var total = 0L
+    val balances = LinkedHashMap<String, Long>()
+    for (transaction in transactions.asReversed()) {
+        val contribution = categoryContributionCents(transaction, category) ?: continue
+        total += contribution
+        balances[transaction.id] = total
     }
     return balances
 }

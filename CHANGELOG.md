@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a running total for a category's transactions when the list is filtered to that category ([#1478](https://github.com/azimul-kabir/actua/pull/1478))
 - Added an optional folder for kept receipt photos, for example on an SD card or in a synced folder ([#1477](https://github.com/azimul-kabir/actua/pull/1477))
 - Added keeping a scanned receipt's photo with its transaction, on this device only and never synced or backed up ([#1476](https://github.com/azimul-kabir/actua/pull/1476))
 - Added a full APK to GitHub releases, `Actua-v<version>-full.apk`, with the Google Play version's features ([#1473](https://github.com/azimul-kabir/actua/pull/1473))
