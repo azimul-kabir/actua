@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Rules. -->
+    <string name="fs_rules_title">Reglas</string>
+    <string name="fs_add_rule">Añadir regla</string>
+    <string name="fs_rules_unavailable">Reglas no disponibles</string>
+    <string name="fs_rules_unavailable_message">Este presupuesto no contiene la tabla de reglas de Actual.</string>
+    <string name="fs_search_rules">Buscar reglas</string>
+    <string name="fs_schedule_badge">PLANIFICACIÓN</string>
+    <string name="fs_if">SI</string>
+    <string name="fs_then">ENTONCES</string>
+    <string name="fs_no_rules">Todavía no hay reglas</string>
+    <string name="fs_no_matching_rules">No hay reglas que coincidan</string>
+    <string name="fs_new_rule">Nueva regla</string>
+    <string name="fs_edit_rule">Editar regla</string>
+    <string name="fs_stage">Etapa</string>
+    <string name="fs_stage_pre">Antes</string>
+    <string name="fs_stage_post">Después</string>
+    <string name="fs_stage_default">Predeterminada</string>
+    <string name="fs_and">y</string>
+    <string name="fs_or">o</string>
+    <string name="fs_match">Coincidencia</string>
+    <string name="fs_all_conditions">Todas las condiciones</string>
+    <string name="fs_any_condition">Cualquier condición</string>
+    <string name="fs_if_title">Si</string>
+    <string name="fs_then_title">Entonces</string>
+    <string name="fs_add_condition">Añadir condición</string>
+    <string name="fs_add_action">Añadir acción</string>
+    <string name="fs_save_rule">Guardar regla</string>
+    <string name="fs_delete_rule">Eliminar regla</string>
+    <string name="fs_cancel">Cancelar</string>
+    <string name="fs_remove_condition">Quitar condición</string>
+    <string name="fs_remove_action">Quitar acción</string>
+    <string name="fs_text">Texto</string>
+    <string name="fs_select_value">Seleccionar valor</string>
+    <string name="fs_value">Valor</string>
+    <string name="fs_from">De</string>
+    <string name="fs_to">A</string>
+    <string name="fs_amount">Cantidad</string>
+    <string name="fs_any">Cualquiera</string>
+    <string name="fs_outflow">Salida</string>
+    <string name="fs_inflow">Ingreso</string>
+    <string name="fs_date_iso_hint">Fecha (AAAA-MM-DD)</string>
+    <string name="fs_regular_expression">Expresión regular</string>
+    <string name="fs_select_values">Seleccionar valores</string>
+    <plurals name="fs_values_selected"><item quantity="one">Se seleccionó %d</item><item quantity="other">Se seleccionaron %d</item></plurals>
+    <string name="fs_rule_field_imported_payee">Beneficiario importado</string>
+    <string name="fs_rule_field_account">Cuenta</string>
+    <string name="fs_rule_field_category">Categoría</string>
+    <string name="fs_rule_field_category_group">Grupo de categorías</string>
+    <string name="fs_rule_field_date">Fecha</string>
+    <string name="fs_rule_field_payee">Beneficiario</string>
+    <string name="fs_rule_field_payee_name">Beneficiario (nombre)</string>
+    <string name="fs_rule_field_notes">Notas</string>
+    <string name="fs_rule_field_amount">Cantidad</string>
+    <string name="fs_rule_field_cleared">Confirmado</string>
+    <string name="fs_rule_op_is">es</string>
+    <string name="fs_rule_op_is_not">no es</string>
+    <string name="fs_rule_op_one_of">uno de</string>
+    <string name="fs_rule_op_not_one_of">ninguno de</string>
+    <string name="fs_rule_op_is_approx">es aprox.</string>
+    <string name="fs_rule_op_is_between">está entre</string>
+    <string name="fs_rule_op_contains">contiene</string>
+    <string name="fs_rule_op_does_not_contain">no contiene</string>
+    <string name="fs_rule_op_matches">coincide con</string>
+    <string name="fs_rule_op_has_all_tags">tiene todas las etiquetas</string>
+    <string name="fs_rule_op_has_any_tag">tiene alguna etiqueta</string>
+    <string name="fs_rule_op_on_budget">está dentro del presupuesto</string>
+    <string name="fs_rule_op_off_budget">está fuera del presupuesto</string>
+    <string name="fs_rule_op_greater">mayor que</string>
+    <string name="fs_rule_op_greater_equal">mayor o igual que</string>
+    <string name="fs_rule_op_less">menor que</string>
+    <string name="fs_rule_op_less_equal">menor o igual que</string>
+    <string name="fs_rule_op_set">establecer</string>
+    <string name="fs_rule_op_set_split_amount">establecer importe de la división</string>
+    <string name="fs_rule_op_link_schedule">vincular planificación</string>
+    <string name="fs_rule_op_prepend_notes">anteponer a las notas</string>
+    <string name="fs_rule_op_append_notes">añadir a las notas</string>
+    <string name="fs_rule_op_delete_transaction">eliminar transacción</string>
+    <string name="fs_rule_condition_summary">%1$s %2$s %3$s</string>
+    <string name="fs_rule_action_set">Establecer %1$s en %2$s</string>
+    <string name="fs_rule_action_prepend">Anteponer %1$s a las notas</string>
+    <string name="fs_rule_action_append">Añadir %1$s a las notas</string>
+    <string name="fs_rule_action_delete">Eliminar transacción</string>
+    <string name="fs_boolean_true">verdadero</string>
+    <string name="fs_boolean_false">falso</string>
+    <string name="fs_apply_rule_question">¿Aplicar la regla ahora?</string>
+    <string name="fs_apply_rule_empty">Ninguna transacción existente cumple las condiciones de esta regla.</string>
+    <plurals name="fs_apply_rule_matches"><item quantity="one">Esto aplicará las acciones de la regla a %d transacción coincidente.</item><item quantity="other">Esto aplicará las acciones de la regla a %d transacciones coincidentes.</item></plurals>
+    <plurals name="fs_apply_rule_reconciled_warning"><item quantity="one">Advertencia: se modificará %d transacción conciliada. Las transacciones conciliadas normalmente están bloqueadas.</item><item quantity="other">Advertencia: se modificarán %d transacciones conciliadas. Las transacciones conciliadas normalmente están bloqueadas.</item></plurals>
+    <string name="fs_apply">Aplicar</string>
+    <string name="fs_apply_now">Aplicar ahora</string>
+    <string name="fs_apply_rule_now">Aplicar regla ahora</string>
+    <string name="fs_rule_applied">Regla aplicada</string>
+    <plurals name="fs_rule_applied_count"><item quantity="one">Regla aplicada a %d transacción.</item><item quantity="other">Regla aplicada a %d transacciones.</item></plurals>
+    <string name="fs_close">Cerrar</string>
+    <plurals name="fs_matching_transactions"><item quantity="one">%d transacción coincidente</item><item quantity="other">%d transacciones coincidentes</item></plurals>
+    <string name="fs_preview">Vista previa</string>
+    <string name="fs_hide_preview">Ocultar vista previa</string>
+    <plurals name="fs_more_matches"><item quantity="one">Y %d más…</item><item quantity="other">Y %d más…</item></plurals>
+    <string name="fs_condition_number">Condición %1$d</string>
+    <string name="fs_action_number">Acción %1$d</string>
+    <string name="fs_action_label">Acción</string>
+    <string name="fs_field">Campo</string>
+    <string name="fs_operator">Operador</string>
+    <string name="fs_split_number">División %1$d</string>
+    <string name="fs_whole_transaction">Transacción completa</string>
+    <string name="fs_applies_to">Se aplica a</string>
+    <string name="fs_method">Método</string>
+    <string name="fs_split_method_fixed_amount">Cantidad fija</string>
+    <string name="fs_split_method_percent">Porcentaje del restante</string>
+    <string name="fs_split_method_remainder">Restante</string>
+    <string name="fs_split_method_formula">Fórmula</string>
+    <string name="fs_percent">Porcentaje</string>
+    <string name="fs_values">Valores</string>
+    <string name="fs_split_suffix"> (división %1$d)</string>
+    <string name="fs_split_amount_percent">División %1$d: %2$s%% del restante</string>
+    <string name="fs_split_amount_remainder">División %1$d: restante</string>
+    <string name="fs_split_amount_formula">División %1$d: fórmula</string>
+    <string name="fs_split_amount_value">División %1$d: %2$s</string>
+
+    <!-- Scheduled transactions. -->
+    <string name="fs_schedules_title">Transacciones programadas</string>
+    <string name="fs_search_schedules">Buscar planificaciones</string>
+    <string name="fs_bills_calendar">Calendario de facturas</string>
+    <string name="fs_add_schedule">Añadir planificación</string>
+    <string name="fs_schedule_options">Opciones de planificación</string>
+    <string name="fs_show_completed">Mostrar completadas</string>
+    <string name="fs_find_schedules">Buscar planificaciones</string>
+    <string name="fs_no_matching_schedules">No hay planificaciones que coincidan</string>
+    <string name="fs_no_active_schedules">No hay planificaciones activas</string>
+    <string name="fs_no_schedules">No hay transacciones programadas</string>
+    <string name="fs_no_payee">Sin beneficiario</string>
+    <string name="fs_create_schedule_hint">Crea una planificación para seguir una factura recurrente o un salario.</string>
+    <string name="fs_new_schedule">Nueva planificación</string>
+    <plurals name="fs_completed_schedules_hidden"><item quantity="one">%d planificación completada oculta.</item><item quantity="other">%d planificaciones completadas ocultas.</item></plurals>
+    <string name="fs_delete_schedule_question">¿Eliminar esta planificación?</string>
+    <string name="fs_delete_schedule_explanation">Se conservarán las transacciones creadas por esta planificación.</string>
+    <string name="fs_delete_schedule">Eliminar planificación</string>
+    <string name="fs_repeats_date">Se repite · %1$s</string>
+    <string name="fs_edit_schedule_description">Editar planificación</string>
+    <string name="fs_post_transaction">Registrar transacción</string>
+    <string name="fs_post_transaction_today">Registrar transacción hoy</string>
+    <string name="fs_skip_next_date">Omitir próxima fecha</string>
+    <string name="fs_restart">Reiniciar</string>
+    <string name="fs_mark_completed">Marcar como completada</string>
+    <string name="fs_delete">Eliminar</string>
+    <string name="fs_status_missed">Vencida</string>
+    <string name="fs_status_due">Pendiente de pago</string>
+    <string name="fs_status_upcoming">Próxima</string>
+    <string name="fs_status_paid">Pagada</string>
+    <string name="fs_status_completed">Completada</string>
+    <string name="fs_status_scheduled">Programada</string>
+    <string name="fs_no_next_date">Sin próxima fecha</string>
+    <string name="fs_reminders">Recordatorios</string>
+    <string name="fs_schedule_reminders">Recordatorios de transacciones programadas</string>
+    <string name="fs_schedule_reminders_caption">Recibe avisos antes del vencimiento de facturas, ingresos y otras planificaciones. Las ocurrencias registradas, omitidas o pagadas dejan de generar avisos.</string>
+    <string name="fs_schedule_reminders_timing">Los recordatorios llegan a las 9:00 a. m. para el presupuesto abierto, y también en la fecha de vencimiento.</string>
+    <string name="fs_reminder_lead_same_day">En la fecha de vencimiento</string>
+    <string name="fs_reminder_lead_one_day">1 día antes</string>
+    <plurals name="fs_reminder_lead_days"><item quantity="one">%d día antes</item><item quantity="other">%d días antes</item></plurals>
+
+    <!-- Schedule editor. -->
+    <string name="fs_edit_schedule_title">Editar planificación</string>
+    <string name="fs_save">Guardar</string>
+    <string name="fs_unreadable_repeat">Esta planificación utiliza un patrón de repetición que Actua no puede interpretar. Edítala en Actual para evitar reemplazar ese patrón.</string>
+    <string name="fs_custom_rule_preserved">Se conservarán las condiciones adicionales de la regla creadas en Actual.</string>
+    <string name="fs_schedule_name">Nombre de la planificación</string>
+    <string name="fs_payee_optional">Beneficiario (opcional)</string>
+    <string name="fs_account">Cuenta</string>
+    <string name="fs_expense">Gasto</string>
+    <string name="fs_income">Ingreso</string>
+    <string name="fs_exact">Exacto</string>
+    <string name="fs_approximate">Aprox.</string>
+    <string name="fs_between">Entre</string>
+    <string name="fs_date">Fecha</string>
+    <string name="fs_repeats">Se repite</string>
+    <string name="fs_repeat">Repetir</string>
+    <string name="fs_exact_amount">Cantidad exacta</string>
+    <string name="fs_approximate_amount">Cantidad aproximada</string>
+    <string name="fs_up_to_amount">hasta %1$s</string>
+    <string name="fs_amount_between_cd">Cantidad, %1$s entre %2$s y %3$s</string>
+    <string name="fs_amount_cd">Cantidad, %1$s %2$s</string>
+    <string name="fs_edit_amount">Editar cantidad</string>
+    <string name="fs_switch_to_expense">Cambiar a gasto</string>
+    <string name="fs_switch_to_income">Cambiar a ingreso</string>
+    <string name="fs_optional">Opcional</string>
+    <string name="fs_none">Ninguno</string>
+    <string name="fs_choose_account">Elegir una cuenta</string>
+    <string name="fs_automatically_add_transaction">Añadir transacción automáticamente</string>
+    <string name="fs_automatically_add_description">Crear la transacción cuando Actua sincronice en la fecha programada o después.</string>
+    <string name="fs_upcoming_window">Período de anticipación</string>
+    <string name="fs_linked_transactions">Transacciones vinculadas</string>
+    <string name="fs_no_linked_transactions">Todavía no hay transacciones vinculadas.</string>
+    <string name="fs_custom_schedule_note">Esta planificación tiene condiciones y acciones personalizadas</string>
+    <string name="fs_edit_as_rule">Editar como regla</string>
+    <string name="fs_schedule_amount">Cantidad programada</string>
+    <string name="fs_upper_amount">Cantidad máxima</string>
+    <string name="fs_ok">Aceptar</string>
+    <string name="fs_unlink">Desvincular</string>
+    <string name="fs_frequency">Frecuencia</string>
+    <string name="fs_frequency_daily">Diaria</string>
+    <string name="fs_frequency_weekly">Semanal</string>
+    <string name="fs_frequency_monthly">Mensual</string>
+    <string name="fs_frequency_yearly">Anual</string>
+    <string name="fs_every">Cada</string>
+    <string name="fs_starting">A partir de</string>
+    <string name="fs_on_these_days">En estos días</string>
+    <string name="fs_add_day">Añadir día</string>
+    <string name="fs_ends">Finaliza</string>
+    <string name="fs_never">Nunca</string>
+    <string name="fs_after">Después de</string>
+    <string name="fs_on_date">En la fecha</string>
+    <string name="fs_occurrences">Ocurrencias</string>
+    <string name="fs_end_date">Fecha de finalización</string>
+    <string name="fs_weekend_handling">Tratamiento de fines de semana</string>
+    <string name="fs_skip_weekends">Omitir fines de semana</string>
+    <string name="fs_skip_weekends_description">Trasladar las ocurrencias del fin de semana a un día laborable.</string>
+    <string name="fs_move_to">Trasladar a</string>
+    <string name="fs_friday_before">Viernes anterior</string>
+    <string name="fs_monday_after">Lunes siguiente</string>
+    <string name="fs_next_dates">Próximas fechas</string>
+    <string name="fs_no_upcoming_pattern_dates">Este patrón no tiene fechas próximas.</string>
+    <string name="fs_which">Cuál</string>
+    <string name="fs_day">Día</string>
+    <string name="fs_remove_pattern">Eliminar patrón</string>
+    <string name="fs_last">Último</string>
+    <string name="fs_sunday">Domingo</string>
+    <string name="fs_monday">Lunes</string>
+    <string name="fs_tuesday">Martes</string>
+    <string name="fs_wednesday">Miércoles</string>
+    <string name="fs_thursday">Jueves</string>
+    <string name="fs_friday">Viernes</string>
+    <string name="fs_saturday">Sábado</string>
+    <plurals name="fs_interval_days"><item quantity="one">%d día</item><item quantity="other">%d días</item></plurals>
+    <plurals name="fs_interval_weeks"><item quantity="one">%d semana</item><item quantity="other">%d semanas</item></plurals>
+    <plurals name="fs_interval_months"><item quantity="one">%d mes</item><item quantity="other">%d meses</item></plurals>
+    <plurals name="fs_interval_years"><item quantity="one">%d año</item><item quantity="other">%d años</item></plurals>
+    <string name="fs_every_interval">Cada %1$s</string>
+    <string name="fs_monthly_default_pattern">Se repite el día %1$d de cada mes. Añade días específicos para repetirlo más de una vez.</string>
+    <string name="fs_repeats_on">Se repite el %1$s.</string>
+    <string name="fs_pattern_day">el día %1$s</string>
+    <string name="fs_pattern_weekday">el %1$s %2$s</string>
+    <string name="fs_no_upcoming_dates">No hay fechas próximas</string>
+    <string name="fs_next_date">Próxima: %1$s</string>
+    <string name="fs_budget_default">Predeterminado del presupuesto</string>
+    <string name="fs_one_day">1 día</string>
+    <string name="fs_one_week">1 semana</string>
+    <string name="fs_two_weeks">2 semanas</string>
+    <string name="fs_one_month">1 mes</string>
+    <string name="fs_rest_of_month">Resto del mes</string>
+    <string name="fs_decrease_step">Disminuir %1$s</string>
+    <string name="fs_increase_step">Aumentar %1$s</string>
+
+    <!-- Find schedules. -->
+    <string name="fs_create">Crear</string>
+    <string name="fs_looking_for_repeating">Buscando transacciones recurrentes…</string>
+    <string name="fs_nothing_found">No se encontró nada</string>
+    <string name="fs_no_repeating_found">No se encontraron transacciones recurrentes en tu historial.</string>
+    <string name="fs_select_repeating">Selecciona transacciones recurrentes para convertirlas en planificaciones.</string>
+    <string name="fs_every_day">Todos los días</string>
+    <plurals name="fs_every_days"><item quantity="one">Cada %d día</item><item quantity="other">Cada %d días</item></plurals>
+    <string name="fs_every_week">Cada semana</string>
+    <plurals name="fs_every_weeks"><item quantity="one">Cada %d semana</item><item quantity="other">Cada %d semanas</item></plurals>
+    <string name="fs_every_month">Cada mes</string>
+    <plurals name="fs_every_months"><item quantity="one">Cada %d mes</item><item quantity="other">Cada %d meses</item></plurals>
+    <string name="fs_every_year">Cada año</string>
+    <plurals name="fs_every_years"><item quantity="one">Cada %d año</item><item quantity="other">Cada %d años</item></plurals>
+    <string name="fs_last_day">último día</string>
+    <string name="fs_day_number">día %1$d</string>
+    <string name="fs_last_weekday">último %1$s</string>
+    <string name="fs_ordinal_weekday">%1$s %2$s</string>
+    <string name="fs_ordinal_first">1.º</string>
+    <string name="fs_ordinal_st">%1$d.º</string>
+    <string name="fs_ordinal_nd">%1$d.º</string>
+    <string name="fs_ordinal_rd">%1$d.º</string>
+    <string name="fs_ordinal_other">%1$d.º</string>
+
+    <!-- Bills calendar. -->
+    <string name="fs_bills">Facturas</string>
+    <string name="fs_configure_cards">Configurar tarjetas</string>
+    <string name="fs_recurring">Recurrentes</string>
+    <string name="fs_card_bills">Facturas de tarjetas</string>
+    <string name="fs_previous_month">Mes anterior</string>
+    <string name="fs_next_month">Mes siguiente</string>
+    <string name="fs_paid_count">%1$d/%2$d pagadas</string>
+    <plurals name="fs_overdue_by_days"><item quantity="one">Vencida hace %d día</item><item quantity="other">Vencida hace %d días</item></plurals>
+    <string name="fs_overdue">Vencidas</string>
+    <string name="fs_filter_all">Todas</string>
+    <string name="fs_filter_upcoming">Próximas</string>
+    <string name="fs_filter_overdue">Vencidas</string>
+    <string name="fs_filter_paid">Pagadas</string>
+    <string name="fs_day_filter">Día %1$d ×</string>
+    <string name="fs_no_schedules_due">No hay planificaciones con vencimiento</string>
+    <string name="fs_no_card_bills_due">No hay pagos de tarjetas con vencimiento</string>
+    <string name="fs_nothing_scheduled_date">No hay nada programado para esta fecha.</string>
+    <string name="fs_no_filter_matches">Ningún elemento coincide con el filtro seleccionado.</string>
+    <string name="fs_delete_schedule_short_question">¿Eliminar planificación?</string>
+    <string name="fs_delete_schedule_named">Se eliminará %1$s. Se conservarán las transacciones ya registradas.</string>
+    <string name="fs_weekdays_narrow">L,M,X,J,V,S,D</string>
+    <string name="fs_configure_credit_cards">Configurar tarjetas de crédito</string>
+
+    <!-- Credit cards. -->
+    <string name="fs_credit_cards">Tarjetas de crédito</string>
+    <string name="fs_add_credit_card">Añadir tarjeta de crédito</string>
+    <string name="fs_payment_reminders">Recordatorios de pago</string>
+    <string name="fs_payment_reminders_description">Notificar 7, 5, 3 y 1 días antes del vencimiento de una tarjeta pendiente de pago.</string>
+    <string name="fs_no_credit_cards">Marca una cuenta como tarjeta de crédito para seguir su ciclo de facturación, gastos del período, fecha de vencimiento y crédito disponible.</string>
+    <plurals name="fs_card_spend_days_left"><item quantity="one">Gastos %1$s · queda %2$d día</item><item quantity="other">Gastos %1$s · quedan %2$d días</item></plurals>
+    <string name="fs_available_credit">Crédito disponible %1$s</string>
+    <string name="fs_due_today">Vence hoy</string>
+    <string name="fs_due_tomorrow">Vence mañana</string>
+    <plurals name="fs_due_in_days"><item quantity="one">Vence en %d día</item><item quantity="other">Vence en %d días</item></plurals>
+    <string name="fs_due_on_date_days">Vence el %1$s (%2$d d)</string>
+    <string name="fs_due_in_days_short">Vence en %1$d d</string>
+    <string name="fs_last_statement_due">Último estado de cuenta: %1$s</string>
+    <string name="fs_row_balance_label">saldo</string>
+    <string name="fs_row_cycle_spend_label">gastos del período</string>
+    <string name="fs_row_available_credit_label">crédito disponible</string>
+    <string name="fs_view_recent_statements">Ver estados de cuenta recientes</string>
+    <string name="fs_add_credit_card_title">Añadir tarjeta de crédito</string>
+    <string name="fs_edit_card">Editar tarjeta</string>
+    <string name="fs_select_account">Seleccionar cuenta</string>
+    <string name="fs_statement_closing_day">Día de cierre del estado de cuenta (1–31)</string>
+    <string name="fs_days_after">Días después</string>
+    <string name="fs_day_of_month">Día del mes</string>
+    <string name="fs_payment_due_day">Día de vencimiento del pago (1–31)</string>
+    <string name="fs_payment_due_after">Plazo de pago después del cierre (1–60 días)</string>
+    <string name="fs_credit_limit_optional">Límite de crédito (opcional)</string>
+    <string name="fs_fixed_due_explanation">La fecha de vencimiento utiliza el día fijo del calendario del emisor y se ajusta en los meses más cortos.</string>
+    <string name="fs_offset_due_explanation">La fecha de vencimiento es la fecha de cierre del estado de cuenta más el plazo de pago del emisor.</string>
+    <string name="fs_remove_credit_card_tracking">Quitar seguimiento de tarjeta de crédito</string>
+
+    <!-- Credit card statements. -->
+    <string name="fs_no_closed_statements">Todavía no hay estados de cuenta cerrados.</string>
+    <string name="fs_due_date">Vence el %1$s</string>
+    <string name="fs_statement_details">Detalles del estado de cuenta</string>
+    <string name="fs_statement_period">Período del estado de cuenta</string>
+    <string name="fs_statement_balance">Saldo del estado de cuenta</string>
+    <string name="fs_payment_due">Pago pendiente</string>
+    <string name="fs_status">Estado</string>
+    <string name="fs_remaining_due">Importe pendiente de pago</string>
+    <string name="fs_cycle_spend">Gastos del período</string>
+    <string name="fs_payments_credits">Pagos y abonos</string>
+    <string name="fs_no_statement_transactions">No hay transacciones en este estado de cuenta</string>
+
+    <!-- Tags. -->
+    <string name="fs_manage_tags">Gestionar etiquetas</string>
+    <string name="fs_back">Volver</string>
+    <string name="fs_create_tag">Crear etiqueta</string>
+    <string name="fs_search_tags">Buscar etiquetas</string>
+    <string name="fs_no_managed_tags">Todavía no hay etiquetas gestionadas</string>
+    <string name="fs_no_matching_tags">Ninguna etiqueta coincide con tu búsqueda</string>
+    <string name="fs_hidden">Oculta</string>
+    <string name="fs_tag_actions">Acciones para #%1$s</string>
+    <string name="fs_view_transactions">Ver transacciones</string>
+    <string name="fs_edit">Editar</string>
+    <string name="fs_create_tag_title">Crear etiqueta</string>
+    <string name="fs_edit_tag_title">Editar #%1$s</string>
+    <string name="fs_delete_tag_title">¿Eliminar #%1$s?</string>
+    <string name="fs_delete_tag_message">Se eliminarán los metadatos de esta etiqueta. El texto #%1$s de las notas de transacciones anteriores se conservará como hashtag no gestionado.</string>
+    <string name="fs_name">Nombre</string>
+    <string name="fs_description">Descripción</string>
+    <string name="fs_color">Color</string>
+    <string name="fs_tag_transactions_title">Transacciones con etiqueta</string>
+    <string name="fs_clear_tag_filter">Quitar filtro de etiquetas</string>
+    <plurals name="fs_tag_transaction_count"><item quantity="one">%d transacción</item><item quantity="other">%d transacciones</item></plurals>
+    <string name="fs_no_tag_transactions">Ninguna transacción usa #%1$s</string>
+    <string name="fs_tag_matching_note">Se buscan coincidencias exactas de hashtags. Se ignora el texto ##%1$s escapado.</string>
+
+    <!-- Payees. -->
+    <string name="fs_payees_title">Beneficiarios</string>
+    <string name="fs_search_payees">Buscar beneficiarios</string>
+    <string name="fs_payee_category_learning">Aprendizaje de categorías</string>
+    <string name="fs_payee_category_learning_hint">Crear una regla para el beneficiario cuando categorices sus transacciones de la misma manera</string>
+    <string name="fs_payee_category_learning_off">Aprendizaje de categorías desactivado</string>
+    <string name="fs_no_payees_yet">Todavía no hay beneficiarios</string>
+    <string name="fs_no_payees_match">Ningún beneficiario coincide con tu búsqueda</string>
+    <string name="fs_unnamed_payee">Beneficiario sin nombre</string>
+    <string name="fs_favorite">Favorito</string>
+    <string name="fs_payee_actions">Acciones para %1$s</string>
+    <string name="fs_rename">Cambiar nombre</string>
+    <string name="fs_remove_from_favorites">Quitar de favoritos</string>
+    <string name="fs_add_to_favorites">Añadir a favoritos</string>
+    <string name="fs_turn_off_category_learning">Desactivar aprendizaje de categorías</string>
+    <string name="fs_turn_on_category_learning">Activar aprendizaje de categorías</string>
+    <string name="fs_select">Seleccionar</string>
+    <plurals name="fs_selected_count"><item quantity="one">%d seleccionado</item><item quantity="other">%d seleccionados</item></plurals>
+    <string name="fs_merge">Combinar</string>
+    <string name="fs_selected_payee">%1$s seleccionado</string>
+    <string name="fs_not_selected_payee">%1$s no seleccionado</string>
+    <string name="fs_transfer_payees">Beneficiarios de transferencias</string>
+    <string name="fs_transfer_payees_note">Los beneficiarios de transferencias pertenecen a sus cuentas y no se pueden editar aquí.</string>
+    <string name="fs_rename_payee">Cambiar nombre del beneficiario</string>
+    <string name="fs_delete_payee_question">¿Eliminar %1$s?</string>
+    <plurals name="fs_delete_payees_question"><item quantity="one">¿Eliminar %d beneficiario?</item><item quantity="other">¿Eliminar %d beneficiarios?</item></plurals>
+    <string name="fs_delete_payees_message_this">Las transacciones conservarán sus importes y categorías, pero aparecerán sin beneficiario. Las reglas que mencionen a este beneficiario no cambiarán.</string>
+    <string name="fs_delete_payees_message_these">Las transacciones conservarán sus importes y categorías, pero aparecerán sin beneficiario. Las reglas que mencionen a estos beneficiarios no cambiarán.</string>
+    <string name="fs_merge_payees_title">Combinar %1$d beneficiarios</string>
+    <string name="fs_merge_payees_keep">Conservar este beneficiario. Los demás se combinarán con él y sus transacciones y reglas pasarán a este beneficiario.</string>
+    <string name="fs_merge_payees">Combinar beneficiarios</string>
+
+    <!-- Bank sync. -->
+    <string name="fs_bank_sync_title">Sincronización bancaria</string>
+    <string name="fs_bank_sync_providers">Proveedores</string>
+    <string name="fs_provider_simplefin" translatable="false">SimpleFIN</string>
+    <string name="fs_provider_gocardless" translatable="false">GoCardless</string>
+    <string name="fs_provider_enable_banking" translatable="false">Enable Banking</string>
+    <string name="fs_provider_pluggyai" translatable="false">Pluggy.ai</string>
+    <string name="fs_provider_akahu" translatable="false">Akahu</string>
+    <string name="fs_pluggyai_note">Pluggy.ai (América Latina). Introduce el ID y el secreto de cliente de Pluggy y los ID de los elementos de los bancos conectados, separados por comas. El servidor los almacena; Actua no conserva nada.</string>
+    <string name="fs_pluggyai_client_id">ID de cliente</string>
+    <string name="fs_pluggyai_client_secret">Secreto de cliente</string>
+    <string name="fs_pluggyai_item_ids">ID de elementos (separados por comas)</string>
+    <string name="fs_akahu_note">Akahu (Nueva Zelanda). Introduce tu token de usuario y el token de la aplicación de Akahu desde my.akahu.nz. El servidor los almacena; Actua no conserva nada.</string>
+    <string name="fs_akahu_user_token">Token de usuario</string>
+    <string name="fs_akahu_app_token">Token de la aplicación</string>
+    <string name="fs_sync_settings">Ajustes de sincronización</string>
+    <string name="fs_sync_settings_title">Ajustes de sincronización: %1$s</string>
+    <string name="fs_sync_import_pending">Importar transacciones pendientes</string>
+    <string name="fs_sync_import_pending_desc">Incluir transacciones que el banco aún no ha contabilizado.</string>
+    <string name="fs_sync_import_notes">Importar notas</string>
+    <string name="fs_sync_import_notes_desc">Usar la descripción del banco como notas de la transacción.</string>
+    <string name="fs_sync_import_transactions">Importar transacciones</string>
+    <string name="fs_sync_import_transactions_desc">Desactivar para actualizar únicamente el saldo de la cuenta.</string>
+    <string name="fs_sync_update_dates">Actualizar fechas de transacciones coincidentes</string>
+    <string name="fs_sync_update_dates_desc">Cambiar la fecha de una transacción coincidente a la informada por el banco.</string>
+    <string name="fs_sync_reimport_deleted">Volver a importar transacciones eliminadas</string>
+    <string name="fs_sync_reimport_deleted_desc">Recuperar una transacción bancaria eliminada si vuelve a descargarse.</string>
+    <string name="fs_pluggyai_per_budget">Guardar solo para este presupuesto</string>
+    <string name="fs_pluggyai_per_budget_desc">Conservar estas credenciales en el servidor solo para este presupuesto, en lugar de para todos. Requiere acceso al presupuesto, no permisos de administrador del servidor.</string>
+    <string name="fs_sync_mappings_payment">Pagos</string>
+    <string name="fs_sync_mappings_deposit">Depósitos</string>
+    <string name="fs_sync_mappings_date">Campo de fecha</string>
+    <string name="fs_sync_mappings_payee">Campo de beneficiario</string>
+    <string name="fs_sync_mappings_notes">Campo de notas</string>
+    <string name="fs_sync_mappings_pick">Elegir</string>
+    <string name="fs_sync_mappings_save">Guardar asignaciones de campos</string>
+    <string name="fs_sync_mappings_reset">Restablecer valores predeterminados</string>
+    <string name="fs_sync_mappings_note">Asigna qué campo del banco corresponde a la fecha, al beneficiario y a las notas. Puedes elegir campos de descargas recientes o escribir otros.</string>
+    <string name="fs_provider_configured">Configurado</string>
+    <string name="fs_provider_not_configured">No configurado</string>
+    <string name="fs_linked_accounts">Cuentas vinculadas</string>
+    <string name="fs_bank_sync_linked">Vinculado</string>
+    <string name="fs_status_needs_reauth">Requiere nueva autorización</string>
+    <string name="fs_status_needs_attention">Requiere atención</string>
+    <string name="fs_status_rate_limited">Límite de solicitudes alcanzado — inténtalo más tarde</string>
+    <string name="fs_status_timed_out">Se agotó el tiempo de conexión con el banco</string>
+    <string name="fs_status_account_missing">El banco ya no devuelve esta cuenta</string>
+    <string name="fs_status_sync_problem">Problema de sincronización</string>
+    <string name="fs_simplefin_token_hint">Pega el token de configuración de tu cuenta de SimpleFIN Bridge.</string>
+    <string name="fs_setup_token">Token de configuración</string>
+    <string name="fs_discover_accounts">Buscar cuentas</string>
+    <string name="fs_gocardless_notice">GoCardless (BankAccountData) ya no acepta cuentas nuevas, pero sigue ofreciendo soporte a los usuarios existentes.</string>
+    <string name="fs_secret_id">ID secreto</string>
+    <string name="fs_secret_key">Clave secreta</string>
+    <string name="fs_country_label">País: %1$s</string>
+    <string name="fs_choose_bank">Elegir banco para vincular</string>
+    <string name="fs_gocardless_check_accounts">Ya autoricé el acceso — comprobar cuentas</string>
+    <string name="fs_enable_banking_note">Crea una aplicación en enablebanking.com y permite la URL de redirección &lt;tu servidor de Actual&gt;/enablebanking/auth_callback. Introduce su ID de aplicación y elige el archivo de clave privada. Ambos se envían a tu servidor de Actual y no se guardan en este dispositivo.</string>
+    <string name="fs_application_id">ID de aplicación</string>
+    <string name="fs_key_file_selected">Archivo de clave: %1$s</string>
+    <string name="fs_choose_key_file">Elegir archivo de clave privada</string>
+    <string name="fs_key_file_open_failed">No se pudo abrir el archivo de clave.</string>
+    <string name="fs_key_file_empty">El archivo de clave está vacío.</string>
+    <string name="fs_key_file_read_failed">No se pudo leer el archivo de clave.</string>
+    <string name="fs_key_file_fallback">archivo de clave</string>
+    <string name="fs_load_banks_for">Cargar bancos de %1$s</string>
+    <string name="fs_no_accounts_found">No se encontraron cuentas.</string>
+    <string name="fs_loading">Cargando…</string>
+    <string name="fs_link">Vincular</string>
+    <string name="fs_link_account_title">Vincular «%1$s»</string>
+    <string name="fs_create_new_account_instead">Crear una cuenta nueva en su lugar</string>
+    <string name="fs_account_name">Nombre de la cuenta</string>
+    <string name="fs_create_and_link">Crear y vincular</string>
+    <string name="fs_link_existing_instead">Vincular a una cuenta existente en su lugar</string>
+    <string name="fs_eb_starting">Iniciando autorización con %1$s…</string>
+    <string name="fs_eb_wait">Autoriza %1$s en el navegador y vuelve aquí. La espera máxima es de 5 minutos.</string>
+    <string name="fs_eb_load_failed">No se pudieron cargar los bancos de %1$s.</string>
+    <string name="fs_eb_authorize_failed">No se pudo autorizar %1$s.</string>
+</resources>

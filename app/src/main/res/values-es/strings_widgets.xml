@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_listener_label">Importación de transacciones bancarias</string>
+    <string name="disconnect_reset_title">¿Desconectar y restablecer?</string>
+    <string name="disconnect_reset_message">Actua sincronizará todos los presupuestos descargados del servidor y, después, eliminará de este dispositivo esos presupuestos, las copias de seguridad locales, las claves de cifrado y los datos de conexión. Tus presupuestos en el servidor de Actual no se eliminarán. Se conservarán la configuración de visualización del dispositivo y el presupuesto de demostración local.</string>
+    <string name="disconnect_reset_action">Desconectar y restablecer</string>
+    <string name="widget_action_cancel">Cancelar</string>
+    <string name="disconnect_syncing_title">Sincronizando antes de desconectar</string>
+    <string name="disconnect_syncing_message">Guardando los cambios más recientes de Actual y Actua en todos los presupuestos descargados del servidor antes de eliminar los datos locales.</string>
+    <string name="disconnect_sync_failed_title">No se pudieron sincronizar los últimos cambios</string>
+    <string name="disconnect_sync_failed_message">Actua no eliminó ningún dato de los presupuestos locales. Si te desconectas de todos modos, podrías perder permanentemente los cambios que todavía no hayan llegado a tu servidor de Actual.</string>
+    <string name="disconnect_anyway">Desconectar de todos modos</string>
+    <string name="disconnect_try_again">Intentar de nuevo</string>
+    <string name="disconnect_error_sync_failed">Error de sincronización.</string>
+    <string name="disconnect_error_session_expired">Tu sesión en el servidor ha caducado, por lo que no se pueden sincronizar los cambios. Cancela e inicia sesión de nuevo en Conexión y datos, o desconéctate de todos modos.</string>
+    <string name="disconnect_error_missing_server_identity">%1$s no tiene una identidad de servidor y no se puede eliminar de forma segura después de la sincronización.</string>
+    <string name="disconnect_error_not_configured">%1$s no está configurado para sincronizarse con el servidor.</string>
+    <string name="disconnect_error_encryption_locked">%1$s está cifrado y bloqueado. Desbloquéalo antes de desconectarte o desconéctate de todos modos.</string>
+    <string name="disconnect_error_reset_failed">No se pudieron restablecer los datos locales de Actua.</string>
+
+    <string name="widget_off_budget">Fuera del presupuesto</string>
+    <string name="widget_add">Añadir widget</string>
+    <string name="widget_choose_categories">Elige hasta cuatro categorías para añadirlas a tus favoritos compartidos.</string>
+    <string name="widget_choose_accounts">Elige hasta cuatro cuentas.</string>
+    <string name="widget_no_available_items">No hay elementos disponibles en el presupuesto abierto.</string>
+    <string name="widget_schedule_period_prompt">Mostrar las transacciones programadas que vencen dentro de:</string>
+    <plurals name="widget_period_days">
+        <item quantity="one">%d día</item>
+        <item quantity="other">%d días</item>
+    </plurals>
+    <string name="widget_due_today">Hoy</string>
+    <string name="widget_due_tomorrow">Mañana</string>
+    <plurals name="widget_due_in_days">
+        <item quantity="one">En %d día</item>
+        <item quantity="other">En %d días</item>
+    </plurals>
+    <plurals name="widget_days_overdue">
+        <item quantity="one">%d día de atraso</item>
+        <item quantity="other">%d días de atraso</item>
+    </plurals>
+
+    <string name="credit_card_due_channel_name">Fechas de vencimiento de tarjetas de crédito</string>
+    <string name="credit_card_due_channel_description">Recordatorios de pago de las tarjetas de crédito registradas</string>
+    <string name="credit_card_due_tomorrow">mañana</string>
+    <plurals name="credit_card_due_in_days">
+        <item quantity="one">en %d día</item>
+        <item quantity="other">en %d días</item>
+    </plurals>
+    <string name="credit_card_notification_title">Pago de %1$s con vencimiento %2$s</string>
+    <string name="credit_card_notification_statement_body">El estado de cuenta vence el %1$s. El pago vence el %2$s.</string>
+    <string name="credit_card_notification_body">Saldo actual: %1$s. El pago vence el %2$s.</string>
+</resources>

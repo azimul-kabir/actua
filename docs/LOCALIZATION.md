@@ -1,6 +1,6 @@
 # Localization in Actua
 
-Actua ships in English and Brazilian Portuguese (pt-BR). This document defines the conventions every string change must follow so both catalogs stay complete, in parity, and in the same voice as Actual Budget (refs #1225).
+Actua ships in English, Brazilian Portuguese (pt-BR) and Spanish (es). This document defines the conventions every string change must follow so both catalogs stay complete, in parity, and in the same voice as Actual Budget (refs #1225).
 
 ## Purpose
 
@@ -8,7 +8,7 @@ Actua localizes structurally like the Actual Budget Android effort (#424): the s
 
 ## How Actua localizes
 
-- `values/` is the default (English) catalog. Each locale gets a sibling resource directory: `values-pt-rBR/` for pt-BR.
+- `values/` is the default (English) catalog. Each locale gets a sibling resource directory: `values-pt-rBR/` for pt-BR and `values-es/` for Spanish.
 - Strings live in per-feature files mirroring #424: `strings_navigation.xml`, `strings_budget_home.xml`, `strings_widgets.xml`, `strings_transactions.xml`, `strings_settings.xml`, `strings_financial_settings.xml`, `strings_connection_import.xml`, `strings_demo.xml`. A plain `strings.xml` holds cross-feature strings (app name, widgets, shortcuts, settings labels). The extraction phases land these files incrementally — `values*/` currently holds `strings.xml`, `strings_navigation.xml`, `strings_budget_home.xml` and `strings_widgets.xml` — but the eight-file layout is the fixed target: once a feature's file exists it must exist in every locale, even while empty.
 - Per-file self-containment intentionally duplicates a few cross-feature labels (e.g. `navigation_cancel` alongside `common_cancel`), mirroring #424 — duplication is accepted to keep files self-contained.
 - Key naming: `^[a-z][a-z0-9_]*$` (lower snake case) with a per-file prefix: `strings_navigation.xml` → `navigation_`; `strings_budget_home.xml` → `budget_`, `home_`, `common_`; `strings_widgets.xml` → `widget_`, `disconnect_`, `credit_card_due_`, `credit_card_notification_`, `notification_`. The remaining feature files take matching feature prefixes as they fill in. Cross-feature keys live in `strings.xml` with their own prefixes — `widget_`, `shortcut_`, `tasker_`, `settings_` today; those keys stay in `strings.xml` for good, matching #424's end state, and only new widget-family strings land in `strings_widgets.xml`. One key, one meaning; never reuse a key for two screens.
@@ -33,11 +33,11 @@ Actual Budget's pt-BR glossary, maintained on Weblate via [actualbudget/translat
 ## Language selection
 
 - Default is the system locale: the resource system resolves `values-pt-rBR/` on its own.
-- Users can override per app under **Settings → Display → Language**: System default, English, Português (Brasil). The picker (`SettingsScreen.kt`, wired through `AppNavigation.kt`) stores the choice with the AppCompat per-app locales API, `AppCompatDelegate.setApplicationLocales` — framework-backed on API 33+, backported to this app's minSdk 28.
-- The supported set is declared in `app/src/main/res/xml/locales_config.xml` (`en`, `pt-BR`), referenced by `AndroidManifest.xml` via `android:localeConfig` so the OS settings page matches the in-app picker.
+- Users can override per app under **Settings → Display → Language**: System default, English, Português (Brasil), Español. The picker (`SettingsScreen.kt`, wired through `AppNavigation.kt`) stores the choice with the AppCompat per-app locales API, `AppCompatDelegate.setApplicationLocales` — framework-backed on API 33+, backported to this app's minSdk 28.
+- The supported set is declared in `app/src/main/res/xml/locales_config.xml` (`en`, `pt-BR`, `es`), referenced by `AndroidManifest.xml` via `android:localeConfig` so the OS settings page matches the in-app picker.
 - Activities receive the locale automatically through AppCompat. Receivers, workers, and any non-activity context must wrap themselves with `Context.withAppLanguage()` (`app/src/main/java/com/azimulkabir/actua/data/preferences/AppLanguage.kt`), as the widgets do.
 - `app/build.gradle.kts` sets `bundle { language { enableSplit = false } }`, shipping every locale in a single artifact so switching in-app never triggers a Play Store download.
-- `androidResources { localeFilters += listOf("en", "pt-rBR") }` strips dependency-library locales Actua does not translate. Add a new language to this list (and to `locales_config.xml`) when shipping it.
+- `androidResources { localeFilters += listOf("en", "pt-rBR", "es") }` strips dependency-library locales Actua does not translate. Add a new language to this list (and to `locales_config.xml`) when shipping it.
 - Manifest shortcut labels are resolved by the launcher and follow the system — not the in-app — language below API 33.
 
 ## Adding a language

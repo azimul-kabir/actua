@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Actua</string>
+    <string name="widget_budget_snapshot">Resumen del presupuesto</string>
+    <string name="widget_favourite_categories">Categorías favoritas</string>
+    <string name="widget_quick_transaction">Transacción rápida</string>
+    <string name="widget_account_balances">Saldos de las cuentas</string>
+    <string name="widget_ready">Disponible para presupuestar</string>
+    <string name="widget_budgeted">Presupuestado</string>
+    <string name="widget_balance">Saldo</string>
+    <string name="widget_expense">− Gasto</string>
+    <string name="widget_income">+ Ingreso</string>
+    <string name="widget_transfer">⇄ Transferencia</string>
+    <string name="widget_no_budget">Abre Actua para seleccionar un presupuesto</string>
+    <string name="widget_no_categories">No hay categorías disponibles</string>
+    <string name="widget_no_accounts">No hay cuentas disponibles</string>
+    <string name="widget_upcoming_schedules">Próximas transacciones programadas</string>
+    <string name="widget_no_schedules">No hay próximas transacciones programadas</string>
+    <string name="shortcut_add_expense">Añadir gasto</string>
+    <string name="tasker_queue_transaction">Poner transacción en cola</string>
+    <string name="shortcut_add_income">Añadir ingreso</string>
+    <string name="shortcut_add_transfer">Añadir transferencia</string>
+    <string name="shortcut_search">Buscar</string>
+    <string name="shortcut_review_captured">Revisar transacciones capturadas</string>
+    <string name="shortcut_unavailable">Abre Actua para usar esta acción</string>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_language_system">Predeterminado del sistema</string>
+    <string name="settings_language_english">Inglés</string>
+    <string name="settings_language_portuguese_brazil">Portugués (Brasil)</string>
+    <string name="settings_language_spanish">Español</string>
+</resources>

@@ -643,6 +643,7 @@ fun SettingsScreen(
                                 SettingsChoiceOption("", stringResource(R.string.settings_language_system)),
                                 SettingsChoiceOption("en", stringResource(R.string.settings_language_english)),
                                 SettingsChoiceOption("pt-BR", stringResource(R.string.settings_language_portuguese_brazil)),
+                                SettingsChoiceOption("es", stringResource(R.string.settings_language_spanish)),
                             ),
                             onChange = onLanguageChange,
                         )

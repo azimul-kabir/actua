@@ -23,7 +23,7 @@ class StringResourceParityTest {
     private val resDir = File("src/main/res")
 
     /** Locale directories that must stay in parity; "values" is the default (English) catalog. */
-    private val localeDirs = listOf("values", "values-pt-rBR")
+    private val localeDirs = listOf("values", "values-pt-rBR", "values-es")
 
     private val locales by lazy { localeDirs.associateWith { parseLocale(File(resDir, it)) } }
 
