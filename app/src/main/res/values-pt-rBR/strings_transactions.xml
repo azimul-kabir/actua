@@ -105,6 +105,7 @@
     <string name="transactions_hide_reconciled">Ocultar transações reconciliadas</string>
     <string name="transactions_show_balance_summary">Mostrar resumo do saldo atual</string>
     <string name="transactions_running_balance">Saldo acumulado</string>
+    <string name="transactions_running_total_category">Total acumulado destas transações</string>
     <string name="transactions_show_notes">Mostrar notas</string>
     <string name="transactions_show_credit_card">Mostrar seção do cartão de crédito</string>
     <string name="transactions_tap_to_select">Toque nas transações para selecionar</string>

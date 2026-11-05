@@ -586,6 +586,13 @@ lists what was ported, what was only checked by reading, and what is not ported.
   (no app lock, readable by other apps, copied by any sync app that mirrors it) though Actua itself
   never uploads it, and the photos still never enter a sync, backup or export that Actua makes. If the
   folder becomes unavailable, photos fall back to private storage.
+- **Running total for a category list** (Transactions filtered to one category, with the Running balance
+  option on): each row shows the running total of the rows listed, oldest to newest, in exact integer
+  cents. Actual's register shows running balances for accounts only, so this is not Actual behavior. It
+  is the total of exactly the rows shown (any account, month, search or hidden-reconciled filter narrows
+  it), not the category's budget balance, which includes rollover and the budgeted amount. A split adds
+  only its lines in that category, and a split with a line in the category now appears in the category's
+  list. Transfers without a category and upcoming schedule rows are not counted.
 
 ## Port maintenance
 

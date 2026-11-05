@@ -105,6 +105,7 @@
     <string name="transactions_hide_reconciled">Hide reconciled transactions</string>
     <string name="transactions_show_balance_summary">Show current balance summary</string>
     <string name="transactions_running_balance">Running balance</string>
+    <string name="transactions_running_total_category">Running total of these transactions</string>
     <string name="transactions_show_notes">Show notes</string>
     <string name="transactions_show_credit_card">Show credit card section</string>
     <string name="transactions_tap_to_select">Tap transactions to select</string>
