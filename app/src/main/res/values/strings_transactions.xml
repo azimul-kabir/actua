@@ -258,6 +258,7 @@
     <string name="scan_receipt_no_text">No text found on that image. Enter the transaction by hand.</string>
     <string name="scan_receipt_no_total">No total found. Enter the amount by hand.</string>
     <string name="scan_receipt_failed">Could not read that image.</string>
+    <string name="scan_receipt_failed_reason">Could not read that image (%1$s).</string>
     <string name="scan_receipt_no_camera">No camera app is available.</string>
     <string name="receipt_split_title">Split the tax and items?</string>
     <string name="receipt_split_message">The receipt shows more than a total. You can add it as split lines, then pick a category for each line.</string>

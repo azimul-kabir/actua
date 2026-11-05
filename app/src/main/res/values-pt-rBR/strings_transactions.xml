@@ -258,6 +258,7 @@
     <string name="scan_receipt_no_text">Nenhum texto encontrado nessa imagem. Digite a transação.</string>
     <string name="scan_receipt_no_total">Nenhum total encontrado. Digite o valor.</string>
     <string name="scan_receipt_failed">Não foi possível ler essa imagem.</string>
+    <string name="scan_receipt_failed_reason">Não foi possível ler essa imagem (%1$s).</string>
     <string name="scan_receipt_no_camera">Nenhum app de câmera disponível.</string>
     <string name="receipt_split_title">Dividir o imposto e os itens?</string>
     <string name="receipt_split_message">O recibo mostra mais do que o total. Você pode adicioná-los como linhas de divisão e escolher uma categoria para cada linha.</string>

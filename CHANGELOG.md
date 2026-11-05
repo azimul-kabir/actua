@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Made receipt scanning load photos more safely, and a failed scan now names its error and appears in Diagnostics ([#1486](https://github.com/azimul-kabir/actua/pull/1486))
 - The privacy policy now says that receipt scanning's Google ML Kit may send technical diagnostics to Google ([#1482](https://github.com/azimul-kabir/actua/pull/1482))
 
 ## [2.5.0] - 2026-11-05

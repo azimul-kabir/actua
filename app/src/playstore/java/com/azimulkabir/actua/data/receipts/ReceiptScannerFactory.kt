@@ -14,7 +14,9 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 
 /**
  * Receipt text recognition with ML Kit's on-device models (bundled with the app) for Latin, Chinese,
@@ -46,15 +48,24 @@ private class MlKitReceiptScanner(context: Context) : ReceiptScanner {
      * nearly as good (the other models also read Latin letters, a little differently).
      */
     override suspend fun recognize(image: Uri): List<RecognizedLine> {
-        val input = InputImage.fromFilePath(context, image)
-        val first = read(latin, input)
-        if (size(first) >= ENOUGH_CHARACTERS) return first
-        var best = first
-        for (recognizer in others) {
-            val candidate = read(recognizer, input)
-            if (size(candidate) > size(best)) best = candidate
+        // The photo is decoded upright and bounded in size here, rather than by ML Kit from the file at full camera
+        // resolution, so a very large photo cannot exhaust memory and a failure to load it is ours to report.
+        val bitmap = withContext(Dispatchers.IO) {
+            ReceiptPhotoStore.decodeUpright(context, image, ReceiptPhotoSizing.RECOGNITION_EDGE)
         }
-        return if (size(first) * 5 >= size(best) * 4) first else best
+        try {
+            val input = InputImage.fromBitmap(bitmap, 0)
+            val first = read(latin, input)
+            if (size(first) >= ENOUGH_CHARACTERS) return first
+            var best = first
+            for (recognizer in others) {
+                val candidate = read(recognizer, input)
+                if (size(candidate) > size(best)) best = candidate
+            }
+            return if (size(first) * 5 >= size(best) * 4) first else best
+        } finally {
+            bitmap.recycle()
+        }
     }
 
     private fun size(lines: List<RecognizedLine>): Int = lines.sumOf { line -> line.text.count(Char::isLetterOrDigit) }

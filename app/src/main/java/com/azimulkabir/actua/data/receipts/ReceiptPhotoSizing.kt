@@ -5,6 +5,12 @@ object ReceiptPhotoSizing {
     /** The longest edge a kept photo is scaled down to, in pixels. */
     const val MAX_EDGE = 1600
 
+    /**
+     * The longest edge a photo is scaled down to before text recognition: larger than a kept photo so small
+     * print stays legible, but bounded so a 50 MP camera image never has to be held in memory whole.
+     */
+    const val RECOGNITION_EDGE = 2400
+
     /** JPEG quality of a kept photo. */
     const val JPEG_QUALITY = 80
 
