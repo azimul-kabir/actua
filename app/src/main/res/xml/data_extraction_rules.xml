@@ -13,6 +13,7 @@
         <exclude domain="sharedpref" path="actua_gdrive_auth.xml" />
         <exclude domain="sharedpref" path="gdrive_backup_encryption.xml" />
         <exclude domain="sharedpref" path="webdav_backup.xml" />
+        <exclude domain="sharedpref" path="actua-receipt-photo-folder.xml" />
         <exclude domain="file" path="ReceiptPhotos" />
     </cloud-backup>
     <device-transfer>
@@ -22,6 +23,7 @@
         <exclude domain="sharedpref" path="actua_gdrive_auth.xml" />
         <exclude domain="sharedpref" path="gdrive_backup_encryption.xml" />
         <exclude domain="sharedpref" path="webdav_backup.xml" />
+        <exclude domain="sharedpref" path="actua-receipt-photo-folder.xml" />
         <exclude domain="file" path="ReceiptPhotos" />
     </device-transfer>
 </data-extraction-rules>

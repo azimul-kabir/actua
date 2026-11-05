@@ -36,7 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.azimulkabir.actua.R
-import java.io.File
+import androidx.compose.ui.platform.LocalContext
+import com.azimulkabir.actua.data.receipts.ReceiptPhoto
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -46,11 +47,12 @@ import kotlinx.coroutines.withContext
  * cannot be read shows a message instead of failing.
  */
 @Composable
-fun ReceiptPhotoDialog(photo: File, onDismiss: () -> Unit, onRemove: () -> Unit) {
+fun ReceiptPhotoDialog(photo: ReceiptPhoto, onDismiss: () -> Unit, onRemove: () -> Unit) {
+    val context = LocalContext.current
     var confirmRemove by remember { mutableStateOf(false) }
     val bitmap: ImageBitmap? by produceState<ImageBitmap?>(null, photo) {
         value = withContext(Dispatchers.IO) {
-            runCatching { BitmapFactory.decodeFile(photo.path)?.asImageBitmap() }.getOrNull()
+            runCatching { photo.open(context)?.use { BitmapFactory.decodeStream(it)?.asImageBitmap() } }.getOrNull()
         }
     }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -84,7 +86,9 @@ fun ReceiptPhotoDialog(photo: File, onDismiss: () -> Unit, onRemove: () -> Unit)
                 }
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        stringResource(R.string.receipt_photo_local_note),
+                        stringResource(
+                            if (photo.inFolder) R.string.receipt_photo_folder_note else R.string.receipt_photo_local_note,
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

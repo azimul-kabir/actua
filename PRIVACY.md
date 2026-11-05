@@ -197,6 +197,27 @@ After a scan you can turn on "Keep the receipt photo" before saving the transact
 - The app lock protects the photo while it is inside Actua. Actua has no way to share or
   export a photo.
 
+#### Choosing a receipt photo folder
+
+In Settings → Transactions → Receipt photos you can choose a folder for new photos, for
+example on an SD card or in a folder that a sync app such as Nextcloud mirrors. This is
+off by default.
+- Photos in that folder are **outside Actua's control**: the app lock does not protect
+  them, other apps with access to the folder can read them, and any app that syncs or backs
+  up that folder will copy them. Actua itself never uploads them and tells you this before
+  the folder picker opens.
+- The folder is picked with the system folder picker, so Actua can only reach that folder
+  and keeps the permission only on this phone. The setting is excluded from Android backup
+  and device transfer.
+- Photos go to `Actua receipts/<budget>/<transaction>.jpg` inside the folder, one subfolder
+  per budget. Photos already kept stay where they are, and are not moved when you change
+  the folder; photos left in a folder you stop using are no longer shown in Actua.
+- Deleting a transaction deletes its photo in the folder, and removing a budget deletes
+  that budget's subfolder, where the folder allows it.
+- If the folder is gone, unmounted or no longer allowed, new photos are kept in private
+  storage instead and Actua tells you; transactions always open.
+- The photos are still never part of a sync, backup or export that Actua makes.
+
 ## Other on-device data
 
 Actua keeps app settings, which bank-synced transactions you haven't viewed

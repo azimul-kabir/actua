@@ -581,6 +581,11 @@ lists what was ported, what was only checked by reading, and what is not ported.
   downloading a budget elsewhere brings the transactions without their photos. Deleting a transaction
   through Actua, or removing a budget from the device, deletes its photos; a transaction deleted by a
   sync from another device, or merged away, can leave an unreferenced photo on this device.
+  Optionally the user can choose a receipt photo folder (system folder picker); new photos then go to
+  `Actua receipts/<budget id>/<transaction id>.jpg` inside it. That folder is outside Actua's control
+  (no app lock, readable by other apps, copied by any sync app that mirrors it) though Actua itself
+  never uploads it, and the photos still never enter a sync, backup or export that Actua makes. If the
+  folder becomes unavailable, photos fall back to private storage.
 
 ## Port maintenance
 

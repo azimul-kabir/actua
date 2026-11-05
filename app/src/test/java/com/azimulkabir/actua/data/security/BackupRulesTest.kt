@@ -17,18 +17,21 @@ class BackupRulesTest {
         "webdav_backup.xml",
     )
 
+    /** Also never copied: the receipt photo folder preference holds a permission grant that exists only on this device. */
+    private val deviceBoundStores = credentialStores + "actua-receipt-photo-folder.xml"
+
     @Test
     fun `credential stores are excluded from cloud backup and device transfer`() {
         val rules = parse("src/main/res/xml/data_extraction_rules.xml")
         for (section in listOf("cloud-backup", "device-transfer")) {
             val node = rules.getElementsByTagName(section).item(0) as Element
-            assertEquals(section, credentialStores, excludedSharedPrefs(node))
+            assertEquals(section, deviceBoundStores, excludedSharedPrefs(node))
         }
     }
 
     @Test
     fun `credential stores are excluded from legacy full backup`() {
-        assertEquals(credentialStores, excludedSharedPrefs(parse("src/main/res/xml/backup_rules.xml")))
+        assertEquals(deviceBoundStores, excludedSharedPrefs(parse("src/main/res/xml/backup_rules.xml")))
     }
 
     @Test
