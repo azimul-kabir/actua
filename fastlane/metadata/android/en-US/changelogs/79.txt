@@ -1,0 +1,8 @@
+• Scan receipts to fill in a transaction
+• Offer receipt tax and items as splits
+• Keep receipt photos on your phone
+• Encrypted WebDAV backup and restore
+• Paste and Clear in the amount keypad
+• Start new transactions on the last date
+• Bills calendar as a bottom tab
+• Running total for a category
