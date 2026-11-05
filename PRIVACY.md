@@ -182,8 +182,7 @@ total:
   list receipt photos, recognized text or budget data. Actua cannot switch this reporting
   off. We have not confirmed that ML Kit's bundled text recognition models send it,
   because Google's list does not cover them, so this describes what the library can do.
-  Google's documentation is at
-  <https://developers.google.com/ml-kit/android-data-disclosure>.
+  See [Google's ML Kit data disclosure](https://developers.google.com/ml-kit/android-data-disclosure).
 - A photo you take is written to the app's temporary cache only while it is read, and is
   deleted straight after unless you choose to keep it (see below). A photo you pick from
   your gallery is read in place and not copied. Actua does not keep the recognized text.
@@ -214,7 +213,7 @@ After a scan you can turn on "Keep the receipt photo" before saving the transact
 - The app lock protects the photo while it is inside Actua. Actua has no way to share or
   export a photo.
 
-#### Choosing a receipt photo folder
+### Choosing a receipt photo folder
 
 In Settings → Transactions → Receipt photos you can choose a folder for new photos, for
 example on an SD card or in a folder that a sync app such as Nextcloud mirrors. This is
