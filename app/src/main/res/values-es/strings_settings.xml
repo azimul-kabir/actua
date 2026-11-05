@@ -317,4 +317,6 @@
 <string name="diagnostics_clipboard_label">Diagnósticos de Actua</string>
 <string name="diagnostics_email_subject">Informe de diagnósticos de Actua</string>
 <string name="diagnostics_email_chooser">Enviar diagnósticos por correo</string>
+    <string name="settings_keep_last_transaction_date">Mantener la fecha de la última transacción</string>
+    <string name="settings_keep_last_transaction_date_description">Las transacciones nuevas empiezan con la fecha de la última que añadiste, hasta que cierres la aplicación</string>
 </resources>
