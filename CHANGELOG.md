@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added Spanish as a display language ([#1447](https://github.com/azimul-kabir/actua/pull/1447)) — thanks to [@stuffsearcher](https://github.com/stuffsearcher)
+
 ### Changed
 
 - Made receipt scanning load photos more safely, and a failed scan now names its error and appears in Diagnostics ([#1486](https://github.com/azimul-kabir/actua/pull/1486))
