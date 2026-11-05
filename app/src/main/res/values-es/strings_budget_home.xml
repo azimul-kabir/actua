@@ -63,7 +63,7 @@
     <string name="budget_expand_group">Expandir %1$s</string>
     <string name="budget_collapse_group">Contraer %1$s</string>
     <string name="budget_hidden_name">%1$s · Oculto</string>
-    <string name="budget_budgeted">Presupuestado</string>
+    <string name="budget_budgeted">Asignado</string>
     <string name="budget_spent">Gastado</string>
     <string name="budget_balance">Saldo</string>
     <string name="budget_received_amount">Recibido: %1$s</string>

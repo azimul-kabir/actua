@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources>
     <string name="navigation_home">Inicio</string>
-    <string name="navigation_budget">Presupuesto</string>
+    <string name="navigation_budget">Presup.</string>
     <string name="navigation_transactions">Transacciones</string>
     <string name="navigation_accounts">Cuentas</string>
     <string name="navigation_reports">Informes</string>
