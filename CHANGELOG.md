@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Changed
+
+- The privacy policy now says that receipt scanning's Google ML Kit may send technical diagnostics to Google ([#1482](https://github.com/azimul-kabir/actua/pull/1482))
+
 ## [2.5.0] - 2026-11-05
 
 ### Added
