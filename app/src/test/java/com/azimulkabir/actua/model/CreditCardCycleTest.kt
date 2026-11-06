@@ -3,6 +3,7 @@ package com.azimulkabir.actua.model
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.ui.components.DateDisplay
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -224,6 +225,44 @@ class CreditCardCycleTest {
     val selected = CreditCardCycle.pendingStatementDue(listOf(paidStatement), today)
 
     assertEquals(paidStatement, selected)
+    }
+
+    @Test fun pendingStatementDueIsNullAfterDeadlineWhenAnOlderStatementIsStillUnpaid() {
+        val overdue = due(DayDate(2026, 9, 29), remaining = 500L)
+        val paidLatest = due(DayDate(2026, 10, 29), remaining = 0L)
+
+        // The paid latest statement must not be shown while an older one still has a balance.
+        assertNull(CreditCardCycle.pendingStatementDue(listOf(overdue, paidLatest), DayDate(2026, 11, 5)))
+    }
+
+    @Test fun pendingStatementDueIsNullAfterDeadlineWhenTheLatestStatementIsUnpaid() {
+        val paidOlder = due(DayDate(2026, 9, 29), remaining = 0L)
+        val unpaidLatest = due(DayDate(2026, 10, 29), remaining = 500L)
+
+        assertNull(CreditCardCycle.pendingStatementDue(listOf(paidOlder, unpaidLatest), DayDate(2026, 11, 5)))
+    }
+
+    @Test fun pendingStatementDueDoesNotKeepAZeroBalanceStatementAfterItsDeadline() {
+        val zero = due(DayDate(2026, 10, 29), remaining = 0L, statement = 0L)
+
+        assertFalse(zero.isPaid)
+        // Before the deadline it is still selected, with nothing remaining to pay.
+        assertEquals(zero, CreditCardCycle.pendingStatementDue(listOf(zero), DayDate(2026, 10, 20)))
+        assertNull(CreditCardCycle.pendingStatementDue(listOf(zero), DayDate(2026, 11, 5)))
+    }
+
+    @Test fun pendingStatementDueKeepsTheLatestPaidStatementWhenEarlierOnesArePaidToo() {
+        val paidOlder = due(DayDate(2026, 9, 29), remaining = 0L)
+        val paidLatest = due(DayDate(2026, 10, 29), remaining = 0L)
+
+        assertEquals(
+            paidLatest,
+            CreditCardCycle.pendingStatementDue(listOf(paidOlder, paidLatest), DayDate(2026, 11, 5)),
+        )
+    }
+
+    @Test fun pendingStatementDueIsNullForNoStatements() {
+        assertNull(CreditCardCycle.pendingStatementDue(emptyList(), DayDate(2026, 11, 5)))
     }
 
     @Test fun summariesUseAnExplicitDueDate() {
