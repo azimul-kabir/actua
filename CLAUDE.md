@@ -7,6 +7,7 @@ The global rules in `~/.claude/CLAUDE.md` apply too (commit identity, no AI trac
 ## Must-follow rules (summary of AGENTS.md)
 
 - Issue first: every development change starts with a GitHub issue (existing labels only, applied at creation), then a focused branch, then a PR linked to the issue. Never develop on `main`. One concern per issue, branch and PR. Use the PR template.
+- Exception: documentation-only changes (Markdown such as `CLAUDE.md`, `README.md` and `docs/`, with no code, build, workflow or version changes) may be committed straight to `main` with no issue or PR, but only when I ask for that. Don't raise the issue-first rule for these. Pull and rebase if the push is rejected, and never force-push.
 - Do not merge PRs. Maintainer approval is required.
 - Do not change `versionCode` / `versionName` unless asked: a `versionCode` bump merged to `main` triggers a signed build, a Google Play upload and a GitHub release.
 - Never touch signing material or keystores, and never log or commit credentials, keys, real budgets or unredacted financial data. Use synthetic fixtures.
