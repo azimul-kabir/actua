@@ -1,0 +1,29 @@
+name: Update Google Play listing text
+description: >
+  Compares the store listing's title, short description and full description in
+  fastlane/metadata/android/en-US with the live Google Play listing and, when
+  apply is true, patches the fields that differ. Never touches images, video,
+  release notes or any release. Shared by the manual Google Play Listing Text
+  workflow and the Android Release workflow so both run the same code.
+
+inputs:
+  service-account-json:
+    description: JSON key of the Google Play service account (the PLAY_SERVICE_ACCOUNT_JSON secret).
+    required: true
+  apply:
+    description: Publish the change. Anything but "true" only compares and prints what would change.
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Install Google API client
+      shell: bash
+      run: python3 -m pip install --quiet google-api-python-client==2.201.0 google-auth==2.59.1
+    - name: Compare and update listing text
+      shell: bash
+      env:
+        PLAY_SERVICE_ACCOUNT_JSON: ${{ inputs.service-account-json }}
+        APPLY: ${{ inputs.apply }}
+      run: python3 "$GITHUB_ACTION_PATH/update_play_listing_text.py"
