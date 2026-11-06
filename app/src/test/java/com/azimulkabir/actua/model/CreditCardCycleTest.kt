@@ -195,7 +195,7 @@ class CreditCardCycleTest {
         )
     }
 
-    @Test fun pendingStatementDuePrefersUnpaidThenNotYetDueThenNothing() {
+    @Test fun pendingStatementDuePrefersUnpaidThenNotYetDueThenOverdue() {
         val first = due(DayDate(2026, 3, 12), remaining = 500L)
         val second = due(DayDate(2026, 4, 9), remaining = 0L)
         val dues = listOf(first, second)
@@ -204,7 +204,8 @@ class CreditCardCycleTest {
         val paid = CreditCardCycle.pendingStatementDue(dues, DayDate(2026, 3, 20))
         assertEquals(second, paid)
         assertTrue(paid!!.isPaid)
-        assertNull(CreditCardCycle.pendingStatementDue(dues, DayDate(2026, 4, 10)))
+        // Past both deadlines the first statement is still unpaid, so it stays as overdue.
+        assertEquals(first, CreditCardCycle.pendingStatementDue(dues, DayDate(2026, 4, 10)))
     }
 
     @Test fun pendingStatementDueKeepsPaidStatementAfterItsDeadline() {
@@ -216,19 +217,32 @@ class CreditCardCycleTest {
         assertEquals(paidStatement, selected)
     }
 
-    @Test fun pendingStatementDueIsNullAfterDeadlineWhenAnOlderStatementIsStillUnpaid() {
+    @Test fun pendingStatementDueKeepsAnOverdueStatementWhenTheLatestIsPaid() {
         val overdue = due(DayDate(2026, 9, 29), remaining = 500L)
         val paidLatest = due(DayDate(2026, 10, 29), remaining = 0L)
 
-        // The paid latest statement must not be shown while an older one still has a balance.
-        assertNull(CreditCardCycle.pendingStatementDue(listOf(overdue, paidLatest), DayDate(2026, 11, 5)))
+        assertEquals(overdue, CreditCardCycle.pendingStatementDue(listOf(overdue, paidLatest), DayDate(2026, 11, 5)))
     }
 
-    @Test fun pendingStatementDueIsNullAfterDeadlineWhenTheLatestStatementIsUnpaid() {
+    @Test fun pendingStatementDueKeepsTheOverdueLatestStatement() {
         val paidOlder = due(DayDate(2026, 9, 29), remaining = 0L)
         val unpaidLatest = due(DayDate(2026, 10, 29), remaining = 500L)
 
-        assertNull(CreditCardCycle.pendingStatementDue(listOf(paidOlder, unpaidLatest), DayDate(2026, 11, 5)))
+        assertEquals(unpaidLatest, CreditCardCycle.pendingStatementDue(listOf(paidOlder, unpaidLatest), DayDate(2026, 11, 5)))
+    }
+
+    @Test fun pendingStatementDuePicksTheOldestOverdueStatement() {
+        val oldest = due(DayDate(2026, 9, 1), remaining = 100L)
+        val newer = due(DayDate(2026, 10, 1), remaining = 200L)
+
+        assertEquals(oldest, CreditCardCycle.pendingStatementDue(listOf(oldest, newer), DayDate(2026, 11, 5)))
+    }
+
+    @Test fun pendingStatementDuePrefersAnUpcomingUnpaidStatementOverAnOverdueOne() {
+        val overdue = due(DayDate(2026, 10, 1), remaining = 100L)
+        val upcoming = due(DayDate(2026, 11, 20), remaining = 200L)
+
+        assertEquals(upcoming, CreditCardCycle.pendingStatementDue(listOf(overdue, upcoming), DayDate(2026, 11, 5)))
     }
 
     @Test fun pendingStatementDueDoesNotKeepAZeroBalanceStatementAfterItsDeadline() {
@@ -252,6 +266,20 @@ class CreditCardCycleTest {
 
     @Test fun pendingStatementDueIsNullForNoStatements() {
         assertNull(CreditCardCycle.pendingStatementDue(emptyList(), DayDate(2026, 11, 5)))
+    }
+
+    @Test fun summariesReportOverdueDays() {
+        val cycle = CreditCardCycle(statementDay = 15, dueOffsetDays = 25)
+        val today = DayDate(2026, 3, 20)
+        val pastDue = DayDate(2026, 3, 14)
+
+        assertEquals(6, cycle.daysOverdue(today, pastDue))
+        assertEquals(0, cycle.daysOverdue(today, today))
+        assertEquals(0, cycle.daysOverdue(today, DayDate(2026, 3, 21)))
+        assertEquals(0, cycle.daysOverdue(today, null))
+        assertEquals("Overdue 6d", cycle.dueSummary(today, pastDue))
+        assertEquals("Overdue 6d", cycle.dueShortSummary(today, pastDue))
+        assertEquals("Due today", cycle.dueSummary(today, today))
     }
 
     @Test fun summariesUseAnExplicitDueDate() {

@@ -15,6 +15,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed the Credit Cards screen hiding a statement that is past its due date and still unpaid; it now shows as overdue ([#1491](https://github.com/azimul-kabir/actua/pull/1491))
 - Fixed the Credit Cards screen showing open-cycle spending as due and marking zero-balance statements as awaiting payment ([#1489](https://github.com/azimul-kabir/actua/pull/1489))
 
 ## [2.5.0] - 2026-11-05

@@ -313,6 +313,7 @@
     <plurals name="fs_due_in_days"><item quantity="one">Vence en %d día</item><item quantity="other">Vence en %d días</item></plurals>
     <string name="fs_due_on_date_days">Vence el %1$s (%2$d d)</string>
     <string name="fs_due_in_days_short">Vence en %1$d d</string>
+    <string name="fs_overdue_days">Vencido hace %1$d d</string>
     <string name="fs_last_statement_due">Último estado de cuenta: %1$s</string>
     <string name="fs_row_balance_label">saldo</string>
     <string name="fs_row_cycle_spend_label">gastos del período</string>
