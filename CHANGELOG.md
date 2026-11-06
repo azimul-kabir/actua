@@ -3,7 +3,7 @@
 All notable user-facing changes to Actua are recorded here. This project uses [Semantic Versioning](https://semver.org/) where practical. Versions marked `beta` were testing builds and may have contained incomplete workflows or required a clean reinstall before a future production release.
 
 ## Unreleased
-
+- Fixed the Credit Cards screen showing open-cycle spending as due and marking zero-balance statements as awaiting payment.
 ### Added
 
 - Added Spanish as a display language ([#1447](https://github.com/azimul-kabir/actua/pull/1447)) — thanks to [@stuffsearcher](https://github.com/stuffsearcher)

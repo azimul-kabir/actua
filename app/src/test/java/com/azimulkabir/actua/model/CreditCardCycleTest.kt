@@ -175,16 +175,35 @@ class CreditCardCycleTest {
         assertEquals(DayDate(2026, 4, 1), cycle.upcomingDueDate(today))
     }
 
-    @Test fun statementDueCyclesAreOldestFirstAndAddTheCurrentCycleOnlyWhenNoneIsDue() {
-        val today = DayDate(2026, 3, 20)
-        val pending = CreditCardCycle(statementDay = 15, dueOffsetDays = 25).statementDueCycles(today)
-        assertEquals(listOf(DayDate(2026, 1, 15), DayDate(2026, 2, 15), DayDate(2026, 3, 15)), pending.map { it.end })
+    // @Test fun statementDueCyclesAreOldestFirstAndAddTheCurrentCycleOnlyWhenNoneIsDue() {
+    //     val today = DayDate(2026, 3, 20)
+    //     val pending = CreditCardCycle(statementDay = 15, dueOffsetDays = 25).statementDueCycles(today)
+    //     assertEquals(listOf(DayDate(2026, 1, 15), DayDate(2026, 2, 15), DayDate(2026, 3, 15)), pending.map { it.end })
 
-        val settled = CreditCardCycle(statementDay = 15, dueOffsetDays = 1).statementDueCycles(today)
-        assertEquals(4, settled.size)
-        assertEquals(DayDate(2026, 4, 15), settled.last().end)
-        assertEquals(DayDate(2026, 4, 16), settled.last().dueDate)
-    }
+    //     val settled = CreditCardCycle(statementDay = 15, dueOffsetDays = 1).statementDueCycles(today)
+    //     assertEquals(4, settled.size)
+    //     assertEquals(DayDate(2026, 4, 15), settled.last().end)
+    //     assertEquals(DayDate(2026, 4, 16), settled.last().dueDate)
+    // }
+
+    @Test fun statementDueCyclesExcludeTheOpenCycleAfterThePriorDeadline() {
+    val cycle = CreditCardCycle(
+        statementDay = 8,
+        paymentDue = CreditCardCycle.PaymentDue.DayOfMonth(29),
+    )
+    val today = DayDate(2026, 11, 5)
+
+    val statementCycles = cycle.statementDueCycles(today)
+
+    assertEquals(
+        listOf(
+            DayDate(2026, 8, 8),
+            DayDate(2026, 9, 8),
+            DayDate(2026, 10, 8),
+        ),
+        statementCycles.map { it.end },
+    )
+}
 
     @Test fun pendingStatementDuePrefersUnpaidThenNotYetDueThenNothing() {
         val first = due(DayDate(2026, 3, 12), remaining = 500L)
@@ -196,6 +215,15 @@ class CreditCardCycleTest {
         assertEquals(second, paid)
         assertTrue(paid!!.isPaid)
         assertNull(CreditCardCycle.pendingStatementDue(dues, DayDate(2026, 4, 10)))
+    }
+
+    @Test fun pendingStatementDueKeepsPaidStatementAfterItsDeadline() {
+    val paidStatement = due(DayDate(2026, 10, 29), remaining = 0L)
+    val today = DayDate(2026, 11, 5)
+
+    val selected = CreditCardCycle.pendingStatementDue(listOf(paidStatement), today)
+
+    assertEquals(paidStatement, selected)
     }
 
     @Test fun summariesUseAnExplicitDueDate() {

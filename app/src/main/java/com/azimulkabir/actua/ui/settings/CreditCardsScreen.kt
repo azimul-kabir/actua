@@ -146,17 +146,17 @@ private fun CreditCardRow(
     onViewStatements: () -> Unit = {},
 ) {
     val statementDue = card.pendingStatementDue()
-    val isPaid = statementDue?.isPaid == true
+    val isSettled = statementDue?.remainingDue == 0L
     val days = card.cycle.daysUntilDue(dueDate = statementDue?.dueDate)
     val urgency = when {
-        isPaid -> MaterialTheme.colorScheme.success
+        isSettled -> MaterialTheme.colorScheme.success
         days <= 3 -> MaterialTheme.colorScheme.error
         days <= 7 -> MaterialTheme.colorScheme.warning
         else -> Color(0xFFF9A825)
     }
     // The pill's short text and its long form for TalkBack, which keeps the date the pill drops.
-    val priorStatement = !isPaid && statementDue != null && card.cycle.isPriorStatementDue(statementDue.dueDate)
-    val pillText = duePillText(statementDue, isPaid, card.cycle, days, hideDecimals, short = true)
+    val priorStatement = !isSettled && statementDue != null && card.cycle.isPriorStatementDue(statementDue.dueDate)
+    val pillText = duePillText(statementDue, isSettled, card.cycle, days, hideDecimals, short = true)
     val lastStatementPill = if (priorStatement) stringResource(R.string.fs_last_statement_due, pillText) else null
     Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -169,7 +169,7 @@ private fun CreditCardRow(
                 card.accountName,
                 formatMoneyCents(card.balanceCents, hideDecimals),
                 formatMoneyCents(card.cycleSpendCents, hideDecimals),
-                duePillText(statementDue, isPaid, card.cycle, days, hideDecimals, short = false).let {
+                duePillText(statementDue, isSettled, card.cycle, days, hideDecimals, short = false).let {
                     if (priorStatement) stringResource(R.string.fs_last_statement_due, it) else it
                 },
                 card.availableCreditCents?.let { formatMoneyCents(it, hideDecimals) },
@@ -234,13 +234,13 @@ internal fun creditCardRowDescription(
 @Composable
 private fun duePillText(
     statementDue: CreditCardCycle.StatementDue?,
-    isPaid: Boolean,
+    isSettled: Boolean,
     cycle: CreditCardCycle,
     days: Int,
     hideDecimals: Boolean,
     short: Boolean,
 ): String {
-    if (isPaid) return stringResource(R.string.fs_status_paid)
+    if (isSettled) return stringResource(R.string.fs_status_paid)
     val summary = if (short) dueShortLabel(cycle, days, statementDue?.dueDate)
         else dueLongLabel(cycle, days, statementDue?.dueDate)
     return statementDue?.let {
