@@ -257,7 +257,9 @@ private fun dueShortLabel(cycle: CreditCardCycle, days: Int, dueDate: DayDate?):
 /** Localized "Due today"/"Due tomorrow"/"Due <date> (Nd)" summary in the user's date format. */
 @Composable
 private fun dueLongLabel(cycle: CreditCardCycle, days: Int, dueDate: DayDate?): String = when (days) {
-    0 -> stringResource(R.string.fs_due_today)
+    0 -> cycle.daysOverdue(dueDate = dueDate).let {
+        if (it > 0) stringResource(R.string.fs_overdue_days, it) else stringResource(R.string.fs_due_today)
+    }
     1 -> stringResource(R.string.fs_due_tomorrow)
     else -> {
         val due = dueDate ?: cycle.upcomingDueDate()
