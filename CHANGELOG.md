@@ -3,7 +3,7 @@
 All notable user-facing changes to Actua are recorded here. This project uses [Semantic Versioning](https://semver.org/) where practical. Versions marked `beta` were testing builds and may have contained incomplete workflows or required a clean reinstall before a future production release.
 
 ## Unreleased
-- Fixed the Credit Cards screen showing open-cycle spending as due and marking zero-balance statements as awaiting payment.
+
 ### Added
 
 - Added Spanish as a display language ([#1447](https://github.com/azimul-kabir/actua/pull/1447)) — thanks to [@stuffsearcher](https://github.com/stuffsearcher)
@@ -12,6 +12,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Made receipt scanning load photos more safely, and a failed scan now names its error and appears in Diagnostics ([#1486](https://github.com/azimul-kabir/actua/pull/1486))
 - The privacy policy now says that receipt scanning's Google ML Kit may send technical diagnostics to Google ([#1482](https://github.com/azimul-kabir/actua/pull/1482))
+
+### Fixed
+
+- Fixed the Credit Cards screen showing open-cycle spending as due and marking zero-balance statements as awaiting payment ([#1489](https://github.com/azimul-kabir/actua/pull/1489))
 
 ## [2.5.0] - 2026-11-05
 

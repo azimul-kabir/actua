@@ -164,7 +164,7 @@ data class CreditCardCycle(
 
     /** The recent closed statements whose payment balances are loaded, oldest first. */
     fun statementDueCycles(today: DayDate = DayDate.today()): List<StatementCycle> {
-    return recentStatementCycles(today).reversed()
+        return recentStatementCycles(today).reversed()
     }
 
     /** A closed billing cycle's date range and the payment due date for its statement. */
@@ -204,12 +204,12 @@ data class CreditCardCycle(
         const val MAX_DUE_OFFSET_DAYS = 60
 
         /**
-        * Picks the first unpaid statement with a deadline today or later,
-        * then the first statement whose deadline has not passed.
-        * Once all deadlines have passed, keeps the latest statement if it
-        * was paid and no loaded statement still has a balance due.
-        * [dues] are ordered oldest first.
-        */
+         * Picks the first unpaid statement with a deadline today or later,
+         * then the first statement whose deadline has not passed.
+         * Once all deadlines have passed, keeps the latest statement if it
+         * was paid and no loaded statement still has a balance due.
+         * [dues] are ordered oldest first.
+         */
         fun pendingStatementDue(
             dues: List<StatementDue>,
             today: DayDate = DayDate.today(),
@@ -218,7 +218,7 @@ data class CreditCardCycle(
                 ?: dues.firstOrNull { today <= it.dueDate }
                 ?: dues.lastOrNull()?.takeIf { latest ->
                     latest.isPaid && dues.none { it.remainingDue > 0 }
-            }
+                }
 
         /** Cards-row due pill: "$342.18 · Due in 27d", or the summary alone once settled. */
         fun duePillText(amount: String, summary: String, remainingDue: Long): String =
