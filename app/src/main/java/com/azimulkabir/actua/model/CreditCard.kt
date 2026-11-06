@@ -162,16 +162,9 @@ data class CreditCardCycle(
         return if (days <= 1) dueSummary(today, dueDate) else "Due in ${days}d"
     }
 
-    /**
-     * Statements whose dues cards load, oldest first: the recent closed statements (the
-     * 60-day maximum offset means these cover every one still pending), plus the current
-     * cycle's statement when none of them is still due.
-     */
+    /** The recent closed statements whose payment balances are loaded, oldest first. */
     fun statementDueCycles(today: DayDate = DayDate.today()): List<StatementCycle> {
-        val recent = recentStatementCycles(today).reversed()
-        if (recent.any { today <= it.dueDate }) return recent
-        val (start, end) = cycleRange(today)
-        return recent + StatementCycle(start, end, dueDate(end))
+        return recentStatementCycles(today).reversed()
     }
 
     /** A closed billing cycle's date range and the payment due date for its statement. */
@@ -211,12 +204,21 @@ data class CreditCardCycle(
         const val MAX_DUE_OFFSET_DAYS = 60
 
         /**
-         * The statement still awaiting payment: the first unpaid one that isn't past due,
-         * else the first not-yet-due one even if already paid. [dues] are oldest first.
+         * Picks the first unpaid statement with a deadline today or later,
+         * then the first statement whose deadline has not passed.
+         * Once all deadlines have passed, keeps the latest statement if it
+         * was paid and no loaded statement still has a balance due.
+         * [dues] are ordered oldest first.
          */
-        fun pendingStatementDue(dues: List<StatementDue>, today: DayDate = DayDate.today()): StatementDue? =
+        fun pendingStatementDue(
+            dues: List<StatementDue>,
+            today: DayDate = DayDate.today(),
+        ): StatementDue? =
             dues.firstOrNull { today <= it.dueDate && it.remainingDue > 0 }
                 ?: dues.firstOrNull { today <= it.dueDate }
+                ?: dues.lastOrNull()?.takeIf { latest ->
+                    latest.isPaid && dues.none { it.remainingDue > 0 }
+                }
 
         /** Cards-row due pill: "$342.18 · Due in 27d", or the summary alone once settled. */
         fun duePillText(amount: String, summary: String, remainingDue: Long): String =
