@@ -25,6 +25,12 @@ sealed class WebDavException(message: String, cause: Throwable? = null) : Except
     /** The server cannot rename (MOVE) an uploaded file, so a safe upload is not possible. */
     class MoveUnsupported : WebDavException("The server does not support renaming files")
 
+    /** The server refused to rename an uploaded file because it did not accept the destination address. */
+    class MoveRejected(val status: Int) : WebDavException("The server refused to rename the uploaded file ($status)")
+
+    /** The server answered the TLS handshake with something that is not TLS: the port speaks plain HTTP. */
+    class NotTls(cause: Throwable) : WebDavException("The server does not use HTTPS on this port", cause)
+
     /** The stored file is not the size that was sent; it was removed. */
     class UploadIncomplete(val expected: Long, val actual: Long) :
         WebDavException("The server stored $actual of $expected bytes")

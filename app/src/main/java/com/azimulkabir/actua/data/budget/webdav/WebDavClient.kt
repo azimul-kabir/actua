@@ -116,6 +116,8 @@ class WebDavClient(
             when (response.code) {
                 201, 204 -> Unit
                 405, 501 -> throw WebDavException.MoveUnsupported()
+                // A reverse proxy changes the scheme or port the server sees, so it refuses the Destination.
+                400, 502 -> throw WebDavException.MoveRejected(response.code)
                 else -> throw failure(response)
             }
         }
@@ -143,7 +145,11 @@ class WebDavClient(
     private fun execute(request: Request): Response = try {
         http.newCall(request).execute()
     } catch (error: IOException) {
-        throw if (error.isCertificateProblem()) WebDavException.Tls(error) else WebDavException.Network(error)
+        throw when {
+            isPlainHttpPort(error) -> WebDavException.NotTls(error)
+            error.isCertificateProblem() -> WebDavException.Tls(error)
+            else -> WebDavException.Network(error)
+        }
     }
 
     private fun failure(response: Response): WebDavException = when (response.code) {
@@ -170,7 +176,20 @@ class WebDavClient(
         if (encodedPath.endsWith("/")) this else newBuilder().addPathSegment("").build()
 
     internal companion object {
+        /** A TLS handshake that failed because the other end answered in plain text, not because of a certificate. */
+        fun isPlainHttpPort(error: Throwable): Boolean = generateSequence(error) { it.cause }.any { cause ->
+            cause is SSLException && PLAIN_HTTP_MARKERS.any { cause.message.orEmpty().contains(it, ignoreCase = true) }
+        }
+
         private const val DAV = "DAV:"
+        // What Conscrypt and the JDK report when a TLS client talks to a port that answers in plain HTTP.
+        private val PLAIN_HTTP_MARKERS = listOf(
+            "WRONG_VERSION_NUMBER",
+            "first record does not look like a TLS handshake",
+            "Unable to parse TLS packet header",
+            "Unrecognized SSL message",
+            "Unsupported or unrecognized SSL message",
+        )
         private const val MAX_LISTING_BYTES = 8L * 1024 * 1024
         private val XML = "application/xml; charset=utf-8".toMediaType()
         private val OCTET_STREAM = "application/octet-stream".toMediaType()

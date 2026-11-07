@@ -106,6 +106,37 @@ class WebDavClientTest {
         }
     }
 
+    @Test fun aMoveRefusedByTheServerBehindAProxyIsReportedWithItsStatus() {
+        listOf(400, 502).forEach { status ->
+            val proxied = MockWebServer().apply { enqueue(MockResponse().setResponseCode(status)); start() }
+            try {
+                val error = assertThrows(WebDavException.MoveRejected::class.java) {
+                    client().move(proxied.url("/dav/a.part"), proxied.url("/dav/a.actuabkp"))
+                }
+                assertEquals(status, error.status)
+            } finally {
+                proxied.shutdown()
+            }
+        }
+    }
+
+    @Test fun aHandshakeAnsweredInPlainTextIsRecognisedButACertificateFailureIsNot() {
+        val conscrypt = javax.net.ssl.SSLHandshakeException(
+            "error:100000f7:SSL routines:OPENSSL_internal:WRONG_VERSION_NUMBER (external/boringssl/ssl/tls_record.cc:242)",
+        )
+        val jdk = javax.net.ssl.SSLException("Unsupported or unrecognized SSL message")
+        val wrapped = java.io.IOException("failed", javax.net.ssl.SSLException("Unrecognized SSL message, plaintext connection?"))
+        val untrusted = javax.net.ssl.SSLHandshakeException(
+            "Trust anchor for certification path not found.",
+        ).apply { initCause(java.security.cert.CertificateException("untrusted")) }
+
+        assertTrue(WebDavClient.isPlainHttpPort(conscrypt))
+        assertTrue(WebDavClient.isPlainHttpPort(jdk))
+        assertTrue(WebDavClient.isPlainHttpPort(wrapped))
+        assertFalse(WebDavClient.isPlainHttpPort(untrusted))
+        assertFalse(WebDavClient.isPlainHttpPort(java.io.IOException("Connection reset")))
+    }
+
     @Test fun deleteOfAnAlreadyMissingFileIsNotAnError() {
         client().delete(url("/dav/files/alice/never-there.actuabkp"))
     }
