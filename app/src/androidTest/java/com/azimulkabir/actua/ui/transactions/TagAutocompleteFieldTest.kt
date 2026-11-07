@@ -2,15 +2,20 @@ package com.azimulkabir.actua.ui.transactions
 
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.budget.model.ActualTag
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -109,5 +114,22 @@ class TagAutocompleteFieldTest {
         val height = compose.onNodeWithTag("tagSuggestion-t4", useUnmergedTree = true)
             .fetchSemanticsNode().boundsInRoot.height
         assertTrue("Underscored tag suggestions must not wrap vertically", height <= with(compose.density) { 48.dp.toPx() })
+    }
+
+    @Test
+    fun everyTagIsReachableByScrollingTheSuggestionRow() {
+        val many = (1..12).map { ActualTag("m$it", "tag%02d".format(it), null, null, hidden = false) }
+        var note = ""
+        compose.setContent {
+            MaterialTheme {
+                TagAutocompleteField(value = note, tags = many, onValueChange = { note = it }, onCreateTag = { null })
+            }
+        }
+
+        compose.onNodeWithText("#").performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("#tag12"))
+        compose.onNodeWithText("#tag12").assertIsDisplayed().performClick()
+
+        compose.runOnIdle { assertEquals("#tag12 ", note) }
     }
 }
