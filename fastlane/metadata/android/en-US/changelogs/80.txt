@@ -1,0 +1,4 @@
+• Fixed Scan receipt failing on every photo
+• Fixed overdue credit card statements being hidden
+• Fixed settled statements showing as due
+• Added Spanish

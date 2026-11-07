@@ -4,6 +4,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [2.5.1] - 2026-11-07
+
 ### Added
 
 - Added Spanish as a display language ([#1447](https://github.com/azimul-kabir/actua/pull/1447)) — thanks to [@stuffsearcher](https://github.com/stuffsearcher)
@@ -16,8 +18,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Fixed
 
 - Fixed Scan receipt failing with "Could not read that image" on every photo ([#1493](https://github.com/azimul-kabir/actua/pull/1493))
-- Fixed the Credit Cards screen hiding a statement that is past its due date and still unpaid; it now shows as overdue ([#1491](https://github.com/azimul-kabir/actua/pull/1491))
-- Fixed the Credit Cards screen showing open-cycle spending as due and marking zero-balance statements as awaiting payment ([#1489](https://github.com/azimul-kabir/actua/pull/1489))
+- Fixed the Credit Cards screen hiding an unpaid statement that is past its due date ([#1491](https://github.com/azimul-kabir/actua/pull/1491))
+- Fixed the Credit Cards screen showing open-cycle spending as due ([#1489](https://github.com/azimul-kabir/actua/pull/1489))
 
 ## [2.5.0] - 2026-11-05
 
