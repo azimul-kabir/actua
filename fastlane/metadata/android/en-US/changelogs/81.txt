@@ -1,0 +1,3 @@
+• Fixed #tag suggestions getting stuck
+• Redesigned the Scan receipt menu
+• Moved Paste next to Done on the keypad

@@ -4,6 +4,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [2.5.2] - 2026-11-07
+
 ### Changed
 
 - Redesigned the Scan receipt chooser, and moved Paste next to Done on the amount keypad in place of its Scan link ([#1497](https://github.com/azimul-kabir/actua/pull/1497))
