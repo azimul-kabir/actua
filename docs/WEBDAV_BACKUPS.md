@@ -25,6 +25,19 @@ phone, so keep it somewhere safe.
 Layout on the server: `<address>/<folder>/<budget id>/<date>.actuabkp`. Only `.actuabkp` files in that folder are
 ever listed, downloaded or deleted; retention removes old backups there and nothing else.
 
+## Synology and reverse proxies
+
+- **Use the shared folder in the address.** Synology's WebDAV Server does not serve its root as a folder, only your
+  shared folders, named by their share name rather than `/volume1/...`. For the shared folder `documents`, enter
+  `https://nas.example.com:5006/documents/` (or `http://<nas address>:5005/documents/` on your home network, with
+  "Allow unencrypted HTTP" on). A `405` at connect time usually means the address stops at the root.
+- **Reach the server directly.** WebDAV renames each upload with a `MOVE` request that names the new address, and
+  the server refuses it if that address differs from the one it sees. A reverse proxy that forwards `https` on port
+  443 to the package's `http` port 5005 changes both, so uploads fail with a rename error (`502` or `400`). Connect
+  to the package's own port instead, for example its HTTPS port 5006 forwarded by the router, or the LAN address.
+- **HTTP and HTTPS ports are different.** `https://` against a plain HTTP port (5005 on Synology) fails the TLS
+  handshake, and Actua says the port does not use HTTPS.
+
 ## Security notes
 
 - **HTTPS is required.** Plain `http://` is refused unless you turn on "Allow unencrypted HTTP", which warns that

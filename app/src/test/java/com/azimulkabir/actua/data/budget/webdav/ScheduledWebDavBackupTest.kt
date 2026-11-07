@@ -142,6 +142,8 @@ class ScheduledWebDavBackupTest {
         assertTrue(ScheduledWebDavBackup.isRetryable(WebDavException.UploadIncomplete(10, 7)))
         assertTrue(ScheduledWebDavBackup.isRetryable(IllegalStateException("disk")))
         assertFalse(ScheduledWebDavBackup.isRetryable(WebDavException.Server(400, "")))
+        assertFalse(ScheduledWebDavBackup.isRetryable(WebDavException.MoveRejected(502)))
+        assertFalse(ScheduledWebDavBackup.isRetryable(WebDavException.NotTls(javax.net.ssl.SSLException("x"))))
     }
 
     // --- Against a (fake) server -----------------------------------------------------------------------------

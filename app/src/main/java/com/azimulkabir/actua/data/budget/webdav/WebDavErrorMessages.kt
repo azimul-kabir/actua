@@ -20,8 +20,14 @@ internal object WebDavErrorMessages {
         is WebDavException.Tls -> resources.getString(R.string.webdav_error_tls)
         is WebDavException.Redirect -> resources.getString(R.string.webdav_error_redirect)
         is WebDavException.MoveUnsupported -> resources.getString(R.string.webdav_error_move_unsupported)
+        is WebDavException.MoveRejected -> resources.getString(R.string.webdav_error_move_rejected, error.status)
+        is WebDavException.NotTls -> resources.getString(R.string.webdav_error_not_tls)
         is WebDavException.UploadIncomplete -> resources.getString(R.string.webdav_error_incomplete)
-        is WebDavException.Server -> resources.getString(R.string.webdav_error_server, error.status)
+        is WebDavException.Server -> if (error.status == 405) {
+            resources.getString(R.string.webdav_error_method_not_allowed)
+        } else {
+            resources.getString(R.string.webdav_error_server, error.status)
+        }
         is WebDavException.Network -> resources.getString(R.string.webdav_error_network)
         else -> error.message ?: resources.getString(R.string.webdav_error_generic)
     }

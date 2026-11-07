@@ -7,6 +7,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Fixed
 
 - Fixed Scan receipt failing with a NullPointerException in the Google Play build ([#1506](https://github.com/azimul-kabir/actua/pull/1506))
+- Fixed WebDAV backup errors pointing at the wrong problem: a rename refused behind a reverse proxy, an HTTPS address on a plain HTTP port, and a 405 at the server root now explain what to change ([#1504](https://github.com/azimul-kabir/actua/pull/1504))
 
 ## [2.5.2] - 2026-11-07
 
