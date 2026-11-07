@@ -3,6 +3,9 @@ package com.azimulkabir.actua.ui.transactions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,14 +13,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
@@ -28,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,7 +54,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.PopupProperties
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.data.budget.model.ActualTag
@@ -72,17 +77,15 @@ internal fun TagAutocompleteField(
     var fieldValue by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
     val focusRequester = remember { FocusRequester() }
     var focused by remember { mutableStateOf(false) }
-    var dismissedToken by remember { mutableStateOf<String?>(null) }
     val interactionSource = remember { MutableInteractionSource() }
+    val bringIntoView = remember { BringIntoViewRequester() }
     LaunchedEffect(value) {
         if (value != fieldValue.text) fieldValue = fieldValue.copy(text = value, selection = TextRange(value.length))
     }
     val token = activeTagToken(fieldValue.text, fieldValue.selection.end)
-    val tokenKey = token?.let { "${it.start}:${it.endExclusive}:${it.name}" }
-    if (tokenKey != dismissedToken && dismissedToken != null) dismissedToken = null
-    val matches = token?.let { matchingTags(tags, it.name).take(6) }.orEmpty()
+    val matches = token?.let { matchingTags(tags, it.name) }.orEmpty()
     val showCreate = token?.let { canCreateTag(it.name, tags) } == true
-    val expanded = focused && token != null && tokenKey != dismissedToken && (matches.isNotEmpty() || showCreate)
+    val expanded = focused && token != null && (matches.isNotEmpty() || showCreate)
     val tagColors = remember(tags) { tags.mapNotNull { tag -> tag.color?.let { tag.tag to it } }.toMap() }
     val darkTheme = isSystemInDarkTheme()
     val defaultTagColor = MaterialTheme.colorScheme.primary
@@ -90,7 +93,14 @@ internal fun TagAutocompleteField(
         tagHighlightTransformation(tagColors, darkTheme, defaultTagColor)
     }
 
-    Column(modifier) {
+    // The suggestions sit under the field, which the keyboard can cover, so scroll the whole block into view.
+    LaunchedEffect(expanded, matches.size, showCreate) {
+        if (expanded) {
+            withFrameNanos { } // let the row be laid out first
+            bringIntoView.bringIntoView()
+        }
+    }
+    Column(modifier.bringIntoViewRequester(bringIntoView)) {
         BasicTextField(
             value = fieldValue,
             onValueChange = { next -> fieldValue = next; onValueChange(next.text) },
@@ -145,48 +155,45 @@ internal fun TagAutocompleteField(
                 )
             },
         )
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { dismissedToken = tokenKey },
-            properties = PopupProperties(focusable = false),
-            modifier = Modifier.fillMaxWidth(0.92f),
-        ) {
-            matches.forEach { tag ->
-                DropdownMenuItem(
-                    leadingIcon = { Box(Modifier.size(14.dp).background(parseTagSuggestionColor(tag.color), CircleShape)) },
-                    text = { Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "#${tag.tag}",
-                            modifier = Modifier.weight(1f).testTag("tagSuggestion-${tag.id}"),
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        tag.description?.takeIf(String::isNotBlank)?.let {
+        // An inline row rather than a popup menu: it scrolls sideways through every matching tag, takes touches like
+        // any other part of the form, and is only present while a #tag is being typed.
+        if (expanded) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(matches, key = { it.id }) { tag ->
+                    SuggestionChip(
+                        onClick = {
+                            val current = activeTagToken(fieldValue.text, fieldValue.selection.end) ?: return@SuggestionChip
+                            val (text, cursor) = replaceActiveTag(fieldValue.text, current, tag.tag)
+                            fieldValue = TextFieldValue(text, TextRange(cursor)); onValueChange(text)
+                        },
+                        icon = { Box(Modifier.size(14.dp).background(parseTagSuggestionColor(tag.color), CircleShape)) },
+                        label = {
                             Text(
-                                it,
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodySmall,
+                                "#${tag.tag}",
+                                modifier = Modifier.testTag("tagSuggestion-${tag.id}"),
                                 maxLines = 1,
+                                softWrap = false,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                        }
-                    } },
-                    onClick = {
-                        val current = activeTagToken(fieldValue.text, fieldValue.selection.end) ?: return@DropdownMenuItem
-                        val (text, cursor) = replaceActiveTag(fieldValue.text, current, tag.tag)
-                        fieldValue = TextFieldValue(text, TextRange(cursor)); onValueChange(text)
-                    },
-                )
+                        },
+                    )
+                }
+                if (showCreate && token != null) item(key = "create") {
+                    SuggestionChip(
+                        onClick = {
+                            val current = activeTagToken(fieldValue.text, fieldValue.selection.end) ?: return@SuggestionChip
+                            val created = onCreateTag(current.name) ?: return@SuggestionChip
+                            val (text, cursor) = replaceActiveTag(fieldValue.text, current, created.tag)
+                            fieldValue = TextFieldValue(text, TextRange(cursor)); onValueChange(text)
+                        },
+                        label = { Text(stringResource(R.string.transaction_create_tag, token.name)) },
+                    )
+                }
             }
-            if (showCreate && token != null) DropdownMenuItem(text = {
-                Text(stringResource(R.string.transaction_create_tag, token.name))
-            }, onClick = {
-                val current = activeTagToken(fieldValue.text, fieldValue.selection.end) ?: return@DropdownMenuItem
-                val created = onCreateTag(current.name) ?: return@DropdownMenuItem
-                val (text, cursor) = replaceActiveTag(fieldValue.text, current, created.tag)
-                fieldValue = TextFieldValue(text, TextRange(cursor)); onValueChange(text)
-            })
         }
     }
 }

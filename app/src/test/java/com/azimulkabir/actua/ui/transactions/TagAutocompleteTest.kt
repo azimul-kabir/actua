@@ -25,6 +25,12 @@ class TagAutocompleteTest {
         assertEquals(listOf("travel", "work-travel"), matchingTags(tags, "tra").map { it.tag })
     }
 
+    @Test fun matchingTagsReturnsEveryMatchSoTheSuggestionRowCanScrollThroughThem() {
+        val tags = (1..12).map { ActualTag("$it", "tag%02d".format(it)) }
+        assertEquals(12, matchingTags(tags, "").size)
+        assertEquals(12, matchingTags(tags, "tag").size)
+    }
+
     @Test fun createValidationMatchesActualTagRules() {
         val tags = listOf(ActualTag("1", "Travel"))
         assertTrue(canCreateTag("travel", tags))
