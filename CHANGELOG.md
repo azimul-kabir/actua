@@ -4,6 +4,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [2.5.3] - 2026-11-07
+
 ### Fixed
 
 - Fixed Scan receipt failing with a NullPointerException in the Google Play build ([#1506](https://github.com/azimul-kabir/actua/pull/1506))

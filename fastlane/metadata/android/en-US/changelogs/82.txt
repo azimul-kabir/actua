@@ -1,0 +1,2 @@
+• Fixed Scan receipt failing on Google Play
+• Clearer WebDAV backup error messages
