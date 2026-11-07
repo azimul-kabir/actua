@@ -246,12 +246,9 @@
     <string name="amount_paste">Paste</string>
     <string name="amount_paste_description">Paste amount from clipboard</string>
     <string name="amount_paste_not_found">No amount found on the clipboard</string>
-    <string name="amount_scan">Scan</string>
-    <string name="amount_scan_description">Scan a receipt to fill in this transaction</string>
     <string name="scan_receipt">Scan receipt</string>
     <string name="scan_receipt_title">Scan a receipt</string>
-    <string name="scan_receipt_privacy">The photo is read on this device. It is not saved or sent anywhere, and nothing is saved until you check the transaction and tap Save.</string>
-    <string name="scan_receipt_scripts">Reads Latin, Chinese, Japanese, Korean and Devanagari scripts. Receipts in Cyrillic, Arabic, Hebrew, Thai, Greek or Bangla may not be read; you can always enter the transaction by hand.</string>
+    <string name="scan_receipt_privacy">Read on this device. Nothing is saved or sent.</string>
     <string name="scan_receipt_take_photo">Take photo</string>
     <string name="scan_receipt_choose_image">Choose image</string>
     <string name="scan_receipt_reading">Reading receipt…</string>

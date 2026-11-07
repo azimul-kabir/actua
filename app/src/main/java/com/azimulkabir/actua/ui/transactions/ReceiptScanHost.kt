@@ -6,14 +6,28 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,15 +39,21 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
 import com.azimulkabir.actua.data.receipts.ReceiptLayout
 import com.azimulkabir.actua.data.receipts.ReceiptPhotoStore
 import com.azimulkabir.actua.data.receipts.ReceiptScanner
+import com.azimulkabir.actua.ui.theme.Spacing
 import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -116,43 +136,63 @@ fun ReceiptScanHost(
     }
 
     if (show) {
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text(stringResource(R.string.scan_receipt_title)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.scan_receipt_privacy), style = MaterialTheme.typography.bodyMedium)
+        Dialog(onDismissRequest = onDismiss) {
+            Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(Spacing.xl),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                ) {
                     Text(
-                        stringResource(R.string.scan_receipt_scripts),
-                        style = MaterialTheme.typography.bodySmall,
+                        stringResource(R.string.scan_receipt_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        stringResource(R.string.scan_receipt_privacy),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                        ScanTile(
+                            icon = Icons.Outlined.PhotoCamera,
+                            title = stringResource(R.string.scan_receipt_take_photo),
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                onDismiss()
+                                try {
+                                    val target = scanner.newCaptureUri()
+                                    pendingCapture = target
+                                    takePicture.launch(target)
+                                } catch (_: ActivityNotFoundException) {
+                                    pendingCapture?.let(scanner::discard)
+                                    pendingCapture = null
+                                    toast(R.string.scan_receipt_no_camera)
+                                } catch (_: Exception) {
+                                    toast(R.string.scan_receipt_failed)
+                                }
+                            },
+                        )
+                        ScanTile(
+                            icon = Icons.Outlined.PhotoLibrary,
+                            title = stringResource(R.string.scan_receipt_choose_image),
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                onDismiss()
+                                pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            },
+                        )
+                    }
+                    FilledTonalButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
+                    ) { Text(stringResource(R.string.action_cancel)) }
                 }
-            },
-            confirmButton = {
-                Column(horizontalAlignment = Alignment.End, modifier = Modifier.fillMaxWidth()) {
-                    TextButton(onClick = {
-                        onDismiss()
-                        try {
-                            val target = scanner.newCaptureUri()
-                            pendingCapture = target
-                            takePicture.launch(target)
-                        } catch (_: ActivityNotFoundException) {
-                            pendingCapture?.let(scanner::discard)
-                            pendingCapture = null
-                            toast(R.string.scan_receipt_no_camera)
-                        } catch (_: Exception) {
-                            toast(R.string.scan_receipt_failed)
-                        }
-                    }) { Text(stringResource(R.string.scan_receipt_take_photo)) }
-                    TextButton(onClick = {
-                        onDismiss()
-                        pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }) { Text(stringResource(R.string.scan_receipt_choose_image)) }
-                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-                }
-            },
-        )
+            }
+        }
     }
     if (busy) {
         AlertDialog(
@@ -170,3 +210,28 @@ fun ReceiptScanHost(
 }
 
 private const val REASON_TOKEN = "\u0001"
+
+@Composable
+private fun ScanTile(icon: ImageVector, title: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(vertical = Spacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Box(
+            modifier = Modifier.size(64.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(28.dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+        Text(title, style = MaterialTheme.typography.labelLarge)
+    }
+}

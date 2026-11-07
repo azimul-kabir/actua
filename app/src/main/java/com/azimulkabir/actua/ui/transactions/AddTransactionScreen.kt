@@ -785,9 +785,6 @@ fun AddTransactionScreen(
         },
         onExpressionChange = { amountExpression = it },
         onDone = { if (editing == null) autoStep = AddStep.Payee },
-        onScan = if (receiptScanner != null && editing == null && prefill == null) {
-            { showReceiptScan = true }
-        } else null,
         onToggleSign = {
             keypadIncoming = !keypadIncoming
             incoming = !incoming
