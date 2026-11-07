@@ -30,6 +30,9 @@
     <string name="webdav_error_tls">The server\'s certificate could not be verified.</string>
     <string name="webdav_error_redirect">The server redirected to another address. Use the address it redirects to, usually the https:// one.</string>
     <string name="webdav_error_move_unsupported">This server does not support renaming files, which Actua needs to upload safely.</string>
+    <string name="webdav_error_move_rejected">The server refused to rename the uploaded file (error %1$d). If it is behind a reverse proxy, the proxy may be changing the address. Try the server\'s own address and port.</string>
+    <string name="webdav_error_not_tls">This port does not use HTTPS. Check the address and port, or use http:// and turn on Allow unencrypted HTTP if you trust the network.</string>
+    <string name="webdav_error_method_not_allowed">The server does not allow this at that address (error 405). Some servers only serve shared folders, so add the folder name to the address, for example /documents/.</string>
     <string name="webdav_error_incomplete">The server did not keep the whole backup, so it was removed. Try again.</string>
     <string name="webdav_error_server">The server answered with error %1$d.</string>
     <string name="webdav_error_network">Could not reach the server. Check the address and your connection.</string>

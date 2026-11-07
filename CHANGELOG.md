@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Fixed
+
+- Fixed WebDAV backup errors pointing at the wrong problem: a rename refused behind a reverse proxy, an HTTPS address on a plain HTTP port, and a 405 at the server root now explain what to change ([#1503](https://github.com/azimul-kabir/actua/issues/1503))
+
 ## [2.5.2] - 2026-11-07
 
 ### Changed

@@ -30,6 +30,9 @@
     <string name="webdav_error_tls">Não foi possível verificar o certificado do servidor.</string>
     <string name="webdav_error_redirect">O servidor redirecionou para outro endereço. Use o endereço de destino, geralmente o que começa com https://.</string>
     <string name="webdav_error_move_unsupported">Este servidor não permite renomear arquivos, algo de que o Actua precisa para enviar com segurança.</string>
+    <string name="webdav_error_move_rejected">O servidor recusou renomear o arquivo enviado (erro %1$d). Se ele estiver atrás de um proxy reverso, o proxy pode estar alterando o endereço. Tente o endereço e a porta do próprio servidor.</string>
+    <string name="webdav_error_not_tls">Esta porta não usa HTTPS. Confira o endereço e a porta, ou use http:// e ative Permitir HTTP sem criptografia se você confia na rede.</string>
+    <string name="webdav_error_method_not_allowed">O servidor não permite isso nesse endereço (erro 405). Alguns servidores só oferecem pastas compartilhadas, então adicione o nome da pasta ao endereço, por exemplo /documents/.</string>
     <string name="webdav_error_incomplete">O servidor não guardou o backup inteiro, então ele foi removido. Tente novamente.</string>
     <string name="webdav_error_server">O servidor respondeu com o erro %1$d.</string>
     <string name="webdav_error_network">Não foi possível acessar o servidor. Confira o endereço e a conexão.</string>

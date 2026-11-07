@@ -60,6 +60,8 @@ class ScheduledWebDavBackup(
             is WebDavException.Tls,
             is WebDavException.Redirect,
             is WebDavException.MoveUnsupported,
+            is WebDavException.MoveRejected,
+            is WebDavException.NotTls,
             is WebDavException.InvalidSettings -> false
             else -> true
         }
