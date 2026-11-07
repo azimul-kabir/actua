@@ -4,7 +4,7 @@ Actua uses Actual Budget's canonical tag metadata and keeps tag behavior compati
 
 ## Notes and autocomplete
 
-In a transaction note, type `#` to search managed tags. Suggestions update as the active hashtag token changes. Hidden tags are excluded from autocomplete. A `#` that follows another `#` never starts a tag, so `##tag` and `###tag` are plain text. Every `#tag` token is shown as a chip, in the notes field as you type and once the transaction is saved; a tag with no color, or with no managed metadata, uses the theme's color, as in Actual.
+In a transaction note, type `#` to search managed tags. Suggestions appear as a row of chips under the notes field that scrolls sideways through every matching tag, and update as the active hashtag token changes. Hidden tags are excluded from autocomplete. A `#` that follows another `#` never starts a tag, so `##tag` and `###tag` are plain text. Every `#tag` token is shown as a chip, in the notes field as you type and once the transaction is saved; a tag with no color, or with no managed metadata, uses the theme's color, as in Actual.
 
 Tag matching follows Actual: viewing a tag's transactions, rename and report filters are case-sensitive, while rules ignore case. A tag filter matches an exact hashtag token, so `#travel` does not match `#travel2026`.
 
