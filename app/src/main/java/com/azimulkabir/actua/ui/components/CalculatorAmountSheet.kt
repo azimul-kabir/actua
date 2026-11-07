@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -20,10 +19,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentPaste
+import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -36,9 +36,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.R
 import androidx.compose.ui.window.Popup
@@ -58,8 +58,6 @@ fun CalculatorAmountSheet(
     onApply: (Long) -> Unit,
     onExpressionChange: (String) -> Unit = {},
     onDone: () -> Unit = {},
-    /** Shows a Scan button between Clear and Paste that reads a receipt (the `playstore` flavor only). */
-    onScan: (() -> Unit)? = null,
     /**
      * Signed arithmetic: a − before the first number makes it negative, and [onApply] receives a result
      * that can be negative, for a caller whose own sign control (an expense and income chip) combines
@@ -93,7 +91,7 @@ fun CalculatorAmountSheet(
             tonalElevation = 3.dp,
         ) {
             Column {
-                KeypadActionRow(
+                if (SHOW_CLEAR_KEY) KeypadActionRow(
                     undoAvailable = undoSnapshot != null,
                     onClear = {
                         if (!calculator.isEmpty) {
@@ -109,13 +107,6 @@ fun CalculatorAmountSheet(
                         onApply(calculator.cents)
                         onExpressionChange(calculator.expressionDisplay)
                     },
-                    onScan = onScan,
-                    onPasted = { cents ->
-                        undoSnapshot = null
-                        calculator.setCents(cents)
-                        onApply(calculator.cents)
-                        onExpressionChange(calculator.expressionDisplay)
-                    },
                 )
                 CompactCalculatorPad(
                     calculator = calculator,
@@ -127,91 +118,93 @@ fun CalculatorAmountSheet(
                     onDone = { onApply(calculator.finish()); onDismiss(); onDone() },
                     onToggleSign = onToggleSign,
                     toggleSignLabel = toggleSignLabel,
+                    onPaste = pasteAction { cents ->
+                        undoSnapshot = null
+                        calculator.setCents(cents)
+                        onApply(calculator.cents)
+                        onExpressionChange(calculator.expressionDisplay)
+                    },
                 )
             }
         }
     }
 }
 
-/**
- * The slim row of text actions above the keys: Clear (which becomes Undo right after it is used) on the left
- * and Paste on the right. Each label stays on one line and is cut with an ellipsis rather than wrapping.
- */
+/** Whether the Clear (then Undo) key shows above the keys. Off for now; the code is kept to switch it back on. */
+private const val SHOW_CLEAR_KEY = false
+
+/** The slim row above the number keys: Clear, which becomes Undo right after it is used. */
 @Composable
 private fun KeypadActionRow(
     undoAvailable: Boolean,
     onClear: () -> Unit,
     onUndo: () -> Unit,
-    onScan: (() -> Unit)?,
-    onPasted: (Long) -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(top = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        KeypadTextButton(
-            label = stringResource(if (undoAvailable) R.string.amount_undo else R.string.amount_clear),
+        KeypadKey(
+            icon = if (undoAvailable) Icons.AutoMirrored.Outlined.Undo else null,
+            label = "C",
             description = stringResource(
                 if (undoAvailable) R.string.amount_undo_description else R.string.amount_clear_description,
             ),
             onClick = if (undoAvailable) onUndo else onClear,
             announceChanges = true,
-            modifier = Modifier.weight(1f, fill = false),
         )
-        if (onScan != null) {
-            KeypadTextButton(
-                label = stringResource(R.string.amount_scan),
-                description = stringResource(R.string.amount_scan_description),
-                onClick = onScan,
-                modifier = Modifier.weight(1f, fill = false),
-            )
-        }
-        PasteAmountButton(onPasted, Modifier.weight(1f, fill = false))
     }
 }
 
 /**
- * A Paste button. The clipboard is read only when it is tapped (Android 12+ tells the user when an app reads
- * it), the amount replaces the current entry, and a clipboard without a single amount leaves the entry
- * unchanged and says so.
+ * The action for the Paste key. The clipboard is read only when it is tapped (Android 12+ tells the user when
+ * an app reads it), the amount replaces the current entry, and a clipboard without a single amount leaves
+ * the entry unchanged and says so.
  */
 @Composable
-private fun PasteAmountButton(onPasted: (Long) -> Unit, modifier: Modifier = Modifier) {
+private fun pasteAction(onPasted: (Long) -> Unit): () -> Unit {
     val context = LocalContext.current
     val notFound = stringResource(R.string.amount_paste_not_found)
-    KeypadTextButton(
-        label = stringResource(R.string.amount_paste),
-        description = stringResource(R.string.amount_paste_description),
-        onClick = {
-            val text = context.getSystemService(ClipboardManager::class.java)
-                ?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)
-            val cents = PastedAmount.parseCents(text, CurrencyDisplay.decimalPlaces)
-            if (cents != null) onPasted(cents) else Toast.makeText(context, notFound, Toast.LENGTH_SHORT).show()
-        },
-        modifier = modifier,
-    )
+    return {
+        val text = context.getSystemService(ClipboardManager::class.java)
+            ?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)
+        val cents = PastedAmount.parseCents(text, CurrencyDisplay.decimalPlaces)
+        if (cents != null) onPasted(cents) else Toast.makeText(context, notFound, Toast.LENGTH_SHORT).show()
+    }
 }
 
-/** A text-only button one line tall; a long label (large font, other language) is cut with an ellipsis. */
+/** An icon key, or a text key when [icon] is null, styled like the number keys. */
 @Composable
-private fun KeypadTextButton(
-    label: String,
+private fun KeypadKey(
+    icon: ImageVector?,
+    label: String = "",
     description: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     /** Has TalkBack announce the new label when it changes, as Clear becomes Undo. */
     announceChanges: Boolean = false,
 ) {
-    TextButton(
+    Surface(
         onClick = onClick,
-        modifier = modifier.height(36.dp).semantics {
+        modifier = modifier.height(40.dp).width(64.dp).semantics {
             contentDescription = description
             if (announceChanges) liveRegion = LiveRegionMode.Polite
         },
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
-        Text(label, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+        Box(contentAlignment = Alignment.Center) {
+            if (icon != null) {
+                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+            } else {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
     }
 }
 
@@ -230,6 +223,8 @@ fun CompactCalculatorPad(
     onClose: (() -> Unit)? = null,
     onToggleSign: (() -> Unit)? = null,
     toggleSignLabel: String? = null,
+    /** Adds a Paste key left of ✓, which then takes one key's width. */
+    onPaste: (() -> Unit)? = null,
     onDone: () -> Unit,
 ) {
     var revision by remember { mutableIntStateOf(0) }
@@ -245,6 +240,7 @@ fun CompactCalculatorPad(
             "×" -> calculator.operator(CalculatorAmountState.Operator.MULTIPLY)
             "÷" -> calculator.operator(CalculatorAmountState.Operator.DIVIDE)
             "=" -> calculator.finish()
+            PASTE_KEY -> { onPaste?.invoke(); return }
             "✓" -> if (canFinish(calculator.cents)) onDone()
             else -> calculator.digit(key.toInt())
         }
@@ -254,12 +250,12 @@ fun CompactCalculatorPad(
             onExpressionChange(calculator.expressionDisplay)
         }
     }
-    // Five equal columns; ✓ spans the last two (#1028).
+    // Five equal columns; ✓ spans the last two (#1028), or one when there is a Paste key.
     val rows = listOf(
         listOf("7", "8", "9", "×", "÷"),
         listOf("4", "5", "6", "+", "−"),
         listOf("1", "2", "3", "⌫", "="),
-        listOf(".", "0", "±", "✓"),
+        if (onPaste != null) listOf(".", "0", "±", PASTE_KEY, "✓") else listOf(".", "0", "±", "✓"),
     )
     Column(
         Modifier.fillMaxWidth().padding(horizontal = horizontalPadding, vertical = 6.dp),
@@ -312,12 +308,16 @@ fun CompactCalculatorPad(
                         keys.forEach { key ->
                             CompactCalculatorKey(
                                 label = key,
+                                icon = if (key == PASTE_KEY) Icons.Outlined.ContentPaste else null,
                                 operator = key in setOf("÷", "×", "−", "+", "="),
                                 confirm = key == "✓",
                                 enabled = key != "✓" || canFinish(calculator.cents),
-                                description = if (key == "±" && onToggleSign != null) toggleSignLabel
-                                    else calculatorKeyDescriptions[key],
-                                modifier = Modifier.width(if (key == "✓") wideKeyWidth else keyWidth),
+                                description = when {
+                                    key == PASTE_KEY -> stringResource(R.string.amount_paste_description)
+                                    key == "±" && onToggleSign != null -> toggleSignLabel
+                                    else -> calculatorKeyDescriptions[key]
+                                },
+                                modifier = Modifier.width(if (key == "✓" && onPaste == null) wideKeyWidth else keyWidth),
                                 onClick = { press(key) },
                             )
                         }
@@ -339,6 +339,7 @@ private val calculatorKeyDescriptions = mapOf(
 @Composable
 private fun CompactCalculatorKey(
     label: String,
+    icon: ImageVector? = null,
     operator: Boolean,
     confirm: Boolean = false,
     enabled: Boolean = true,
@@ -359,7 +360,8 @@ private fun CompactCalculatorKey(
         },
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Text(
+            if (icon != null) Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+            else Text(
                 label,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Medium,
@@ -373,3 +375,6 @@ private fun CompactCalculatorKey(
         }
     }
 }
+
+/** Not a real key label: marks the Paste key in the key grid. */
+private const val PASTE_KEY = "paste"

@@ -246,12 +246,9 @@
     <string name="amount_paste">Pegar</string>
     <string name="amount_paste_description">Pegar el importe desde el portapapeles</string>
     <string name="amount_paste_not_found">No se encontró ningún importe en el portapapeles</string>
-    <string name="amount_scan">Escanear</string>
-    <string name="amount_scan_description">Escanear un recibo para rellenar esta transacción</string>
     <string name="scan_receipt">Escanear recibo</string>
     <string name="scan_receipt_title">Escanear un recibo</string>
-    <string name="scan_receipt_privacy">La foto se lee en este dispositivo. No se guarda ni se envía a ningún sitio, y no se guarda nada hasta que revises la transacción y toques Guardar.</string>
-    <string name="scan_receipt_scripts">Lee escrituras latina, china, japonesa, coreana y devanagari. Es posible que no se lean los recibos en cirílico, árabe, hebreo, tailandés, griego o bengalí; siempre puedes introducir la transacción a mano.</string>
+    <string name="scan_receipt_privacy">Se lee en este dispositivo. No se guarda ni se envía nada.</string>
     <string name="scan_receipt_take_photo">Hacer foto</string>
     <string name="scan_receipt_choose_image">Elegir imagen</string>
     <string name="scan_receipt_reading">Leyendo el recibo…</string>
