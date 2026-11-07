@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Fixed
+
+- Fixed the #tag suggestions in Add transaction getting stuck on the first tags; they are now a scrollable row ([#1498](https://github.com/azimul-kabir/actua/pull/1498))
+
 ## [2.5.1] - 2026-11-07
 
 ### Added
