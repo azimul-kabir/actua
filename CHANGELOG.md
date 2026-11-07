@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Changed
+
+- Redesigned the Scan receipt chooser, and moved Paste next to Done on the amount keypad in place of its Scan link ([#1497](https://github.com/azimul-kabir/actua/pull/1497))
+
 ### Fixed
 
 - Fixed the #tag suggestions in Add transaction getting stuck on the first tags; they are now a scrollable row ([#1498](https://github.com/azimul-kabir/actua/pull/1498))
