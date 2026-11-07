@@ -191,8 +191,10 @@ class ReceiptPhotoStore(context: Context) {
         fun decodeUpright(context: Context, source: Uri, maxEdge: Int): Bitmap {
             val resolver = context.contentResolver
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            resolver.openInputStream(source)?.use { BitmapFactory.decodeStream(it, null, bounds) }
-                ?: throw IOException("Cannot open the image")
+            // decodeStream returns null in bounds-only mode, so success is read from the options, not the result.
+            (resolver.openInputStream(source) ?: throw IOException("Cannot open the image")).use {
+                BitmapFactory.decodeStream(it, null, bounds)
+            }
             if (bounds.outWidth <= 0 || bounds.outHeight <= 0) throw IOException("Not an image")
             val options = BitmapFactory.Options().apply {
                 inSampleSize = ReceiptPhotoSizing.sampleSize(bounds.outWidth, bounds.outHeight, maxEdge)
