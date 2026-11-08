@@ -16,7 +16,7 @@ pdfboxAndroid = "2.0.27.0"
 okhttp = "4.12.0"
 baselineProfile = "1.5.0"
 profileinstaller = "1.4.1"
-uiautomator = "2.3.0"
+uiautomator = "2.4.1"
 billing = "9.1.0"
 mlkitTextRecognition = "16.0.1"
 
