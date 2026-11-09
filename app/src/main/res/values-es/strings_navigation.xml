@@ -196,4 +196,36 @@
         <item quantity="one">%1$s, %2$d transacción capturada pendiente</item>
         <item quantity="other">%1$s, %2$d transacciones capturadas pendientes</item>
     </plurals>
+    <string name="navigation_unopened_budget_banner">No se pudo abrir “%1$s”. Se conserva en este dispositivo. Toca para ver opciones.</string>
+    <string name="navigation_unopened_budget_title">No se pudo abrir “%1$s”</string>
+    <string name="navigation_unopened_budget_message">Este presupuesto, sus copias de seguridad locales y los cambios sin sincronizar se conservan en este dispositivo. El problema puede ser temporal, por ejemplo mientras se sincroniza o si queda poco almacenamiento.</string>
+    <string name="navigation_unopened_budget_unsynced_unknown">Actua no puede saber si este presupuesto tiene cambios sin sincronizar con el servidor.</string>
+    <string name="navigation_unopened_budget_local_only">Este presupuesto solo está en este dispositivo.</string>
+    <string name="navigation_unopened_budget_try_again">Reintentar</string>
+    <string name="navigation_unopened_budget_redownload">Volver a descargar del servidor</string>
+    <string name="navigation_unopened_budget_restore">Restaurar desde una copia de seguridad</string>
+    <string name="navigation_unopened_budget_delete">Eliminar de este dispositivo</string>
+    <string name="navigation_unopened_budget_not_now">Ahora no</string>
+    <string name="navigation_unopened_budget_cancel">Cancelar</string>
+    <string name="navigation_unopened_budget_redownload_title">¿Volver a descargar “%1$s”?</string>
+    <string name="navigation_unopened_budget_redownload_message">Esto reemplaza la copia de este dispositivo por la del servidor. Actua hace primero una copia de seguridad de esta copia y no cambia nada si falla. Los cambios sin sincronizar no estarán en la nueva copia, pero se conservan en esa copia de seguridad.</string>
+    <string name="navigation_unopened_budget_redownload_confirm">Volver a descargar</string>
+    <string name="navigation_unopened_budget_redownload_done">Se volvió a descargar “%1$s”. La copia anterior está en sus copias de seguridad.</string>
+    <string name="navigation_unopened_budget_redownload_failed">No se pudo volver a descargar este presupuesto. No se cambió nada.</string>
+    <string name="navigation_unopened_budget_restore_title">Restaurar “%1$s” desde una copia de seguridad</string>
+    <string name="navigation_unopened_budget_restore_none">Este presupuesto no tiene copias de seguridad locales.</string>
+    <string name="navigation_unopened_budget_restore_previous">Versión anterior a la última restauración</string>
+    <string name="navigation_unopened_budget_restore_confirm">Restaurar</string>
+    <string name="navigation_unopened_budget_restore_done">Se restauró la copia de seguridad de “%1$s”.</string>
+    <string name="navigation_unopened_budget_restore_failed">No se pudo restaurar esa copia de seguridad.</string>
+    <string name="navigation_unopened_budget_delete_title">¿Eliminar “%1$s” de este dispositivo?</string>
+    <string name="navigation_unopened_budget_delete_message">También se eliminan sus copias de seguridad locales y las fotos de recibos. Esto no se puede deshacer.</string>
+    <string name="navigation_unopened_budget_delete_server_note">La copia en tu servidor de Actual no se ve afectada.</string>
+    <string name="navigation_unopened_budget_delete_confirm">Eliminar</string>
+    <string name="navigation_unopened_budget_delete_done">Se eliminó “%1$s” de este dispositivo.</string>
+    <string name="navigation_unopened_budget_delete_failed">No se pudo eliminar este presupuesto.</string>
+    <plurals name="navigation_unopened_budget_unsynced">
+        <item quantity="one">Este presupuesto tiene %d cambio sin sincronizar con el servidor.</item>
+        <item quantity="other">Este presupuesto tiene %d cambios sin sincronizar con el servidor.</item>
+    </plurals>
 </resources>

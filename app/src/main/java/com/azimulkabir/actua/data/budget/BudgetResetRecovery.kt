@@ -33,11 +33,16 @@ class BudgetResetRecovery(
 ) {
     /**
      * Local changes that haven't synced, shown to the user before they confirm. Null when this device
-     * never recorded a completed sync for the budget, so the count can't be known.
+     * never recorded a completed sync for the budget, or the log can't be read, so the count can't be
+     * known. Read-only, with no migrations, so it also works on a budget the app couldn't open.
      */
     fun unsyncedChanges(budgetId: String): Int? {
         val syncedThrough = markers.read(budgetId) ?: return null
-        return ActualBudgetDatabase.open(files.databaseFile(budgetId)).use { it.messageCountAfter(syncedThrough) }
+        return try {
+            ActualBudgetDatabase.open(files.databaseFile(budgetId), readOnly = true).use { it.messageCountAfter(syncedThrough) }
+        } catch (error: Exception) {
+            null
+        }
     }
 
     /**

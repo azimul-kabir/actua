@@ -41,6 +41,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] With an unsynced edit, switch to another downloaded budget and back, and verify the edit is still there and then syncs.
 - [ ] Expire or revoke the server session (e.g. log out all sessions in Actual), then verify Actua shows the signed-out banner and Sign in again restores sync without losing downloaded budgets or unsynced edits.
 - [ ] Reset sync for a disposable budget in Actual, sync Actua, and verify Connection & Data explains that a fresh download is needed, background sync stops retrying, and the local budget is untouched.
+- [ ] Make a disposable downloaded budget fail to open (for example, copy in a `db.sqlite` with an unreadable transaction date), relaunch, and verify the budget is still on the device, the "Couldn’t open" banner appears, and its dialog shows the unsynced-change warning. Verify Try again, Restore from backup and Re-download each reopen it, and that Delete asks for confirmation first.
 - [ ] Upgrade over 1.2.0 with a custom HTTP header configured and verify login/sync still succeed with the header.
 - [ ] Create a new budget in Actua, sync, and verify Actual shows its default reports dashboard.
 

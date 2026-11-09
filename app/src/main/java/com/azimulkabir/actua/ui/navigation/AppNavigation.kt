@@ -195,6 +195,7 @@ import com.azimulkabir.actua.data.receipts.createReceiptScanner
 import com.azimulkabir.actua.data.preferences.HomePreferences
 import com.azimulkabir.actua.data.preferences.TabBarPreferences
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
+import com.azimulkabir.actua.data.budget.BudgetMetadata
 import com.azimulkabir.actua.data.bank.NewBankTransactions
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.preferences.LocationPreferences
@@ -1684,13 +1685,45 @@ fun AppNavigation(
     val showAddTab = TabItem.ADD in tabBarLayout.visibleTabs
     val hasFab = repository.isUsingActualBudget && !reconcileOpen && (onMainTab || inAccount) && !showAddTab
 
+    // A local budget that couldn't be opened is kept on disk; the banner offers recovery (#1509).
+    val unopenedBudget = repository.unopenedBudgets.firstOrNull()
+    var unopenedBudgetDialog by remember(repositoryVersion) { mutableStateOf<BudgetMetadata?>(null) }
+    val reopenAfterRecovery: (BudgetMetadata, Boolean) -> Unit = { budget, selectBudget ->
+        repository.close()
+        if (selectBudget) {
+            ActiveBudgetStore(context).budgetId = budget.id
+            // Account, category and month filters hold ids from the previous budget.
+            transactionAccount = null
+            transactionCategory = null
+            transactionMonth = null
+            transactionSearch = ""
+        }
+        repositoryVersion += 1
+        dataVersion += 1
+        WidgetUpdater.requestAll(context)
+        ActualSyncScheduler.scheduleMutation(context)
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
+    unopenedBudgetDialog?.let { budget ->
+        UnopenedBudgetRecoveryDialog(
+            budget = budget,
+            onDismiss = { unopenedBudgetDialog = null },
+            onReopen = { selectBudget -> reopenAfterRecovery(budget, selectBudget) },
+            onMessage = { message -> coroutineScope.launch { snackbarHostState.showSnackbar(message) } },
+        )
+    }
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         snackbarHost = { ActuaSnackbarHost(snackbarHostState) },
         topBar = {
             if (shouldShowSessionExpiredBanner(sessionExpired, repository.isServerBacked, detail)) {
                 SessionExpiredBanner(onSignIn = { detail = DetailDestination.Connection })
+            } else if (unopenedBudget != null) {
+                UnopenedBudgetBanner(
+                    budgetName = unopenedBudget.budgetName ?: unopenedBudget.id,
+                    onOpen = { unopenedBudgetDialog = unopenedBudget },
+                )
             } else if (shouldShowSyncBanner(syncStatus) && repository.isUsingActualBudget) {
                 SyncStatusBanner()
             }

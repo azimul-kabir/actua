@@ -197,4 +197,36 @@
         <item quantity="one">%1$s, %2$d captured transaction waiting</item>
         <item quantity="other">%1$s, %2$d captured transactions waiting</item>
     </plurals>
+    <string name="navigation_unopened_budget_banner">Couldn’t open “%1$s”. It’s kept on this device. Tap for options.</string>
+    <string name="navigation_unopened_budget_title">Couldn’t open “%1$s”</string>
+    <string name="navigation_unopened_budget_message">This budget, its local backups and any unsynced changes are kept on this device. The problem can be temporary, for example while a sync is running or the device is low on storage.</string>
+    <string name="navigation_unopened_budget_unsynced_unknown">Actua can’t tell whether this budget has changes that haven’t synced to the server.</string>
+    <string name="navigation_unopened_budget_local_only">This budget is only on this device.</string>
+    <string name="navigation_unopened_budget_try_again">Try again</string>
+    <string name="navigation_unopened_budget_redownload">Re-download from server</string>
+    <string name="navigation_unopened_budget_restore">Restore from backup</string>
+    <string name="navigation_unopened_budget_delete">Delete from this device</string>
+    <string name="navigation_unopened_budget_not_now">Not now</string>
+    <string name="navigation_unopened_budget_cancel">Cancel</string>
+    <string name="navigation_unopened_budget_redownload_title">Re-download “%1$s”?</string>
+    <string name="navigation_unopened_budget_redownload_message">This replaces the copy on this device with the server’s. Actua backs up this copy first and changes nothing if the backup fails. Unsynced changes won’t be in the new copy, but stay in that backup.</string>
+    <string name="navigation_unopened_budget_redownload_confirm">Re-download</string>
+    <string name="navigation_unopened_budget_redownload_done">Re-downloaded “%1$s”. The previous copy is in its backups.</string>
+    <string name="navigation_unopened_budget_redownload_failed">Couldn’t re-download this budget. Nothing was changed.</string>
+    <string name="navigation_unopened_budget_restore_title">Restore “%1$s” from a backup</string>
+    <string name="navigation_unopened_budget_restore_none">This budget has no local backups.</string>
+    <string name="navigation_unopened_budget_restore_previous">Version before the last restore</string>
+    <string name="navigation_unopened_budget_restore_confirm">Restore</string>
+    <string name="navigation_unopened_budget_restore_done">Restored the backup of “%1$s”.</string>
+    <string name="navigation_unopened_budget_restore_failed">Couldn’t restore that backup.</string>
+    <string name="navigation_unopened_budget_delete_title">Delete “%1$s” from this device?</string>
+    <string name="navigation_unopened_budget_delete_message">Its local backups and receipt photos are deleted too. This can’t be undone.</string>
+    <string name="navigation_unopened_budget_delete_server_note">The copy on your Actual server isn’t affected.</string>
+    <string name="navigation_unopened_budget_delete_confirm">Delete</string>
+    <string name="navigation_unopened_budget_delete_done">Deleted “%1$s” from this device.</string>
+    <string name="navigation_unopened_budget_delete_failed">Couldn’t delete this budget.</string>
+    <plurals name="navigation_unopened_budget_unsynced">
+        <item quantity="one">This budget has %d change that hasn’t synced to the server.</item>
+        <item quantity="other">This budget has %d changes that haven’t synced to the server.</item>
+    </plurals>
 </resources>

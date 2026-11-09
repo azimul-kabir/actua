@@ -5,8 +5,11 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BackupService
 import com.azimulkabir.actua.data.budget.BudgetFileManager
+import com.azimulkabir.actua.data.budget.UnopenedBudgetRecovery
+import com.azimulkabir.actua.data.sync.SyncedLogMarkers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.UUID
@@ -51,6 +54,7 @@ class ActuaRepositoryRecoveryTest {
                     "An unreadable server-backed budget must be kept, not deleted",
                     files.databaseFile(invalid.id).exists(),
                 )
+                assertEquals(listOf(invalid.id), repository.unopenedBudgets.map { it.id })
             } finally {
                 repository.close()
             }
@@ -230,6 +234,78 @@ class ActuaRepositoryRecoveryTest {
         }
     }
 
+    @Test
+    fun unsyncedChangesAreCountedForABudgetThatCannotOpen() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val files = BudgetFileManager(context)
+        val budget = files.createBudget("Server ${UUID.randomUUID()}")
+        try {
+            files.saveCloudRegistration(budget.id, "cloud-${UUID.randomUUID()}", "group-1")
+            SQLiteDatabase.openDatabase(files.databaseFile(budget.id).path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                // Everything already in the new budget's log counts as synced.
+                val syncedThrough = db.rawQuery("SELECT MAX(timestamp) FROM messages_crdt", null).use {
+                    if (it.moveToFirst() && !it.isNull(0)) it.getString(0) else null
+                }
+                SyncedLogMarkers(context).record(budget.id, syncedThrough)
+                db.execSQL(
+                    "INSERT INTO messages_crdt (timestamp, dataset, row, `column`, value) VALUES (?, ?, ?, ?, ?)",
+                    arrayOf<Any>(LATER_UNSYNCED_TIMESTAMP, "accounts", "checking", "name", "S:Checking"),
+                )
+                insertUnreadableTransaction(db)
+            }
+
+            assertEquals(1, UnopenedBudgetRecovery(context).unsyncedChanges(budget.id))
+
+            // Not a database at all: the count is unknown rather than an error.
+            files.databaseFile(budget.id).writeText("not a database")
+            assertNull(UnopenedBudgetRecovery(context).unsyncedChanges(budget.id))
+        } finally {
+            runCatching { files.deleteBudget(budget.id) }
+        }
+    }
+
+    @Test
+    fun restoringABackupMakesAnUnopenedBudgetOpenAgain() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val files = BudgetFileManager(context)
+        val valid = files.createBudget("Valid ${UUID.randomUUID()}")
+        val broken = files.createBudget("Server ${UUID.randomUUID()}")
+        try {
+            files.saveCloudRegistration(broken.id, "cloud-${UUID.randomUUID()}", "group-1")
+            val backup = BackupService(context, files).makeBackup(broken.id)
+            SQLiteDatabase.openDatabase(files.databaseFile(broken.id).path, null, SQLiteDatabase.OPEN_READWRITE).use {
+                insertUnreadableTransaction(it)
+            }
+            ActiveBudgetStore(context).budgetId = broken.id
+
+            ActuaRepository(context).also { repository ->
+                try {
+                    assertEquals(listOf(broken.id), repository.unopenedBudgets.map { it.id })
+                } finally {
+                    repository.close()
+                }
+            }
+
+            val recovery = UnopenedBudgetRecovery(context)
+            assertTrue(recovery.backups(broken.id).isNotEmpty())
+            recovery.restore(broken.id, backup.name)
+            ActiveBudgetStore(context).budgetId = broken.id
+
+            ActuaRepository(context).also { repository ->
+                try {
+                    assertEquals(broken.id, repository.activeMetadata?.id)
+                    assertTrue(repository.unopenedBudgets.isEmpty())
+                } finally {
+                    repository.close()
+                }
+            }
+        } finally {
+            ActiveBudgetStore(context).budgetId = null
+            runCatching { files.deleteBudget(valid.id) }
+            runCatching { files.deleteBudget(broken.id) }
+        }
+    }
+
     private fun insertUnreadableTransaction(db: SQLiteDatabase) {
         db.execSQL(
             """
@@ -248,6 +324,8 @@ class ActuaRepositoryRecoveryTest {
     }
 
     private companion object {
+        /** Later than anything a freshly created budget writes to its log. */
+        const val LATER_UNSYNCED_TIMESTAMP = "2999-01-01T00:00:00.000Z-0000-aaaaaaaaaaaaaaaa"
         const val UNSYNCED_TIMESTAMP = "2026-11-08T10:00:00.000Z-0000-aaaaaaaaaaaaaaaa"
     }
 }
