@@ -128,7 +128,7 @@ object RulesEngine {
             "is" -> if (target.isNullOrEmpty()) {
                 // Only conditionsToAQL (report filters) excludes transfers and split parents from
                 // `category is (none)`; a rule run matches any empty category, as Condition.eval does.
-                actual.isNullOrEmpty() && (condition.field != "category" || bag.forRuleRun || (!bag.isTransfer && !bag.isParent))
+                actual.isNullOrEmpty() && (condition.field != "category" || bag.forRuleRun || (bag.flag("transfer") != true && !bag.isParent))
             } else actual.equals(target, true)
             "isNot" -> if (target == null) actual != null else !actual.equals(target, true)
             "contains" -> actual != null && target != null && actual.contains(target, true)
@@ -259,7 +259,9 @@ object RulesEngine {
         private val flags = mutableMapOf(
             "cleared" to base.cleared,
             "reconciled" to base.reconciled,
-            "transfer" to (base.transferAccountId != null || base.transferId != null),
+            // Report filters (conditionsToAQL) define `transfer` as `transfer_id` (the
+            // `transferred_id` column) being set. A transfer payee alone doesn't make one (#1526).
+            "transfer" to (base.transferId != null),
             "parent" to base.isParent,
             "is_parent" to base.isParent,
             "is_child" to (base.parentId != null),
