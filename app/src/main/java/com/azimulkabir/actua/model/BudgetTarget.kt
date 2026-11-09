@@ -405,7 +405,7 @@ data class BudgetTarget(
             if (raw.isNullOrBlank() || (source != "ui" && source != "notes")) return null
             val array = runCatching { JSONArray(raw) }.getOrNull() ?: return null
             val row = array.takeIf { it.length() == 1 }?.getJSONObject(0) ?: return null
-            fun cents() = (row.optDouble("amount", 0.0) * 100.0).toLong()
+            fun cents() = amountToCents(row.optDouble("amount", 0.0))
             val priority = row.optInt("priority", 1)
             val note = row.optString("description").ifBlank { null }
             return when (row.optString("type")) {
@@ -426,13 +426,13 @@ data class BudgetTarget(
                     val limit = if (!it.has("limit") || it.isNull("limit")) null else it.optJSONObject("limit") ?: return null
                     val limitPeriod = limit?.let { l -> LimitPeriod.fromJson(l.optString("period")) ?: return null }
                     val limitCents = limit?.let { l ->
-                        l.optDouble("amount", Double.NaN).takeIf(Double::isFinite)?.let { a -> Math.round(a * 100.0) } ?: return null
+                        l.optDouble("amount", Double.NaN).takeIf(Double::isFinite)?.let(::amountToCents) ?: return null
                     }
                     val limitStart = limit?.takeUnless { l -> l.isNull("start") }?.optString("start")?.ifBlank { null }
                     if (limitPeriod == LimitPeriod.WEEKLY && limitStart?.let { d -> runCatching { LocalDate.parse(d) }.isSuccess } != true) {
                         return null
                     }
-                    val monthlyCents = monthly?.let { m -> Math.round(m * 100.0) } ?: 0L
+                    val monthlyCents = monthly?.let(::amountToCents) ?: 0L
                     if (monthlyCents <= 0L && limitCents == null) return null
                     BudgetTarget(
                         Type.FIXED, monthlyCents, priority = priority, note = note, simple = true,
@@ -503,7 +503,7 @@ data class BudgetTarget(
                     val parsedLimitPeriod = limit?.optString("period")?.let(LimitPeriod::fromJson)
                     val parsedLimitCents = limit?.takeIf { l -> l.has("amount") }?.let { l ->
                         val amount = l.optDouble("amount", Double.NaN)
-                        (amount * 100.0).toLong().takeIf { amount.isFinite() && it > 0 }
+                        amount.takeIf(Double::isFinite)?.let(::amountToCents)?.takeIf { it > 0 }
                     }
                     val validLimit = limit == null || (
                         parsedLimitPeriod != null && parsedLimitCents != null &&
@@ -545,6 +545,14 @@ data class BudgetTarget(
 
         private fun units(cents: Long): Any = if (cents % 100L == 0L) cents / 100L else cents / 100.0
 
+        /**
+         * A `goal_def` amount in currency units (e.g. `19.99`) as integer cents, rounded like
+         * loot-core's `amountToInteger` (`Math.round(amount * 100)`, halves toward positive
+         * infinity). Truncating instead loses a cent on ordinary amounts: `19.99 * 100` is
+         * `1998.9999999999998`.
+         */
+        internal fun amountToCents(amount: Double): Long = Math.round(amount * 100.0)
+
         /** Parses an "increase"/"decrease" [AdjustmentType] modifier, matching upstream `modifiers`. */
         private fun parseAdjustment(row: JSONObject): Triple<AdjustmentType?, Double?, Long?> {
             val type = when (row.optString("adjustmentType")) {
@@ -557,7 +565,7 @@ data class BudgetTarget(
             if (!value.isFinite()) return Triple(null, null, null)
             return when (type) {
                 AdjustmentType.PERCENT -> Triple(type, value, null)
-                AdjustmentType.FIXED -> Triple(type, null, (value * 100.0).toLong())
+                AdjustmentType.FIXED -> Triple(type, null, amountToCents(value))
             }
         }
     }
