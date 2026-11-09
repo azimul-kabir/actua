@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Fixed
+
+- Fixed server-backed budgets, with their unsynced changes and local backups, being deleted when they failed to open ([#1522](https://github.com/azimul-kabir/actua/pull/1522))
+
 ## [2.5.3] - 2026-11-07
 
 ### Fixed
