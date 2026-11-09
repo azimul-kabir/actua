@@ -10,6 +10,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed goal templates losing a cent, for example a 19.99 template budgeting 19.98 and saving back as 19.98 ([#1525](https://github.com/azimul-kabir/actua/pull/1525))
 - Fixed restoring a backup while a sync or scheduled backup was running, which could corrupt the budget or leave it half-restored ([#1524](https://github.com/azimul-kabir/actua/pull/1524))
 - Fixed server-backed budgets, with their unsynced changes and local backups, being deleted when they failed to open ([#1522](https://github.com/azimul-kabir/actua/pull/1522))
 
