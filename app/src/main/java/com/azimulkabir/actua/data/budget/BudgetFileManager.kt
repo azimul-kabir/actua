@@ -294,7 +294,13 @@ class BudgetFileManager(context: Context) {
      * budget directory; they are consumed on success. Callers must hold the sync pause and close any
      * open handle on the budget first.
      */
-    internal fun replaceLiveFiles(budgetId: String, database: File, metadata: File) {
+    internal fun replaceLiveFiles(
+        budgetId: String,
+        database: File,
+        metadata: File,
+        // Tests fail individual steps through this; production always renames.
+        rename: (File, File) -> Boolean = { from, to -> from.renameTo(to) },
+    ) {
         val directory = budgetDirectory(budgetId)
         val liveDatabase = databaseFile(budgetId)
         val liveMetadata = metadataFile(budgetId)
@@ -309,15 +315,15 @@ class BudgetFileManager(context: Context) {
         try {
             for (original in originals.filter(File::exists)) {
                 val aside = File(directory, ".previous-$tag-${original.name}")
-                check(original.renameTo(aside)) { "Unable to move ${original.name} aside" }
+                check(rename(original, aside)) { "Unable to move ${original.name} aside" }
                 movedAside += original to aside
             }
             // Metadata first: if the process dies between the two renames, the old database is left
             // disconnected from sync (the restored metadata has no group) rather than the restored
             // database pulling the server's changes in under the old group.
-            check(metadata.renameTo(liveMetadata)) { "Unable to install $METADATA_NAME" }
+            check(rename(metadata, liveMetadata)) { "Unable to install $METADATA_NAME" }
             installedMetadata = true
-            check(database.renameTo(liveDatabase)) { "Unable to install $DATABASE_NAME" }
+            check(rename(database, liveDatabase)) { "Unable to install $DATABASE_NAME" }
             installedDatabase = true
         } catch (error: Exception) {
             if (installedDatabase) liveDatabase.delete()
@@ -341,30 +347,13 @@ class BudgetFileManager(context: Context) {
     private fun installLiveFiles(budgetId: String, extracted: ExtractedBudget) {
         val destination = budgetDirectory(budgetId)
         check(destination.mkdirs() || destination.isDirectory) { "Unable to create the budget directory" }
-
+        // Same swap as a backup restore: the old database is checkpointed and moved aside with its
+        // sidecars, and a failure at any step puts every original file back (#1528).
+        replaceLiveFiles(budgetId, extracted.database, extracted.metadata)
+        // A new copy replaces the budget, so a pre-restore revert point no longer applies. Cleared
+        // only once the swap succeeded, so a failed download keeps it.
         latestDatabaseFile(budgetId).delete()
         latestMetadataFile(budgetId).delete()
-        File(databaseFile(budgetId).path + "-wal").delete()
-        File(databaseFile(budgetId).path + "-shm").delete()
-
-        val oldDatabase = File(destination, ".db.previous-${UUID.randomUUID()}")
-        val oldMetadata = File(destination, ".metadata.previous-${UUID.randomUUID()}")
-        val liveDatabase = databaseFile(budgetId)
-        val liveMetadata = metadataFile(budgetId)
-        try {
-            if (liveDatabase.exists()) check(liveDatabase.renameTo(oldDatabase))
-            if (liveMetadata.exists()) check(liveMetadata.renameTo(oldMetadata))
-            check(extracted.database.renameTo(liveDatabase)) { "Unable to install db.sqlite" }
-            check(extracted.metadata.renameTo(liveMetadata)) { "Unable to install metadata.json" }
-            oldDatabase.delete()
-            oldMetadata.delete()
-        } catch (error: Exception) {
-            liveDatabase.delete()
-            liveMetadata.delete()
-            if (oldDatabase.exists()) oldDatabase.renameTo(liveDatabase)
-            if (oldMetadata.exists()) oldMetadata.renameTo(liveMetadata)
-            throw error
-        }
     }
 
     private fun extractArchive(input: InputStream, staging: File): ExtractedBudget {
