@@ -189,7 +189,7 @@ class ActuaRepository(context: Context) {
             .onFailure {
                 Log.e("ActuaRepository", "Could not open a local budget (${it.javaClass.simpleName})")
                 DiagnosticsLog.actionFailed("Opening the local budget", it)
-                discardUnreadableBudget(files, metadata)
+                keepUnreadableBudget(metadata)
             }
             .getOrNull()
             ?: return null
@@ -203,18 +203,20 @@ class ActuaRepository(context: Context) {
             Log.e("ActuaRepository", "Skipping an unusable local budget (${error.javaClass.simpleName})")
             DiagnosticsLog.actionFailed("Checking the local budget", error)
             database.close()
-            discardUnreadableBudget(files, metadata)
+            keepUnreadableBudget(metadata)
             null
         }
     }
 
-    private fun discardUnreadableBudget(files: BudgetFileManager, metadata: BudgetMetadata) {
-        if (metadata.isUserLocalOnly) {
-            Log.w("ActuaRepository", "Preserving unreadable standalone budget (${metadata.id}) to prevent data loss")
-            return
-        }
-        runCatching { files.deleteBudget(metadata.id) }
-            .onFailure { Log.e("ActuaRepository", "Could not discard an unreadable local budget (${it.javaClass.simpleName})") }
+    /**
+     * A budget that fails to open is skipped for this repository and left on disk untouched. Many
+     * failures are temporary (a lock held by the sync worker, a full disk, files mid-restore), and
+     * even a server-backed budget can hold data the server lacks: unsynced edits in its message
+     * log, its local backups and restore point, and receipt photos. Deleting or re-downloading it
+     * is only ever a user-confirmed action.
+     */
+    private fun keepUnreadableBudget(metadata: BudgetMetadata) {
+        Log.w("ActuaRepository", "Keeping a local budget that could not be opened (${metadata.id})")
     }
 
     fun categoryNames(): List<String> = actualDatabase?.fetchCategoryGroups()
