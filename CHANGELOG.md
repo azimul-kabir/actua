@@ -10,6 +10,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed restoring a backup while a sync or scheduled backup was running, which could corrupt the budget or leave it half-restored ([#1524](https://github.com/azimul-kabir/actua/pull/1524))
 - Fixed server-backed budgets, with their unsynced changes and local backups, being deleted when they failed to open ([#1522](https://github.com/azimul-kabir/actua/pull/1522))
 
 ## [2.5.3] - 2026-11-07

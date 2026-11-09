@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.data.budget
 
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
 import androidx.annotation.StringRes
 import com.azimulkabir.actua.data.preferences.withAppLanguage
 import com.azimulkabir.actua.data.receipts.ReceiptPhotoStore
@@ -285,6 +286,58 @@ class BudgetFileManager(context: Context) {
         }
     }
 
+    /**
+     * Swaps [database] and [metadata] in as [budgetId]'s live files by rename, never by copying over
+     * the live database. The old database is checkpointed first, and its files (with any `-wal`,
+     * `-shm` or `-journal` sidecar) are moved aside rather than deleted, so a failure at any step puts
+     * every original file back. [database] and [metadata] must be on the same filesystem as the
+     * budget directory; they are consumed on success. Callers must hold the sync pause and close any
+     * open handle on the budget first.
+     */
+    internal fun replaceLiveFiles(budgetId: String, database: File, metadata: File) {
+        val directory = budgetDirectory(budgetId)
+        val liveDatabase = databaseFile(budgetId)
+        val liveMetadata = metadataFile(budgetId)
+        checkpoint(liveDatabase)
+
+        val tag = UUID.randomUUID()
+        val originals = listOf(liveMetadata, liveDatabase) +
+            DATABASE_SIDECARS.map { File(liveDatabase.path + it) }
+        val movedAside = mutableListOf<Pair<File, File>>()
+        var installedMetadata = false
+        var installedDatabase = false
+        try {
+            for (original in originals.filter(File::exists)) {
+                val aside = File(directory, ".previous-$tag-${original.name}")
+                check(original.renameTo(aside)) { "Unable to move ${original.name} aside" }
+                movedAside += original to aside
+            }
+            // Metadata first: if the process dies between the two renames, the old database is left
+            // disconnected from sync (the restored metadata has no group) rather than the restored
+            // database pulling the server's changes in under the old group.
+            check(metadata.renameTo(liveMetadata)) { "Unable to install $METADATA_NAME" }
+            installedMetadata = true
+            check(database.renameTo(liveDatabase)) { "Unable to install $DATABASE_NAME" }
+            installedDatabase = true
+        } catch (error: Exception) {
+            if (installedDatabase) liveDatabase.delete()
+            if (installedMetadata) liveMetadata.delete()
+            movedAside.asReversed().forEach { (original, aside) -> if (!original.exists()) aside.renameTo(original) }
+            throw error
+        }
+        movedAside.forEach { (_, aside) -> aside.delete() }
+    }
+
+    /** Folds any WAL into the database so moving its sidecars can't lose committed data. Best effort. */
+    private fun checkpoint(database: File) {
+        if (!database.isFile) return
+        runCatching {
+            SQLiteDatabase.openDatabase(database.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.rawQuery("PRAGMA wal_checkpoint(TRUNCATE)", null).use { it.moveToFirst() }
+            }
+        }
+    }
+
     private fun installLiveFiles(budgetId: String, extracted: ExtractedBudget) {
         val destination = budgetDirectory(budgetId)
         check(destination.mkdirs() || destination.isDirectory) { "Unable to create the budget directory" }
@@ -392,6 +445,7 @@ class BudgetFileManager(context: Context) {
     companion object {
         private const val DATABASE_NAME = "db.sqlite"
         private const val METADATA_NAME = "metadata.json"
+        private val DATABASE_SIDECARS = listOf("-wal", "-shm", "-journal")
         private val DISCARD_OUTPUT = object : OutputStream() {
             override fun write(value: Int) = Unit
             override fun write(buffer: ByteArray, offset: Int, length: Int) = Unit
