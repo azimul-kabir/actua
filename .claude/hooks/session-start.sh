@@ -55,7 +55,12 @@ JDK_URL="https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25
 # From the release's matching .sha256.txt. Update together with JDK_URL.
 JDK_SHA256="dbb698396d478e7fa2b1e50f4103324b2a99b90569ee27c33f2261f9215cf41e"
 
-if [ -x "$JDK_DIR/bin/java" ] && [ -x "$JDK_DIR/bin/javac" ]; then
+jdk_is_25() {
+  [ -x "$JDK_DIR/bin/java" ] && [ -x "$JDK_DIR/bin/javac" ] &&
+    "$JDK_DIR/bin/javac" -version 2>&1 | grep -q '^javac 25\.'
+}
+
+if jdk_is_25; then
   echo "Temurin JDK 25 already installed, skipping download."
 else
   TMP_DIR="$(mktemp -d)"
@@ -72,7 +77,7 @@ fi
 export JAVA_HOME="$JDK_DIR"
 export PATH="$JAVA_HOME/bin:$PATH"
 
-if ! "$JAVA_HOME/bin/javac" -version 2>&1 | grep -q '^javac 25\.'; then
+if ! jdk_is_25; then
   echo "Expected JDK 25 at $JDK_DIR but found: $("$JAVA_HOME/bin/javac" -version 2>&1)" >&2
   exit 1
 fi
@@ -101,26 +106,32 @@ echo
 echo "JAVA_HOME=$JAVA_HOME"
 
 # --- Android SDK -----------------------------------------------------------
-# Requires dl.google.com reachable (Android SDK components and the google()
-# Maven repo are both served from that host). We probe it first so the hook
-# degrades gracefully -- and tells the truth -- where that host is blocked.
+# Installing needs dl.google.com, which serves the Android CLI, the SDK
+# packages and the google() Maven repo. Reuse what is already installed, and
+# probe that host only when something is missing, so the hook degrades
+# gracefully -- and tells the truth -- where it is blocked.
 echo
 echo "=== Android SDK ==="
 
-if curl -fsSL --max-time 10 -o /dev/null "https://dl.google.com/android/cli/latest/linux_x86_64/install.sh"; then
-  export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+ANDROID_HOME="$HOME/Android/Sdk"
+export ANDROID_HOME
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+ANDROID_CLI_INSTALLER="https://dl.google.com/android/cli/latest/linux_x86_64/install.sh"
+
+android_ready() {
+  command -v android >/dev/null 2>&1 && [ -x "$ANDROID_HOME/platform-tools/adb" ]
+}
+
+if ! android_ready && curl -fsSL --max-time 10 -o /dev/null "$ANDROID_CLI_INSTALLER"; then
   if ! command -v android >/dev/null 2>&1; then
     echo "Installing Android CLI..."
-    curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
+    curl -fsSL "$ANDROID_CLI_INSTALLER" | bash
     command -v android >/dev/null 2>&1 || {
       echo "Android CLI install finished but 'android' is not on PATH." >&2
       exit 1
     }
   fi
-
-  ANDROID_HOME="$HOME/Android/Sdk"
-  export ANDROID_HOME
-  export ANDROID_SDK_ROOT="$ANDROID_HOME"
 
   # Installing a package also writes the SDK license files, which lets AGP
   # download the compile SDK and build tools it needs at build time.
@@ -128,7 +139,9 @@ if curl -fsSL --max-time 10 -o /dev/null "https://dl.google.com/android/cli/late
     echo "Installing Android platform-tools..."
     android sdk install platform-tools
   fi
+fi
 
+if android_ready; then
   persist_env "export PATH=\"$HOME/.local/bin:\$PATH\""
   persist_env "export ANDROID_HOME=\"$ANDROID_HOME\""
   persist_env "export ANDROID_SDK_ROOT=\"$ANDROID_HOME\""
