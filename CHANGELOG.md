@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added remembering the “Mark as cleared” choice for each budget on Import and Review captured, also used by Import on capture notifications ([#1532](https://github.com/azimul-kabir/actua/pull/1532))
 - Added a notice when a budget can’t be opened, with options to try again, re-download it, restore a backup or delete it ([#1523](https://github.com/azimul-kabir/actua/pull/1523))
 
 ### Fixed
