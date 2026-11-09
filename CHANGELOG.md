@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added a notice when a budget can’t be opened, with options to try again, re-download it, restore a backup or delete it ([#1523](https://github.com/azimul-kabir/actua/pull/1523))
+
 ### Fixed
 
 - Fixed server-backed budgets, with their unsynced changes and local backups, being deleted when they failed to open ([#1522](https://github.com/azimul-kabir/actua/pull/1522))

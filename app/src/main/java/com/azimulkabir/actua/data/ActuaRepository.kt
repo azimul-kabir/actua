@@ -148,6 +148,7 @@ class ActuaRepository(context: Context) {
         ActualSyncScheduler.scheduleMutation(appContext)
         WidgetUpdater.requestAll(appContext)
     }
+    private val unopened = mutableListOf<BudgetMetadata>()
     private val openedBudget: Pair<ActualBudgetDatabase, BudgetMetadata>? = BudgetFileManager(context).let { files ->
         val activeBudgetStore = ActiveBudgetStore(context)
         val selectedId = activeBudgetStore.budgetId
@@ -175,6 +176,12 @@ class ActuaRepository(context: Context) {
     private val actualForms = actualDatabase?.let { db ->
         ActualTransactionFormService(db, requireNotNull(actualWriter))
     }
+
+    /**
+     * Local budgets this repository tried and failed to open, in the order tried. They are kept on
+     * disk untouched (see [keepUnreadableBudget]) so the user can retry, restore or delete them.
+     */
+    val unopenedBudgets: List<BudgetMetadata> get() = unopened
 
     val isUsingActualBudget: Boolean get() = actualDatabase != null
     val isServerBacked: Boolean get() = activeMetadata?.isServerBacked == true
@@ -217,6 +224,7 @@ class ActuaRepository(context: Context) {
      */
     private fun keepUnreadableBudget(metadata: BudgetMetadata) {
         Log.w("ActuaRepository", "Keeping a local budget that could not be opened (${metadata.id})")
+        unopened += metadata
     }
 
     fun categoryNames(): List<String> = actualDatabase?.fetchCategoryGroups()

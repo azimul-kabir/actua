@@ -196,4 +196,36 @@
         <item quantity="one">%1$s, %2$d transação capturada aguardando</item>
         <item quantity="other">%1$s, %2$d transações capturadas aguardando</item>
     </plurals>
+    <string name="navigation_unopened_budget_banner">Não foi possível abrir “%1$s”. Ele foi mantido neste dispositivo. Toque para ver opções.</string>
+    <string name="navigation_unopened_budget_title">Não foi possível abrir “%1$s”</string>
+    <string name="navigation_unopened_budget_message">Este orçamento, seus backups locais e as alterações não sincronizadas foram mantidos neste dispositivo. O problema pode ser temporário, por exemplo durante uma sincronização ou com pouco armazenamento.</string>
+    <string name="navigation_unopened_budget_unsynced_unknown">O Actua não consegue saber se este orçamento tem alterações não sincronizadas com o servidor.</string>
+    <string name="navigation_unopened_budget_local_only">Este orçamento está apenas neste dispositivo.</string>
+    <string name="navigation_unopened_budget_try_again">Tentar novamente</string>
+    <string name="navigation_unopened_budget_redownload">Baixar novamente do servidor</string>
+    <string name="navigation_unopened_budget_restore">Restaurar de um backup</string>
+    <string name="navigation_unopened_budget_delete">Excluir deste dispositivo</string>
+    <string name="navigation_unopened_budget_not_now">Agora não</string>
+    <string name="navigation_unopened_budget_cancel">Cancelar</string>
+    <string name="navigation_unopened_budget_redownload_title">Baixar “%1$s” novamente?</string>
+    <string name="navigation_unopened_budget_redownload_message">Isso substitui a cópia deste dispositivo pela do servidor. O Actua faz antes um backup desta cópia e não altera nada se o backup falhar. As alterações não sincronizadas não estarão na nova cópia, mas ficam nesse backup.</string>
+    <string name="navigation_unopened_budget_redownload_confirm">Baixar novamente</string>
+    <string name="navigation_unopened_budget_redownload_done">“%1$s” foi baixado novamente. A cópia anterior está nos backups dele.</string>
+    <string name="navigation_unopened_budget_redownload_failed">Não foi possível baixar este orçamento novamente. Nada foi alterado.</string>
+    <string name="navigation_unopened_budget_restore_title">Restaurar “%1$s” de um backup</string>
+    <string name="navigation_unopened_budget_restore_none">Este orçamento não tem backups locais.</string>
+    <string name="navigation_unopened_budget_restore_previous">Versão anterior à última restauração</string>
+    <string name="navigation_unopened_budget_restore_confirm">Restaurar</string>
+    <string name="navigation_unopened_budget_restore_done">O backup de “%1$s” foi restaurado.</string>
+    <string name="navigation_unopened_budget_restore_failed">Não foi possível restaurar esse backup.</string>
+    <string name="navigation_unopened_budget_delete_title">Excluir “%1$s” deste dispositivo?</string>
+    <string name="navigation_unopened_budget_delete_message">Os backups locais e as fotos de recibos também são excluídos. Isso não pode ser desfeito.</string>
+    <string name="navigation_unopened_budget_delete_server_note">A cópia no seu servidor Actual não é afetada.</string>
+    <string name="navigation_unopened_budget_delete_confirm">Excluir</string>
+    <string name="navigation_unopened_budget_delete_done">“%1$s” foi excluído deste dispositivo.</string>
+    <string name="navigation_unopened_budget_delete_failed">Não foi possível excluir este orçamento.</string>
+    <plurals name="navigation_unopened_budget_unsynced">
+        <item quantity="one">Este orçamento tem %d alteração não sincronizada com o servidor.</item>
+        <item quantity="other">Este orçamento tem %d alterações não sincronizadas com o servidor.</item>
+    </plurals>
 </resources>

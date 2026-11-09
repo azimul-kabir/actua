@@ -66,7 +66,7 @@ audit and test-matrix requirements of [Issue #1170](https://github.com/azimul-ka
 - **Severity:** High (Data Loss Risk).
 - **Remediation:** Inspect `metadata.isUserLocalOnly`. If the unreadable budget is standalone, quarantine it (e.g. rename or move aside) and present a recovery prompt to restore from a local backup, rather than calling `deleteBudget()`.
 - **Tracking:** Linked to [Issue #1167](https://github.com/azimul-kabir/actua/issues/1167).
-- **Status:** Resolved for standalone budgets in [#1178](https://github.com/azimul-kabir/actua/issues/1178), which left them in place on disk (they were never moved to a quarantine folder). [#1509](https://github.com/azimul-kabir/actua/issues/1509) extends this to server-backed budgets, which can also hold data the server lacks: unsynced edits, local backups and receipt photos. No budget is deleted automatically. A UI to report the failure and offer re-download, restore or delete is tracked in #1509.
+- **Status:** Resolved for standalone budgets in [#1178](https://github.com/azimul-kabir/actua/issues/1178), which left them in place on disk (they were never moved to a quarantine folder). [#1509](https://github.com/azimul-kabir/actua/issues/1509) extends this to server-backed budgets, which can also hold data the server lacks: unsynced edits, local backups and receipt photos. No budget is deleted automatically. The app shows a "Couldn’t open" banner whose dialog offers Try again, Re-download from server (server-backed and signed in), Restore from backup and Delete from this device. It warns about unsynced changes, and every change is confirmed first (`UnopenedBudgetRecovery`).
 
 ### GAP-2: Session Expired Banner False Positive
 - **Location:** `AppNavigation.kt:1401`
