@@ -4,7 +4,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,5 +40,21 @@ class ImportAccountMemoryTest {
         assertNull(store.defaultAccount("budget-b"))
         store.setDefaultAccount("budget-a", null)
         assertNull(store.defaultAccount("budget-a"))
+    }
+
+    @Test fun markClearedDefaultsOnAndIsRememberedPerBudget() {
+        // On until the user changes it, like Actual's "Clear transactions on import" (#1529).
+        assertTrue(store.markCleared("budget-a"))
+        store.setMarkCleared("budget-a", false)
+        assertFalse(store.markCleared("budget-a"))
+        assertTrue(store.markCleared("budget-b"))
+        store.setMarkCleared("budget-a", true)
+        assertTrue(store.markCleared("budget-a"))
+    }
+
+    @Test fun deletingNotificationDataForgetsTheMarkClearedChoice() {
+        store.setMarkCleared("budget-a", false)
+        store.clearAll()
+        assertTrue(store.markCleared("budget-a"))
     }
 }
