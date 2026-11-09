@@ -63,6 +63,29 @@ class CapturedImportTest {
         assertEquals(1, rows().size)
     }
 
+    @Test fun importingFollowsTheRememberedMarkClearedChoice() = withBudget { _ ->
+        val budgetId = requireNotNull(ActiveBudgetStore(context).budgetId)
+        fun clearedFlags(): List<Int> = SQLiteDatabase.openDatabase(
+            BudgetFileManager(context).databaseFile(budgetId).path, null, SQLiteDatabase.OPEN_READONLY,
+        ).use { db ->
+            db.rawQuery("SELECT cleared FROM transactions WHERE tombstone = 0 ORDER BY date, id", null).use { cursor ->
+                buildList { while (cursor.moveToNext()) add(cursor.getInt(0)) }
+            }
+        }
+
+        // Turned off on the review screen (#1529): a notification import stays uncleared.
+        store.setMarkCleared(budgetId, false)
+        val off = store.enqueue(coffee)
+        assertTrue(importCapturedTransaction(context, requireNotNull(off.queueId), "card") is CapturedImportOutcome.Imported)
+        assertEquals(listOf(0), clearedFlags())
+
+        // Back on, as it is by default: imports are cleared again.
+        store.setMarkCleared(budgetId, true)
+        val on = store.enqueue(coffee.copy(date = 20261013, payee = "Fuel", amountCents = -4_000))
+        assertTrue(importCapturedTransaction(context, requireNotNull(on.queueId), "card") is CapturedImportOutcome.Imported)
+        assertEquals(listOf(0, 1), clearedFlags())
+    }
+
     @Test fun aMissingAccountLeavesTheRowQueued() = withBudget { rows ->
         val tapped = store.enqueue(coffee)
 

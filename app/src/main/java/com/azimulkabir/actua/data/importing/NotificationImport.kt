@@ -228,6 +228,19 @@ class NotificationImportPreferences(context: Context) {
         preferences.edit().apply { if (accountId == null) remove(key) else putString(key, accountId) }.apply()
     }
 
+    /**
+     * Whether imports into [budgetId] are marked cleared: the choice last made on the import and
+     * Review captured screens, which notification imports follow too (#1529). On until changed,
+     * matching Actual's "Clear transactions on import".
+     */
+    fun markCleared(budgetId: String): Boolean = preferences.getBoolean(markClearedKey(budgetId), true)
+
+    fun setMarkCleared(budgetId: String, cleared: Boolean) {
+        preferences.edit().putBoolean(markClearedKey(budgetId), cleared).apply()
+    }
+
+    private fun markClearedKey(budgetId: String) = "markCleared:$budgetId"
+
     private fun accountMemoryKey(budgetId: String, key: String) = "accountMemory:$budgetId:$key"
     // clear() only notifies listeners from API 30, so remove each key to keep the queue and
     // rejection observers current on API 28-29 without a second notification on newer releases.

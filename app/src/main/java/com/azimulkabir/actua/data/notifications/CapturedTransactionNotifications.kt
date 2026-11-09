@@ -218,7 +218,8 @@ sealed interface CapturedImportOutcome {
 
 /**
  * Imports the queued row [queueId] into [accountId] exactly as the review screen would: one group,
- * cleared, through [ActuaRepository.importTransactions]. The row is claimed from the queue first so
+ * cleared unless the user turned "Mark as cleared" off for this budget (#1529), through
+ * [ActuaRepository.importTransactions]. The row is claimed from the queue first so
  * a second tap cannot import it twice, and put back if the import fails.
  */
 fun importCapturedTransaction(context: Context, queueId: String, accountId: String): CapturedImportOutcome {
@@ -233,7 +234,11 @@ fun importCapturedTransaction(context: Context, queueId: String, accountId: Stri
                 CapturedImportOutcome.Failed(localized.getString(R.string.captured_failed_no_budget))
             account == null ->
                 CapturedImportOutcome.Failed(localized.getString(R.string.captured_failed_account_closed))
-            repository.importTransactions(listOf(ImportGroup(accountId, listOf(candidate))), cleared = true) != 1 ->
+            repository.importTransactions(
+                listOf(ImportGroup(accountId, listOf(candidate))),
+                // Same budget key as the review screen, so both follow one remembered choice.
+                cleared = store.markCleared(ActiveBudgetStore(context).budgetId ?: "no-budget"),
+            ) != 1 ->
                 CapturedImportOutcome.Failed(localized.getString(R.string.captured_failed_generic))
             else -> CapturedImportOutcome.Imported(candidate, requireNotNull(account).name)
         }

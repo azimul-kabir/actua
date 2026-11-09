@@ -184,11 +184,11 @@ fun ImportTransactionsScreen(
     var sourceFormat by remember { mutableStateOf(StatementFormat.CSV) }
     var profileName by remember { mutableStateOf("") }
     var history by remember { mutableStateOf(importPreferences.history()) }
-    // Actual's "Clear transactions on import", on by default (#1008).
-    var markCleared by rememberSaveable { mutableStateOf(true) }
     var profileMenu by remember { mutableStateOf(false) }
     val notificationPreferences = remember { NotificationImportPreferences(context) }
     val budgetId = remember { ActiveBudgetStore(context).budgetId ?: "no-budget" }
+    // Actual's "Clear transactions on import" (#1008), remembered per budget (#1529).
+    var markCleared by rememberSaveable { mutableStateOf(notificationPreferences.markCleared(budgetId)) }
     var captureEnabled by remember { mutableStateOf(notificationPreferences.enabled) }
     var queued by remember { mutableStateOf(notificationPreferences.queued()) }
     var automationEnabled by remember { mutableStateOf(notificationPreferences.automationEnabled) }
@@ -664,7 +664,10 @@ fun ImportTransactionsScreen(
                     label = stringResource(R.string.mark_as_cleared),
                     value = null,
                     checked = markCleared,
-                    onClick = { markCleared = !markCleared },
+                    onClick = {
+                        markCleared = !markCleared
+                        notificationPreferences.setMarkCleared(budgetId, markCleared)
+                    },
                 )
             }
             rows.forEachIndexed { index, row ->
