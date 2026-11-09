@@ -49,9 +49,8 @@ class UnopenedBudgetRecovery(context: Context) {
         return resetRecovery.recover(credentials.serverUrl, token, budgetId)
     }
 
-    fun restore(budgetId: String, backupId: String) = ActualSyncRunner.whileSyncPaused {
-        backups.restore(budgetId, backupId)
-    }
+    /** [BackupService.restore] pauses sync and swaps the files in atomically itself. */
+    fun restore(budgetId: String, backupId: String) = backups.restore(budgetId, backupId)
 
     /** Removes the budget, its local backups and its receipt photos from this device. */
     fun delete(budgetId: String) = ActualSyncRunner.whileSyncPaused {

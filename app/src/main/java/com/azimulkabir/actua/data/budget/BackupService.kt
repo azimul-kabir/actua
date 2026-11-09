@@ -2,6 +2,7 @@ package com.azimulkabir.actua.data.budget
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import com.azimulkabir.actua.data.sync.ActualSyncRunner
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
@@ -12,6 +13,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 
 sealed class BackupItem {
     data object Latest : BackupItem()
@@ -25,8 +27,7 @@ class BackupService(
 ) {
     private val destinations = BackupDestinationManager(context)
 
-    @Synchronized
-    fun makeBackup(budgetId: String, now: Instant = Instant.now()): File {
+    fun makeBackup(budgetId: String, now: Instant = Instant.now()): File = synchronized(LOCK) {
         val directory = files.backupsDirectory(budgetId)
         directory.listFiles().orEmpty().filter { it.name.endsWith(".tmp") }.forEach(File::delete)
         val snapshot = File(directory, "db.${now.toEpochMilli()}.sqlite.tmp")
@@ -45,7 +46,7 @@ class BackupService(
             runCatching {
                 com.azimulkabir.actua.data.budget.webdav.WebDavBackupScheduler.scheduleUpload(context, budgetId)
             }
-            return archive
+            archive
         } finally {
             snapshot.delete()
         }
@@ -70,8 +71,7 @@ class BackupService(
     )
 
     /** Validates an external archive before adding it to this budget's managed backup list. */
-    @Synchronized
-    fun importArchive(budgetId: String, input: InputStream, now: Instant = Instant.now()): File {
+    fun importArchive(budgetId: String, input: InputStream, now: Instant = Instant.now()): File = synchronized(LOCK) {
         val directory = files.backupsDirectory(budgetId)
         val temporary = File(directory, ".import-${now.toEpochMilli()}.zip.tmp")
         try {
@@ -103,37 +103,45 @@ class BackupService(
             runCatching {
                 com.azimulkabir.actua.data.budget.webdav.WebDavBackupScheduler.scheduleUpload(context, budgetId)
             }
-            return destination
+            destination
         } finally {
             temporary.delete()
         }
     }
 
-    @Synchronized
-    fun restore(budgetId: String, backupId: String) {
+    /**
+     * Replaces [budgetId]'s live files with a backup, or reverts to the pre-restore copy for
+     * [LATEST_ID]. Runs while sync is paused and no backup of any budget is being made, and swaps the
+     * files in by rename (see [BudgetFileManager.replaceLiveFiles]), so an interrupted restore leaves
+     * either the old budget or the restored one. Callers must close their own handle on the budget.
+     */
+    fun restore(budgetId: String, backupId: String) = ActualSyncRunner.whileSyncPaused {
+        synchronized(LOCK) { restoreLocked(budgetId, backupId) }
+    }
+
+    private fun restoreLocked(budgetId: String, backupId: String) {
         val liveDb = files.databaseFile(budgetId)
         val liveMetadata = files.metadataFile(budgetId)
         val latestDb = files.latestDatabaseFile(budgetId)
         val latestMetadata = files.latestMetadataFile(budgetId)
         if (backupId == LATEST_ID) {
             require(latestDb.isFile && latestMetadata.isFile) { "Backup $backupId no longer exists" }
-            replace(liveDb, latestDb)
-            replace(liveMetadata, latestMetadata)
-            latestDb.delete(); latestMetadata.delete()
+            // The revert point is used up: its files become the live budget.
+            files.replaceLiveFiles(budgetId, latestDb, latestMetadata)
             return
         }
         val archive = File(files.backupsDirectory(budgetId), backupId)
         require(archive.isFile) { "Backup $backupId no longer exists" }
-        if (!latestDb.isFile) {
-            latestMetadata.delete()
-            liveMetadata.copyTo(latestMetadata, overwrite = true)
-            snapshot(liveDb, latestDb)
-        }
+        if (!latestDb.isFile) saveRevertPoint(liveDb, liveMetadata, latestDb, latestMetadata)
+
+        val directory = files.budgetDirectory(budgetId)
+        val stagedDb = File(directory, ".restore-${UUID.randomUUID()}.sqlite")
+        val stagedMetadata = File(directory, ".restore-${UUID.randomUUID()}.json")
         val (restoredDb, restoredMetadata) = files.extractBackup(archive)
         try {
             val live = BudgetMetadata.fromJson(JSONObject(liveMetadata.readText()))
-            removeSidecars(liveDb)
-            replace(liveDb, restoredDb)
+            // Staged next to the live files so the swap is a rename on the same filesystem.
+            restoredDb.copyTo(stagedDb)
             val json = JSONObject()
                 .put("id", restoredMetadata.id)
                 .putNullable("budgetName", restoredMetadata.budgetName)
@@ -142,9 +150,32 @@ class BackupService(
                 .putNullable("resetClock", restoredMetadata.resetClock)
                 .put("lastUploaded", JSONObject.NULL)
                 .putNullable("encryptKeyId", live.encryptKeyId ?: restoredMetadata.encryptKeyId)
-            liveMetadata.writeText(json.toString())
+            stagedMetadata.writeText(json.toString())
+            files.replaceLiveFiles(budgetId, stagedDb, stagedMetadata)
         } finally {
             restoredDb.delete()
+            stagedDb.delete()
+            stagedMetadata.delete()
+        }
+    }
+
+    /** Written to temporary files and renamed, so an interrupted write can't leave a partial revert point. */
+    private fun saveRevertPoint(liveDb: File, liveMetadata: File, latestDb: File, latestMetadata: File) {
+        val temporaryDb = File(latestDb.path + ".tmp")
+        val temporaryMetadata = File(latestMetadata.path + ".tmp")
+        try {
+            latestMetadata.delete()
+            snapshot(liveDb, temporaryDb)
+            liveMetadata.copyTo(temporaryMetadata, overwrite = true)
+            check(temporaryDb.renameTo(latestDb)) { "Unable to save the revert point" }
+            check(temporaryMetadata.renameTo(latestMetadata)) { "Unable to save the revert point" }
+        } catch (error: Exception) {
+            latestDb.delete()
+            latestMetadata.delete()
+            throw error
+        } finally {
+            temporaryDb.delete()
+            temporaryMetadata.delete()
         }
     }
 
@@ -196,16 +227,6 @@ class BackupService(
         database.rawQuery("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", arrayOf(table))
             .use { it.moveToFirst() }
 
-    private fun replace(destination: File, source: File) {
-        removeSidecars(destination)
-        destination.delete()
-        source.copyTo(destination, overwrite = true)
-    }
-
-    private fun removeSidecars(database: File) {
-        listOf("-journal", "-wal", "-shm").forEach { File(database.path + it).delete() }
-    }
-
     private data class Archive(val id: String, val modifiedAt: Instant)
     private fun archives(budgetId: String): List<Archive> = files.backupsDirectory(budgetId)
         .listFiles().orEmpty().filter { it.isFile && it.extension == "zip" }
@@ -233,6 +254,12 @@ class BackupService(
 
     companion object {
         const val LATEST_ID = "db.latest.sqlite"
+
+        /**
+         * One lock for every [BackupService] instance: the sync runner, the scheduled backup workers
+         * and the UI each create their own, and a backup must never run while a restore swaps files.
+         */
+        private val LOCK = Any()
         private val formatter = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US)
         private val VACUUM_INTO_MINIMUM = listOf(3, 27, 0)
 

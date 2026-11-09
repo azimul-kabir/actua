@@ -130,6 +130,108 @@ class BackupServiceTest {
         }
     }
 
+    @Test fun restoreAndRevertLeaveNoTemporaryFilesOrStaleSidecars() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val id = "backup-swap-${UUID.randomUUID()}"
+        val files = BudgetFileManager(context)
+        val directory = files.budgetDirectory(id).also { it.mkdirs() }
+        try {
+            seed(files, id, "backup-state")
+            val service = BackupService(context, files)
+            val archive = service.makeBackup(id, Instant.parse("2026-09-05T01:02:03Z"))
+            // A WAL-mode write, as the app makes, leaves sidecars next to the live database.
+            SQLiteDatabase.openDatabase(files.databaseFile(id).path, null, SQLiteDatabase.OPEN_READWRITE).use {
+                it.enableWriteAheadLogging()
+                it.execSQL("UPDATE notes SET value='current-state'")
+            }
+
+            service.restore(id, archive.name)
+            assertEquals("backup-state", note(files, id))
+            assertEquals(emptyList<String>(), strayFiles(directory))
+
+            service.restore(id, BackupService.LATEST_ID)
+            assertEquals("current-state", note(files, id))
+            assertEquals(emptyList<String>(), strayFiles(directory))
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
+
+    @Test fun aFailedSwapPutsTheOriginalFilesBack() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val id = "backup-rollback-${UUID.randomUUID()}"
+        val files = BudgetFileManager(context)
+        val directory = files.budgetDirectory(id).also { it.mkdirs() }
+        try {
+            seed(files, id, "original-state")
+            val originalMetadata = files.metadataFile(id).readText()
+            val replacementMetadata = java.io.File(directory, ".replacement.json").apply { writeText("{}") }
+
+            // The metadata swaps in, then the database can't: everything must be put back.
+            assertThrows(IllegalStateException::class.java) {
+                files.replaceLiveFiles(id, java.io.File(directory, ".missing.sqlite"), replacementMetadata)
+            }
+
+            assertEquals("original-state", note(files, id))
+            assertEquals(originalMetadata, files.metadataFile(id).readText())
+            assertEquals(emptyList<String>(), strayFiles(directory))
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
+
+    @Test fun aRestoreRacingBackupsAndSyncLeavesAValidMatchingBudget() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val id = "backup-race-${UUID.randomUUID()}"
+        val files = BudgetFileManager(context)
+        val directory = files.budgetDirectory(id).also { it.mkdirs() }
+        try {
+            seed(files, id, "backup-state")
+            val archive = BackupService(context, files).makeBackup(id, Instant.parse("2026-09-05T01:02:03Z"))
+            SQLiteDatabase.openDatabase(files.databaseFile(id).path, null, SQLiteDatabase.OPEN_READWRITE).use {
+                it.execSQL("UPDATE notes SET value='current-state'")
+            }
+            val seen = java.util.Collections.synchronizedList(mutableListOf<String>())
+            val failures = java.util.Collections.synchronizedList(mutableListOf<Throwable>())
+            val start = java.util.concurrent.CountDownLatch(1)
+            fun worker(body: () -> Unit) = kotlin.concurrent.thread {
+                start.await()
+                try { body() } catch (error: Throwable) { failures += error }
+            }
+
+            val threads = listOf(
+                // Each caller creates its own BackupService, as the sync runner, workers and UI do.
+                worker { repeat(3) { BackupService(context, files).restore(id, archive.name) } },
+                // Two, so today's retention (newest three) keeps the archive being restored.
+                worker { repeat(2) { BackupService(context, files).makeBackup(id) } },
+                // A sync holds the same pause; it must never see a missing or half-copied database.
+                worker {
+                    repeat(20) {
+                        com.azimulkabir.actua.data.sync.ActualSyncRunner.whileSyncPaused { seen += note(files, id) }
+                    }
+                },
+            )
+            start.countDown()
+            threads.forEach { it.join(60_000) }
+
+            assertEquals(emptyList<Throwable>(), failures)
+            assertTrue(seen.all { it == "backup-state" || it == "current-state" })
+            SQLiteDatabase.openDatabase(files.databaseFile(id).path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                assertEquals("ok", db.rawQuery("PRAGMA integrity_check", null).use { it.moveToFirst(); it.getString(0) })
+            }
+            // The live files belong together: a restored database comes with the restored metadata.
+            val metadata = JSONObject(files.metadataFile(id).readText())
+            when (note(files, id)) {
+                "backup-state" -> assertTrue(metadata.isNull("groupId"))
+                "current-state" -> assertEquals("group", metadata.getString("groupId"))
+                else -> throw AssertionError("Unexpected budget contents")
+            }
+            assertEquals(emptyList<String>(), strayFiles(directory))
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
+
     private fun seed(files: BudgetFileManager, id: String, note: String) {
         SQLiteDatabase.openOrCreateDatabase(files.databaseFile(id), null).use { database ->
             listOf("accounts", "categories", "category_groups", "payee_mapping", "payees", "transactions", "zero_budgets")
@@ -151,6 +253,11 @@ class BackupServiceTest {
                 buildList { while (cursor.moveToNext()) add(cursor.getLong(0)) }
             }
         }
+
+    /** Files a restore must never leave behind: swap leftovers, staged copies and temporary files. */
+    private fun strayFiles(directory: java.io.File): List<String> = directory.list().orEmpty()
+        .filter { it.startsWith(".previous-") || it.startsWith(".restore-") || it.endsWith(".tmp") }
+        .sorted()
 
     private fun note(files: BudgetFileManager, id: String): String =
         SQLiteDatabase.openDatabase(files.databaseFile(id).path, null, SQLiteDatabase.OPEN_READONLY).use { database ->
