@@ -7,115 +7,135 @@ fi
 
 echo "=== Setting up Actua cloud environment ==="
 
+# Append a line to the session env file when Claude Code provides one.
+persist_env() {
+  if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+    printf '%s\n' "$1" >> "$CLAUDE_ENV_FILE"
+  fi
+}
+
+# Set key=value in a properties file, replacing any existing value.
+set_property() {
+  local file="$1" key="$2" value="$3"
+  touch "$file"
+  if grep -qE "^[[:space:]]*${key//./\\.}[[:space:]]*=" "$file"; then
+    sed -i "s|^[[:space:]]*${key//./\\.}[[:space:]]*=.*|${key}=${value}|" "$file"
+  else
+    # Start on a fresh line if the file lacks a trailing newline.
+    if [ -s "$file" ] && [ -n "$(tail -c1 "$file")" ]; then
+      printf '\n' >> "$file"
+    fi
+    printf '%s=%s\n' "$key" "$value" >> "$file"
+  fi
+}
+
 # --- Git Identity --------------------------------------------------------
 # Ensure commits authored in Claude Code cloud sessions match the repository
 # owner's Git identity so GitHub does not inject an unwanted Co-authored-by
 # trailer on squash merge.
-git config --global user.name "Azimul Kabir Apu"
-git config --global user.email "azimul.kabir123@gmail.com"
+GIT_NAME="Azimul Kabir Apu"
+GIT_EMAIL="azimul.kabir123@gmail.com"
+git config --global user.name "$GIT_NAME"
+git config --global user.email "$GIT_EMAIL"
 
-if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
-  echo "export GIT_AUTHOR_NAME=\"Azimul Kabir Apu\"" >> "$CLAUDE_ENV_FILE"
-  echo "export GIT_AUTHOR_EMAIL=\"azimul.kabir123@gmail.com\"" >> "$CLAUDE_ENV_FILE"
-  echo "export GIT_COMMITTER_NAME=\"Azimul Kabir Apu\"" >> "$CLAUDE_ENV_FILE"
-  echo "export GIT_COMMITTER_EMAIL=\"azimul.kabir123@gmail.com\"" >> "$CLAUDE_ENV_FILE"
-fi
+persist_env "export GIT_AUTHOR_NAME=\"$GIT_NAME\""
+persist_env "export GIT_AUTHOR_EMAIL=\"$GIT_EMAIL\""
+persist_env "export GIT_COMMITTER_NAME=\"$GIT_NAME\""
+persist_env "export GIT_COMMITTER_EMAIL=\"$GIT_EMAIL\""
 
 # --- JDK -----------------------------------------------------------------
 # Actua pins its Gradle Daemon JVM via gradle/gradle-daemon-jvm.properties
 # (toolchainVersion=25). If Gradle can't find a matching JDK through its own
-# discovery (JAVA_HOME, PATH, SDKMAN, IntelliJ .jdks, etc.) it falls back to
-# downloading one via api.foojay.io, which some environments block. We
-# install the JDK ourselves and explicitly register it with Gradle so it
-# never needs to reach foojay.
+# discovery it falls back to downloading one via api.foojay.io, which some
+# environments block. We install the JDK ourselves and explicitly register it
+# with Gradle so it never needs to reach foojay.
 
 JDK_DIR="$HOME/.local/jdk-25"
 JDK_URL="https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jdk_x64_linux_hotspot_25.0.4.1_1.tar.gz"
+# From the release's matching .sha256.txt. Update together with JDK_URL.
+JDK_SHA256="dbb698396d478e7fa2b1e50f4103324b2a99b90569ee27c33f2261f9215cf41e"
 
-if [ ! -x "$JDK_DIR/bin/java" ]; then
-  mkdir -p "$JDK_DIR"
-  echo "Downloading Temurin JDK 25..."
-  curl -fL --retry 3 "$JDK_URL" -o /tmp/temurin25.tar.gz
-  echo "Installing Temurin JDK 25..."
-  tar -xzf /tmp/temurin25.tar.gz -C "$JDK_DIR" --strip-components=1
-  rm -f /tmp/temurin25.tar.gz
-else
+if [ -x "$JDK_DIR/bin/java" ] && [ -x "$JDK_DIR/bin/javac" ]; then
   echo "Temurin JDK 25 already installed, skipping download."
+else
+  TMP_DIR="$(mktemp -d)"
+  trap 'rm -rf "$TMP_DIR"' EXIT
+  echo "Downloading Temurin JDK 25..."
+  curl -fL --retry 3 "$JDK_URL" -o "$TMP_DIR/jdk.tar.gz"
+  echo "$JDK_SHA256  $TMP_DIR/jdk.tar.gz" | sha256sum -c --quiet -
+  echo "Installing Temurin JDK 25..."
+  rm -rf "$JDK_DIR"
+  mkdir -p "$JDK_DIR"
+  tar -xzf "$TMP_DIR/jdk.tar.gz" -C "$JDK_DIR" --strip-components=1
 fi
 
 export JAVA_HOME="$JDK_DIR"
 export PATH="$JAVA_HOME/bin:$PATH"
 
-echo "export JAVA_HOME=\"$JDK_DIR\"" >> "$CLAUDE_ENV_FILE"
-echo "export PATH=\"$JDK_DIR/bin:\$PATH\"" >> "$CLAUDE_ENV_FILE"
+if ! "$JAVA_HOME/bin/javac" -version 2>&1 | grep -q '^javac 25\.'; then
+  echo "Expected JDK 25 at $JDK_DIR but found: $("$JAVA_HOME/bin/javac" -version 2>&1)" >&2
+  exit 1
+fi
+
+persist_env "export JAVA_HOME=\"$JDK_DIR\""
+persist_env "export PATH=\"$JDK_DIR/bin:\$PATH\""
 
 # --- Register the JDK with Gradle -----------------------------------------
 # org.gradle.java.installations.paths tells Gradle where to look for JDKs
-# for toolchain / Daemon JVM resolution, bypassing auto-detection and the
-# foojay download fallback entirely. auto-download=false makes Gradle fail
-# fast with a clear error instead of hanging on a blocked foojay request
-# if the pinned version ever drifts.
+# for toolchain / Daemon JVM resolution. auto-detect=false and
+# auto-download=false make Gradle use only that JDK and fail fast with a clear
+# error instead of hanging on a blocked foojay request if the pinned version
+# ever drifts.
 GRADLE_USER_HOME="${GRADLE_USER_HOME:-$HOME/.gradle}"
 mkdir -p "$GRADLE_USER_HOME"
-if ! grep -q "org.gradle.java.installations.paths" "$GRADLE_USER_HOME/gradle.properties" 2>/dev/null; then
-  cat >> "$GRADLE_USER_HOME/gradle.properties" <<EOF
-org.gradle.java.installations.paths=$JDK_DIR
-org.gradle.java.installations.auto-detect=false
-org.gradle.java.installations.auto-download=false
-EOF
-fi
+GRADLE_PROPS="$GRADLE_USER_HOME/gradle.properties"
+set_property "$GRADLE_PROPS" org.gradle.java.installations.paths "$JDK_DIR"
+set_property "$GRADLE_PROPS" org.gradle.java.installations.auto-detect false
+set_property "$GRADLE_PROPS" org.gradle.java.installations.auto-download false
 
 echo
 echo "=== Toolchain ==="
-java -version
 javac -version
 git --version
 echo
 echo "JAVA_HOME=$JAVA_HOME"
 
 # --- Android SDK -----------------------------------------------------------
-# Requires dl.google.com reachable (Android SDK components and the
-# google() Maven repo both come from there). We probe it first so the
-# hook degrades gracefully -- and tells the truth -- in environments
-# where that host is still blocked.
+# Requires dl.google.com reachable (Android SDK components and the google()
+# Maven repo are both served from that host). We probe it first so the hook
+# degrades gracefully -- and tells the truth -- where that host is blocked.
 echo
 echo "=== Android SDK ==="
 
-DL_GOOGLE_OK=false
 if curl -fsSL --max-time 10 -o /dev/null "https://dl.google.com/android/cli/latest/linux_x86_64/install.sh"; then
-  DL_GOOGLE_OK=true
-fi
-
-if [ "$DL_GOOGLE_OK" = true ]; then
-  ANDROID_CLI_BIN="$HOME/.local/bin/android"
-  if [ ! -x "$ANDROID_CLI_BIN" ]; then
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v android >/dev/null 2>&1; then
     echo "Installing Android CLI..."
     curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
+    command -v android >/dev/null 2>&1 || {
+      echo "Android CLI install finished but 'android' is not on PATH." >&2
+      exit 1
+    }
   fi
-  export PATH="$HOME/.local/bin:$PATH"
 
   ANDROID_HOME="$HOME/Android/Sdk"
   export ANDROID_HOME
   export ANDROID_SDK_ROOT="$ANDROID_HOME"
 
-  if [ ! -d "$ANDROID_HOME/platform-tools" ]; then
+  # Installing a package also writes the SDK license files, which lets AGP
+  # download the compile SDK and build tools it needs at build time.
+  if [ ! -x "$ANDROID_HOME/platform-tools/adb" ]; then
     echo "Installing Android platform-tools..."
     android sdk install platform-tools
   fi
 
-  # Accept SDK licenses non-interactively so AGP can auto-download whatever
-  # compile-SDK platform/build-tools versions the project needs at build
-  # time (compileSdk 37 tracks a fast-moving platform release train, so we
-  # deliberately don't hardcode a platform package name here -- AGP fetches
-  # exactly what it needs from google() once licenses are accepted).
-  yes | android sdk install --licenses >/dev/null 2>&1 || true
+  persist_env "export PATH=\"$HOME/.local/bin:\$PATH\""
+  persist_env "export ANDROID_HOME=\"$ANDROID_HOME\""
+  persist_env "export ANDROID_SDK_ROOT=\"$ANDROID_HOME\""
 
-  echo "export PATH=\"$HOME/.local/bin:\$PATH\"" >> "$CLAUDE_ENV_FILE"
-  echo "export ANDROID_HOME=\"$ANDROID_HOME\"" >> "$CLAUDE_ENV_FILE"
-  echo "export ANDROID_SDK_ROOT=\"$ANDROID_HOME\"" >> "$CLAUDE_ENV_FILE"
-
-  if [ ! -f "$CLAUDE_PROJECT_DIR/local.properties" ] || ! grep -q "^sdk.dir=" "$CLAUDE_PROJECT_DIR/local.properties" 2>/dev/null; then
-    echo "sdk.dir=$ANDROID_HOME" >> "$CLAUDE_PROJECT_DIR/local.properties"
+  LOCAL_PROPS="$CLAUDE_PROJECT_DIR/local.properties"
+  if ! grep -qE '^[[:space:]]*sdk\.dir[[:space:]]*=' "$LOCAL_PROPS" 2>/dev/null; then
+    set_property "$LOCAL_PROPS" sdk.dir "$ANDROID_HOME"
   fi
 
   echo "ANDROID_HOME=$ANDROID_HOME"
