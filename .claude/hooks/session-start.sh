@@ -98,6 +98,29 @@ set_property "$GRADLE_PROPS" org.gradle.java.installations.paths "$JDK_DIR"
 set_property "$GRADLE_PROPS" org.gradle.java.installations.auto-detect false
 set_property "$GRADLE_PROPS" org.gradle.java.installations.auto-download false
 
+# --- Maven Central mirror ---------------------------------------------------
+# Cloud sessions share egress, and repo.maven.apache.org answers bursts of
+# requests with 429 Too Many Requests, failing builds part-way. This init
+# script (applied only through this session's Gradle user home, so CI, local
+# and F-Droid builds are unaffected) points every mavenCentral() repository at
+# Google's mirror of Maven Central, which serves identical artifacts.
+mkdir -p "$GRADLE_USER_HOME/init.d"
+cat > "$GRADLE_USER_HOME/init.d/actua-maven-central-mirror.gradle" <<'EOF'
+// Written by .claude/hooks/session-start.sh for Claude Code cloud sessions.
+def centralMirror = 'https://maven-central.storage-download.googleapis.com/maven2/'
+def useCentralMirror = { RepositoryHandler repos ->
+    repos.withType(MavenArtifactRepository).configureEach { repo ->
+        if (repo.url.toString().replaceAll('/+$', '') == 'https://repo.maven.apache.org/maven2') {
+            repo.url = centralMirror
+        }
+    }
+}
+beforeSettings { settings ->
+    useCentralMirror(settings.pluginManagement.repositories)
+    useCentralMirror(settings.dependencyResolutionManagement.repositories)
+}
+EOF
+
 echo
 echo "=== Toolchain ==="
 javac -version
