@@ -208,16 +208,63 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         return withScheme
     }
 
+    /**
+     * Whether cleartext HTTP may go to [rawHost]: a local hostname, a private, loopback or
+     * link-local IPv4 address, or an IPv6 loopback, unique local (fc00::/7) or link-local
+     * (fe80::/10) literal. IPv6 prefixes apply only to parsed IPv6 literals, never to hostnames
+     * that happen to start with the same letters (#1512). No DNS lookup is made.
+     */
     private fun isPrivateHost(rawHost: String): Boolean {
-        val host = rawHost.lowercase().removePrefix("[").removeSuffix("]")
+        val lowered = rawHost.lowercase()
+        // URI hosts give IPv6 literals in brackets, and a hostname can never contain ':'.
+        if (lowered.startsWith("[") || ':' in lowered) {
+            val hextets = parseIpv6(lowered.removePrefix("[").removeSuffix("]")) ?: return false
+            val first = hextets[0]
+            val loopback = hextets.dropLast(1).all { it == 0 } && hextets.last() == 1
+            return loopback || first and 0xfe00 == 0xfc00 || first and 0xffc0 == 0xfe80
+        }
+        val host = lowered
         if (host == "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) return true
-        if (host == "::1" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80:")) return true
         val octets = host.split('.').mapNotNull(String::toIntOrNull)
         if (octets.size != 4 || octets.any { it !in 0..255 }) return false
         return octets[0] == 10 || octets[0] == 127 ||
             (octets[0] == 169 && octets[1] == 254) ||
             (octets[0] == 192 && octets[1] == 168) ||
             (octets[0] == 172 && octets[1] in 16..31)
+    }
+
+    /**
+     * The eight 16-bit groups of an IPv6 literal, or null when [literal] isn't one. Accepts `::`
+     * compression, a trailing dotted IPv4 part and a `%zone` suffix. Purely textual: unlike
+     * `InetAddress.getByName`, it never falls back to a DNS lookup.
+     */
+    private fun parseIpv6(literal: String): List<Int>? {
+        val address = literal.substringBefore('%')
+        if (address.isEmpty() || address.split("::").size > 2) return null
+        fun groups(part: String): List<Int>? {
+            if (part.isEmpty()) return emptyList()
+            val pieces = part.split(':')
+            return buildList {
+                pieces.forEachIndexed { index, piece ->
+                    if (index == pieces.lastIndex && '.' in piece) {
+                        val octets = piece.split('.').map { it.toIntOrNull() ?: return null }
+                        if (octets.size != 4 || octets.any { it !in 0..255 }) return null
+                        add(octets[0] shl 8 or octets[1])
+                        add(octets[2] shl 8 or octets[3])
+                    } else {
+                        if (piece.length !in 1..4) return null
+                        add(piece.toIntOrNull(16) ?: return null)
+                    }
+                }
+            }
+        }
+        val halves = address.split("::")
+        val head = groups(halves[0]) ?: return null
+        if (halves.size == 1) return head.takeIf { it.size == 8 }
+        val tail = groups(halves[1]) ?: return null
+        val missing = 8 - head.size - tail.size
+        if (missing < 1) return null
+        return head + List(missing) { 0 } + tail
     }
 
     fun loginMethods(serverUrl: String): List<LoginMethod> {
