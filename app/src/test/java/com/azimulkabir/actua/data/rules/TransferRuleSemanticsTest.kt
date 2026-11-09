@@ -86,9 +86,14 @@ class TransferRuleSemanticsTest {
         assertEquals("hit", RulesEngine.apply(transfer(), listOf(rule(noCategory))).transaction.notes)
         assertEquals(null, RulesEngine.apply(transfer(), listOf(rule(isTransfer))).transaction.notes)
         assertEquals(null, RulesEngine.apply(transfer(), listOf(rule(notTransfer))).transaction.notes)
-        // Report filters keep conditionsToAQL's semantics.
-        assertFalse(RulesEngine.matches(transfer(), listOf(noCategory)))
-        assertTrue(RulesEngine.matches(transfer(), listOf(isTransfer)))
+        // Report filters keep conditionsToAQL's semantics: `transfer` is `transfer_id` (transferred_id)
+        // being set, so only a linked transfer counts. A transfer payee alone doesn't (#1526).
+        val linked = transfer().copy(transferId = "savings-leg")
+        assertTrue(RulesEngine.matches(transfer(), listOf(noCategory)))
+        assertFalse(RulesEngine.matches(transfer(), listOf(isTransfer)))
+        assertFalse(RulesEngine.matches(linked, listOf(noCategory)))
+        assertTrue(RulesEngine.matches(linked, listOf(isTransfer)))
+        assertFalse(RulesEngine.matches(linked, listOf(notTransfer)))
     }
 
     @Test fun `append action is deterministic from the same pristine draft`() {
