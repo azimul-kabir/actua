@@ -11,6 +11,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed dashboard cards and reports that exclude a category by name, such as “does not contain Starting Balances”, leaving out transactions without a category ([#1533](https://github.com/azimul-kabir/actua/pull/1533))
 - Fixed the year-to-date dashboard cards leaving out transactions whose payee is an account but that aren’t linked transfers, unlike Actual ([#1531](https://github.com/azimul-kabir/actua/pull/1531))
 - Fixed a failed budget download or import being able to delete the budget it was replacing, or lose its most recent changes ([#1530](https://github.com/azimul-kabir/actua/pull/1530))
 - Fixed plain HTTP being allowed to public server addresses that start with “fc” or “fd”, which could send your password unencrypted ([#1527](https://github.com/azimul-kabir/actua/pull/1527))
