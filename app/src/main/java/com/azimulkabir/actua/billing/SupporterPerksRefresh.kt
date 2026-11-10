@@ -2,7 +2,9 @@ package com.azimulkabir.actua.billing
 
 import android.content.Context
 import com.azimulkabir.actua.data.preferences.AppIcons
+import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.SupporterPerks
+import com.azimulkabir.actua.ui.theme.AccentPalette
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -14,6 +16,7 @@ fun registerSupporterExtras(context: Context) {
     if (!supporterPerksAvailable()) return
     val appContext = context.applicationContext
     SupporterPerks.register(AppIcons.RESET_ID) { AppIcons(appContext).resetToDefault() }
+    SupporterPerks.register(AccentPalette.RESET_ID) { DisplayPreferences(appContext).accent = AccentPalette.Violet }
 }
 
 private const val PLAY_ANSWER_TIMEOUT_MILLIS = 30_000L

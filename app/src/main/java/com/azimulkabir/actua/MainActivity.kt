@@ -22,9 +22,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.azimulkabir.actua.ui.navigation.AppNavigation
+import com.azimulkabir.actua.ui.theme.AccentPalette
 import com.azimulkabir.actua.ui.theme.ActuaTheme
 import com.azimulkabir.actua.ui.theme.CategoryStatusColorState
 import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
@@ -62,7 +64,18 @@ class MainActivity : AppCompatActivity() {
             var appearance by remember { mutableStateOf(DisplayPreferences(this).appearance) }
             var useDynamicColor by remember { mutableStateOf(DisplayPreferences(this).useDynamicColor) }
             val categoryStatusColorState = remember { CategoryStatusColorState(this) }
-            ActuaTheme(appearance = appearance, dynamicColor = useDynamicColor) {
+            var accent by remember { mutableStateOf(DisplayPreferences(this).accent) }
+            // Follows the preference so a pick on the Settings page, or a reset when supporter
+            // status lapses, applies right away without recreating the activity.
+            DisposableEffect(Unit) {
+                val stopObserving = DisplayPreferences(this@MainActivity).observeAccent { accent = it }
+                onDispose(stopObserving)
+            }
+            ActuaTheme(
+                appearance = appearance,
+                dynamicColor = useDynamicColor,
+                accent = if (supporterPerksAvailable()) accent else AccentPalette.Violet,
+            ) {
                 AppLockGate(locked = AppLock.locked, onUnlocked = AppLock::unlock) {
                     CompositionLocalProvider(LocalCategoryStatusColors provides categoryStatusColorState) {
                         AppNavigation(

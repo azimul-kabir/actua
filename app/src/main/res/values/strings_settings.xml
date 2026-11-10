@@ -286,6 +286,16 @@
     <string name="settings_app_icon_mono">Mono</string>
     <string name="settings_app_icon_light">Light</string>
     <string name="settings_app_icon_note">Choose the icon shown on your home screen and app drawer. It changes when you leave Actua, and some launchers take a moment to update it.</string>
+    <string name="settings_accent_color">Accent color</string>
+    <string name="settings_accent_violet">Violet (default)</string>
+    <string name="settings_accent_teal">Teal</string>
+    <string name="settings_accent_amber">Amber</string>
+    <string name="settings_accent_rose">Rose</string>
+    <string name="settings_accent_forest">Forest</string>
+    <string name="settings_accent_ocean">Ocean</string>
+    <string name="settings_accent_mono">Mono</string>
+    <string name="settings_accent_note">Choosing an accent color turns Material You off. Violet and Material You are free for everyone; the other colors are for Actua Supporters.</string>
+    <string name="settings_accent_material_you">Material You (device)</string>
     <string name="settings_support_options_section">Ways to support</string>
     <string name="settings_support_monthly_title">Monthly supporter</string>
     <string name="settings_support_monthly_price">%1$s / month</string>

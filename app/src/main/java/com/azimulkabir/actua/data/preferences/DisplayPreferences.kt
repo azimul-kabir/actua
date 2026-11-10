@@ -1,6 +1,8 @@
 package com.azimulkabir.actua.data.preferences
 
 import android.content.Context
+import android.content.SharedPreferences
+import com.azimulkabir.actua.ui.theme.AccentPalette
 
 class DisplayPreferences(context: Context) {
     private val preferences = context.applicationContext.getSharedPreferences("display_preferences", Context.MODE_PRIVATE)
@@ -164,6 +166,20 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(USE_DYNAMIC_COLOR, false)
         set(value) { preferences.edit().putBoolean(USE_DYNAMIC_COLOR, value).apply() }
 
+    /** A supporter's accent palette (Play build); Violet, Actua's own scheme, until one is chosen. */
+    var accent: AccentPalette
+        get() = AccentPalette.fromName(preferences.getString(ACCENT, null))
+        set(value) { preferences.edit().putString(ACCENT, value.name).apply() }
+
+    /** Calls [onChange] whenever [accent] changes, including from a supporter-status reset. Returns how to stop. */
+    fun observeAccent(onChange: (AccentPalette) -> Unit): () -> Unit {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == ACCENT) onChange(accent)
+        }
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        return { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
     var startPage: String
         get() {
             val stored = preferences.getString(START_PAGE, "Budget") ?: "Budget"
@@ -273,6 +289,7 @@ class DisplayPreferences(context: Context) {
         const val HIDE_BALANCES = "hide_balances"
         const val APPEARANCE = "appearance"
         const val USE_DYNAMIC_COLOR = "use_dynamic_color"
+        const val ACCENT = "accent"
         const val START_PAGE = "start_page"
         const val LEGACY_MORE_PAGE = "More"
         const val LEGACY_REPORTS_PAGE = "Reports"

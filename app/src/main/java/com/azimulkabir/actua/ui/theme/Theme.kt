@@ -20,6 +20,9 @@ fun ActuaTheme(
     // Material You (wallpaper-derived) dynamic color, opt-in and only available on Android 12+.
     // Actua's own brand palette (ActuaLightColorScheme/ActuaDarkColorScheme) is the default.
     dynamicColor: Boolean = false,
+    // A supporter's accent palette. Choosing one in Settings turns Material You off, so the flag
+    // alone decides between them.
+    accent: AccentPalette = AccentPalette.Violet,
     content: @Composable () -> Unit
 ) {
     val darkTheme = when (appearance) {
@@ -33,8 +36,7 @@ fun ActuaTheme(
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 
-        darkTheme -> ActuaDarkColorScheme
-        else -> ActuaLightColorScheme
+        else -> accent.colorScheme(darkTheme)
     }
 
     // enableEdgeToEdge's default style reads dark mode from the system configuration, so an
