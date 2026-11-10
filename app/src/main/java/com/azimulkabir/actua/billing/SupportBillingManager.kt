@@ -5,11 +5,11 @@ import kotlinx.coroutines.flow.StateFlow
 
 /** How a [SupportProduct] behaves once bought. */
 enum class SupportProductKind {
-    /** Non-consumable: owned by the Play account forever, so it can only be bought once. */
+    /**
+     * Non-consumable: owned by the Play account forever, so Play restores it after a reinstall or
+     * on another device, and it can only be bought once. The badge and every tip tier are this.
+     */
     Permanent,
-
-    /** Consumable: consumed right after purchase so it can be bought again. */
-    Tip,
 
     /** Auto-renewing subscription: counts while Play reports it active. */
     Subscription,
@@ -23,9 +23,9 @@ enum class SupportProductKind {
 enum class SupportProduct(val productId: String, val kind: SupportProductKind) {
     MonthlySupporter("supporter_monthly", SupportProductKind.Subscription),
     SupporterBadge("support_actua", SupportProductKind.Permanent),
-    TipSmall("tip_small", SupportProductKind.Tip),
-    TipMedium("tip_medium", SupportProductKind.Tip),
-    TipLarge("tip_large", SupportProductKind.Tip),
+    TipSmall("tip_small", SupportProductKind.Permanent),
+    TipMedium("tip_medium", SupportProductKind.Permanent),
+    TipLarge("tip_large", SupportProductKind.Permanent),
     ;
 
     companion object {
@@ -41,26 +41,23 @@ data class SupportPurchaseState(
     val options: List<SupportOption> = emptyList(),
     /** The product whose purchase sheet is open or whose purchase is being finished. */
     val processingProduct: SupportProduct? = null,
-    /** True once Play confirms the account owns the permanent Supporter badge. */
-    val ownsBadge: Boolean = false,
+    /** Permanent products (badge, tips) Play confirms the account owns. */
+    val ownedProducts: Set<SupportProduct> = emptySet(),
     /** True while Play reports an active monthly supporter subscription. */
     val isSubscribed: Boolean = false,
-    /** True once a tip has been completed on this install (tips are consumed, so Play can't restore this). */
-    val hasTipped: Boolean = false,
     /** True right after a purchase completes, until the Support page is left. */
     val showThanks: Boolean = false,
 ) {
     val isAvailable: Boolean get() = options.isNotEmpty()
     val isProcessing: Boolean get() = processingProduct != null
-    val isSupporter: Boolean get() = ownsBadge || isSubscribed || hasTipped
+    val isSupporter: Boolean get() = ownedProducts.isNotEmpty() || isSubscribed
 
-    /** Options still worth offering: the badge and subscription drop out once owned; tips never do. */
+    /** Options still worth offering: each drops out once owned, the subscription while it's active. */
     val offeredOptions: List<SupportOption>
         get() = options.filter { option ->
             when (option.product.kind) {
-                SupportProductKind.Permanent -> !ownsBadge
+                SupportProductKind.Permanent -> option.product !in ownedProducts
                 SupportProductKind.Subscription -> !isSubscribed
-                SupportProductKind.Tip -> true
             }
         }
 
@@ -71,7 +68,7 @@ data class SupportPurchaseState(
 
 /**
  * Drives the optional Support Actua purchases: a monthly supporter subscription, a permanent
- * Supporter badge and repeatable tips. The playstore flavor backs this with Google Play Billing;
+ * Supporter badge and one-time tips. The playstore flavor backs this with Google Play Billing;
  * the fdroid flavor reports [SupportPurchaseState.isAvailable] as false so the settings row that
  * uses this stays hidden, since Play Billing can't work outside Play.
  */

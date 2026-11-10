@@ -3,13 +3,11 @@ package com.azimulkabir.actua.billing
 import android.app.Activity
 import android.content.Context
 import android.util.Log
-import androidx.core.content.edit
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
-import com.android.billingclient.api.ConsumeParams
 import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
@@ -17,7 +15,6 @@ import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.acknowledgePurchase
-import com.android.billingclient.api.consumePurchase
 import com.android.billingclient.api.queryProductDetails
 import com.android.billingclient.api.queryPurchasesAsync
 import kotlinx.coroutines.CoroutineScope
@@ -30,8 +27,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val TAG = "SupportBilling"
-private const val PREFS_NAME = "support_billing"
-private const val KEY_HAS_TIPPED = "has_tipped"
 
 /** Product details plus, for the subscription, the base plan's offer token needed to launch it. */
 private class LoadedProduct(val details: ProductDetails, val offerToken: String?)
@@ -39,17 +34,15 @@ private class LoadedProduct(val details: ProductDetails, val offerToken: String?
 /**
  * Backs [SupportBillingManager] with Google Play Billing.
  *
- * - The Supporter badge is non-consumable: acknowledged once, owned by the Play account forever
- *   and restored on every [start].
- * - Tips are consumable: consumed as soon as Play confirms them, so they can be bought again.
- *   Play can't restore a consumed purchase, so "has tipped" is remembered locally.
+ * - The Supporter badge and the tip tiers are non-consumable: acknowledged once, owned by the
+ *   Play account forever and restored on every [start], so a reinstall or a new device keeps the
+ *   badge. They are never consumed: Play can't list a consumed purchase, so it couldn't be restored.
  * - The monthly subscription is acknowledged once and counts while Play lists it as purchased.
  */
 private class PlayStoreSupportBillingManager(context: Context) : SupportBillingManager {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    private val _state = MutableStateFlow(SupportPurchaseState(hasTipped = prefs.getBoolean(KEY_HAS_TIPPED, false)))
+    private val _state = MutableStateFlow(SupportPurchaseState())
     override val state: StateFlow<SupportPurchaseState> = _state
 
     private val loadedProducts = mutableMapOf<SupportProduct, LoadedProduct>()
@@ -62,7 +55,7 @@ private class PlayStoreSupportBillingManager(context: Context) : SupportBillingM
             }
             BillingClient.BillingResponseCode.USER_CANCELED -> clearProcessing()
             BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
-                // Owned on another device/install, or a tip not yet consumed: finish it now.
+                // Owned on another device/install before this client had queried purchases.
                 clearProcessing()
                 scope.launch { restorePurchases() }
             }
@@ -187,12 +180,19 @@ private class PlayStoreSupportBillingManager(context: Context) : SupportBillingM
         _state.update { it.withOptions(products, options) }
     }
 
-    /** Runs on every connection: restores the badge and subscription, and finishes unfinished tips. */
+    /** Runs on every connection: restores owned products and the subscription, finishing any left unacknowledged. */
     private suspend fun restorePurchases() {
         val oneTime = billingClient.queryPurchasesAsync(
             QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build(),
         )
         if (oneTime.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+            // A refunded purchase no longer appears here, so it stops counting.
+            val listed = oneTime.purchasesList
+                .filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+                .flatMap { it.products }
+                .mapNotNull(SupportProduct::fromProductId)
+                .toSet()
+            _state.update { it.copy(ownedProducts = it.ownedProducts intersect listed) }
             oneTime.purchasesList.forEach { handlePurchase(it, fromPurchaseFlow = false) }
         }
         val subscriptions = billingClient.queryPurchasesAsync(
@@ -216,21 +216,16 @@ private class PlayStoreSupportBillingManager(context: Context) : SupportBillingM
             if (fromPurchaseFlow) clearProcessing()
             return
         }
-        val granted = when (product.kind) {
-            SupportProductKind.Tip -> consume(purchase)
-            SupportProductKind.Permanent, SupportProductKind.Subscription ->
-                purchase.isAcknowledged || acknowledge(purchase)
-        }
-        if (granted && product.kind == SupportProductKind.Tip) prefs.edit { putBoolean(KEY_HAS_TIPPED, true) }
+        val wasAcknowledged = purchase.isAcknowledged
+        val granted = wasAcknowledged || acknowledge(purchase)
         _state.update { current ->
             val finished = if (fromPurchaseFlow) current.copy(processingProduct = null) else current
             if (!granted) return@update finished
-            // A tip finished on restore was still paid for in a purchase flow the app never saw end.
-            val thanks = fromPurchaseFlow || product.kind == SupportProductKind.Tip
+            // Acknowledging on restore finishes a purchase (e.g. a pending payment) the app never saw end.
+            val thanks = finished.showThanks || fromPurchaseFlow || !wasAcknowledged
             when (product.kind) {
-                SupportProductKind.Tip -> finished.copy(hasTipped = true, showThanks = finished.showThanks || thanks)
-                SupportProductKind.Permanent -> finished.copy(ownsBadge = true, showThanks = finished.showThanks || thanks)
-                SupportProductKind.Subscription -> finished.copy(isSubscribed = true, showThanks = finished.showThanks || thanks)
+                SupportProductKind.Permanent -> finished.copy(ownedProducts = finished.ownedProducts + product, showThanks = thanks)
+                SupportProductKind.Subscription -> finished.copy(isSubscribed = true, showThanks = thanks)
             }
         }
     }
@@ -242,19 +237,6 @@ private class PlayStoreSupportBillingManager(context: Context) : SupportBillingM
         val result = billingClient.acknowledgePurchase(params)
         if (result.responseCode != BillingClient.BillingResponseCode.OK) {
             Log.w(TAG, "Acknowledge failed: ${result.debugMessage}")
-            return false
-        }
-        return true
-    }
-
-    /** Consuming also acknowledges, and frees the tip to be bought again. */
-    private suspend fun consume(purchase: Purchase): Boolean {
-        val params = ConsumeParams.newBuilder()
-            .setPurchaseToken(purchase.purchaseToken)
-            .build()
-        val result = billingClient.consumePurchase(params)
-        if (result.billingResult.responseCode != BillingClient.BillingResponseCode.OK) {
-            Log.w(TAG, "Consume failed: ${result.billingResult.debugMessage}")
             return false
         }
         return true
