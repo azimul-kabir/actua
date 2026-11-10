@@ -125,6 +125,7 @@ import com.azimulkabir.actua.ui.settings.BudgetSelectionItem
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.azimulkabir.actua.ui.settings.SettingsScreen
+import com.azimulkabir.actua.ui.settings.SupportPrompt
 import com.azimulkabir.actua.ui.settings.ConnectionScreen
 import com.azimulkabir.actua.ui.settings.CreditCardsScreen
 import com.azimulkabir.actua.ui.settings.LoansScreen
@@ -604,6 +605,8 @@ fun AppNavigation(
     var selectedTab by rememberSaveable { mutableStateOf(destination) }
     var tabSwitchJob by remember { mutableStateOf<Job?>(null) }
     var detail by rememberSaveable { mutableStateOf(DetailDestination.Main) }
+    // Set by the support prompt's "See options"; Settings opens its Support page and clears it.
+    var openSupportPage by rememberSaveable { mutableStateOf(false) }
     fun openCapturedReview(fromImport: Boolean = false) {
         capturedReviewRequest += 1
         capturedReviewReturnsToImport = fromImport
@@ -1705,6 +1708,17 @@ fun AppNavigation(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
+    SupportPrompt(
+        canShow = repository.isUsingActualBudget && detail == DetailDestination.Main &&
+            unopenedBudgetDialog == null && !budgetReplacementInProgress,
+        onOpenSupport = {
+            tabSwitchJob?.cancel()
+            openSupportPage = true
+            selectedTab = MainDestination.Manage
+            destination = MainDestination.Manage
+            detail = DetailDestination.Main
+        },
+    )
     unopenedBudgetDialog?.let { budget ->
         UnopenedBudgetRecoveryDialog(
             budget = budget,
@@ -3564,6 +3578,8 @@ fun AppNavigation(
                     showCurrentBalanceSummary = showCurrentBalanceSummary,
                     onShowCurrentBalanceSummaryChange = settingsShowCurrentBalanceSummaryChange,
                     returnToRootRequest = rootRequests[MainDestination.Manage] ?: 0,
+                    openSupportPage = openSupportPage,
+                    onSupportPageOpened = { openSupportPage = false },
                 ) }
             }
         }

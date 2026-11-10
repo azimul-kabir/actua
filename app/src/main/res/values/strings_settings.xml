@@ -287,6 +287,10 @@
     <string name="settings_support_manage_subscription_description">Change or cancel it in Google Play.</string>
     <string name="settings_support_tiers_note">Pay what you like: every Actua Supporter price gives the same badge.</string>
     <string name="settings_support_purchase_thanks">Thank you! Your support keeps Actua going.</string>
+    <string name="settings_support_prompt_title">Enjoying Actua?</string>
+    <string name="settings_support_prompt_body">Actua is free and open source, built by an independent developer. If it helps you budget, you can support its development once or monthly. All features stay free either way.</string>
+    <string name="settings_support_prompt_see_options">See options</string>
+    <string name="settings_support_prompt_not_now">Not now</string>
 
     <!-- About page. -->
     <string name="settings_about_summary">Native Android client for Actual Budget\nVersion %1$s</string>

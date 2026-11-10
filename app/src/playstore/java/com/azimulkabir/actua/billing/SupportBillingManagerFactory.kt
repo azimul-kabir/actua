@@ -206,6 +206,9 @@ private class PlayStoreSupportBillingManager(context: Context) : SupportBillingM
             // An expired or cancelled-and-lapsed subscription no longer appears here.
             if (active.isEmpty()) _state.update { it.copy(isSubscribed = false) }
             active.forEach { handlePurchase(it, fromPurchaseFlow = false) }
+            if (oneTime.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                _state.update { it.copy(purchasesRestored = true) }
+            }
         }
     }
 
