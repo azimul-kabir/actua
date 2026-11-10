@@ -234,7 +234,7 @@ object WidgetUpdater {
                 views.setTextViewText(R.id.widget_balance_value, money(context, overview.availableCents))
             }
             views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.BUDGET, widgetId))
-            manager.updateAppWidget(widgetId, views)
+            WidgetStyles.update(context, manager, widgetId, views)
         } finally {
             repository.close()
         }
@@ -264,7 +264,7 @@ object WidgetUpdater {
                 }, widgetId, WidgetActions.CATEGORY, showProgress = true,
             )
             views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.BUDGET, widgetId))
-            manager.updateAppWidget(widgetId, views)
+            WidgetStyles.update(context, manager, widgetId, views)
         } finally {
             repository.close()
         }
@@ -283,7 +283,7 @@ object WidgetUpdater {
         views.setOnClickPendingIntent(R.id.widget_expense, open(context, WidgetActions.ADD_EXPENSE, widgetId))
         views.setOnClickPendingIntent(R.id.widget_income, open(context, WidgetActions.ADD_INCOME, widgetId))
         views.setOnClickPendingIntent(R.id.widget_transfer, open(context, WidgetActions.ADD_TRANSFER, widgetId))
-        manager.updateAppWidget(widgetId, views)
+        WidgetStyles.update(context, manager, widgetId, views)
     }
 
     private fun updateAccounts(context: Context, manager: AppWidgetManager, widgetId: Int) {
@@ -301,7 +301,7 @@ object WidgetUpdater {
                 widgetId, WidgetActions.ACCOUNTS, showProgress = false,
             )
             views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.ACCOUNTS, widgetId))
-            manager.updateAppWidget(widgetId, views)
+            WidgetStyles.update(context, manager, widgetId, views)
         } finally {
             repository.close()
         }
@@ -335,7 +335,7 @@ object WidgetUpdater {
         // Every row opens Scheduled; rows fill in an empty intent, so the template can stay immutable.
         views.setPendingIntentTemplate(R.id.widget_schedule_list, open(context, WidgetActions.SCHEDULES, widgetId * 10 + 1))
         views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.SCHEDULES, widgetId))
-        manager.updateAppWidget(widgetId, views)
+        WidgetStyles.update(context, manager, widgetId, views)
         manager.notifyAppWidgetViewDataChanged(widgetId, R.id.widget_schedule_list)
     }
 
@@ -369,6 +369,7 @@ object WidgetUpdater {
             setTextViewText(R.id.widget_schedule_due, relativeDueLabel(localized, entry.dueDate))
             setTextViewText(R.id.widget_schedule_amount, scheduleAmount(localized, entry.item.schedule))
             setOnClickFillInIntent(R.id.widget_schedule_row, Intent())
+            WidgetStyles.apply(localized, this)
         }
     }
 

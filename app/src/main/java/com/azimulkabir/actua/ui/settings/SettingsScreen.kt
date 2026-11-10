@@ -42,6 +42,7 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material.icons.outlined.PieChartOutline
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Sell
@@ -121,6 +122,7 @@ internal enum class SettingsPage(@StringRes val titleRes: Int, val depth: Int) {
     Support(R.string.settings_page_support, 2),
     AppIconPicker(R.string.settings_app_icon, 3),
     AccentPicker(R.string.settings_accent_color, 3),
+    WidgetStylePicker(R.string.settings_widget_style, 3),
     About(R.string.settings_page_about, 2),
     Diagnostics(R.string.settings_page_diagnostics, 3),
 }
@@ -325,7 +327,7 @@ fun SettingsScreen(
         SettingsPage.Support, SettingsPage.About,
         -> SettingsPage.General
         SettingsPage.CategoryColors, SettingsPage.Holidays -> SettingsPage.Budget
-        SettingsPage.AppIconPicker, SettingsPage.AccentPicker -> SettingsPage.Display
+        SettingsPage.AppIconPicker, SettingsPage.AccentPicker, SettingsPage.WidgetStylePicker -> SettingsPage.Display
         SettingsPage.Diagnostics -> SettingsPage.About
         SettingsPage.General -> SettingsPage.Manage
         SettingsPage.Manage -> SettingsPage.Manage
@@ -913,6 +915,7 @@ fun SettingsScreen(
                             onOpenAppIcon = { page = SettingsPage.AppIconPicker },
                             useDynamicColor = useDynamicColor,
                             onOpenAccent = { page = SettingsPage.AccentPicker },
+                            onOpenWidgetStyle = { page = SettingsPage.WidgetStylePicker },
                         )
                     }
                 }
@@ -1068,6 +1071,7 @@ fun SettingsScreen(
                 }
                 SettingsPage.Holidays -> HolidaysSettings(holidays, onHolidaysChange)
                 SettingsPage.AppIconPicker -> AppIconSettings()
+                SettingsPage.WidgetStylePicker -> WidgetStyleSettings()
                 SettingsPage.AccentPicker -> AccentSettings(
                     isSupporter = if (supportPurchaseState.purchasesRestored) supportPurchaseState.isSupporter else supporterPerks.isSupporter,
                     useDynamicColor = useDynamicColor,
@@ -1345,6 +1349,7 @@ private fun SupporterExtras(
     onOpenAppIcon: () -> Unit,
     useDynamicColor: Boolean,
     onOpenAccent: () -> Unit,
+    onOpenWidgetStyle: () -> Unit,
 ) {
     val context = LocalContext.current
     SettingsGroup(stringResource(R.string.settings_supporter_extras_section)) {
@@ -1364,6 +1369,13 @@ private fun SupporterExtras(
                 else accentLabelRes(DisplayPreferences(context).accent),
             ),
             onClick = onOpenAccent,
+        )
+        SettingsDivider()
+        SupporterExtraRow(
+            icon = Icons.Outlined.Widgets,
+            label = stringResource(R.string.settings_widget_style),
+            current = if (isSupporter) stringResource(widgetStyleLabelRes(remember { DisplayPreferences(context).widgetStyle })) else null,
+            onOpen = if (isSupporter) onOpenWidgetStyle else onOpenSupport,
         )
     }
 }

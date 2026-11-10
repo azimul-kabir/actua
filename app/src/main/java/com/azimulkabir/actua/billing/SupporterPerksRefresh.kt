@@ -5,6 +5,8 @@ import com.azimulkabir.actua.data.preferences.AppIcons
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.SupporterPerks
 import com.azimulkabir.actua.ui.theme.AccentPalette
+import com.azimulkabir.actua.widget.WidgetStyle
+import com.azimulkabir.actua.widget.WidgetUpdater
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -16,9 +18,14 @@ fun registerSupporterExtras(context: Context) {
     if (!supporterPerksAvailable()) return
     val appContext = context.applicationContext
     SupporterPerks.register(AppIcons.RESET_ID) { AppIcons(appContext).resetToDefault() }
+    SupporterPerks.register(WIDGET_STYLE_RESET_ID) {
+        DisplayPreferences(appContext).widgetStyle = WidgetStyle.Default
+        WidgetUpdater.requestAll(appContext)
+    }
     SupporterPerks.register(AccentPalette.RESET_ID) { DisplayPreferences(appContext).accent = AccentPalette.Violet }
 }
 
+private const val WIDGET_STYLE_RESET_ID = "widget_style"
 private const val PLAY_ANSWER_TIMEOUT_MILLIS = 30_000L
 
 /**
