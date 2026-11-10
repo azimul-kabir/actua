@@ -288,7 +288,7 @@
     <string name="settings_support_tip_small">Gorjeta pequena</string>
     <string name="settings_support_tip_medium">Gorjeta média</string>
     <string name="settings_support_tip_large">Gorjeta grande</string>
-    <string name="settings_support_tip_description">Um agradecimento único. Você pode dar outra gorjeta quando quiser.</string>
+    <string name="settings_support_tip_description">Um agradecimento único que também dá a você o selo de Apoiador.</string>
     <string name="settings_support_purchase_thanks">Obrigado! Seu apoio mantém o Actua em andamento.</string>
 
     <!-- Sobre. -->

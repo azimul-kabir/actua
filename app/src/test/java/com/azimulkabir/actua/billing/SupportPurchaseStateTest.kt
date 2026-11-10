@@ -14,7 +14,12 @@ class SupportPurchaseStateTest {
     fun productIdsMatchPlayConsoleAndAreUnique() {
         assertEquals("support_actua", SupportProduct.SupporterBadge.productId)
         assertEquals("supporter_monthly", SupportProduct.MonthlySupporter.productId)
-        assertEquals(listOf("tip_small", "tip_medium", "tip_large"), SupportProduct.entries.filter { it.kind == SupportProductKind.Tip }.map { it.productId })
+        assertEquals(SupportProductKind.Subscription, SupportProduct.MonthlySupporter.kind)
+        // Everything else is permanent so Play restores it: a consumed purchase can't be listed again.
+        assertEquals(
+            listOf("support_actua", "tip_small", "tip_medium", "tip_large"),
+            SupportProduct.entries.filter { it.kind == SupportProductKind.Permanent }.map { it.productId },
+        )
         assertEquals(SupportProduct.entries.size, SupportProduct.entries.map { it.productId }.toSet().size)
         SupportProduct.entries.forEach { assertEquals(it, SupportProduct.fromProductId(it.productId)) }
         assertNull(SupportProduct.fromProductId("unknown_product"))
@@ -43,22 +48,19 @@ class SupportPurchaseStateTest {
     }
 
     @Test
-    fun ownedBadgeAndActiveSubscriptionStopBeingOfferedButTipsRemain() {
+    fun ownedProductsAndActiveSubscriptionStopBeingOffered() {
         val all = SupportPurchaseState(options = SupportProduct.entries.map { option(it) })
         assertEquals(SupportProduct.entries, all.offeredOptions.map { it.product })
-        val owned = all.copy(ownsBadge = true, isSubscribed = true)
-        assertEquals(
-            listOf(SupportProduct.TipSmall, SupportProduct.TipMedium, SupportProduct.TipLarge),
-            owned.offeredOptions.map { it.product },
-        )
+        val owned = all.copy(ownedProducts = setOf(SupportProduct.SupporterBadge, SupportProduct.TipMedium), isSubscribed = true)
+        assertEquals(listOf(SupportProduct.TipSmall, SupportProduct.TipLarge), owned.offeredOptions.map { it.product })
     }
 
     @Test
     fun anyPurchaseMakesTheUserASupporter() {
         assertFalse(SupportPurchaseState().isSupporter)
-        assertTrue(SupportPurchaseState(ownsBadge = true).isSupporter)
+        assertTrue(SupportPurchaseState(ownedProducts = setOf(SupportProduct.SupporterBadge)).isSupporter)
+        assertTrue(SupportPurchaseState(ownedProducts = setOf(SupportProduct.TipSmall)).isSupporter)
         assertTrue(SupportPurchaseState(isSubscribed = true).isSupporter)
-        assertTrue(SupportPurchaseState(hasTipped = true).isSupporter)
     }
 
     @Test

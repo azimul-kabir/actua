@@ -277,7 +277,7 @@
     <string name="settings_support_tip_small">Propina pequeña</string>
     <string name="settings_support_tip_medium">Propina mediana</string>
     <string name="settings_support_tip_large">Propina grande</string>
-    <string name="settings_support_tip_description">Un agradecimiento único. Puedes dejar otra propina cuando quieras.</string>
+    <string name="settings_support_tip_description">Un agradecimiento único que también te da la insignia de colaborador.</string>
     <string name="settings_support_purchase_thanks">¡Gracias! Tu apoyo mantiene vivo Actua.</string>
 <!-- About page. -->
     <string name="settings_about_summary">Cliente nativo de Android para Actual Budget\nVersión %1$s</string>
