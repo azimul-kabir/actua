@@ -55,7 +55,7 @@
     <string name="settings_section_support">Apoio</string>
     <string name="settings_support_actua">Apoiar o Actua</string>
     <string name="settings_support_thank_you">Você é um Apoiador do Actua — obrigado!</string>
-    <string name="settings_support_description">O Actua é gratuito e de código aberto. Deixe uma gorjeta única.</string>
+    <string name="settings_support_description">O Actua é gratuito e de código aberto. Deixe uma gorjeta ou torne-se um Apoiador.</string>
     <string name="settings_section_about">Sobre</string>
     <string name="settings_about_actua">Sobre o Actua</string>
     <string name="settings_about_actua_description">Versão, informações do projeto, créditos e licença</string>
@@ -276,10 +276,20 @@
     <string name="settings_support_intro">O Actua é gratuito e de código aberto. Se você o considera útil, pode apoiar seu desenvolvimento contínuo.</string>
     <string name="settings_supporter_badge">Apoiador do Actua</string>
     <string name="settings_supporter_thanks">Obrigado por apoiar o Actua!</string>
-    <string name="settings_supporter_price">Apoiador do Actua · %1$s</string>
     <string name="settings_supporter_description">Ganhe um selo permanente de Apoiador como agradecimento.</string>
     <string name="settings_support_free">Todos os recursos do Actua continuam gratuitos.</string>
-    <string name="settings_become_supporter">Torne-se um Apoiador</string>
+    <string name="settings_support_options_section">Formas de apoiar</string>
+    <string name="settings_support_monthly_title">Apoiador mensal</string>
+    <string name="settings_support_monthly_price">%1$s / mês</string>
+    <string name="settings_support_monthly_description">Apoie o desenvolvimento contínuo todo mês. Cancele quando quiser no Google Play.</string>
+    <string name="settings_support_monthly_active">Apoiador mensal — obrigado!</string>
+    <string name="settings_support_manage_subscription">Gerenciar assinatura</string>
+    <string name="settings_support_manage_subscription_description">Altere ou cancele no Google Play.</string>
+    <string name="settings_support_tip_small">Gorjeta pequena</string>
+    <string name="settings_support_tip_medium">Gorjeta média</string>
+    <string name="settings_support_tip_large">Gorjeta grande</string>
+    <string name="settings_support_tip_description">Um agradecimento único. Você pode dar outra gorjeta quando quiser.</string>
+    <string name="settings_support_purchase_thanks">Obrigado! Seu apoio mantém o Actua em andamento.</string>
 
     <!-- Sobre. -->
     <string name="settings_about_summary">Cliente Android nativo para o Actual Budget\nVersão %1$s</string>
