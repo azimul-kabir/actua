@@ -15,7 +15,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
-- Slimmed the Ready to Budget card in the Plan view to a single row ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
+- Slimmed the Ready to Budget card in the Plan view to a single row ([#1562](https://github.com/azimul-kabir/actua/pull/1562))
 
 ## [2.6.0] - 2026-11-10
 
