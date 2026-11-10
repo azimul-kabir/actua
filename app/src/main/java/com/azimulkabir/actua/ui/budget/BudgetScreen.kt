@@ -146,6 +146,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.annotation.StringRes
 import androidx.annotation.PluralsRes
 import com.azimulkabir.actua.R
+import com.azimulkabir.actua.ui.theme.AmountTypography
 import com.azimulkabir.actua.data.budget.CategoryDeletePlan
 import com.azimulkabir.actua.ui.categories.CategoryDeleteDialog
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
@@ -1312,7 +1313,7 @@ private fun overviewLeadLabel(overview: BudgetOverview, toBudgetLabelRes: Int): 
         BudgetOverview.LeadKind.SAVED -> stringResource(R.string.budget_saved)
     }
 
-/** Ready to Budget as the shared medium hero, inside the primary (or error, when negative) container. */
+/** Ready to Budget as one slim row (caption left, amount right) in the primary (or error, when negative) container. */
 @Composable
 private fun PlanBudgetOverview(
     overview: BudgetOverview,
@@ -1322,6 +1323,7 @@ private fun PlanBudgetOverview(
     val leadLabel = overviewLeadLabel(overview, R.string.budget_ready_to_budget)
     val leadCents = overview.leadValue
     val ready = leadCents ?: 0L
+    val amount = leadCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—"
     val contentColor = if (ready >= 0L) MaterialTheme.colorScheme.onPrimaryContainer
         else MaterialTheme.colorScheme.onErrorContainer
     Surface(
@@ -1329,29 +1331,48 @@ private fun PlanBudgetOverview(
         color = if (ready >= 0L) MaterialTheme.colorScheme.primaryContainer
             else MaterialTheme.colorScheme.errorContainer,
         contentColor = contentColor,
-        shape = MaterialTheme.shapes.extraLarge,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+        // The same corner radius as the category group cards below it.
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.xs),
     ) {
-        ActuaHeroAmount(
-            amount = leadCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
-            modifier = Modifier.padding(vertical = Spacing.sm),
-            caption = leadLabel,
-            amountColor = contentColor,
-            captionColor = contentColor.copy(alpha = 0.78f),
-            size = ActuaHeroSize.Medium,
-            action = {
-                if (overview.bufferedCents != 0L) {
-                    Text(
-                        stringResource(
-                            R.string.budget_held_for_next_month,
-                            formatMoneyCents(overview.bufferedCents, hideDecimalPlaces),
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = contentColor.copy(alpha = 0.78f),
-                    )
-                }
-            },
-        )
+        Column(
+            modifier = Modifier
+                .heightIn(min = 56.dp)
+                .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
+                // One announcement for the whole card, as the hero it replaces had.
+                .semantics(mergeDescendants = true) { contentDescription = "$leadLabel $amount" },
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    leadLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = contentColor.copy(alpha = 0.78f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(Spacing.md))
+                // The amount never truncates; the caption gives way first.
+                Text(
+                    amount,
+                    style = AmountTypography.headlineAmount,
+                    color = contentColor,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
+            if (overview.bufferedCents != 0L) {
+                Text(
+                    stringResource(
+                        R.string.budget_held_for_next_month,
+                        formatMoneyCents(overview.bufferedCents, hideDecimalPlaces),
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor.copy(alpha = 0.78f),
+                )
+            }
+        }
     }
 }
 

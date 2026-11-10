@@ -13,6 +13,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added a choice of accent color for Actua Supporters under Settings → Display in the Google Play version ([#1550](https://github.com/azimul-kabir/actua/pull/1550))
 - Added a choice of home-screen widget style for Actua Supporters under Settings → Display in the Google Play version ([#1551](https://github.com/azimul-kabir/actua/pull/1551))
 
+### Changed
+
+- Slimmed the Ready to Budget card in the Plan view to a single row ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
+
 ## [2.6.0] - 2026-11-10
 
 ### Added
