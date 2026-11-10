@@ -14,6 +14,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added a choice of home-screen widget style for Actua Supporters under Settings → Display in the Google Play version ([#1551](https://github.com/azimul-kabir/actua/pull/1551))
 - Added optional confetti celebrations for Actua Supporters when Ready to budget reaches zero or a reconciliation is finished, under Settings → Display in the Google Play version ([#1560](https://github.com/azimul-kabir/actua/pull/1560))
 
+### Changed
+
+- Slimmed the Ready to Budget card in the Plan view to a single row ([#1562](https://github.com/azimul-kabir/actua/pull/1562))
+
 ## [2.6.0] - 2026-11-10
 
 ### Added
