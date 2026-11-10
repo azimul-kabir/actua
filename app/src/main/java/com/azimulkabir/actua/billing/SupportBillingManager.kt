@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 enum class SupportProductKind {
     /**
      * Non-consumable: owned by the Play account forever, so Play restores it after a reinstall or
-     * on another device, and it can only be bought once. The badge and every tip tier are this.
+     * on another device, and it can only be bought once. Every Supporter price tier is this.
      */
     Permanent,
 
@@ -22,10 +22,12 @@ enum class SupportProductKind {
  */
 enum class SupportProduct(val productId: String, val kind: SupportProductKind) {
     MonthlySupporter("supporter_monthly", SupportProductKind.Subscription),
+    /** The original Supporter purchase; existing supporters own this one. */
     SupporterBadge("support_actua", SupportProductKind.Permanent),
-    TipSmall("tip_small", SupportProductKind.Permanent),
-    TipMedium("tip_medium", SupportProductKind.Permanent),
-    TipLarge("tip_large", SupportProductKind.Permanent),
+    /** The same Supporter badge at higher prices (set per tier in Play Console). */
+    SupporterTier2("support_actua_tier2", SupportProductKind.Permanent),
+    SupporterTier3("support_actua_tier3", SupportProductKind.Permanent),
+    SupporterTier4("support_actua_tier4", SupportProductKind.Permanent),
     ;
 
     companion object {
@@ -41,7 +43,7 @@ data class SupportPurchaseState(
     val options: List<SupportOption> = emptyList(),
     /** The product whose purchase sheet is open or whose purchase is being finished. */
     val processingProduct: SupportProduct? = null,
-    /** Permanent products (badge, tips) Play confirms the account owns. */
+    /** Supporter price tiers Play confirms the account owns. */
     val ownedProducts: Set<SupportProduct> = emptySet(),
     /** True while Play reports an active monthly supporter subscription. */
     val isSubscribed: Boolean = false,
@@ -68,7 +70,7 @@ data class SupportPurchaseState(
 
 /**
  * Drives the optional Support Actua purchases: a monthly supporter subscription, a permanent
- * Supporter badge and one-time tips. The playstore flavor backs this with Google Play Billing;
+ * Supporter badge at several prices. The playstore flavor backs this with Google Play Billing;
  * the fdroid flavor reports [SupportPurchaseState.isAvailable] as false so the settings row that
  * uses this stays hidden, since Play Billing can't work outside Play.
  */

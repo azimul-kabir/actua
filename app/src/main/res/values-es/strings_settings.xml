@@ -53,7 +53,7 @@
 <string name="settings_section_support">Ayuda</string>
 <string name="settings_support_actua">Apoyar a Actua</string>
 <string name="settings_support_thank_you">¡Gracias por apoyar a Actua!</string>
-<string name="settings_support_description">Actua es gratuito y de código abierto. Deja una propina o hazte colaborador.</string>
+<string name="settings_support_description">Actua es gratuito y de código abierto. Hazte colaborador, una vez o cada mes.</string>
 <string name="settings_section_about">Acerca de</string>
 <string name="settings_about_actua">Acerca de Actua</string>
 <string name="settings_about_actua_description">Versión, información del proyecto, créditos y licencia</string>
@@ -265,7 +265,7 @@
     <string name="settings_support_intro">Actua es gratuito y de código abierto. Si te resulta útil, puedes apoyar su desarrollo continuo.</string>
 <string name="settings_supporter_badge">Colaborador de Actua</string>
 <string name="settings_supporter_thanks">¡Gracias por apoyar a Actua!</string>
-<string name="settings_supporter_description">Recibe una insignia permanente de colaborador como agradecimiento.</string>
+<string name="settings_supporter_description">Un agradecimiento único que te da una insignia permanente de colaborador.</string>
 <string name="settings_support_free">Todas las funciones de Actua seguirán siendo gratuitas.</string>
     <string name="settings_support_options_section">Formas de apoyar</string>
     <string name="settings_support_monthly_title">Colaborador mensual</string>
@@ -274,10 +274,7 @@
     <string name="settings_support_monthly_active">Colaborador mensual: ¡gracias!</string>
     <string name="settings_support_manage_subscription">Gestionar suscripción</string>
     <string name="settings_support_manage_subscription_description">Cámbiala o cancélala en Google Play.</string>
-    <string name="settings_support_tip_small">Propina pequeña</string>
-    <string name="settings_support_tip_medium">Propina mediana</string>
-    <string name="settings_support_tip_large">Propina grande</string>
-    <string name="settings_support_tip_description">Un agradecimiento único que también te da la insignia de colaborador.</string>
+    <string name="settings_support_tiers_note">Paga lo que quieras: todos los precios de Colaborador de Actua dan la misma insignia.</string>
     <string name="settings_support_purchase_thanks">¡Gracias! Tu apoyo mantiene vivo Actua.</string>
 <!-- About page. -->
     <string name="settings_about_summary">Cliente nativo de Android para Actual Budget\nVersión %1$s</string>

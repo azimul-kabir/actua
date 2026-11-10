@@ -48,7 +48,6 @@ import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.Sync
-import androidx.compose.material.icons.outlined.VolunteerActivism
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -1290,6 +1289,9 @@ private fun SupportSettings(
             }
         }
     }
+    if (offered.any { it.product.kind == SupportProductKind.Permanent }) {
+        SettingsNote(stringResource(R.string.settings_support_tiers_note))
+    }
     SettingsNote(stringResource(R.string.settings_support_free))
 }
 
@@ -1301,26 +1303,16 @@ private fun SupportOptionRow(option: SupportOption, isProcessing: Boolean, enabl
             R.string.settings_support_monthly_title,
             R.string.settings_support_monthly_description,
         )
+        // Every price is the same badge: only the cheapest row explains it, the note below covers the rest.
         SupportProduct.SupporterBadge -> Triple(
             Icons.Outlined.FavoriteBorder,
             R.string.settings_supporter_badge,
             R.string.settings_supporter_description,
         )
-        SupportProduct.TipSmall -> Triple(
-            Icons.Outlined.VolunteerActivism,
-            R.string.settings_support_tip_small,
-            R.string.settings_support_tip_description,
-        )
-        SupportProduct.TipMedium -> Triple(
-            Icons.Outlined.VolunteerActivism,
-            R.string.settings_support_tip_medium,
-            R.string.settings_support_tip_description,
-        )
-        SupportProduct.TipLarge -> Triple(
-            Icons.Outlined.VolunteerActivism,
-            R.string.settings_support_tip_large,
-            R.string.settings_support_tip_description,
-        )
+        SupportProduct.SupporterTier2,
+        SupportProduct.SupporterTier3,
+        SupportProduct.SupporterTier4,
+        -> Triple(Icons.Outlined.FavoriteBorder, R.string.settings_supporter_badge, null)
     }
     val price = if (option.product.kind == SupportProductKind.Subscription) {
         stringResource(R.string.settings_support_monthly_price, option.priceLabel)
@@ -1331,7 +1323,7 @@ private fun SupportOptionRow(option: SupportOption, isProcessing: Boolean, enabl
         icon = icon,
         label = stringResource(labelRes),
         value = null,
-        caption = stringResource(captionRes),
+        caption = captionRes?.let { stringResource(it) },
         supportingValue = price,
         enabled = enabled,
         trailing = if (isProcessing) {

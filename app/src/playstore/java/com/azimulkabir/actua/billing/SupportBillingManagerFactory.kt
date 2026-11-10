@@ -34,7 +34,7 @@ private class LoadedProduct(val details: ProductDetails, val offerToken: String?
 /**
  * Backs [SupportBillingManager] with Google Play Billing.
  *
- * - The Supporter badge and the tip tiers are non-consumable: acknowledged once, owned by the
+ * - Every Supporter price tier is non-consumable: acknowledged once, owned by the
  *   Play account forever and restored on every [start], so a reinstall or a new device keeps the
  *   badge. They are never consumed: Play can't list a consumed purchase, so it couldn't be restored.
  * - The monthly subscription is acknowledged once and counts while Play lists it as purchased.

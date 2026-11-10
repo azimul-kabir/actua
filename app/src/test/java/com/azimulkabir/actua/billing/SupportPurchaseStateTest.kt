@@ -17,7 +17,7 @@ class SupportPurchaseStateTest {
         assertEquals(SupportProductKind.Subscription, SupportProduct.MonthlySupporter.kind)
         // Everything else is permanent so Play restores it: a consumed purchase can't be listed again.
         assertEquals(
-            listOf("support_actua", "tip_small", "tip_medium", "tip_large"),
+            listOf("support_actua", "support_actua_tier2", "support_actua_tier3", "support_actua_tier4"),
             SupportProduct.entries.filter { it.kind == SupportProductKind.Permanent }.map { it.productId },
         )
         assertEquals(SupportProduct.entries.size, SupportProduct.entries.map { it.productId }.toSet().size)
@@ -29,43 +29,43 @@ class SupportPurchaseStateTest {
     fun unavailableUntilPlayReturnsAProduct() {
         val empty = SupportPurchaseState()
         assertFalse(empty.isAvailable)
-        assertTrue(empty.withOptions(setOf(SupportProduct.TipSmall), listOf(option(SupportProduct.TipSmall))).isAvailable)
+        assertTrue(empty.withOptions(setOf(SupportProduct.SupporterTier2), listOf(option(SupportProduct.SupporterTier2))).isAvailable)
     }
 
     @Test
     fun withOptionsMergesBothQueriesInDisplayOrder() {
-        val oneTime = setOf(SupportProduct.SupporterBadge, SupportProduct.TipSmall, SupportProduct.TipLarge)
+        val oneTime = setOf(SupportProduct.SupporterBadge, SupportProduct.SupporterTier2, SupportProduct.SupporterTier4)
         val state = SupportPurchaseState()
-            .withOptions(oneTime, listOf(option(SupportProduct.TipLarge), option(SupportProduct.SupporterBadge)))
+            .withOptions(oneTime, listOf(option(SupportProduct.SupporterTier4), option(SupportProduct.SupporterBadge)))
             .withOptions(setOf(SupportProduct.MonthlySupporter), listOf(option(SupportProduct.MonthlySupporter)))
         assertEquals(
-            listOf(SupportProduct.MonthlySupporter, SupportProduct.SupporterBadge, SupportProduct.TipLarge),
+            listOf(SupportProduct.MonthlySupporter, SupportProduct.SupporterBadge, SupportProduct.SupporterTier4),
             state.options.map { it.product },
         )
         // Reloading one query replaces only its own products.
-        val reloaded = state.withOptions(oneTime, listOf(option(SupportProduct.TipSmall, "$0.99")))
-        assertEquals(listOf(SupportProduct.MonthlySupporter, SupportProduct.TipSmall), reloaded.options.map { it.product })
+        val reloaded = state.withOptions(oneTime, listOf(option(SupportProduct.SupporterTier2, "$4.99")))
+        assertEquals(listOf(SupportProduct.MonthlySupporter, SupportProduct.SupporterTier2), reloaded.options.map { it.product })
     }
 
     @Test
     fun ownedProductsAndActiveSubscriptionStopBeingOffered() {
         val all = SupportPurchaseState(options = SupportProduct.entries.map { option(it) })
         assertEquals(SupportProduct.entries, all.offeredOptions.map { it.product })
-        val owned = all.copy(ownedProducts = setOf(SupportProduct.SupporterBadge, SupportProduct.TipMedium), isSubscribed = true)
-        assertEquals(listOf(SupportProduct.TipSmall, SupportProduct.TipLarge), owned.offeredOptions.map { it.product })
+        val owned = all.copy(ownedProducts = setOf(SupportProduct.SupporterBadge, SupportProduct.SupporterTier3), isSubscribed = true)
+        assertEquals(listOf(SupportProduct.SupporterTier2, SupportProduct.SupporterTier4), owned.offeredOptions.map { it.product })
     }
 
     @Test
     fun anyPurchaseMakesTheUserASupporter() {
         assertFalse(SupportPurchaseState().isSupporter)
         assertTrue(SupportPurchaseState(ownedProducts = setOf(SupportProduct.SupporterBadge)).isSupporter)
-        assertTrue(SupportPurchaseState(ownedProducts = setOf(SupportProduct.TipSmall)).isSupporter)
+        assertTrue(SupportPurchaseState(ownedProducts = setOf(SupportProduct.SupporterTier4)).isSupporter)
         assertTrue(SupportPurchaseState(isSubscribed = true).isSupporter)
     }
 
     @Test
     fun processingTracksTheProductBeingBought() {
         assertFalse(SupportPurchaseState().isProcessing)
-        assertTrue(SupportPurchaseState(processingProduct = SupportProduct.TipMedium).isProcessing)
+        assertTrue(SupportPurchaseState(processingProduct = SupportProduct.SupporterTier3).isProcessing)
     }
 }
