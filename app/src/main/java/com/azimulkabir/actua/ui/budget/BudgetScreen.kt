@@ -147,6 +147,8 @@ import androidx.annotation.StringRes
 import androidx.annotation.PluralsRes
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.ui.theme.AmountTypography
+import com.azimulkabir.actua.ui.celebrations.CelebrationPolicy
+import com.azimulkabir.actua.ui.celebrations.LocalCelebrate
 import com.azimulkabir.actua.data.budget.CategoryDeletePlan
 import com.azimulkabir.actua.ui.categories.CategoryDeleteDialog
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
@@ -311,6 +313,15 @@ fun BudgetScreen(
     hideIncomeGroup: Boolean = false,
     hasFab: Boolean = true,
 ) {
+    // A supporter extra: confetti when Ready to budget reaches exactly zero from a non-zero amount in
+    // the same month. The first value seen after this screen opens only sets the baseline.
+    val celebrate = LocalCelebrate.current
+    var celebrationBaseline by remember { mutableStateOf(month to overview.toBudgetCents) }
+    LaunchedEffect(month, overview.toBudgetCents) {
+        val (baselineMonth, baselineCents) = celebrationBaseline
+        if (CelebrationPolicy.readyToBudgetReachedZero(baselineMonth, baselineCents, month, overview.toBudgetCents)) celebrate()
+        celebrationBaseline = month to overview.toBudgetCents
+    }
     val showHidden = displayOptions.showHidden
     val showSpent = displayOptions.showSpent
     val showProgressBars = displayOptions.showProgressBars
