@@ -10,7 +10,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added a one-time invitation to support Actua after 30 days or 100 added transactions in the Google Play version ([#1540](https://github.com/azimul-kabir/actua/pull/1540))
 - Added a Supporter extras section to Settings → Display in the Google Play version, where Actua Supporters will find cosmetic extras ([#1548](https://github.com/azimul-kabir/actua/pull/1548))
 - Added a choice of app icon for Actua Supporters under Settings → Display in the Google Play version ([#1549](https://github.com/azimul-kabir/actua/pull/1549))
-- Added a choice of accent color for Actua Supporters under Settings → Display in the Google Play version ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
+- Added a choice of accent color for Actua Supporters under Settings → Display in the Google Play version ([#1550](https://github.com/azimul-kabir/actua/pull/1550))
 
 ## [2.6.0] - 2026-11-10
 
