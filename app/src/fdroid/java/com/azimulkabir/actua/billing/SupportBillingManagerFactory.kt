@@ -18,3 +18,6 @@ private class UnavailableSupportBillingManager : SupportBillingManager {
 }
 
 fun createSupportBillingManager(context: Context): SupportBillingManager = UnavailableSupportBillingManager()
+
+/** The fdroid build has no way to pay, so it hides supporter extras entirely. */
+fun supporterPerksAvailable(): Boolean = false

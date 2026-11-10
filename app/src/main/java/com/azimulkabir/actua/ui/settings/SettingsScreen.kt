@@ -80,12 +80,14 @@ import com.azimulkabir.actua.billing.SupportProduct
 import com.azimulkabir.actua.billing.SupportProductKind
 import com.azimulkabir.actua.billing.SupportPurchaseState
 import com.azimulkabir.actua.billing.createSupportBillingManager
+import com.azimulkabir.actua.billing.supporterPerksAvailable
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.EffectiveDisplayFormats
 import com.azimulkabir.actua.data.preferences.LocationPreferences
 import com.azimulkabir.actua.data.preferences.ScreenPrivacyPreferences
+import com.azimulkabir.actua.data.preferences.SupporterPerks
 import com.azimulkabir.actua.data.security.AppLockPreferences
 import com.azimulkabir.actua.data.security.AppLockTimeout
 import com.azimulkabir.actua.ui.lock.AppLock
@@ -215,6 +217,10 @@ fun SettingsScreen(
     DisposableEffect(supportBillingManager) {
         supportBillingManager.start()
         onDispose { supportBillingManager.stop() }
+    }
+    val supporterPerks = remember { SupporterPerks(context) }
+    LaunchedEffect(supportPurchaseState.purchasesRestored, supportPurchaseState.isSupporter) {
+        supporterPerks.record(supportPurchaseState)
     }
     val locationPreferences = remember { LocationPreferences(context) }
     val screenPrivacyPreferences = remember { ScreenPrivacyPreferences(context) }
@@ -892,6 +898,12 @@ fun SettingsScreen(
                             onShowNotesChange,
                         )
                     }
+                    if (supporterPerksAvailable()) {
+                        // Trust Play once it has answered; until then use the last confirmed status.
+                        val isSupporter =
+                            if (supportPurchaseState.purchasesRestored) supportPurchaseState.isSupporter else supporterPerks.isSupporter
+                        SupporterExtras(isSupporter = isSupporter, onOpenSupport = { page = SettingsPage.Support })
+                    }
                 }
                 SettingsPage.Privacy -> {
                     SettingsGroup {
@@ -1302,6 +1314,34 @@ private fun SupportSettings(
         SettingsNote(stringResource(R.string.settings_support_tiers_note))
     }
     SettingsNote(stringResource(R.string.settings_support_free))
+}
+
+/**
+ * The "Supporter extras" group on the Display page (Play build only). Cosmetic extras register
+ * here as they arrive; a non-supporter sees them marked "Supporter" and is sent to the Support page.
+ */
+@Composable
+private fun SupporterExtras(isSupporter: Boolean, onOpenSupport: () -> Unit) {
+    SettingsGroup(stringResource(R.string.settings_supporter_extras_section)) {
+        if (isSupporter) {
+            ActuaFormRow(
+                icon = Icons.Outlined.FavoriteBorder,
+                label = stringResource(R.string.settings_supporter_extras_title),
+                value = null,
+                caption = stringResource(R.string.settings_supporter_extras_unlocked),
+                onClick = null,
+            )
+        } else {
+            ActuaFormRow(
+                icon = Icons.Outlined.FavoriteBorder,
+                label = stringResource(R.string.settings_supporter_extras_title),
+                value = stringResource(R.string.settings_supporter_extras_marker),
+                caption = stringResource(R.string.settings_supporter_extras_locked),
+                enabled = true,
+                onClick = onOpenSupport,
+            )
+        }
+    }
 }
 
 @Composable

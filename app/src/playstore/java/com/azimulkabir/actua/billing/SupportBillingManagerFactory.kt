@@ -182,6 +182,9 @@ private class PlayStoreSupportBillingManager(context: Context) : SupportBillingM
 
     /** Runs on every connection: restores owned products and the subscription, finishing any left unacknowledged. */
     private suspend fun restorePurchases() {
+        // The state below passes through partial values while the queries run; don't let a reader
+        // (the cached supporter status) trust it until both have answered.
+        _state.update { it.copy(purchasesRestored = false) }
         val oneTime = billingClient.queryPurchasesAsync(
             QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build(),
         )
@@ -247,3 +250,5 @@ private class PlayStoreSupportBillingManager(context: Context) : SupportBillingM
 }
 
 fun createSupportBillingManager(context: Context): SupportBillingManager = PlayStoreSupportBillingManager(context)
+
+fun supporterPerksAvailable(): Boolean = true

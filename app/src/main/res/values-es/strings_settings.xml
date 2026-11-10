@@ -266,7 +266,12 @@
 <string name="settings_supporter_badge">Colaborador de Actua</string>
 <string name="settings_supporter_thanks">¡Gracias por apoyar a Actua!</string>
 <string name="settings_supporter_description">Un agradecimiento único que te da una insignia permanente de colaborador.</string>
-<string name="settings_support_free">Todas las funciones de Actua seguirán siendo gratuitas.</string>
+<string name="settings_support_free">El presupuesto siempre sigue siendo gratuito. Los colaboradores también reciben extras estéticos en Configuración → Visualización, como iconos de la app, temas de acento, estilos de widget y celebraciones.</string>
+<string name="settings_supporter_extras_section">Extras para colaboradores</string>
+<string name="settings_supporter_extras_title">Extras para colaboradores</string>
+<string name="settings_supporter_extras_marker">Colaborador</string>
+<string name="settings_supporter_extras_locked">Extras estéticos para los colaboradores de Actua. Toca para ver cómo apoyar a Actua.</string>
+<string name="settings_supporter_extras_unlocked">¡Gracias por apoyar a Actua! Aquí aparecerán nuevos extras estéticos.</string>
     <string name="settings_support_options_section">Formas de apoyar</string>
     <string name="settings_support_monthly_title">Colaborador mensual</string>
     <string name="settings_support_monthly_price">%1$s / mes</string>

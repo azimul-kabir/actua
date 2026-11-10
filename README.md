@@ -176,7 +176,7 @@ Screenshots use the built-in demo budget and follow your GitHub light or dark th
 
 Actua requires **Android 9 or newer**.
 
-**Recommended: [Get Actua on Google Play](https://play.google.com/store/apps/details?id=com.azimulkabir.actua).** You get automatic updates, receipt scanning and the optional Support Actua purchases.
+**Recommended: [Get Actua on Google Play](https://play.google.com/store/apps/details?id=com.azimulkabir.actua).** You get automatic updates, receipt scanning and the optional Support Actua purchases, which also unlock cosmetic Supporter extras in Settings → Display (budgeting always stays free).
 
 Other ways to install, from [GitHub Releases](https://github.com/azimul-kabir/actua/releases):
 
