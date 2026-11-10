@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ replaces the two radii with the launcher's own (values-v31). -->
+    <dimen name="widget_corner_radius">24dp</dimen>
+    <dimen name="widget_inner_radius">16dp</dimen>
+    <!-- Android 12+ launchers no longer pad widgets of apps that target it, so the widget leaves its
+         own margin: an inset in the background drawables. A background's padding replaces the view's
+         own padding, so each layout pads its content in an inner container instead. -->
+    <dimen name="widget_margin">4dp</dimen>
+    <dimen name="widget_padding">16dp</dimen>
+    <dimen name="widget_padding_compact">12dp</dimen>
+    <dimen name="widget_row_progress_height">6dp</dimen>
+</resources>

@@ -8,6 +8,7 @@ import android.widget.RemoteViews
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
+import androidx.core.content.ContextCompat
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.billing.supporterPerksAvailable
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
@@ -28,6 +29,12 @@ internal object WidgetStyles {
         R.id.widget_schedule_amount,
     )
     private val buttonIds = intArrayOf(R.id.widget_expense, R.id.widget_income, R.id.widget_transfer)
+
+    /** Tonal surfaces that are not buttons: the amount pills and the budget snapshot's tiles. */
+    private val tileIds = intArrayOf(
+        R.id.widget_amount_1, R.id.widget_amount_2, R.id.widget_amount_3, R.id.widget_amount_4,
+        R.id.widget_schedule_amount, R.id.widget_tile_ready, R.id.widget_tile_budgeted, R.id.widget_tile_balance,
+    )
     private val progressIds = intArrayOf(
         R.id.widget_progress_1, R.id.widget_progress_2, R.id.widget_progress_3, R.id.widget_progress_4,
     )
@@ -54,16 +61,58 @@ internal object WidgetStyles {
      * Sets the style's colors on [views], which came from [layout]. Between two styled looks the same
      * layout is reapplied, so every color, background and tint is set explicitly (an accent tint is
      * cleared when another style is chosen). Does nothing for the default style.
+     *
+     * On Android 14+ every color is sent as a light and a dark value and the launcher picks the one for
+     * the current theme, so a styled widget follows a device theme change by itself. Older releases take
+     * one value, chosen for the theme at this update, so after a theme change the look stays consistent
+     * (background and text were chosen together) until the widget's next refresh.
      */
     fun apply(context: Context, views: RemoteViews) {
         val style = activeStyle(context)
+        if (style == WidgetStyle.Default) return
         val preferences = DisplayPreferences(context)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val accentLight = if (style == WidgetStyle.AccentTinted) accentScheme(context, preferences, night = false) else null
+            val accentDark = if (style == WidgetStyle.AccentTinted) accentScheme(context, preferences, night = true) else null
+            val light = style.colors(night = false, accent = accentLight) ?: return
+            val dark = style.colors(night = true, accent = accentDark) ?: return
+            applyThemeAware(views, light, dark)
+            return
+        }
         val night = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
         val accent = if (style == WidgetStyle.AccentTinted) accentScheme(context, preferences, night) else null
-        // Every color, tint and drawable below is fixed at this update, so they always agree with each
-        // other (a theme change leaves a consistent look until the widget's next refresh).
         val colors = style.colors(night, accent) ?: return
+        applyFixed(views, style, night, colors)
+    }
 
+    /** Android 14+: each color is a (light, dark) pair resolved by the launcher, on top of the default drawables. */
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private fun applyThemeAware(views: RemoteViews, light: WidgetStyleColors, dark: WidgetStyleColors) {
+        fun text(ids: IntArray, light: Int, dark: Int) = ids.forEach { views.setColorInt(it, "setTextColor", light, dark) }
+        fun tint(id: Int, method: String, light: Int, dark: Int) =
+            views.setColorStateList(id, method, ColorStateList.valueOf(light), ColorStateList.valueOf(dark))
+        text(onBackgroundIds, light.onBackground, dark.onBackground)
+        text(secondaryIds, light.secondary, dark.secondary)
+        text(primaryIds, light.primary, dark.primary)
+        text(buttonIds, light.buttonText, dark.buttonText)
+        views.setInt(R.id.widget_root, "setBackgroundResource", R.drawable.widget_background)
+        tint(R.id.widget_root, "setBackgroundTintList", light.background, dark.background)
+        buttonIds.forEach {
+            views.setInt(it, "setBackgroundResource", R.drawable.widget_button_background)
+            tint(it, "setBackgroundTintList", light.button, dark.button)
+        }
+        tileIds.forEach {
+            views.setInt(it, "setBackgroundResource", R.drawable.widget_button_background)
+            tint(it, "setBackgroundTintList", light.tile, dark.tile)
+        }
+        progressIds.forEach {
+            tint(it, "setProgressTintList", light.primary, dark.primary)
+            tint(it, "setProgressBackgroundTintList", light.progressTrack, dark.progressTrack)
+        }
+    }
+
+    /** Before Android 14: one value per color, chosen for the theme at this update. */
+    private fun applyFixed(views: RemoteViews, style: WidgetStyle, night: Boolean, colors: WidgetStyleColors) {
         onBackgroundIds.forEach { views.setTextColor(it, colors.onBackground) }
         secondaryIds.forEach { views.setTextColor(it, colors.secondary) }
         primaryIds.forEach { views.setTextColor(it, colors.primary) }
@@ -71,16 +120,39 @@ internal object WidgetStyles {
         val (background, button) = drawables(style, night)
         views.setInt(R.id.widget_root, "setBackgroundResource", background)
         buttonIds.forEach { views.setInt(it, "setBackgroundResource", button) }
+        tileIds.forEach { views.setInt(it, "setBackgroundResource", button) }
         if (style == WidgetStyle.AccentTinted) {
             tint(views, R.id.widget_root, "setBackgroundTintList", colors.background)
             buttonIds.forEach { tint(views, it, "setBackgroundTintList", colors.button) }
+            tileIds.forEach { tint(views, it, "setBackgroundTintList", colors.tile) }
         } else {
             clearTint(views, R.id.widget_root, "setBackgroundTintList")
             buttonIds.forEach { clearTint(views, it, "setBackgroundTintList") }
+            tileIds.forEach { clearTint(views, it, "setBackgroundTintList") }
         }
         progressIds.forEach {
             tint(views, it, "setProgressTintList", colors.primary)
             tint(views, it, "setProgressBackgroundTintList", colors.progressTrack)
+        }
+    }
+
+    /**
+     * Colors a category row's progress bar by how spent it is: the usual color, amber from 85% spent and
+     * red once overspent. Only for the default style on Android 12+, where a tint can be passed; a
+     * styled widget keeps its own one-color bars.
+     */
+    fun applyProgressStatus(context: Context, views: RemoteViews, progressId: Int, status: ProgressStatus) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || activeStyle(context) != WidgetStyle.Default) return
+        val color = when (status) {
+            ProgressStatus.Normal -> R.color.widget_primary
+            ProgressStatus.Warning -> R.color.widget_status_warning
+            ProgressStatus.Overspent -> R.color.widget_status_danger
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            // A color resource is resolved by the launcher, so it follows a theme change by itself.
+            views.setColorStateList(progressId, "setProgressTintList", color)
+        } else {
+            tint(views, progressId, "setProgressTintList", ContextCompat.getColor(context, color))
         }
     }
 
@@ -110,4 +182,18 @@ internal object WidgetStyles {
         } else {
             preferences.accent.colorScheme(night)
         }
+}
+
+/** How far a category row's budget is used, for [WidgetStyles.applyProgressStatus]. */
+internal enum class ProgressStatus {
+    Normal, Warning, Overspent;
+
+    companion object {
+        /** [percentSpent] is spent over budgeted, 0..100; [overspent] means the category's balance is below zero. */
+        fun of(percentSpent: Int, overspent: Boolean): ProgressStatus = when {
+            overspent -> Overspent
+            percentSpent >= 85 -> Warning
+            else -> Normal
+        }
+    }
 }

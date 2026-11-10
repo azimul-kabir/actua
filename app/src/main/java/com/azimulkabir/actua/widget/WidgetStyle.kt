@@ -12,6 +12,8 @@ class WidgetStyleColors(
     val button: Int,
     val buttonText: Int,
     val progressTrack: Int,
+    /** The tonal surface behind amount pills and the budget tiles. */
+    val tile: Int,
 )
 
 /**
@@ -41,24 +43,24 @@ enum class WidgetStyle {
             WidgetStyleColors(
                 background = 0xCC101014.toInt(), onBackground = 0xFFFFFFFF.toInt(), secondary = 0xFFE3DFE8.toInt(),
                 primary = 0xFFD0D8FF.toInt(), button = 0x26FFFFFF, buttonText = 0xFFD0D8FF.toInt(),
-                progressTrack = 0x40FFFFFF,
+                progressTrack = 0x40FFFFFF, tile = 0x26FFFFFF,
             )
         } else {
             WidgetStyleColors(
                 background = 0xD9F5F2FA.toInt(), onBackground = 0xFF1C1B20.toInt(), secondary = 0xFF4A4753.toInt(),
                 primary = 0xFF33427A.toInt(), button = 0x24485786, buttonText = 0xFF33427A.toInt(),
-                progressTrack = 0x40485786,
+                progressTrack = 0x40485786, tile = 0x24485786,
             )
         }
         SolidDark -> WidgetStyleColors(
             background = 0xFF1E1B22.toInt(), onBackground = 0xFFE7E1E9.toInt(), secondary = 0xFFC9C4CE.toInt(),
             primary = 0xFFBAC6FF.toInt(), button = 0xFF3D4666.toInt(), buttonText = 0xFFBAC6FF.toInt(),
-            progressTrack = 0xFF3D4666.toInt(),
+            progressTrack = 0xFF3D4666.toInt(), tile = 0xFF3D4666.toInt(),
         )
         SolidLight -> WidgetStyleColors(
             background = 0xFFF5F2FA.toInt(), onBackground = 0xFF1C1B20.toInt(), secondary = 0xFF625F68.toInt(),
             primary = 0xFF485786.toInt(), button = 0xFFDFE4FF.toInt(), buttonText = 0xFF485786.toInt(),
-            progressTrack = 0xFFDFE4FF.toInt(),
+            progressTrack = 0xFFDFE4FF.toInt(), tile = 0xFFDFE4FF.toInt(),
         )
         AccentTinted -> accent?.let { scheme ->
             val background = scheme.primaryContainer.toArgb()
@@ -66,11 +68,12 @@ enum class WidgetStyle {
             WidgetStyleColors(
                 background = background,
                 onBackground = onBackground,
-                secondary = blendArgb(onBackground, background, 0.85f),
+                secondary = blendArgb(onBackground, background, 0.97f),
                 primary = onBackground,
                 button = scheme.primary.toArgb(),
                 buttonText = scheme.onPrimary.toArgb(),
                 progressTrack = blendArgb(onBackground, background, 0.25f),
+                tile = blendArgb(onBackground, background, 0.08f),
             )
         }
     }
