@@ -28,10 +28,16 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "SupportBilling"
 
+/** Product details plus, for the subscription, the base plan's offer token needed to launch it. */
+private class LoadedProduct(val details: ProductDetails, val offerToken: String?)
+
 /**
- * "Support Actua" is a permanent, non-consumable purchase: once acknowledged it's owned by the
- * Play account forever (restored on every [start], e.g. after reinstalling), so it's never
- * consumed and can't be bought again.
+ * Backs [SupportBillingManager] with Google Play Billing.
+ *
+ * - Every Supporter price tier is non-consumable: acknowledged once, owned by the
+ *   Play account forever and restored on every [start], so a reinstall or a new device keeps the
+ *   badge. They are never consumed: Play can't list a consumed purchase, so it couldn't be restored.
+ * - The monthly subscription is acknowledged once and counts while Play lists it as purchased.
  */
 private class PlayStoreSupportBillingManager(context: Context) : SupportBillingManager {
 
@@ -39,18 +45,23 @@ private class PlayStoreSupportBillingManager(context: Context) : SupportBillingM
     private val _state = MutableStateFlow(SupportPurchaseState())
     override val state: StateFlow<SupportPurchaseState> = _state
 
+    private val loadedProducts = mutableMapOf<SupportProduct, LoadedProduct>()
+
     private val purchasesUpdatedListener = PurchasesUpdatedListener { billingResult, purchases ->
         when (billingResult.responseCode) {
-            BillingClient.BillingResponseCode.OK -> purchases?.forEach { handlePurchase(it) }
-            BillingClient.BillingResponseCode.USER_CANCELED -> _state.update { it.copy(isProcessing = false) }
+            BillingClient.BillingResponseCode.OK -> {
+                if (purchases.isNullOrEmpty()) clearProcessing()
+                purchases?.forEach { purchase -> scope.launch { handlePurchase(purchase, fromPurchaseFlow = true) } }
+            }
+            BillingClient.BillingResponseCode.USER_CANCELED -> clearProcessing()
             BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
                 // Owned on another device/install before this client had queried purchases.
-                _state.update { it.copy(isProcessing = false) }
-                scope.launch { restoreOwnedPurchase() }
+                clearProcessing()
+                scope.launch { restorePurchases() }
             }
             else -> {
                 Log.w(TAG, "Purchase flow failed: ${billingResult.debugMessage}")
-                _state.update { it.copy(isProcessing = false) }
+                clearProcessing()
             }
         }
     }
@@ -65,8 +76,9 @@ private class PlayStoreSupportBillingManager(context: Context) : SupportBillingM
         billingClient.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(billingResult: BillingResult) {
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    scope.launch { loadProductDetails() }
-                    scope.launch { restoreOwnedPurchase() }
+                    scope.launch { loadOneTimeProducts() }
+                    scope.launch { loadSubscriptions() }
+                    scope.launch { restorePurchases() }
                 } else {
                     Log.w(TAG, "Billing setup failed: ${billingResult.debugMessage}")
                 }
@@ -88,91 +100,146 @@ private class PlayStoreSupportBillingManager(context: Context) : SupportBillingM
         billingClient.endConnection()
     }
 
-    override fun launchPurchase(activity: Activity) {
-        val productDetails = cachedProductDetails ?: return
-        val params = BillingFlowParams.newBuilder()
-            .setProductDetailsParamsList(
-                listOf(
-                    BillingFlowParams.ProductDetailsParams.newBuilder()
-                        .setProductDetails(productDetails)
-                        .build(),
-                ),
-            )
+    override fun launchPurchase(activity: Activity, product: SupportProduct) {
+        if (_state.value.isProcessing) return
+        val loaded = loadedProducts[product] ?: return
+        val productParams = BillingFlowParams.ProductDetailsParams.newBuilder()
+            .setProductDetails(loaded.details)
+            .apply { loaded.offerToken?.let(::setOfferToken) }
             .build()
-        _state.update { it.copy(isProcessing = true) }
+        val params = BillingFlowParams.newBuilder()
+            .setProductDetailsParamsList(listOf(productParams))
+            .build()
+        _state.update { it.copy(processingProduct = product, showThanks = false) }
         val result = billingClient.launchBillingFlow(activity, params)
         if (result.responseCode != BillingClient.BillingResponseCode.OK) {
             // The purchase sheet never opened, so no listener callback will clear the spinner.
             Log.w(TAG, "Could not launch purchase flow: ${result.debugMessage}")
-            _state.update { it.copy(isProcessing = false) }
+            clearProcessing()
         }
     }
 
-    private var cachedProductDetails: ProductDetails? = null
+    override fun dismissThanks() {
+        _state.update { it.copy(showThanks = false) }
+    }
 
-    private suspend fun loadProductDetails() {
+    private fun clearProcessing() {
+        _state.update { it.copy(processingProduct = null) }
+    }
+
+    private suspend fun loadOneTimeProducts() {
+        val products = SupportProduct.entries.filter { it.kind != SupportProductKind.Subscription }.toSet()
+        val loaded = queryDetails(products, BillingClient.ProductType.INAPP) { details ->
+            details.oneTimePurchaseOfferDetails?.formattedPrice?.let { price -> LoadedProduct(details, null) to price }
+        }
+        publishOptions(products, loaded)
+    }
+
+    private suspend fun loadSubscriptions() {
+        val products = SupportProduct.entries.filter { it.kind == SupportProductKind.Subscription }.toSet()
+        val loaded = queryDetails(products, BillingClient.ProductType.SUBS) { details ->
+            // Prefer the base plan (no offer id) over promotional offers.
+            val offers = details.subscriptionOfferDetails.orEmpty()
+            val offer = offers.firstOrNull { it.offerId == null } ?: offers.firstOrNull()
+            val price = offer?.pricingPhases?.pricingPhaseList?.lastOrNull()?.formattedPrice
+            if (offer != null && price != null) LoadedProduct(details, offer.offerToken) to price else null
+        }
+        publishOptions(products, loaded)
+    }
+
+    private suspend fun queryDetails(
+        products: Set<SupportProduct>,
+        productType: String,
+        toLoaded: (ProductDetails) -> Pair<LoadedProduct, String>?,
+    ): Map<SupportProduct, Pair<LoadedProduct, String>> {
         val params = QueryProductDetailsParams.newBuilder()
             .setProductList(
-                listOf(
+                products.map { product ->
                     QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(SUPPORT_ACTUA_PRODUCT_ID)
-                        .setProductType(BillingClient.ProductType.INAPP)
-                        .build(),
-                ),
+                        .setProductId(product.productId)
+                        .setProductType(productType)
+                        .build()
+                },
             )
             .build()
         val result = billingClient.queryProductDetails(params)
-        val details = result.productDetailsList?.firstOrNull()
-        if (result.billingResult.responseCode == BillingClient.BillingResponseCode.OK && details != null) {
-            cachedProductDetails = details
-            val price = details.oneTimePurchaseOfferDetails?.formattedPrice
-            _state.update { current ->
-                current.copy(isAvailable = true, priceLabel = price ?: current.priceLabel)
-            }
-        } else {
+        if (result.billingResult.responseCode != BillingClient.BillingResponseCode.OK) {
             Log.w(TAG, "Product details unavailable: ${result.billingResult.debugMessage}")
+            return emptyMap()
+        }
+        return result.productDetailsList.orEmpty().mapNotNull { details ->
+            val product = SupportProduct.fromProductId(details.productId) ?: return@mapNotNull null
+            toLoaded(details)?.let { product to it }
+        }.toMap()
+    }
+
+    private fun publishOptions(products: Set<SupportProduct>, loaded: Map<SupportProduct, Pair<LoadedProduct, String>>) {
+        products.forEach { loadedProducts.remove(it) }
+        loaded.forEach { (product, value) -> loadedProducts[product] = value.first }
+        val options = loaded.map { (product, value) -> SupportOption(product, value.second) }
+        _state.update { it.withOptions(products, options) }
+    }
+
+    /** Runs on every connection: restores owned products and the subscription, finishing any left unacknowledged. */
+    private suspend fun restorePurchases() {
+        val oneTime = billingClient.queryPurchasesAsync(
+            QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build(),
+        )
+        if (oneTime.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+            // A refunded purchase no longer appears here, so it stops counting.
+            val listed = oneTime.purchasesList
+                .filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+                .flatMap { it.products }
+                .mapNotNull(SupportProduct::fromProductId)
+                .toSet()
+            _state.update { it.copy(ownedProducts = it.ownedProducts intersect listed) }
+            oneTime.purchasesList.forEach { handlePurchase(it, fromPurchaseFlow = false) }
+        }
+        val subscriptions = billingClient.queryPurchasesAsync(
+            QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build(),
+        )
+        if (subscriptions.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+            val active = subscriptions.purchasesList.filter { purchase ->
+                purchase.purchaseState == Purchase.PurchaseState.PURCHASED &&
+                    purchase.products.any { SupportProduct.fromProductId(it)?.kind == SupportProductKind.Subscription }
+            }
+            // An expired or cancelled-and-lapsed subscription no longer appears here.
+            if (active.isEmpty()) _state.update { it.copy(isSubscribed = false) }
+            active.forEach { handlePurchase(it, fromPurchaseFlow = false) }
         }
     }
 
-    /** Runs on every connection so a reinstall or a second device shows the badge as owned. */
-    private suspend fun restoreOwnedPurchase() {
-        val params = QueryPurchasesParams.newBuilder()
-            .setProductType(BillingClient.ProductType.INAPP)
-            .build()
-        val result = billingClient.queryPurchasesAsync(params)
-        val owned = result.purchasesList
-            .filter { it.products.contains(SUPPORT_ACTUA_PRODUCT_ID) }
-            .filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
-        owned.forEach { purchase ->
-            if (!purchase.isAcknowledged) acknowledge(purchase) else _state.update { it.copy(isPurchased = true) }
-        }
-    }
-
-    private fun handlePurchase(purchase: Purchase) {
-        if (purchase.purchaseState != Purchase.PurchaseState.PURCHASED) {
-            _state.update { it.copy(isProcessing = false) }
+    private suspend fun handlePurchase(purchase: Purchase, fromPurchaseFlow: Boolean) {
+        val product = purchase.products.firstNotNullOfOrNull(SupportProduct::fromProductId)
+        if (product == null || purchase.purchaseState != Purchase.PurchaseState.PURCHASED) {
+            // Pending (e.g. cash payment not yet made): finished by restorePurchases() on a later visit.
+            if (fromPurchaseFlow) clearProcessing()
             return
         }
-        if (purchase.isAcknowledged) {
-            _state.update { it.copy(isProcessing = false, isPurchased = true) }
-        } else {
-            scope.launch { acknowledge(purchase) }
+        val wasAcknowledged = purchase.isAcknowledged
+        val granted = wasAcknowledged || acknowledge(purchase)
+        _state.update { current ->
+            val finished = if (fromPurchaseFlow) current.copy(processingProduct = null) else current
+            if (!granted) return@update finished
+            // Acknowledging on restore finishes a purchase (e.g. a pending payment) the app never saw end.
+            val thanks = finished.showThanks || fromPurchaseFlow || !wasAcknowledged
+            when (product.kind) {
+                SupportProductKind.Permanent -> finished.copy(ownedProducts = finished.ownedProducts + product, showThanks = thanks)
+                SupportProductKind.Subscription -> finished.copy(isSubscribed = true, showThanks = thanks)
+            }
         }
     }
 
-    private suspend fun acknowledge(purchase: Purchase) {
+    private suspend fun acknowledge(purchase: Purchase): Boolean {
         val params = AcknowledgePurchaseParams.newBuilder()
             .setPurchaseToken(purchase.purchaseToken)
             .build()
         val result = billingClient.acknowledgePurchase(params)
-        _state.update { current ->
-            if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                current.copy(isProcessing = false, isPurchased = true)
-            } else {
-                Log.w(TAG, "Acknowledge failed: ${result.debugMessage}")
-                current.copy(isProcessing = false)
-            }
+        if (result.responseCode != BillingClient.BillingResponseCode.OK) {
+            Log.w(TAG, "Acknowledge failed: ${result.debugMessage}")
+            return false
         }
+        return true
     }
 }
 

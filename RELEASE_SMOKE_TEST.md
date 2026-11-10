@@ -376,6 +376,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Obtainium can discover the new prerelease/release as intended.
 - [ ] F-Droid verification workflow runs only after the Android Release workflow succeeds.
 - [ ] Discord release notification/changelog is posted once.
+- [ ] Play build, Settings → Support Actua (with a license-test account): every product created in Play Console (monthly supporter and each Actua Supporter price) shows its local price; a Supporter purchase completes and shows the thank-you; each price and the subscription disappear from the options once owned, and the Supporter badge is restored after reinstalling; Manage subscription opens Google Play; the open-source (fdroid) build shows no Support row.
 - [ ] For a Google Play release: confirm the Android Release run's "Upload to Google Play production" step succeeded and Play Console shows the version in review or live on Production with the `changelogs/<versionCode>.txt` "What's new" text, confirm the Data safety form and permission declarations (notification access, notifications, location, local network) still match PRIVACY.md, and install the Play build over a previous Play build without losing data.
 
 ## Sign-off

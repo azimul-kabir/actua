@@ -26,10 +26,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronRight
@@ -46,7 +48,6 @@ import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.Sync
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -74,6 +75,10 @@ import com.azimulkabir.actua.BuildConfig
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.home.Holiday
 import com.azimulkabir.actua.data.home.MonthStartRule
+import com.azimulkabir.actua.billing.SupportOption
+import com.azimulkabir.actua.billing.SupportProduct
+import com.azimulkabir.actua.billing.SupportProductKind
+import com.azimulkabir.actua.billing.SupportPurchaseState
 import com.azimulkabir.actua.billing.createSupportBillingManager
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
@@ -97,7 +102,6 @@ import com.azimulkabir.actua.ui.components.MonthStartDayRow
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.navigation.mainDestinationLabelRes
 import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
-import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.ui.theme.Spacing
 
 internal enum class SettingsPage(@StringRes val titleRes: Int, val depth: Int) {
@@ -299,6 +303,8 @@ fun SettingsScreen(
     }
 
     var page by rememberSaveable { mutableStateOf(SettingsPage.Manage) }
+    // The post-purchase thank-you is shown once, on the Support page only.
+    LaunchedEffect(page) { if (page != SettingsPage.Support) supportBillingManager.dismissThanks() }
     val scrollState = rememberScrollState()
     fun parentPage(current: SettingsPage): SettingsPage = when (current) {
         SettingsPage.Tags -> SettingsPage.Manage
@@ -544,7 +550,7 @@ fun SettingsScreen(
                     if (supportPurchaseState.isAvailable) SettingsGroup(stringResource(R.string.settings_section_support)) {
                         SettingsRow(
                             stringResource(R.string.settings_support_actua),
-                            if (supportPurchaseState.isPurchased) stringResource(R.string.settings_support_thank_you)
+                            if (supportPurchaseState.isSupporter) stringResource(R.string.settings_support_thank_you)
                             else stringResource(R.string.settings_support_description),
                             true,
                             Icons.Outlined.FavoriteBorder,
@@ -1029,45 +1035,16 @@ fun SettingsScreen(
                     CategoryStatusColorSettings(Modifier.padding(top = Spacing.md))
                 }
                 SettingsPage.Holidays -> HolidaysSettings(holidays, onHolidaysChange)
-                SettingsPage.Support -> {
-                    SettingsNote(
-                        stringResource(R.string.settings_support_intro),
-                    )
-                    SettingsGroup {
-                        if (supportPurchaseState.isPurchased) {
-                            ActuaFormRow(
-                                icon = Icons.Outlined.FavoriteBorder,
-                                label = stringResource(R.string.settings_supporter_badge),
-                                value = null,
-                                caption = stringResource(R.string.settings_supporter_thanks),
-                            )
-                        } else {
-                            ActuaFormRow(
-                                icon = Icons.Outlined.FavoriteBorder,
-                                label = stringResource(R.string.settings_supporter_price, supportPurchaseState.priceLabel),
-                                value = null,
-                                caption = stringResource(R.string.settings_supporter_description),
-                            )
-                        }
-                    }
-                    if (!supportPurchaseState.isPurchased) {
-                        SettingsNote(stringResource(R.string.settings_support_free))
-                        Button(
-                            enabled = supportPurchaseState.isAvailable && !supportPurchaseState.isProcessing,
-                            onClick = { (context as? Activity)?.let(supportBillingManager::launchPurchase) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = Spacing.screenHorizontal)
-                                .height(Sizes.primaryButtonHeight),
-                            shape = MaterialTheme.shapes.large,
-                        ) {
-                            if (supportPurchaseState.isProcessing) {
-                                CircularProgressIndicator(Modifier.padding(end = Spacing.sm).size(18.dp), strokeWidth = 2.dp)
-                            }
-                            Text(stringResource(R.string.settings_become_supporter))
-                        }
-                    }
-                }
+                SettingsPage.Support -> SupportSettings(
+                    state = supportPurchaseState,
+                    onPurchase = { product -> (context as? Activity)?.let { supportBillingManager.launchPurchase(it, product) } },
+                    onManageSubscription = {
+                        uriHandler.openUri(
+                            "https://play.google.com/store/account/subscriptions?sku=" +
+                                "${SupportProduct.MonthlySupporter.productId}&package=${context.packageName}",
+                        )
+                    },
+                )
                 SettingsPage.About -> {
                     SettingsGroup {
                         AboutRow(stringResource(R.string.app_name), stringResource(R.string.settings_about_summary, BuildConfig.VERSION_NAME))
@@ -1262,6 +1239,101 @@ private const val NAV_LABELS_ICONS_ONLY = "Icons only"
 @Composable
 private fun startPageLabel(value: String): String =
     mainDestinationLabelRes(value)?.let { stringResource(it) } ?: value
+
+/**
+ * The Support Actua page: what the user already supports with, then every option Play offers.
+ * Nothing here unlocks features; prices come from Play, localized for the user's country.
+ */
+@Composable
+private fun SupportSettings(
+    state: SupportPurchaseState,
+    onPurchase: (SupportProduct) -> Unit,
+    onManageSubscription: () -> Unit,
+) {
+    SettingsNote(stringResource(R.string.settings_support_intro))
+    if (state.isSupporter || state.showThanks) {
+        SettingsGroup {
+            ActuaFormRow(
+                icon = Icons.Outlined.FavoriteBorder,
+                label = stringResource(R.string.settings_supporter_badge),
+                value = null,
+                caption = when {
+                    state.showThanks -> stringResource(R.string.settings_support_purchase_thanks)
+                    state.isSubscribed -> stringResource(R.string.settings_support_monthly_active)
+                    else -> stringResource(R.string.settings_supporter_thanks)
+                },
+            )
+            if (state.isSubscribed) {
+                SettingsDivider()
+                ActuaFormRow(
+                    icon = Icons.AutoMirrored.Outlined.OpenInNew,
+                    label = stringResource(R.string.settings_support_manage_subscription),
+                    value = null,
+                    caption = stringResource(R.string.settings_support_manage_subscription_description),
+                    onClick = onManageSubscription,
+                )
+            }
+        }
+    }
+    val offered = state.offeredOptions
+    if (offered.isNotEmpty()) {
+        SettingsGroup(stringResource(R.string.settings_support_options_section)) {
+            offered.forEachIndexed { index, option ->
+                if (index > 0) SettingsDivider()
+                SupportOptionRow(
+                    option = option,
+                    isProcessing = state.processingProduct == option.product,
+                    enabled = !state.isProcessing,
+                    onClick = { onPurchase(option.product) },
+                )
+            }
+        }
+    }
+    if (offered.any { it.product.kind == SupportProductKind.Permanent }) {
+        SettingsNote(stringResource(R.string.settings_support_tiers_note))
+    }
+    SettingsNote(stringResource(R.string.settings_support_free))
+}
+
+@Composable
+private fun SupportOptionRow(option: SupportOption, isProcessing: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    val (icon, labelRes, captionRes) = when (option.product) {
+        SupportProduct.MonthlySupporter -> Triple(
+            Icons.Outlined.Autorenew,
+            R.string.settings_support_monthly_title,
+            R.string.settings_support_monthly_description,
+        )
+        // Every price is the same badge: only the cheapest row explains it, the note below covers the rest.
+        SupportProduct.SupporterBadge -> Triple(
+            Icons.Outlined.FavoriteBorder,
+            R.string.settings_supporter_badge,
+            R.string.settings_supporter_description,
+        )
+        SupportProduct.SupporterTier2,
+        SupportProduct.SupporterTier3,
+        SupportProduct.SupporterTier4,
+        -> Triple(Icons.Outlined.FavoriteBorder, R.string.settings_supporter_badge, null)
+    }
+    val price = if (option.product.kind == SupportProductKind.Subscription) {
+        stringResource(R.string.settings_support_monthly_price, option.priceLabel)
+    } else {
+        option.priceLabel
+    }
+    ActuaFormRow(
+        icon = icon,
+        label = stringResource(labelRes),
+        value = null,
+        caption = captionRes?.let { stringResource(it) },
+        supportingValue = price,
+        enabled = enabled,
+        trailing = if (isProcessing) {
+            { CircularProgressIndicator(Modifier.padding(start = Spacing.sm).size(18.dp), strokeWidth = 2.dp) }
+        } else {
+            null
+        },
+        onClick = onClick,
+    )
+}
 
 /** Divider between text-only rows of a settings card. */
 @Composable
