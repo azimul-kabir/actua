@@ -132,7 +132,10 @@ object RulesEngine {
             } else actual.equals(target, true)
             "isNot" -> if (target == null) actual != null else !actual.equals(target, true)
             "contains" -> actual != null && target != null && actual.contains(target, true)
-            "doesNotContain" -> actual != null && target != null && !actual.contains(target, true)
+            // Report filters (conditionsToAQL) compile this to `NOT UNICODE_LIKE(..) OR field IS NULL`, so
+            // a missing name (an uncategorized transaction, say) is "not containing" the value (#1526).
+            // Rule runs never get here for id fields: evaluateIdText answers them first.
+            "doesNotContain" -> target != null && (actual == null || !actual.contains(target, true))
             "oneOf", "notOneOf" -> actual != null && condition.value.list != null &&
                 condition.value.list!!.any { it.text.equals(actual, true) }.let { if (condition.op == "oneOf") it else !it }
             "matches" -> actual != null && target != null && runCatching { Regex(target.lowercase()).containsMatchIn(actual.lowercase()) }.getOrDefault(false)
