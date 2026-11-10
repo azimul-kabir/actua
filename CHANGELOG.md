@@ -12,6 +12,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added a choice of app icon for Actua Supporters under Settings → Display in the Google Play version ([#1549](https://github.com/azimul-kabir/actua/pull/1549))
 - Added a choice of accent color for Actua Supporters under Settings → Display in the Google Play version ([#1550](https://github.com/azimul-kabir/actua/pull/1550))
 - Added a choice of home-screen widget style for Actua Supporters under Settings → Display in the Google Play version ([#1551](https://github.com/azimul-kabir/actua/pull/1551))
+- Added optional confetti celebrations for Actua Supporters when Ready to budget reaches zero or a reconciliation is finished, under Settings → Display in the Google Play version ([#1560](https://github.com/azimul-kabir/actua/pull/1560))
 
 ## [2.6.0] - 2026-11-10
 

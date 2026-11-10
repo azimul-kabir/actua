@@ -22,10 +22,12 @@ fun registerSupporterExtras(context: Context) {
         DisplayPreferences(appContext).widgetStyle = WidgetStyle.Default
         WidgetUpdater.requestAll(appContext)
     }
+    SupporterPerks.register(CELEBRATIONS_RESET_ID) { DisplayPreferences(appContext).celebrationsEnabled = false }
     SupporterPerks.register(AccentPalette.RESET_ID) { DisplayPreferences(appContext).accent = AccentPalette.Violet }
 }
 
 private const val WIDGET_STYLE_RESET_ID = "widget_style"
+private const val CELEBRATIONS_RESET_ID = "celebrations"
 private const val PLAY_ANSWER_TIMEOUT_MILLIS = 30_000L
 
 /**

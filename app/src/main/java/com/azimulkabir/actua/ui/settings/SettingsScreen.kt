@@ -41,6 +41,7 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Celebration
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material.icons.outlined.PieChartOutline
@@ -1377,6 +1378,25 @@ private fun SupporterExtras(
             current = if (isSupporter) stringResource(widgetStyleLabelRes(remember { DisplayPreferences(context).widgetStyle })) else null,
             onOpen = if (isSupporter) onOpenWidgetStyle else onOpenSupport,
         )
+        SettingsDivider()
+        if (isSupporter) {
+            var celebrations by remember { mutableStateOf(DisplayPreferences(context).celebrationsEnabled) }
+            SettingsToggle(
+                stringResource(R.string.settings_celebrations),
+                stringResource(R.string.settings_celebrations_description),
+                celebrations,
+            ) {
+                celebrations = it
+                DisplayPreferences(context).celebrationsEnabled = it
+            }
+        } else {
+            ActuaFormRow(
+                icon = Icons.Outlined.Celebration,
+                label = stringResource(R.string.settings_celebrations),
+                value = stringResource(R.string.settings_supporter_extras_marker),
+                onClick = onOpenSupport,
+            )
+        }
     }
 }
 
