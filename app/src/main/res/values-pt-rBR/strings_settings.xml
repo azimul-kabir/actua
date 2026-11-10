@@ -294,6 +294,13 @@
     <string name="settings_accent_forest">Floresta</string>
     <string name="settings_accent_ocean">Oceano</string>
     <string name="settings_accent_mono">Monocromático</string>
+    <string name="settings_widget_style">Estilo dos widgets</string>
+    <string name="settings_widget_style_default">Padrão</string>
+    <string name="settings_widget_style_translucent">Translúcido</string>
+    <string name="settings_widget_style_solid_dark">Escuro sólido</string>
+    <string name="settings_widget_style_solid_light">Claro sólido</string>
+    <string name="settings_widget_style_accent">Cor de destaque</string>
+    <string name="settings_widget_style_note">Altera todos os widgets do Actua. O padrão segue as cores do dispositivo. O estilo com cor de destaque exige Android 12 e segue sua cor de destaque; no Android 11 ou anterior, as barras de progresso mantêm as cores padrão.</string>
     <string name="settings_accent_note">Escolher uma cor de destaque desativa o Material You. Violeta e Material You são gratuitos para todos; as outras cores são para Apoiadores do Actua.</string>
     <string name="settings_accent_material_you">Material You (dispositivo)</string>
     <string name="settings_support_options_section">Formas de apoiar</string>

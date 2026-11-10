@@ -3,6 +3,7 @@ package com.azimulkabir.actua.data.preferences
 import android.content.Context
 import android.content.SharedPreferences
 import com.azimulkabir.actua.ui.theme.AccentPalette
+import com.azimulkabir.actua.widget.WidgetStyle
 
 class DisplayPreferences(context: Context) {
     private val preferences = context.applicationContext.getSharedPreferences("display_preferences", Context.MODE_PRIVATE)
@@ -180,6 +181,11 @@ class DisplayPreferences(context: Context) {
         return { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
     }
 
+    /** The global home-screen widget look (Play build); Default until a supporter chooses one. */
+    var widgetStyle: WidgetStyle
+        get() = WidgetStyle.fromName(preferences.getString(WIDGET_STYLE, null))
+        set(value) { preferences.edit().putString(WIDGET_STYLE, value.name).apply() }
+
     var startPage: String
         get() {
             val stored = preferences.getString(START_PAGE, "Budget") ?: "Budget"
@@ -290,6 +296,7 @@ class DisplayPreferences(context: Context) {
         const val APPEARANCE = "appearance"
         const val USE_DYNAMIC_COLOR = "use_dynamic_color"
         const val ACCENT = "accent"
+        const val WIDGET_STYLE = "widget_style"
         const val START_PAGE = "start_page"
         const val LEGACY_MORE_PAGE = "More"
         const val LEGACY_REPORTS_PAGE = "Reports"
