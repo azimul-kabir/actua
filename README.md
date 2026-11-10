@@ -176,9 +176,15 @@ Screenshots use the built-in demo budget and follow your GitHub light or dark th
 
 Actua requires **Android 9 or newer**.
 
-Actua is available to everyone on [Google Play](https://play.google.com/store/apps/details?id=com.azimulkabir.actua). You can also download the latest APK from [GitHub Releases](https://github.com/azimul-kabir/actua/releases) or add Actua to Obtainium for update notifications and in-place upgrades.
+**Recommended: [Get Actua on Google Play](https://play.google.com/store/apps/details?id=com.azimulkabir.actua).** You get automatic updates, receipt scanning and the optional Support Actua purchases.
 
-Each release has two APKs, signed with the same key, so you can switch between them: `Actua-v<version>.apk` is fully open source with no Google libraries (the build F-Droid verifies), and `Actua-v<version>-full.apk` adds receipt scanning (on-device Google ML Kit, Google Play version features). Obtainium lists both; use its APK filter (a regular expression) to pick one, for example `-full` for the full build.
+Other ways to install, from [GitHub Releases](https://github.com/azimul-kabir/actua/releases):
+
+- `Actua-v<version>.apk`: fully open source, with no Google libraries. This is the build F-Droid verifies.
+- `Actua-v<version>-full.apk`: adds receipt scanning (on-device Google ML Kit) and the other Google Play version features, for devices without the Play Store.
+- [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua): update notifications and in-place upgrades from GitHub Releases. It lists both APKs, so use its APK filter (a regular expression) to pick one, for example `-full` for the full build.
+
+Both APKs are signed with the same key, so you can switch between them.
 
 Don't have an Actual server handy? Open **Manage → Connection & Data → Try demo budget** to explore Actua using a completely local sample budget.
 
