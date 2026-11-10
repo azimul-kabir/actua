@@ -268,10 +268,13 @@
 <string name="settings_supporter_description">Un agradecimiento único que te da una insignia permanente de colaborador.</string>
 <string name="settings_support_free">El presupuesto siempre sigue siendo gratuito. Los colaboradores también reciben extras estéticos en Configuración → Visualización, como iconos de la app, temas de acento, estilos de widget y celebraciones.</string>
 <string name="settings_supporter_extras_section">Extras para colaboradores</string>
-<string name="settings_supporter_extras_title">Extras para colaboradores</string>
 <string name="settings_supporter_extras_marker">Colaborador</string>
-<string name="settings_supporter_extras_locked">Extras estéticos para los colaboradores de Actua. Toca para ver cómo apoyar a Actua.</string>
-<string name="settings_supporter_extras_unlocked">¡Gracias por apoyar a Actua! Aquí aparecerán nuevos extras estéticos.</string>
+<string name="settings_app_icon">Icono de la app</string>
+<string name="settings_app_icon_default">Predeterminado</string>
+<string name="settings_app_icon_dark">Oscuro</string>
+<string name="settings_app_icon_mono">Monocromo</string>
+<string name="settings_app_icon_light">Claro</string>
+<string name="settings_app_icon_note">Elige el icono que se muestra en la pantalla de inicio y en el cajón de apps. Cambia al salir de Actua, y algunos launchers tardan un momento en actualizarlo.</string>
     <string name="settings_support_options_section">Formas de apoyar</string>
     <string name="settings_support_monthly_title">Colaborador mensual</string>
     <string name="settings_support_monthly_price">%1$s / mes</string>

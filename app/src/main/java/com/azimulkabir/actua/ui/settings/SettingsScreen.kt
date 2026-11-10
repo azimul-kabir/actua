@@ -83,6 +83,7 @@ import com.azimulkabir.actua.billing.createSupportBillingManager
 import com.azimulkabir.actua.billing.supporterPerksAvailable
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
+import com.azimulkabir.actua.data.preferences.AppIcons
 import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.EffectiveDisplayFormats
 import com.azimulkabir.actua.data.preferences.LocationPreferences
@@ -117,6 +118,7 @@ internal enum class SettingsPage(@StringRes val titleRes: Int, val depth: Int) {
     CategoryColors(R.string.settings_page_category_colors, 3),
     Holidays(R.string.settings_page_holidays, 3),
     Support(R.string.settings_page_support, 2),
+    AppIconPicker(R.string.settings_app_icon, 3),
     About(R.string.settings_page_about, 2),
     Diagnostics(R.string.settings_page_diagnostics, 3),
 }
@@ -321,6 +323,7 @@ fun SettingsScreen(
         SettingsPage.Support, SettingsPage.About,
         -> SettingsPage.General
         SettingsPage.CategoryColors, SettingsPage.Holidays -> SettingsPage.Budget
+        SettingsPage.AppIconPicker -> SettingsPage.Display
         SettingsPage.Diagnostics -> SettingsPage.About
         SettingsPage.General -> SettingsPage.Manage
         SettingsPage.Manage -> SettingsPage.Manage
@@ -902,7 +905,11 @@ fun SettingsScreen(
                         // Trust Play once it has answered; until then use the last confirmed status.
                         val isSupporter =
                             if (supportPurchaseState.purchasesRestored) supportPurchaseState.isSupporter else supporterPerks.isSupporter
-                        SupporterExtras(isSupporter = isSupporter, onOpenSupport = { page = SettingsPage.Support })
+                        SupporterExtras(
+                            isSupporter = isSupporter,
+                            onOpenSupport = { page = SettingsPage.Support },
+                            onOpenAppIcon = { page = SettingsPage.AppIconPicker },
+                        )
                     }
                 }
                 SettingsPage.Privacy -> {
@@ -1056,6 +1063,7 @@ fun SettingsScreen(
                     CategoryStatusColorSettings(Modifier.padding(top = Spacing.md))
                 }
                 SettingsPage.Holidays -> HolidaysSettings(holidays, onHolidaysChange)
+                SettingsPage.AppIconPicker -> AppIconSettings()
                 SettingsPage.Support -> SupportSettings(
                     state = supportPurchaseState,
                     onPurchase = { product -> (context as? Activity)?.let { supportBillingManager.launchPurchase(it, product) } },
@@ -1317,30 +1325,20 @@ private fun SupportSettings(
 }
 
 /**
- * The "Supporter extras" group on the Display page (Play build only). Cosmetic extras register
- * here as they arrive; a non-supporter sees them marked "Supporter" and is sent to the Support page.
+ * The "Supporter extras" group on the Display page (Play build only). A non-supporter sees each
+ * extra marked "Supporter" and is sent to the Support page when they tap it.
  */
 @Composable
-private fun SupporterExtras(isSupporter: Boolean, onOpenSupport: () -> Unit) {
+private fun SupporterExtras(isSupporter: Boolean, onOpenSupport: () -> Unit, onOpenAppIcon: () -> Unit) {
+    val context = LocalContext.current
     SettingsGroup(stringResource(R.string.settings_supporter_extras_section)) {
-        if (isSupporter) {
-            ActuaFormRow(
-                icon = Icons.Outlined.FavoriteBorder,
-                label = stringResource(R.string.settings_supporter_extras_title),
-                value = null,
-                caption = stringResource(R.string.settings_supporter_extras_unlocked),
-                onClick = null,
-            )
-        } else {
-            ActuaFormRow(
-                icon = Icons.Outlined.FavoriteBorder,
-                label = stringResource(R.string.settings_supporter_extras_title),
-                value = stringResource(R.string.settings_supporter_extras_marker),
-                caption = stringResource(R.string.settings_supporter_extras_locked),
-                enabled = true,
-                onClick = onOpenSupport,
-            )
-        }
+        ActuaFormRow(
+            icon = Icons.Outlined.FavoriteBorder,
+            label = stringResource(R.string.settings_app_icon),
+            value = if (isSupporter) stringResource(remember { AppIcons(context).current() }.labelRes)
+            else stringResource(R.string.settings_supporter_extras_marker),
+            onClick = if (isSupporter) onOpenAppIcon else onOpenSupport,
+        )
     }
 }
 

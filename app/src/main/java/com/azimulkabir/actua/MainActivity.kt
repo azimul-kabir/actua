@@ -1,6 +1,9 @@
 package com.azimulkabir.actua
 
 import com.azimulkabir.actua.billing.refreshSupporterPerksIfDue
+import com.azimulkabir.actua.billing.supporterPerksAvailable
+import com.azimulkabir.actua.data.preferences.AppIcons
+import com.azimulkabir.actua.billing.registerSupporterExtras
 import com.azimulkabir.actua.data.preferences.ScreenPrivacyPreferences
 import com.azimulkabir.actua.data.importing.SharedStatementIntent
 import com.azimulkabir.actua.ui.lock.AppLock
@@ -78,6 +81,7 @@ class MainActivity : AppCompatActivity() {
         // selected SQLite budget. They maintain background work only, so never make the first
         // Compose frame wait for them. The app-open sync in AppNavigation refreshes reminders
         // again after it has incorporated server changes.
+        registerSupporterExtras(applicationContext)
         if (savedInstanceState == null) lifecycleScope.launch { refreshSupporterPerksIfDue(applicationContext) }
         lifecycleScope.launch(Dispatchers.IO) {
             ActualSyncScheduler.schedulePeriodic(applicationContext)
@@ -107,6 +111,8 @@ class MainActivity : AppCompatActivity() {
         // A rotation or theme change stops the activity too, but the user hasn't left the app.
         if (!isChangingConfigurations) AppLock.onBackground()
         if (!isChangingConfigurations) ActualSyncScheduler.scheduleLocalBackup(this)
+        // Switching the launcher icon closes the app, so a chosen icon is applied only as it leaves.
+        if (!isChangingConfigurations && supporterPerksAvailable()) AppIcons(this).applyPending()
     }
 
     private fun refreshAppLock() {
