@@ -286,6 +286,16 @@
     <string name="settings_app_icon_mono">Monocromático</string>
     <string name="settings_app_icon_light">Claro</string>
     <string name="settings_app_icon_note">Escolha o ícone exibido na tela inicial e na gaveta de apps. Ele muda quando você sai do Actua, e alguns launchers demoram um pouco para atualizá-lo.</string>
+    <string name="settings_accent_color">Cor de destaque</string>
+    <string name="settings_accent_violet">Violeta (padrão)</string>
+    <string name="settings_accent_teal">Verde-azulado</string>
+    <string name="settings_accent_amber">Âmbar</string>
+    <string name="settings_accent_rose">Rosa</string>
+    <string name="settings_accent_forest">Floresta</string>
+    <string name="settings_accent_ocean">Oceano</string>
+    <string name="settings_accent_mono">Monocromático</string>
+    <string name="settings_accent_note">Escolher uma cor de destaque desativa o Material You. Violeta e Material You são gratuitos para todos; as outras cores são para Apoiadores do Actua.</string>
+    <string name="settings_accent_material_you">Material You (dispositivo)</string>
     <string name="settings_support_options_section">Formas de apoiar</string>
     <string name="settings_support_monthly_title">Apoiador mensal</string>
     <string name="settings_support_monthly_price">%1$s / mês</string>

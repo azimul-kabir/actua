@@ -85,6 +85,7 @@ import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.data.preferences.AppIcons
 import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
+import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.EffectiveDisplayFormats
 import com.azimulkabir.actua.data.preferences.LocationPreferences
 import com.azimulkabir.actua.data.preferences.ScreenPrivacyPreferences
@@ -119,6 +120,7 @@ internal enum class SettingsPage(@StringRes val titleRes: Int, val depth: Int) {
     Holidays(R.string.settings_page_holidays, 3),
     Support(R.string.settings_page_support, 2),
     AppIconPicker(R.string.settings_app_icon, 3),
+    AccentPicker(R.string.settings_accent_color, 3),
     About(R.string.settings_page_about, 2),
     Diagnostics(R.string.settings_page_diagnostics, 3),
 }
@@ -323,7 +325,7 @@ fun SettingsScreen(
         SettingsPage.Support, SettingsPage.About,
         -> SettingsPage.General
         SettingsPage.CategoryColors, SettingsPage.Holidays -> SettingsPage.Budget
-        SettingsPage.AppIconPicker -> SettingsPage.Display
+        SettingsPage.AppIconPicker, SettingsPage.AccentPicker -> SettingsPage.Display
         SettingsPage.Diagnostics -> SettingsPage.About
         SettingsPage.General -> SettingsPage.Manage
         SettingsPage.Manage -> SettingsPage.Manage
@@ -909,6 +911,8 @@ fun SettingsScreen(
                             isSupporter = isSupporter,
                             onOpenSupport = { page = SettingsPage.Support },
                             onOpenAppIcon = { page = SettingsPage.AppIconPicker },
+                            useDynamicColor = useDynamicColor,
+                            onOpenAccent = { page = SettingsPage.AccentPicker },
                         )
                     }
                 }
@@ -1064,6 +1068,12 @@ fun SettingsScreen(
                 }
                 SettingsPage.Holidays -> HolidaysSettings(holidays, onHolidaysChange)
                 SettingsPage.AppIconPicker -> AppIconSettings()
+                SettingsPage.AccentPicker -> AccentSettings(
+                    isSupporter = if (supportPurchaseState.purchasesRestored) supportPurchaseState.isSupporter else supporterPerks.isSupporter,
+                    useDynamicColor = useDynamicColor,
+                    onUseDynamicColorChange = onUseDynamicColorChange,
+                    onOpenSupport = { page = SettingsPage.Support },
+                )
                 SettingsPage.Support -> SupportSettings(
                     state = supportPurchaseState,
                     onPurchase = { product -> (context as? Activity)?.let { supportBillingManager.launchPurchase(it, product) } },
@@ -1329,17 +1339,44 @@ private fun SupportSettings(
  * extra marked "Supporter" and is sent to the Support page when they tap it.
  */
 @Composable
-private fun SupporterExtras(isSupporter: Boolean, onOpenSupport: () -> Unit, onOpenAppIcon: () -> Unit) {
+private fun SupporterExtras(
+    isSupporter: Boolean,
+    onOpenSupport: () -> Unit,
+    onOpenAppIcon: () -> Unit,
+    useDynamicColor: Boolean,
+    onOpenAccent: () -> Unit,
+) {
     val context = LocalContext.current
     SettingsGroup(stringResource(R.string.settings_supporter_extras_section)) {
-        ActuaFormRow(
+        SupporterExtraRow(
             icon = Icons.Outlined.FavoriteBorder,
             label = stringResource(R.string.settings_app_icon),
-            value = if (isSupporter) stringResource(remember { AppIcons(context).current() }.labelRes)
-            else stringResource(R.string.settings_supporter_extras_marker),
-            onClick = if (isSupporter) onOpenAppIcon else onOpenSupport,
+            current = if (isSupporter) stringResource(remember { AppIcons(context).current() }.labelRes) else null,
+            onOpen = if (isSupporter) onOpenAppIcon else onOpenSupport,
+        )
+        SettingsDivider()
+        // Material You and Violet are free for everyone, so this row opens the page for non-supporters too.
+        ActuaFormRow(
+            icon = Icons.Outlined.Palette,
+            label = stringResource(R.string.settings_accent_color),
+            value = stringResource(
+                if (useDynamicColor && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) R.string.settings_accent_material_you
+                else accentLabelRes(DisplayPreferences(context).accent),
+            ),
+            onClick = onOpenAccent,
         )
     }
+}
+
+/** One supporter extra: its current choice for a supporter, or the "Supporter" marker that leads to the Support page. */
+@Composable
+private fun SupporterExtraRow(icon: ImageVector, label: String, current: String?, onOpen: () -> Unit) {
+    ActuaFormRow(
+        icon = icon,
+        label = label,
+        value = current ?: stringResource(R.string.settings_supporter_extras_marker),
+        onClick = onOpen,
+    )
 }
 
 @Composable

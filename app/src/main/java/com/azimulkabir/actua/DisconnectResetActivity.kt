@@ -24,6 +24,8 @@ import com.azimulkabir.actua.data.security.CredentialStore
 import com.azimulkabir.actua.data.security.DisconnectResetManager
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
 import com.azimulkabir.actua.data.sync.SyncRunResult
+import com.azimulkabir.actua.billing.supporterPerksAvailable
+import com.azimulkabir.actua.ui.theme.AccentPalette
 import com.azimulkabir.actua.ui.theme.ActuaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -52,6 +54,7 @@ class DisconnectResetActivity : AppCompatActivity() {
             ActuaTheme(
                 appearance = DisplayPreferences(this).appearance,
                 dynamicColor = DisplayPreferences(this).useDynamicColor,
+                accent = if (supporterPerksAvailable()) DisplayPreferences(this).accent else AccentPalette.Violet,
             ) {
                 when (stage) {
                     Stage.Confirm -> AlertDialog(
