@@ -203,6 +203,9 @@ fun SettingsScreen(
     showCurrentBalanceSummary: Boolean = true,
     onShowCurrentBalanceSummaryChange: (Boolean) -> Unit = {},
     returnToRootRequest: Int = 0,
+    /** True asks Settings to open its Support page (e.g. from the support prompt); [onSupportPageOpened] clears it. */
+    openSupportPage: Boolean = false,
+    onSupportPageOpened: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
@@ -318,6 +321,12 @@ fun SettingsScreen(
     }
     fun navigateBack() {
         page = parentPage(page)
+    }
+    LaunchedEffect(openSupportPage) {
+        if (openSupportPage) {
+            page = SettingsPage.Support
+            onSupportPageOpened()
+        }
     }
     LaunchedEffect(returnToRootRequest) {
         if (returnToRootRequest > 0) {

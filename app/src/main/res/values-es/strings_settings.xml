@@ -276,6 +276,10 @@
     <string name="settings_support_manage_subscription_description">Cámbiala o cancélala en Google Play.</string>
     <string name="settings_support_tiers_note">Paga lo que quieras: todos los precios de Colaborador de Actua dan la misma insignia.</string>
     <string name="settings_support_purchase_thanks">¡Gracias! Tu apoyo mantiene vivo Actua.</string>
+    <string name="settings_support_prompt_title">¿Te gusta Actua?</string>
+    <string name="settings_support_prompt_body">Actua es gratuito y de código abierto, creado por un desarrollador independiente. Si te ayuda con tu presupuesto, puedes apoyar su desarrollo una vez o cada mes. Todas las funciones seguirán siendo gratuitas de todos modos.</string>
+    <string name="settings_support_prompt_see_options">Ver opciones</string>
+    <string name="settings_support_prompt_not_now">Ahora no</string>
 <!-- About page. -->
     <string name="settings_about_summary">Cliente nativo de Android para Actual Budget\nVersión %1$s</string>
 <string name="settings_section_project">Proyecto</string>
