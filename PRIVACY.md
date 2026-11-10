@@ -237,7 +237,10 @@ off by default.
 ## Other on-device data
 
 Actua keeps app settings, which bank-synced transactions you haven't viewed
-yet, and similar display state on your device. None of it is sent anywhere.
+yet, whether you've left a tip in the Google Play version, and similar display
+state on your device. None of it is sent anywhere. Support Actua purchases and
+subscriptions are paid and managed by Google Play; Actua never sees your payment
+details.
 
 ## Contact
 
