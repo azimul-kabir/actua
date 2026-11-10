@@ -155,6 +155,9 @@ class ScheduledTransactionsWidgetProvider : ActuaWidgetProvider() {
 object WidgetUpdater {
     private const val COMPACT_HEIGHT_DP = 100
 
+    /** The budget snapshot's hero layout (title, big Ready to budget, two tiles) needs more height than the others. */
+    private const val BUDGET_HERO_MIN_HEIGHT_DP = 170
+
     private val providers = listOf(
         BudgetSnapshotWidgetProvider::class.java,
         FavouriteCategoriesWidgetProvider::class.java,
@@ -194,14 +197,14 @@ object WidgetUpdater {
         }
     }
 
-    private fun isCompact(manager: AppWidgetManager, widgetId: Int): Boolean {
+    private fun isCompact(manager: AppWidgetManager, widgetId: Int, thresholdDp: Int = COMPACT_HEIGHT_DP): Boolean {
         val options = manager.getAppWidgetOptions(widgetId)
         val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, Int.MAX_VALUE)
-        return minHeight <= COMPACT_HEIGHT_DP
+        return minHeight <= thresholdDp
     }
 
     private fun updateBudget(context: Context, manager: AppWidgetManager, widgetId: Int) {
-        val layout = if (isCompact(manager, widgetId)) {
+        val layout = if (isCompact(manager, widgetId, BUDGET_HERO_MIN_HEIGHT_DP)) {
             WidgetStyles.layout(context, R.layout.widget_budget_snapshot_compact, R.layout.widget_budget_snapshot_compact_styled)
         } else {
             WidgetStyles.layout(context, R.layout.widget_budget_snapshot, R.layout.widget_budget_snapshot_styled)
@@ -218,6 +221,7 @@ object WidgetUpdater {
             loadBudgetFormats(repository)
             if (!repository.isUsingActualBudget) {
                 views.setTextViewText(R.id.widget_month, context.getString(R.string.widget_no_budget))
+                views.setViewVisibility(R.id.widget_month, View.VISIBLE)
                 views.setTextViewText(R.id.widget_ready_value, "—")
                 views.setTextViewText(R.id.widget_budgeted_value, "—")
                 views.setTextViewText(R.id.widget_balance_value, "—")
@@ -226,6 +230,7 @@ object WidgetUpdater {
                 val month = YearMonth.now()
                     .format(DateTimeFormatter.ofPattern("MMMM yyyy", context.resources.configuration.locales[0]))
                 views.setTextViewText(R.id.widget_month, month)
+                views.setViewVisibility(R.id.widget_month, View.VISIBLE)
                 views.setTextViewText(
                     R.id.widget_ready_value,
                     overview.toBudgetCents?.let { money(context, it) } ?: "—",
@@ -260,8 +265,11 @@ object WidgetUpdater {
                 context, views, rows.map { row ->
                     val spent = row.spentCents.coerceAtLeast(0)
                     val denominator = row.assignedCents.coerceAtLeast(1)
-                    WidgetRow(row.name, money(context, row.balanceCents),
-                        ((spent * 100 / denominator).coerceIn(0, 100)).toInt(), row.name)
+                    val percent = ((spent * 100 / denominator).coerceIn(0, 100)).toInt()
+                    WidgetRow(
+                        row.name, money(context, row.balanceCents), percent, row.name,
+                        ProgressStatus.of(percent, overspent = row.balanceCents < 0),
+                    )
                 }, widgetId, WidgetActions.CATEGORY, showProgress = true,
             )
             views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.BUDGET, widgetId))
@@ -404,7 +412,13 @@ object WidgetUpdater {
         }
     }
 
-    private data class WidgetRow(val name: String, val amount: String, val progress: Int, val target: String)
+    private data class WidgetRow(
+        val name: String,
+        val amount: String,
+        val progress: Int,
+        val target: String,
+        val status: ProgressStatus = ProgressStatus.Normal,
+    )
 
     private fun bindRows(
         context: Context,
@@ -425,7 +439,10 @@ object WidgetUpdater {
                 views.setTextViewText(names[index], row.name)
                 views.setTextViewText(amounts[index], row.amount)
                 views.setViewVisibility(progress[index], if (showProgress) View.VISIBLE else View.GONE)
-                if (showProgress) views.setProgressBar(progress[index], 100, row.progress, false)
+                if (showProgress) {
+                    views.setProgressBar(progress[index], 100, row.progress, false)
+                    WidgetStyles.applyProgressStatus(context, views, progress[index], row.status)
+                }
                 views.setOnClickPendingIntent(
                     containers[index], open(context, action, widgetId * 10 + index + 1, row.target),
                 )

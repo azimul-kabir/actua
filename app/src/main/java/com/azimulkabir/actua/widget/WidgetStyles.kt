@@ -8,6 +8,7 @@ import android.widget.RemoteViews
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
+import androidx.core.content.ContextCompat
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.billing.supporterPerksAvailable
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
@@ -28,6 +29,12 @@ internal object WidgetStyles {
         R.id.widget_schedule_amount,
     )
     private val buttonIds = intArrayOf(R.id.widget_expense, R.id.widget_income, R.id.widget_transfer)
+
+    /** Tonal surfaces that are not buttons: the amount pills and the budget snapshot's tiles. */
+    private val tileIds = intArrayOf(
+        R.id.widget_amount_1, R.id.widget_amount_2, R.id.widget_amount_3, R.id.widget_amount_4,
+        R.id.widget_schedule_amount, R.id.widget_tile_ready, R.id.widget_tile_budgeted, R.id.widget_tile_balance,
+    )
     private val progressIds = intArrayOf(
         R.id.widget_progress_1, R.id.widget_progress_2, R.id.widget_progress_3, R.id.widget_progress_4,
     )
@@ -71,17 +78,35 @@ internal object WidgetStyles {
         val (background, button) = drawables(style, night)
         views.setInt(R.id.widget_root, "setBackgroundResource", background)
         buttonIds.forEach { views.setInt(it, "setBackgroundResource", button) }
+        tileIds.forEach { views.setInt(it, "setBackgroundResource", button) }
         if (style == WidgetStyle.AccentTinted) {
             tint(views, R.id.widget_root, "setBackgroundTintList", colors.background)
             buttonIds.forEach { tint(views, it, "setBackgroundTintList", colors.button) }
+            tileIds.forEach { tint(views, it, "setBackgroundTintList", colors.tile) }
         } else {
             clearTint(views, R.id.widget_root, "setBackgroundTintList")
             buttonIds.forEach { clearTint(views, it, "setBackgroundTintList") }
+            tileIds.forEach { clearTint(views, it, "setBackgroundTintList") }
         }
         progressIds.forEach {
             tint(views, it, "setProgressTintList", colors.primary)
             tint(views, it, "setProgressBackgroundTintList", colors.progressTrack)
         }
+    }
+
+    /**
+     * Colors a category row's progress bar by how spent it is: the usual color, amber from 85% spent and
+     * red once overspent. Only for the default style on Android 12+, where a tint can be passed; a
+     * styled widget keeps its own one-color bars.
+     */
+    fun applyProgressStatus(context: Context, views: RemoteViews, progressId: Int, status: ProgressStatus) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || activeStyle(context) != WidgetStyle.Default) return
+        val color = when (status) {
+            ProgressStatus.Normal -> R.color.widget_primary
+            ProgressStatus.Warning -> R.color.widget_status_warning
+            ProgressStatus.Overspent -> R.color.widget_status_danger
+        }
+        tint(views, progressId, "setProgressTintList", ContextCompat.getColor(context, color))
     }
 
     private fun drawables(style: WidgetStyle, night: Boolean): Pair<Int, Int> = when (style) {
@@ -110,4 +135,18 @@ internal object WidgetStyles {
         } else {
             preferences.accent.colorScheme(night)
         }
+}
+
+/** How far a category row's budget is used, for [WidgetStyles.applyProgressStatus]. */
+internal enum class ProgressStatus {
+    Normal, Warning, Overspent;
+
+    companion object {
+        /** [percentSpent] is spent over budgeted, 0..100; [overspent] means the category's balance is below zero. */
+        fun of(percentSpent: Int, overspent: Boolean): ProgressStatus = when {
+            overspent -> Overspent
+            percentSpent >= 85 -> Warning
+            else -> Normal
+        }
+    }
 }
