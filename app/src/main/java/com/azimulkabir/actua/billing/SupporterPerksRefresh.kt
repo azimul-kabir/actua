@@ -1,9 +1,20 @@
 package com.azimulkabir.actua.billing
 
 import android.content.Context
+import com.azimulkabir.actua.data.preferences.AppIcons
 import com.azimulkabir.actua.data.preferences.SupporterPerks
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+
+/**
+ * Registers how each supporter extra returns to its default when support lapses. Call once at app
+ * start, before anything records the supporter status. Does nothing on the fdroid build.
+ */
+fun registerSupporterExtras(context: Context) {
+    if (!supporterPerksAvailable()) return
+    val appContext = context.applicationContext
+    SupporterPerks.register(AppIcons.RESET_ID) { AppIcons(appContext).resetToDefault() }
+}
 
 private const val PLAY_ANSWER_TIMEOUT_MILLIS = 30_000L
 

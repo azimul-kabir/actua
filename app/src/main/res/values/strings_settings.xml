@@ -279,10 +279,13 @@
     <string name="settings_supporter_description">A one-time thank-you that gives you a permanent Supporter badge.</string>
     <string name="settings_support_free">Budgeting always stays free. Supporters also get cosmetic extras in Settings → Display, such as app icons, accent themes, widget styles and celebrations.</string>
     <string name="settings_supporter_extras_section">Supporter extras</string>
-    <string name="settings_supporter_extras_title">Supporter extras</string>
     <string name="settings_supporter_extras_marker">Supporter</string>
-    <string name="settings_supporter_extras_locked">Cosmetic extras for Actua Supporters. Tap to see how to support Actua.</string>
-    <string name="settings_supporter_extras_unlocked">Thank you for supporting Actua! New cosmetic extras will appear here.</string>
+    <string name="settings_app_icon">App icon</string>
+    <string name="settings_app_icon_default">Default</string>
+    <string name="settings_app_icon_dark">Dark</string>
+    <string name="settings_app_icon_mono">Mono</string>
+    <string name="settings_app_icon_light">Light</string>
+    <string name="settings_app_icon_note">Choose the icon shown on your home screen and app drawer. It changes when you leave Actua, and some launchers take a moment to update it.</string>
     <string name="settings_support_options_section">Ways to support</string>
     <string name="settings_support_monthly_title">Monthly supporter</string>
     <string name="settings_support_monthly_price">%1$s / month</string>

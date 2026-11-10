@@ -115,11 +115,8 @@
             android:launchMode="singleTop"
             android:theme="@style/Theme.Actua"
             android:windowSoftInputMode="adjustResize">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            <!-- The launcher entry and app shortcuts are declared per flavor: fdroid on this
+                 activity, playstore through the icon aliases (#1542). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
@@ -177,7 +174,6 @@
                 <data android:mimeType="application/xml" />
                 <data android:mimeType="text/xml" />
             </intent-filter>
-            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
 
         <receiver android:name=".widget.BudgetSnapshotWidgetProvider" android:exported="false">
