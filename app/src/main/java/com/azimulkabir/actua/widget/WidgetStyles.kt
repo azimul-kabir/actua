@@ -61,16 +61,58 @@ internal object WidgetStyles {
      * Sets the style's colors on [views], which came from [layout]. Between two styled looks the same
      * layout is reapplied, so every color, background and tint is set explicitly (an accent tint is
      * cleared when another style is chosen). Does nothing for the default style.
+     *
+     * On Android 14+ every color is sent as a light and a dark value and the launcher picks the one for
+     * the current theme, so a styled widget follows a device theme change by itself. Older releases take
+     * one value, chosen for the theme at this update, so after a theme change the look stays consistent
+     * (background and text were chosen together) until the widget's next refresh.
      */
     fun apply(context: Context, views: RemoteViews) {
         val style = activeStyle(context)
+        if (style == WidgetStyle.Default) return
         val preferences = DisplayPreferences(context)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val accentLight = if (style == WidgetStyle.AccentTinted) accentScheme(context, preferences, night = false) else null
+            val accentDark = if (style == WidgetStyle.AccentTinted) accentScheme(context, preferences, night = true) else null
+            val light = style.colors(night = false, accent = accentLight) ?: return
+            val dark = style.colors(night = true, accent = accentDark) ?: return
+            applyThemeAware(views, light, dark)
+            return
+        }
         val night = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
         val accent = if (style == WidgetStyle.AccentTinted) accentScheme(context, preferences, night) else null
-        // Every color, tint and drawable below is fixed at this update, so they always agree with each
-        // other (a theme change leaves a consistent look until the widget's next refresh).
         val colors = style.colors(night, accent) ?: return
+        applyFixed(views, style, night, colors)
+    }
 
+    /** Android 14+: each color is a (light, dark) pair resolved by the launcher, on top of the default drawables. */
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private fun applyThemeAware(views: RemoteViews, light: WidgetStyleColors, dark: WidgetStyleColors) {
+        fun text(ids: IntArray, light: Int, dark: Int) = ids.forEach { views.setColorInt(it, "setTextColor", light, dark) }
+        fun tint(id: Int, method: String, light: Int, dark: Int) =
+            views.setColorStateList(id, method, ColorStateList.valueOf(light), ColorStateList.valueOf(dark))
+        text(onBackgroundIds, light.onBackground, dark.onBackground)
+        text(secondaryIds, light.secondary, dark.secondary)
+        text(primaryIds, light.primary, dark.primary)
+        text(buttonIds, light.buttonText, dark.buttonText)
+        views.setInt(R.id.widget_root, "setBackgroundResource", R.drawable.widget_background)
+        tint(R.id.widget_root, "setBackgroundTintList", light.background, dark.background)
+        buttonIds.forEach {
+            views.setInt(it, "setBackgroundResource", R.drawable.widget_button_background)
+            tint(it, "setBackgroundTintList", light.button, dark.button)
+        }
+        tileIds.forEach {
+            views.setInt(it, "setBackgroundResource", R.drawable.widget_button_background)
+            tint(it, "setBackgroundTintList", light.tile, dark.tile)
+        }
+        progressIds.forEach {
+            tint(it, "setProgressTintList", light.primary, dark.primary)
+            tint(it, "setProgressBackgroundTintList", light.progressTrack, dark.progressTrack)
+        }
+    }
+
+    /** Before Android 14: one value per color, chosen for the theme at this update. */
+    private fun applyFixed(views: RemoteViews, style: WidgetStyle, night: Boolean, colors: WidgetStyleColors) {
         onBackgroundIds.forEach { views.setTextColor(it, colors.onBackground) }
         secondaryIds.forEach { views.setTextColor(it, colors.secondary) }
         primaryIds.forEach { views.setTextColor(it, colors.primary) }
@@ -106,7 +148,12 @@ internal object WidgetStyles {
             ProgressStatus.Warning -> R.color.widget_status_warning
             ProgressStatus.Overspent -> R.color.widget_status_danger
         }
-        tint(views, progressId, "setProgressTintList", ContextCompat.getColor(context, color))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            // A color resource is resolved by the launcher, so it follows a theme change by itself.
+            views.setColorStateList(progressId, "setProgressTintList", color)
+        } else {
+            tint(views, progressId, "setProgressTintList", ContextCompat.getColor(context, color))
+        }
     }
 
     private fun drawables(style: WidgetStyle, night: Boolean): Pair<Int, Int> = when (style) {
