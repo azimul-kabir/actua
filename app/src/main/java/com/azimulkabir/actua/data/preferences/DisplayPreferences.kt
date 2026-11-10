@@ -186,6 +186,11 @@ class DisplayPreferences(context: Context) {
         get() = WidgetStyle.fromName(preferences.getString(WIDGET_STYLE, null))
         set(value) { preferences.edit().putString(WIDGET_STYLE, value.name).apply() }
 
+    /** Whether a supporter wants the confetti celebrations (Play build); on until they turn it off. */
+    var celebrationsEnabled: Boolean
+        get() = preferences.getBoolean(CELEBRATIONS, true)
+        set(value) { preferences.edit().putBoolean(CELEBRATIONS, value).apply() }
+
     var startPage: String
         get() {
             val stored = preferences.getString(START_PAGE, "Budget") ?: "Budget"
@@ -297,6 +302,7 @@ class DisplayPreferences(context: Context) {
         const val USE_DYNAMIC_COLOR = "use_dynamic_color"
         const val ACCENT = "accent"
         const val WIDGET_STYLE = "widget_style"
+        const val CELEBRATIONS = "celebrations"
         const val START_PAGE = "start_page"
         const val LEGACY_MORE_PAGE = "More"
         const val LEGACY_REPORTS_PAGE = "Reports"

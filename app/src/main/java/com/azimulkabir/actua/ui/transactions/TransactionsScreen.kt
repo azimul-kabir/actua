@@ -144,6 +144,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.azimulkabir.actua.R
+import com.azimulkabir.actua.ui.celebrations.LocalCelebrate
 import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 
 private val sampleTransactions = listOf(
@@ -256,6 +257,7 @@ fun TransactionsScreen(
     var showLabelPicker by remember { mutableStateOf(false) }
     var newTagName by remember { mutableStateOf("") }
     var tagVersion by remember { mutableStateOf(0L) }
+    val celebrate = LocalCelebrate.current
     var reconcileOpen by remember(account?.id) { mutableStateOf(false) }
     LaunchedEffect(reconcileOpen) { onReconcileVisibilityChange(reconcileOpen) }
     DisposableEffect(Unit) {
@@ -400,7 +402,7 @@ fun TransactionsScreen(
             conventionalAmountEntry = conventionalAmountEntry,
             onBack = { reconcileOpen = false },
             onSetCleared = onSetCleared,
-            onReconcile = { onReconcileAccount(account) { reconcileOpen = false } },
+            onReconcile = { onReconcileAccount(account) { reconcileOpen = false; celebrate() } },
             onCreateAdjustment = { difference, onCreated -> onCreateReconciliationAdjustment(account, difference, onCreated) },
         )
     } else Column(modifier = modifier.fillMaxSize()) {

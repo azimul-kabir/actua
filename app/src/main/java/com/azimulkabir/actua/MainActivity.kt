@@ -26,6 +26,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.azimulkabir.actua.ui.navigation.AppNavigation
+import com.azimulkabir.actua.ui.celebrations.CelebrationHost
 import com.azimulkabir.actua.ui.theme.AccentPalette
 import com.azimulkabir.actua.ui.theme.ActuaTheme
 import com.azimulkabir.actua.ui.theme.CategoryStatusColorState
@@ -78,14 +79,16 @@ class MainActivity : AppCompatActivity() {
             ) {
                 AppLockGate(locked = AppLock.locked, onUnlocked = AppLock::unlock) {
                     CompositionLocalProvider(LocalCategoryStatusColors provides categoryStatusColorState) {
-                        AppNavigation(
-                            modifier = Modifier.fillMaxSize(),
-                            foregroundGeneration = foregroundGeneration,
-                            launchRequest = launchRequest,
-                            onLaunchRequestConsumed = { launchRequest = null },
-                            onAppearanceChange = { appearance = it },
-                            onUseDynamicColorChange = { useDynamicColor = it },
-                        )
+                        CelebrationHost {
+                            AppNavigation(
+                                modifier = Modifier.fillMaxSize(),
+                                foregroundGeneration = foregroundGeneration,
+                                launchRequest = launchRequest,
+                                onLaunchRequestConsumed = { launchRequest = null },
+                                onAppearanceChange = { appearance = it },
+                                onUseDynamicColorChange = { useDynamicColor = it },
+                            )
+                        }
                     }
                 }
             }

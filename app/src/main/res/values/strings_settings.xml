@@ -301,6 +301,8 @@
     <string name="settings_widget_style_solid_light">Solid light</string>
     <string name="settings_widget_style_accent">Accent-tinted</string>
     <string name="settings_widget_style_note">Restyles all Actua widgets. Default follows your device colors. Accent-tinted needs Android 12 and follows your accent color; on Android 11 and older the progress bars keep their default colors.</string>
+    <string name="settings_celebrations">Celebrations</string>
+    <string name="settings_celebrations_description">A short confetti burst when Ready to budget reaches zero or you finish a reconciliation. Skipped when animations are off.</string>
     <string name="settings_accent_note">Choosing an accent color turns Material You off. Violet and Material You are free for everyone; the other colors are for Actua Supporters.</string>
     <string name="settings_accent_material_you">Material You (device)</string>
     <string name="settings_support_options_section">Ways to support</string>
