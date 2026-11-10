@@ -1,0 +1,6 @@
+• Recover budgets that won't open
+• Remembers your Mark as cleared choice
+• Safer backup restores and downloads
+• Fixed dashboard cards missing some transactions
+• Goal templates keep exact cents
+• Plain HTTP only for private servers

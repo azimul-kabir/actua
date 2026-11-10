@@ -4,19 +4,21 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [2.6.0] - 2026-11-10
+
 ### Added
 
-- Added remembering the “Mark as cleared” choice for each budget on Import and Review captured, also used by Import on capture notifications ([#1532](https://github.com/azimul-kabir/actua/pull/1532))
 - Added a notice when a budget can’t be opened, with options to try again, re-download it, restore a backup or delete it ([#1523](https://github.com/azimul-kabir/actua/pull/1523))
+- Added remembering the “Mark as cleared” choice for each budget on Import and Review captured, including Import from capture notifications ([#1532](https://github.com/azimul-kabir/actua/pull/1532))
 
 ### Fixed
 
-- Fixed dashboard cards and reports that exclude a category by name, such as “does not contain Starting Balances”, leaving out transactions without a category ([#1533](https://github.com/azimul-kabir/actua/pull/1533))
-- Fixed the year-to-date dashboard cards leaving out transactions whose payee is an account but that aren’t linked transfers, unlike Actual ([#1531](https://github.com/azimul-kabir/actua/pull/1531))
-- Fixed a failed budget download or import being able to delete the budget it was replacing, or lose its most recent changes ([#1530](https://github.com/azimul-kabir/actua/pull/1530))
-- Fixed plain HTTP being allowed to public server addresses that start with “fc” or “fd”, which could send your password unencrypted ([#1527](https://github.com/azimul-kabir/actua/pull/1527))
-- Fixed goal templates losing a cent, for example a 19.99 template budgeting 19.98 and saving back as 19.98 ([#1525](https://github.com/azimul-kabir/actua/pull/1525))
-- Fixed restoring a backup while a sync or scheduled backup was running, which could corrupt the budget or leave it half-restored ([#1524](https://github.com/azimul-kabir/actua/pull/1524))
+- Fixed dashboard cards and reports that exclude a category by name leaving out transactions without a category ([#1533](https://github.com/azimul-kabir/actua/pull/1533))
+- Fixed the year-to-date dashboard cards leaving out transactions whose payee is an account but that aren’t linked transfers ([#1531](https://github.com/azimul-kabir/actua/pull/1531))
+- Fixed a failed budget download or import being able to delete the budget it replaced, or lose its latest changes ([#1530](https://github.com/azimul-kabir/actua/pull/1530))
+- Fixed plain HTTP being allowed to public server addresses starting with “fc” or “fd”, which could send your password unencrypted ([#1527](https://github.com/azimul-kabir/actua/pull/1527))
+- Fixed goal templates losing a cent, for example a 19.99 template budgeting 19.98 ([#1525](https://github.com/azimul-kabir/actua/pull/1525))
+- Fixed restoring a backup while a sync or scheduled backup was running, which could corrupt the budget ([#1524](https://github.com/azimul-kabir/actua/pull/1524))
 - Fixed server-backed budgets, with their unsynced changes and local backups, being deleted when they failed to open ([#1522](https://github.com/azimul-kabir/actua/pull/1522))
 
 ## [2.5.3] - 2026-11-07
