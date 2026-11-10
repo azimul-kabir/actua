@@ -21,6 +21,7 @@ import com.azimulkabir.actua.R
 import com.azimulkabir.actua.billing.SupportPurchaseState
 import com.azimulkabir.actua.billing.createSupportBillingManager
 import com.azimulkabir.actua.data.preferences.SupportPromptPreferences
+import com.azimulkabir.actua.data.preferences.SupporterPerks
 
 /**
  * The one-time "Support Actua" prompt, shown after [SupportPromptPreferences.DAYS_THRESHOLD] days
@@ -47,6 +48,7 @@ fun SupportPrompt(canShow: Boolean, onOpenSupport: () -> Unit) {
         onDispose { billingManager.stop() }
     }
     val state by billingManager.state.collectAsState()
+    LaunchedEffect(state.purchasesRestored, state.isSupporter) { SupporterPerks(context).record(state) }
     if (!canShow || !shouldAskForSupport(state)) return
 
     LaunchedEffect(Unit) { preferences.shown = true }

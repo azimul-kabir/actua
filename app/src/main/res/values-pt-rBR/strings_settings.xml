@@ -277,7 +277,12 @@
     <string name="settings_supporter_badge">Apoiador do Actua</string>
     <string name="settings_supporter_thanks">Obrigado por apoiar o Actua!</string>
     <string name="settings_supporter_description">Um agradecimento único que dá a você um selo permanente de Apoiador.</string>
-    <string name="settings_support_free">Todos os recursos do Actua continuam gratuitos.</string>
+    <string name="settings_support_free">O orçamento continua sempre gratuito. Apoiadores também recebem extras estéticos em Configurações → Exibir, como ícones do app, temas de destaque, estilos de widget e comemorações.</string>
+    <string name="settings_supporter_extras_section">Extras para apoiadores</string>
+    <string name="settings_supporter_extras_title">Extras para apoiadores</string>
+    <string name="settings_supporter_extras_marker">Apoiador</string>
+    <string name="settings_supporter_extras_locked">Extras estéticos para Apoiadores do Actua. Toque para ver como apoiar o Actua.</string>
+    <string name="settings_supporter_extras_unlocked">Obrigado por apoiar o Actua! Novos extras estéticos aparecerão aqui.</string>
     <string name="settings_support_options_section">Formas de apoiar</string>
     <string name="settings_support_monthly_title">Apoiador mensal</string>
     <string name="settings_support_monthly_price">%1$s / mês</string>

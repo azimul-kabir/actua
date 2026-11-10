@@ -238,7 +238,9 @@ off by default.
 
 Actua keeps app settings, which bank-synced transactions you haven't viewed
 yet, how many transactions you've added (so the Google Play version can ask once
-whether you'd like to support Actua), and similar display state on your device.
+whether you'd like to support Actua), whether Google Play last reported you as
+an Actua Supporter and when it was last checked (so the Google Play version can
+show cosmetic Supporter extras), and similar display state on your device.
 None of it is sent anywhere.
 Support Actua purchases and subscriptions are paid and managed by Google Play;
 Actua never sees your payment details.

@@ -28,7 +28,7 @@ Actua connects directly to your own Actual Budget server and keeps a local copy 
 New to Actua? You can explore the built-in local demo budget or create a budget on your device without connecting a server.
 
 FREE AND OPEN SOURCE
-Actua is free and open source. You can review the source code, report bugs, suggest improvements, or contribute to the project:
+Actua is free and open source, and budgeting always stays free. In the Google Play version you can optionally support its development; supporters also get cosmetic extras such as app icons and accent themes, as they arrive. You can review the source code, report bugs, suggest improvements, or contribute to the project:
 https://github.com/azimul-kabir/actua
 
 UNOFFICIAL PROJECT

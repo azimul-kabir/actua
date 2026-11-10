@@ -1,5 +1,6 @@
 package com.azimulkabir.actua
 
+import com.azimulkabir.actua.billing.refreshSupporterPerksIfDue
 import com.azimulkabir.actua.data.preferences.ScreenPrivacyPreferences
 import com.azimulkabir.actua.data.importing.SharedStatementIntent
 import com.azimulkabir.actua.ui.lock.AppLock
@@ -77,6 +78,7 @@ class MainActivity : AppCompatActivity() {
         // selected SQLite budget. They maintain background work only, so never make the first
         // Compose frame wait for them. The app-open sync in AppNavigation refreshes reminders
         // again after it has incorporated server changes.
+        if (savedInstanceState == null) lifecycleScope.launch { refreshSupporterPerksIfDue(applicationContext) }
         lifecycleScope.launch(Dispatchers.IO) {
             ActualSyncScheduler.schedulePeriodic(applicationContext)
             CreditCardDueNotificationScheduler.refresh(applicationContext)
