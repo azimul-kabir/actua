@@ -7,6 +7,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Added
 
 - Added more Actua Supporter prices and an optional monthly supporter subscription to Support Actua in the Google Play version ([#1538](https://github.com/azimul-kabir/actua/pull/1538))
+- Added a one-time invitation to support Actua after 30 days or 100 added transactions in the Google Play version ([#1540](https://github.com/azimul-kabir/actua/pull/1540))
 
 ## [2.6.0] - 2026-11-10
 
