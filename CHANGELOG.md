@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added repeatable tips and an optional monthly supporter subscription to Support Actua in the Google Play version ([#1537](https://github.com/azimul-kabir/actua/pull/1537))
+
 ## [2.6.0] - 2026-11-10
 
 ### Added
