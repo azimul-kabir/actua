@@ -7,7 +7,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.util.SizeF
 import android.view.View
 import android.widget.RemoteViews
 import com.azimulkabir.actua.MainActivity
@@ -153,11 +155,6 @@ class ScheduledTransactionsWidgetProvider : ActuaWidgetProvider() {
 }
 
 object WidgetUpdater {
-    private const val COMPACT_HEIGHT_DP = 100
-
-    /** The budget snapshot's hero layout (title, big Ready to budget, two tiles) needs more height than the others. */
-    private const val BUDGET_HERO_MIN_HEIGHT_DP = 170
-
     private val providers = listOf(
         BudgetSnapshotWidgetProvider::class.java,
         FavouriteCategoriesWidgetProvider::class.java,
@@ -197,158 +194,206 @@ object WidgetUpdater {
         }
     }
 
-    private fun isCompact(manager: AppWidgetManager, widgetId: Int, thresholdDp: Int = COMPACT_HEIGHT_DP): Boolean {
+    /**
+     * The widget for the launcher, with one layout per entry of [variants]. On Android 12+ every size is
+     * sent and the launcher picks the best fit itself, and lays out again on a resize without an update.
+     * Before that the layout for the widget's current size is chosen here, with the same breakpoints.
+     */
+    private fun <T> responsive(
+        manager: AppWidgetManager,
+        widgetId: Int,
+        variants: List<WidgetVariant<T>>,
+        build: (T) -> RemoteViews,
+    ): RemoteViews {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val sizes = LinkedHashMap<SizeF, RemoteViews>()
+            variants.forEach { sizes[SizeF(it.minWidthDp.toFloat(), it.minHeightDp.toFloat())] = build(it.layout) }
+            return RemoteViews(sizes)
+        }
         val options = manager.getAppWidgetOptions(widgetId)
-        val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, Int.MAX_VALUE)
-        return minHeight <= thresholdDp
+        val width = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, Int.MAX_VALUE)
+        val height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, Int.MAX_VALUE)
+        return build(WidgetSizing.pick(variants, width, height).layout)
+    }
+
+    private class BudgetData(val month: String, val ready: String, val budgeted: String, val balance: String)
+
+    private fun loadBudget(context: Context): BudgetData {
+        val repository = ActuaRepository(context)
+        try {
+            loadBudgetFormats(repository)
+            if (!repository.isUsingActualBudget) {
+                return BudgetData(context.getString(R.string.widget_no_budget), "—", "—", "—")
+            }
+            val overview = repository.budgetOverview()
+            val month = YearMonth.now()
+                .format(DateTimeFormatter.ofPattern("MMMM yyyy", context.resources.configuration.locales[0]))
+            return BudgetData(
+                month,
+                overview.toBudgetCents?.let { money(context, it) } ?: "—",
+                money(context, overview.budgetedCents),
+                money(context, overview.availableCents),
+            )
+        } finally {
+            repository.close()
+        }
     }
 
     private fun updateBudget(context: Context, manager: AppWidgetManager, widgetId: Int) {
-        val layout = if (isCompact(manager, widgetId, BUDGET_HERO_MIN_HEIGHT_DP)) {
-            WidgetStyles.layout(context, R.layout.widget_budget_snapshot_compact, R.layout.widget_budget_snapshot_compact_styled)
-        } else {
-            WidgetStyles.layout(context, R.layout.widget_budget_snapshot, R.layout.widget_budget_snapshot_styled)
+        val data = loadBudget(context)
+        manager.updateAppWidget(
+            widgetId,
+            responsive(manager, widgetId, BudgetVariants) { bindBudget(context, widgetId, it, data) },
+        )
+    }
+
+    private fun bindBudget(context: Context, widgetId: Int, layout: BudgetLayout, data: BudgetData): RemoteViews {
+        val layoutId = when (layout) {
+            BudgetLayout.Mini -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot_mini, R.layout.widget_budget_snapshot_mini_styled)
+            BudgetLayout.Small -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot_small, R.layout.widget_budget_snapshot_small_styled)
+            BudgetLayout.Strip -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot_strip, R.layout.widget_budget_snapshot_strip_styled)
+            BudgetLayout.Compact -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot_compact, R.layout.widget_budget_snapshot_compact_styled)
+            BudgetLayout.Hero -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot, R.layout.widget_budget_snapshot_styled)
         }
-        val views = RemoteViews(context.packageName, layout)
+        val views = RemoteViews(context.packageName, layoutId)
         // RemoteViews inflate in the launcher's locale, so rebind every catalog label through
         // the app-language context (needed on API 28-32; API 33+ handles it in the framework).
         views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_budget_snapshot))
         views.setTextViewText(R.id.widget_ready_label, context.getString(R.string.widget_ready))
         views.setTextViewText(R.id.widget_budgeted_label, context.getString(R.string.widget_budgeted))
         views.setTextViewText(R.id.widget_balance_label, context.getString(R.string.widget_balance))
-        val repository = ActuaRepository(context)
-        try {
-            loadBudgetFormats(repository)
-            if (!repository.isUsingActualBudget) {
-                views.setTextViewText(R.id.widget_month, context.getString(R.string.widget_no_budget))
-                views.setViewVisibility(R.id.widget_month, View.VISIBLE)
-                views.setTextViewText(R.id.widget_ready_value, "—")
-                views.setTextViewText(R.id.widget_budgeted_value, "—")
-                views.setTextViewText(R.id.widget_balance_value, "—")
-            } else {
-                val overview = repository.budgetOverview()
-                val month = YearMonth.now()
-                    .format(DateTimeFormatter.ofPattern("MMMM yyyy", context.resources.configuration.locales[0]))
-                views.setTextViewText(R.id.widget_month, month)
-                views.setViewVisibility(R.id.widget_month, View.VISIBLE)
-                views.setTextViewText(
-                    R.id.widget_ready_value,
-                    overview.toBudgetCents?.let { money(context, it) } ?: "—",
-                )
-                views.setTextViewText(R.id.widget_budgeted_value, money(context, overview.budgetedCents))
-                views.setTextViewText(R.id.widget_balance_value, money(context, overview.availableCents))
-            }
-            views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.BUDGET, widgetId))
-            WidgetStyles.apply(context, views)
-            manager.updateAppWidget(widgetId, views)
-        } finally {
-            repository.close()
-        }
+        views.setTextViewText(R.id.widget_month, data.month)
+        views.setViewVisibility(R.id.widget_month, View.VISIBLE)
+        views.setTextViewText(R.id.widget_ready_value, data.ready)
+        views.setTextViewText(R.id.widget_budgeted_value, data.budgeted)
+        views.setTextViewText(R.id.widget_balance_value, data.balance)
+        views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.BUDGET, widgetId))
+        WidgetStyles.apply(context, views)
+        return views
     }
 
     private fun updateCategories(context: Context, manager: AppWidgetManager, widgetId: Int) {
-        val views = RemoteViews(context.packageName, WidgetStyles.layout(context, R.layout.widget_favourite_categories, R.layout.widget_favourite_categories_styled))
-        views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_favourite_categories))
-        views.setTextViewText(R.id.widget_empty, context.getString(R.string.widget_no_categories))
-        val repository = ActuaRepository(context)
-        try {
-            loadBudgetFormats(repository)
-            val all = repository.budgetGroups().asSequence()
-                .filterNot { it.hidden || it.isIncome }
-                .flatMap { it.categories.asSequence() }
-                .filterNot { it.hidden }
-                .toList()
-            val budgetId = ActiveBudgetStore(context).budgetId ?: "no-budget"
-            val favorites = FavoritePreferences(context).ids(budgetId, FavoritePreferences.Type.CATEGORY)
-            val rows = all.filter { it.id in favorites }.take(4)
-            bindRows(
-                context, views, rows.map { row ->
-                    val spent = row.spentCents.coerceAtLeast(0)
-                    val denominator = row.assignedCents.coerceAtLeast(1)
-                    val percent = ((spent * 100 / denominator).coerceIn(0, 100)).toInt()
-                    WidgetRow(
-                        row.name, money(context, row.balanceCents), percent, row.name,
-                        ProgressStatus.of(percent, overspent = row.balanceCents < 0),
-                    )
-                }, widgetId, WidgetActions.CATEGORY, showProgress = true,
-            )
-            views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.BUDGET, widgetId))
-            WidgetStyles.apply(context, views)
-            manager.updateAppWidget(widgetId, views)
-        } finally {
-            repository.close()
-        }
+        manager.updateAppWidget(
+            widgetId,
+            responsive(manager, widgetId, ListVariants) { layout ->
+                val views = RemoteViews(
+                    context.packageName,
+                    when (layout) {
+                        ListLayout.Mini -> WidgetStyles.layout(context, R.layout.widget_favourite_categories_mini, R.layout.widget_favourite_categories_mini_styled)
+                        ListLayout.Titled -> WidgetStyles.layout(context, R.layout.widget_favourite_categories, R.layout.widget_favourite_categories_styled)
+                    },
+                )
+                views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_favourite_categories))
+                views.setTextViewText(R.id.widget_empty, context.getString(R.string.widget_no_categories))
+                bindItemList(context, views, widgetId, WidgetKind.Categories, WidgetActions.CATEGORY)
+                views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.BUDGET, widgetId))
+                WidgetStyles.apply(context, views)
+                views
+            },
+        )
+        manager.notifyAppWidgetViewDataChanged(widgetId, R.id.widget_item_list)
     }
 
     private fun updateQuickTransaction(context: Context, manager: AppWidgetManager, widgetId: Int) {
-        val layout = if (isCompact(manager, widgetId)) {
-            WidgetStyles.layout(context, R.layout.widget_quick_transaction_compact, R.layout.widget_quick_transaction_compact_styled)
-        } else {
-            WidgetStyles.layout(context, R.layout.widget_quick_transaction, R.layout.widget_quick_transaction_styled)
-        }
-        val views = RemoteViews(context.packageName, layout)
-        views.setTextViewText(R.id.widget_expense, context.getString(R.string.widget_expense))
-        views.setTextViewText(R.id.widget_income, context.getString(R.string.widget_income))
-        views.setTextViewText(R.id.widget_transfer, context.getString(R.string.widget_transfer))
-        views.setOnClickPendingIntent(R.id.widget_expense, open(context, WidgetActions.ADD_EXPENSE, widgetId))
-        views.setOnClickPendingIntent(R.id.widget_income, open(context, WidgetActions.ADD_INCOME, widgetId))
-        views.setOnClickPendingIntent(R.id.widget_transfer, open(context, WidgetActions.ADD_TRANSFER, widgetId))
-        WidgetStyles.apply(context, views)
-            manager.updateAppWidget(widgetId, views)
+        manager.updateAppWidget(
+            widgetId,
+            responsive(manager, widgetId, QuickVariants) { layout ->
+                val views = RemoteViews(
+                    context.packageName,
+                    when (layout) {
+                        QuickLayout.Single -> WidgetStyles.layout(context, R.layout.widget_quick_transaction_single, R.layout.widget_quick_transaction_single_styled)
+                        QuickLayout.Stacked -> WidgetStyles.layout(context, R.layout.widget_quick_transaction, R.layout.widget_quick_transaction_styled)
+                        QuickLayout.Row -> WidgetStyles.layout(context, R.layout.widget_quick_transaction_row, R.layout.widget_quick_transaction_row_styled)
+                    },
+                )
+                views.setTextViewText(R.id.widget_expense, context.getString(R.string.widget_expense))
+                views.setTextViewText(R.id.widget_income, context.getString(R.string.widget_income))
+                views.setTextViewText(R.id.widget_transfer, context.getString(R.string.widget_transfer))
+                views.setOnClickPendingIntent(R.id.widget_expense, open(context, WidgetActions.ADD_EXPENSE, widgetId))
+                views.setOnClickPendingIntent(R.id.widget_income, open(context, WidgetActions.ADD_INCOME, widgetId))
+                views.setOnClickPendingIntent(R.id.widget_transfer, open(context, WidgetActions.ADD_TRANSFER, widgetId))
+                WidgetStyles.apply(context, views)
+                views
+            },
+        )
     }
 
     private fun updateAccounts(context: Context, manager: AppWidgetManager, widgetId: Int) {
-        val views = RemoteViews(context.packageName, WidgetStyles.layout(context, R.layout.widget_account_balances, R.layout.widget_account_balances_styled))
-        views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_account_balances))
-        views.setTextViewText(R.id.widget_empty, context.getString(R.string.widget_no_accounts))
-        val repository = ActuaRepository(context)
-        try {
-            loadBudgetFormats(repository)
-            val all = repository.accounts().filterNot { it.closed }
-            val selected = WidgetPreferences(context).selected(WidgetKind.Accounts, widgetId)
-            val rows = if (selected.isEmpty()) all.take(4) else all.filter { it.id in selected }.take(4)
-            bindRows(
-                context, views, rows.map { WidgetRow(it.name, money(context, it.balanceCents), 0, it.name) },
-                widgetId, WidgetActions.ACCOUNTS, showProgress = false,
-            )
-            views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.ACCOUNTS, widgetId))
-            WidgetStyles.apply(context, views)
-            manager.updateAppWidget(widgetId, views)
-        } finally {
-            repository.close()
+        manager.updateAppWidget(
+            widgetId,
+            responsive(manager, widgetId, ListVariants) { layout ->
+                val views = RemoteViews(
+                    context.packageName,
+                    when (layout) {
+                        ListLayout.Mini -> WidgetStyles.layout(context, R.layout.widget_account_balances_mini, R.layout.widget_account_balances_mini_styled)
+                        ListLayout.Titled -> WidgetStyles.layout(context, R.layout.widget_account_balances, R.layout.widget_account_balances_styled)
+                    },
+                )
+                views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_account_balances))
+                views.setTextViewText(R.id.widget_empty, context.getString(R.string.widget_no_accounts))
+                bindItemList(context, views, widgetId, WidgetKind.Accounts, WidgetActions.ACCOUNTS)
+                views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.ACCOUNTS, widgetId))
+                WidgetStyles.apply(context, views)
+                views
+            },
+        )
+        manager.notifyAppWidgetViewDataChanged(widgetId, R.id.widget_item_list)
+    }
+
+    // The service-backed adapter is deprecated on newer releases, but its replacement
+    // (RemoteCollectionItems) needs API 31 and minSdk is 28.
+    @Suppress("DEPRECATION")
+    private fun bindItemList(context: Context, views: RemoteViews, widgetId: Int, kind: WidgetKind, action: String) {
+        // A scrolling list shows every row (up to MAX_WIDGET_ROWS) however much room the widget has.
+        val rows = Intent(context, WidgetListService::class.java).apply {
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+            putExtra(WidgetListService.EXTRA_KIND, kind.name)
+            // Makes the intent unique per widget, so each widget gets its own list.
+            data = Uri.parse(toUri(Intent.URI_INTENT_SCHEME))
         }
+        views.setRemoteAdapter(R.id.widget_item_list, rows)
+        views.setEmptyView(R.id.widget_item_list, R.id.widget_empty)
+        // Rows fill in the item they open, which needs a mutable template. The intent is explicit, so
+        // a fill-in cannot redirect it; a negative request code keeps it apart from the widget's own.
+        views.setPendingIntentTemplate(R.id.widget_item_list, openTemplate(context, action, -widgetId))
     }
 
     // The service-backed adapter is deprecated on newer releases, but its replacement
     // (RemoteCollectionItems) needs API 31 and minSdk is 28.
     @Suppress("DEPRECATION")
     private fun updateSchedules(context: Context, manager: AppWidgetManager, widgetId: Int) {
-        val layout = if (isCompact(manager, widgetId)) {
-            WidgetStyles.layout(context, R.layout.widget_scheduled_transactions_compact, R.layout.widget_scheduled_transactions_compact_styled)
-        } else {
-            WidgetStyles.layout(context, R.layout.widget_scheduled_transactions, R.layout.widget_scheduled_transactions_styled)
-        }
-        val views = RemoteViews(context.packageName, layout)
-        views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_upcoming_schedules))
         val repository = ActuaRepository(context)
         val usingBudget = try { repository.isUsingActualBudget } finally { repository.close() }
-        views.setTextViewText(
-            R.id.widget_empty,
-            context.getString(if (usingBudget) R.string.widget_no_schedules else R.string.widget_no_budget),
+        manager.updateAppWidget(
+            widgetId,
+            responsive(manager, widgetId, ListVariants) { layout ->
+                val views = RemoteViews(
+                    context.packageName,
+                    when (layout) {
+                        ListLayout.Mini -> WidgetStyles.layout(context, R.layout.widget_scheduled_transactions_mini, R.layout.widget_scheduled_transactions_mini_styled)
+                        ListLayout.Titled -> WidgetStyles.layout(context, R.layout.widget_scheduled_transactions, R.layout.widget_scheduled_transactions_styled)
+                    },
+                )
+                views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_upcoming_schedules))
+                views.setTextViewText(
+                    R.id.widget_empty,
+                    context.getString(if (usingBudget) R.string.widget_no_schedules else R.string.widget_no_budget),
+                )
+                // A scrolling list shows every schedule in the chosen period, however many there are.
+                val rows = Intent(context, ScheduleWidgetService::class.java).apply {
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+                    // Makes the intent unique per widget, so each widget gets its own list.
+                    data = Uri.parse(toUri(Intent.URI_INTENT_SCHEME))
+                }
+                views.setRemoteAdapter(R.id.widget_schedule_list, rows)
+                views.setEmptyView(R.id.widget_schedule_list, R.id.widget_empty)
+                // Every row opens Scheduled; rows fill in an empty intent, so the template can stay immutable.
+                views.setPendingIntentTemplate(R.id.widget_schedule_list, open(context, WidgetActions.SCHEDULES, widgetId * 10 + 1))
+                views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.SCHEDULES, widgetId))
+                WidgetStyles.apply(context, views)
+                views
+            },
         )
-        // A scrolling list shows every schedule in the chosen period, however many there are.
-        val rows = Intent(context, ScheduleWidgetService::class.java).apply {
-            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
-            // Makes the intent unique per widget, so each widget gets its own list.
-            data = Uri.parse(toUri(Intent.URI_INTENT_SCHEME))
-        }
-        views.setRemoteAdapter(R.id.widget_schedule_list, rows)
-        views.setEmptyView(R.id.widget_schedule_list, R.id.widget_empty)
-        // Every row opens Scheduled; rows fill in an empty intent, so the template can stay immutable.
-        views.setPendingIntentTemplate(R.id.widget_schedule_list, open(context, WidgetActions.SCHEDULES, widgetId * 10 + 1))
-        views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.SCHEDULES, widgetId))
-        WidgetStyles.apply(context, views)
-            manager.updateAppWidget(widgetId, views)
         manager.notifyAppWidgetViewDataChanged(widgetId, R.id.widget_schedule_list)
     }
 
@@ -412,43 +457,69 @@ object WidgetUpdater {
         }
     }
 
-    private data class WidgetRow(
+    /** One row of the Favourite categories or Account balances list. [target] is what a tap opens. */
+    internal data class WidgetRow(
         val name: String,
         val amount: String,
         val progress: Int,
         val target: String,
         val status: ProgressStatus = ProgressStatus.Normal,
+        val showProgress: Boolean = false,
     )
 
-    private fun bindRows(
-        context: Context,
-        views: RemoteViews,
-        rows: List<WidgetRow>,
-        widgetId: Int,
-        action: String,
-        showProgress: Boolean,
-    ) {
-        val containers = intArrayOf(R.id.widget_row_1, R.id.widget_row_2, R.id.widget_row_3, R.id.widget_row_4)
-        val names = intArrayOf(R.id.widget_name_1, R.id.widget_name_2, R.id.widget_name_3, R.id.widget_name_4)
-        val amounts = intArrayOf(R.id.widget_amount_1, R.id.widget_amount_2, R.id.widget_amount_3, R.id.widget_amount_4)
-        val progress = intArrayOf(R.id.widget_progress_1, R.id.widget_progress_2, R.id.widget_progress_3, R.id.widget_progress_4)
-        containers.indices.forEach { index ->
-            val row = rows.getOrNull(index)
-            views.setViewVisibility(containers[index], if (row == null) View.GONE else View.VISIBLE)
-            if (row != null) {
-                views.setTextViewText(names[index], row.name)
-                views.setTextViewText(amounts[index], row.amount)
-                views.setViewVisibility(progress[index], if (showProgress) View.VISIBLE else View.GONE)
-                if (showProgress) {
-                    views.setProgressBar(progress[index], 100, row.progress, false)
-                    WidgetStyles.applyProgressStatus(context, views, progress[index], row.status)
-                }
-                views.setOnClickPendingIntent(
-                    containers[index], open(context, action, widgetId * 10 + index + 1, row.target),
+    internal fun categoryRows(context: Context): List<WidgetRow> {
+        val repository = ActuaRepository(context)
+        try {
+            loadBudgetFormats(repository)
+            val all = repository.budgetGroups().asSequence()
+                .filterNot { it.hidden || it.isIncome }
+                .flatMap { it.categories.asSequence() }
+                .filterNot { it.hidden }
+                .toList()
+            val budgetId = ActiveBudgetStore(context).budgetId ?: "no-budget"
+            val favorites = FavoritePreferences(context).ids(budgetId, FavoritePreferences.Type.CATEGORY)
+            return all.filter { it.id in favorites }.take(MAX_WIDGET_ROWS).map { row ->
+                val spent = row.spentCents.coerceAtLeast(0)
+                val denominator = row.assignedCents.coerceAtLeast(1)
+                val percent = ((spent * 100 / denominator).coerceIn(0, 100)).toInt()
+                WidgetRow(
+                    row.name, money(context, row.balanceCents), percent, row.name,
+                    ProgressStatus.of(percent, overspent = row.balanceCents < 0), showProgress = true,
                 )
             }
+        } finally {
+            repository.close()
         }
-        views.setViewVisibility(R.id.widget_empty, if (rows.isEmpty()) View.VISIBLE else View.GONE)
+    }
+
+    internal fun accountRows(context: Context, widgetId: Int): List<WidgetRow> {
+        val repository = ActuaRepository(context)
+        try {
+            loadBudgetFormats(repository)
+            val all = repository.accounts().filterNot { it.closed }
+            val selected = WidgetPreferences(context).selected(WidgetKind.Accounts, widgetId)
+            val rows = if (selected.isEmpty()) all else all.filter { it.id in selected }
+            return rows.take(MAX_WIDGET_ROWS).map { WidgetRow(it.name, money(context, it.balanceCents), 0, it.name) }
+        } finally {
+            repository.close()
+        }
+    }
+
+    internal fun listRow(context: Context, row: WidgetRow): RemoteViews {
+        // Rows bind from the RemoteViewsService's application context, which does not follow
+        // the app locale on API 28-32; resolve strings through the app-language context.
+        val localized = context.withAppLanguage()
+        return RemoteViews(localized.packageName, R.layout.widget_list_item).apply {
+            setTextViewText(R.id.widget_item_name, row.name)
+            setTextViewText(R.id.widget_item_amount, row.amount)
+            setViewVisibility(R.id.widget_item_progress, if (row.showProgress) View.VISIBLE else View.GONE)
+            if (row.showProgress) {
+                setProgressBar(R.id.widget_item_progress, 100, row.progress, false)
+                WidgetStyles.applyProgressStatus(localized, this, R.id.widget_item_progress, row.status)
+            }
+            setOnClickFillInIntent(R.id.widget_item_row, Intent().putExtra(WidgetActions.EXTRA_TARGET, row.target))
+            WidgetStyles.apply(localized, this)
+        }
     }
 
     private fun open(context: Context, action: String, requestCode: Int, target: String? = null): PendingIntent {
@@ -459,6 +530,16 @@ object WidgetUpdater {
         }
         return PendingIntent.getActivity(
             context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    private fun openTemplate(context: Context, action: String, requestCode: Int): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            this.action = action
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        }
+        return PendingIntent.getActivity(
+            context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
         )
     }
 

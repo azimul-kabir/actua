@@ -20,8 +20,8 @@
 
     <string name="widget_off_budget">Fuera del presupuesto</string>
     <string name="widget_add">Añadir widget</string>
-    <string name="widget_choose_categories">Elige hasta cuatro categorías para añadirlas a tus favoritos compartidos.</string>
-    <string name="widget_choose_accounts">Elige hasta cuatro cuentas.</string>
+    <string name="widget_choose_categories">Elige hasta ocho categorías para añadirlas a tus favoritos compartidos.</string>
+    <string name="widget_choose_accounts">Elige hasta ocho cuentas.</string>
     <string name="widget_no_available_items">No hay elementos disponibles en el presupuesto abierto.</string>
     <string name="widget_schedule_period_prompt">Mostrar las transacciones programadas que vencen dentro de:</string>
     <plurals name="widget_period_days">

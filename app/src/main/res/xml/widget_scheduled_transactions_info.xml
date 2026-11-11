@@ -3,10 +3,11 @@
     android:configure="com.azimulkabir.actua.widget.ScheduleWidgetConfigurationActivity"
     android:description="@string/widget_upcoming_schedules"
     android:initialLayout="@layout/widget_scheduled_transactions"
-    android:minWidth="110dp" android:minHeight="138dp"
+    android:minWidth="250dp" android:minHeight="110dp"
     android:previewLayout="@layout/widget_scheduled_transactions"
     android:resizeMode="horizontal|vertical"
-    android:targetCellWidth="2" android:targetCellHeight="2"
+    android:minResizeWidth="40dp" android:minResizeHeight="40dp"
+    android:targetCellWidth="4" android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
     android:widgetFeatures="reconfigurable"
     android:widgetCategory="home_screen" />

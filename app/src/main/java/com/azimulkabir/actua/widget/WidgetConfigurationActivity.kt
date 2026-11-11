@@ -219,7 +219,7 @@ private fun WidgetConfigurationScreen(
                     ) {
                         Checkbox(
                             checked = checked,
-                            enabled = checked || selected.size < 4,
+                            enabled = checked || selected.size < MAX_WIDGET_ROWS,
                             onCheckedChange = { enabled ->
                                 selected = if (enabled) selected + choice.id else selected - choice.id
                             },
