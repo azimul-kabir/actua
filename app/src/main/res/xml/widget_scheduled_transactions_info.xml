@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:configure="com.azimulkabir.actua.widget.ScheduleWidgetConfigurationActivity"
-    android:description="@string/widget_upcoming_schedules"
+    android:description="@string/widget_description_upcoming_schedules"
     android:initialLayout="@layout/widget_scheduled_transactions"
     android:minWidth="250dp" android:minHeight="110dp"
-    android:previewLayout="@layout/widget_scheduled_transactions"
+    android:previewLayout="@layout/widget_preview_scheduled_transactions"
     android:resizeMode="horizontal|vertical"
     android:minResizeWidth="40dp" android:minResizeHeight="40dp"
     android:targetCellWidth="4" android:targetCellHeight="2"

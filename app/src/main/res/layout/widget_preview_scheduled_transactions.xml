@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Static picker preview with synthetic sample data. The real widget is bound with budget data. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="@dimen/widget_padding">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <TextView
+                style="@style/WidgetTitle"
+                android:text="@string/widget_upcoming_schedules" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+            android:gravity="center_vertical" android:orientation="vertical" android:paddingVertical="4dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                    <TextView style="@style/WidgetRowName" android:text="@string/widget_sample_schedule_1" />
+                    <TextView style="@style/WidgetLabel" android:text="@string/widget_due_tomorrow" />
+                </LinearLayout>
+                <TextView style="@style/WidgetRowAmount" android:text="@string/widget_sample_amount_10" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+            android:gravity="center_vertical" android:orientation="vertical" android:paddingVertical="4dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                    <TextView style="@style/WidgetRowName" android:text="@string/widget_sample_schedule_2" />
+                    <TextView style="@style/WidgetLabel" android:text="@string/widget_due_today" />
+                </LinearLayout>
+                <TextView style="@style/WidgetRowAmount" android:text="@string/widget_sample_amount_11" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+            android:gravity="center_vertical" android:orientation="vertical" android:paddingVertical="4dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                    <TextView style="@style/WidgetRowName" android:text="@string/widget_sample_schedule_3" />
+                    <TextView style="@style/WidgetLabel" android:text="@string/widget_due_tomorrow" />
+                </LinearLayout>
+                <TextView style="@style/WidgetRowAmount" android:text="@string/widget_sample_amount_12" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

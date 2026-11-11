@@ -41,6 +41,21 @@
     <string name="widget_cd_refresh">Actualizar, actualizado %1$s</string>
     <string name="widget_refreshed">Widget actualizado</string>
     <string name="widget_no_favorites">No hay favoritos elegidos. Toca para elegir.</string>
+    <!-- One line in the widget picker saying what each widget shows, and sample names for its preview. -->
+    <string name="widget_description_budget_snapshot">Listo para presupuestar, presupuestado y saldo de este mes.</string>
+    <string name="widget_description_favourite_categories">Progreso del gasto de tus categorías favoritas.</string>
+    <string name="widget_description_quick_transaction">Accesos directos para añadir un gasto, ingreso o transferencia.</string>
+    <string name="widget_description_account_balances">Saldos actuales de tus cuentas.</string>
+    <string name="widget_description_upcoming_schedules">Transacciones programadas próximas a vencer, las más cercanas primero.</string>
+    <string name="widget_sample_category_1">Supermercado</string>
+    <string name="widget_sample_category_2">Restaurantes</string>
+    <string name="widget_sample_category_3">Transporte</string>
+    <string name="widget_sample_account_1">Cuenta corriente</string>
+    <string name="widget_sample_account_2">Ahorros</string>
+    <string name="widget_sample_account_3">Tarjeta de crédito</string>
+    <string name="widget_sample_schedule_1">Alquiler</string>
+    <string name="widget_sample_schedule_2">Teléfono</string>
+    <string name="widget_sample_schedule_3">Internet</string>
     <string name="widget_due_today">Hoy</string>
     <string name="widget_due_tomorrow">Mañana</string>
     <plurals name="widget_due_in_days">

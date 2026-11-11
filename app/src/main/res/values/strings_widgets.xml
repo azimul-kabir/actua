@@ -41,6 +41,21 @@
     <string name="widget_cd_refresh">Refresh, updated %1$s</string>
     <string name="widget_refreshed">Widget refreshed</string>
     <string name="widget_no_favorites">No favorites chosen. Tap to choose.</string>
+    <!-- One line in the widget picker saying what each widget shows, and sample names for its preview. -->
+    <string name="widget_description_budget_snapshot">Ready to budget, budgeted and balance for this month.</string>
+    <string name="widget_description_favourite_categories">Spending progress for your favorite categories.</string>
+    <string name="widget_description_quick_transaction">One-tap shortcuts to add an expense, income or transfer.</string>
+    <string name="widget_description_account_balances">Current balances of your accounts.</string>
+    <string name="widget_description_upcoming_schedules">Scheduled transactions coming due, soonest first.</string>
+    <string name="widget_sample_category_1">Groceries</string>
+    <string name="widget_sample_category_2">Dining out</string>
+    <string name="widget_sample_category_3">Transport</string>
+    <string name="widget_sample_account_1">Checking</string>
+    <string name="widget_sample_account_2">Savings</string>
+    <string name="widget_sample_account_3">Credit card</string>
+    <string name="widget_sample_schedule_1">Rent</string>
+    <string name="widget_sample_schedule_2">Phone</string>
+    <string name="widget_sample_schedule_3">Internet</string>
     <string name="widget_due_today">Today</string>
     <string name="widget_due_tomorrow">Tomorrow</string>
     <plurals name="widget_due_in_days">
