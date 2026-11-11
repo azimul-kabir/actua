@@ -7,6 +7,16 @@ on:
         description: Branch, tag, or commit to build (leave blank to build the selected workflow branch)
         required: false
         type: string
+      flavor:
+        description: >-
+          Which build to make: fdroid (no Play Billing, the public GitHub and F-Droid build) or
+          playstore (the full build with Play Billing and the supporter extras)
+        required: false
+        default: fdroid
+        type: choice
+        options:
+          - fdroid
+          - playstore
 
 permissions:
   contents: read
@@ -66,10 +76,32 @@ jobs:
               shortcuts.write_text(text, encoding="utf-8")
           PY
 
+      - name: Select build flavor
+        id: flavor
+        env:
+          FLAVOR: ${{ inputs.flavor }}
+        run: |
+          # "fdroid" (the default) matches the public GitHub/F-Droid APK; "playstore" is the full build
+          # with Play Billing. Anything else is refused rather than guessed at.
+          case "${FLAVOR:-fdroid}" in
+            fdroid)
+              echo "task=assembleFdroidDebug" >> "$GITHUB_OUTPUT"
+              echo "dir=fdroid" >> "$GITHUB_OUTPUT"
+              echo "label=" >> "$GITHUB_OUTPUT"
+              ;;
+            playstore)
+              echo "task=assemblePlaystoreDebug" >> "$GITHUB_OUTPUT"
+              echo "dir=playstore" >> "$GITHUB_OUTPUT"
+              echo "label=Play-" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unknown flavor: ${FLAVOR}" >&2
+              exit 1
+              ;;
+          esac
+
       - name: Build test APK without signing secrets
-        # Built from the "fdroid" flavor (no Play Billing), matching the flavor used for the
-        # public GitHub/F-Droid APK.
-        run: ./gradlew --no-daemon --stacktrace assembleFdroidDebug
+        run: ./gradlew --no-daemon --stacktrace ${{ steps.flavor.outputs.task }}
 
       - name: Prepare persistent Actua signing key
         env:
@@ -88,6 +120,9 @@ jobs:
       - name: Name test artifact
         id: artifact
         shell: bash
+        env:
+          FLAVOR_DIR: ${{ steps.flavor.outputs.dir }}
+          LABEL: ${{ steps.flavor.outputs.label }}
         run: |
           TARGET_REF='${{ inputs.ref }}'
           if [ -z "$TARGET_REF" ]; then
@@ -95,9 +130,10 @@ jobs:
           fi
           SAFE_REF="$(printf '%s' "$TARGET_REF" | tr '/:@ ' '----' | tr -cd '[:alnum:]._-')"
           SHORT_SHA="$(git rev-parse --short=8 HEAD)"
-          ARTIFACT="Actua-Test-${SAFE_REF}-${SHORT_SHA}-run${GITHUB_RUN_NUMBER}"
+          # The F-Droid name is unchanged; the Play build is "Actua-Test-Play-...".
+          ARTIFACT="Actua-Test-${LABEL}${SAFE_REF}-${SHORT_SHA}-run${GITHUB_RUN_NUMBER}"
           echo "name=$ARTIFACT" >> "$GITHUB_OUTPUT"
-          cp app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk "$RUNNER_TEMP/$ARTIFACT.apk"
+          cp "app/build/outputs/apk/${FLAVOR_DIR}/debug/app-${FLAVOR_DIR}-debug.apk" "$RUNNER_TEMP/$ARTIFACT.apk"
 
       - name: Re-sign test APK with persistent Actua key
         env:
