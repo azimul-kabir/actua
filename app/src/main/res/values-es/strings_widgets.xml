@@ -77,6 +77,22 @@
     <string name="widget_cd_spending_trend_hidden">Tendencia de gasto. Los importes están ocultos.</string>
     <string name="widget_cd_trend_this_month">%1$s (este mes)</string>
     <string name="widget_cd_trend_month">%1$s %2$s</string>
+    <string name="widget_report_card">Tarjeta de informe</string>
+    <string name="widget_description_report_card">Una tarjeta de tu panel de Informes como un solo número.</string>
+    <string name="widget_choose_report_card">Elige la tarjeta del panel que quieres mostrar.</string>
+    <string name="widget_report_card_missing">Tarjeta no encontrada. Toca para elegir.</string>
+    <string name="widget_no_report_cards">No hay tarjetas del panel con un solo valor</string>
+    <string name="widget_sample_report_card">Patrimonio neto</string>
+    <plurals name="widget_report_card_days">
+        <item quantity="one">%d día</item>
+        <item quantity="other">%d días</item>
+    </plurals>
+    <string name="widget_report_card_years">%1$s años</string>
+    <string name="widget_report_card_not_reached">No alcanzado</string>
+    <string name="widget_report_card_unavailable">Aún sin valor</string>
+    <string name="widget_report_card_comparison">frente a %1$s</string>
+    <string name="widget_cd_report_card">%1$s: %2$s</string>
+    <string name="widget_cd_report_card_compared">%1$s: %2$s, comparado con %3$s</string>
     <string name="widget_due_today">Hoy</string>
     <string name="widget_due_tomorrow">Mañana</string>
     <plurals name="widget_due_in_days">

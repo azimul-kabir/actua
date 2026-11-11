@@ -58,7 +58,7 @@ object CoreReportEngine {
         widgetFilter: (DashboardWidgetRow) -> Boolean = { true },
         range: com.azimulkabir.actua.model.ReportRange? = null,
     ): List<ReportDashboardPage> {
-        val resolvedPages = if (pages.isEmpty()) listOf(DashboardPageRow("", "Dashboard")) else pages
+        val resolvedPages = resolvedPages(pages)
         val context = RuleContext(
             offBudgetAccountIds = accounts.filter { it.offBudget }.mapTo(mutableSetOf()) { it.id },
             accountNames = accounts.associate { it.id to it.name },
@@ -103,6 +103,15 @@ object CoreReportEngine {
             )
         }
     }
+
+    /** The pages widgets are read for: a budget from before dashboard pages has one unnamed page. */
+    internal fun resolvedPages(pages: List<DashboardPageRow>): List<DashboardPageRow> =
+        if (pages.isEmpty()) listOf(DashboardPageRow("", "Dashboard")) else pages
+
+    /** The name a card is shown under: the one saved in Actual, or its kind when it has none. */
+    internal fun cardName(row: DashboardWidgetRow): String =
+        row.metaJson?.let { runCatching { JSONObject(it) }.getOrNull() }
+            ?.optString("name")?.takeIf(String::isNotBlank) ?: label(row.type)
 
     /**
      * Returns [metaJson] with its `timeFrame` replaced by [range], for a viewer-side recomputation.
@@ -1469,7 +1478,7 @@ object CoreReportEngine {
         private fun peek(): Char? = source.getOrNull(index)
     }
 
-    private fun label(type: String) = when (type) {
+    internal fun label(type: String) = when (type) {
         "summary-card" -> "Summary"; "net-worth-card" -> "Net Worth"; "cash-flow-card" -> "Cash Flow"
         "spending-card" -> "Spending"; "markdown-card" -> "Notes"; "age-of-money-card" -> "Age of Money"
         "formula-card" -> "Formula"; "custom-report" -> "Custom Report"; "calendar-card" -> "Calendar"
