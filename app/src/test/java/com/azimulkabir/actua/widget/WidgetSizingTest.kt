@@ -80,6 +80,7 @@ class WidgetSizingTest {
         assertEquals(QuickLayout.entries.toSet(), reached(QuickVariants))
         assertEquals(ListLayout.entries.toSet(), reached(ListVariants))
         assertEquals(TrendLayout.entries.toSet(), reached(TrendVariants))
+        assertEquals(ReportCardLayout.entries.toSet(), reached(ReportCardVariants))
         assertEquals(TrendLayout.entries.toSet(), reached(IncomeSpendingVariants))
     }
 

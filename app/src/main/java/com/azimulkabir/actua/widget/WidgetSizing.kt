@@ -75,6 +75,14 @@ internal val ListVariants = listOf(
     WidgetVariant(40, 150, ListLayout.Full),
 )
 
+internal enum class ReportCardLayout { Small, Tall }
+
+/** Report card: the card's name over its value at 2x1, and from 2x2 a larger value with its comparison below. */
+internal val ReportCardVariants = listOf(
+    WidgetVariant(40, 40, ReportCardLayout.Small),
+    WidgetVariant(40, 100, ReportCardLayout.Tall),
+)
+
 internal enum class TrendLayout { Small, Chart }
 
 /** Spending trend: this month against last as two bars while small, six months of bars from 3x2. */

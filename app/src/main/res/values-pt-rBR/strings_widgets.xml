@@ -77,6 +77,22 @@
     <string name="widget_cd_spending_trend_hidden">Tendência de gastos. Os valores estão ocultos.</string>
     <string name="widget_cd_trend_this_month">%1$s (este mês)</string>
     <string name="widget_cd_trend_month">%1$s %2$s</string>
+    <string name="widget_report_card">Cartão de relatório</string>
+    <string name="widget_description_report_card">Um cartão do seu painel de Relatórios como um único número.</string>
+    <string name="widget_choose_report_card">Escolha o cartão do painel a mostrar.</string>
+    <string name="widget_report_card_missing">Cartão não encontrado. Toque para escolher.</string>
+    <string name="widget_no_report_cards">Nenhum cartão do painel com um único valor</string>
+    <string name="widget_sample_report_card">Patrimônio líquido</string>
+    <plurals name="widget_report_card_days">
+        <item quantity="one">%d dia</item>
+        <item quantity="other">%d dias</item>
+    </plurals>
+    <string name="widget_report_card_years">%1$s anos</string>
+    <string name="widget_report_card_not_reached">Não alcançado</string>
+    <string name="widget_report_card_unavailable">Ainda sem valor</string>
+    <string name="widget_report_card_comparison">vs. %1$s</string>
+    <string name="widget_cd_report_card">%1$s: %2$s</string>
+    <string name="widget_cd_report_card_compared">%1$s: %2$s, comparado com %3$s</string>
     <string name="widget_due_today">Hoje</string>
     <string name="widget_due_tomorrow">Amanhã</string>
     <plurals name="widget_due_in_days">

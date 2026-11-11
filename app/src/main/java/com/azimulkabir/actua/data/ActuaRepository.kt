@@ -1735,6 +1735,29 @@ class ActuaRepository(context: Context) {
         return com.azimulkabir.actua.data.reports.SharedReportData.get(ActiveBudgetStore(appContext).budgetId, db)
     }
 
+    /** The dashboard cards the Report card home-screen widget can show, in dashboard order. */
+    fun reportCardChoices(): List<com.azimulkabir.actua.data.reports.ReportCardChoice> {
+        val db = actualDatabase ?: return emptyList()
+        return com.azimulkabir.actua.data.reports.ReportCards.offered(db.fetchDashboardPages(), db::fetchDashboardWidgets)
+    }
+
+    /**
+     * One dashboard card for the Report card home-screen widget, computed by the dashboard's own code over
+     * the card's saved settings, so the widget and Reports agree. It reads the report data shared by every
+     * report widget, and computes only this card. Set [reportMonthStart] first, as Reports does. Null when
+     * the card is gone.
+     */
+    fun reportCard(cardId: String): com.azimulkabir.actua.model.ReportWidget? {
+        val db = actualDatabase ?: return null
+        val data = reportDataForWidgets() ?: return null
+        // The single-value cards read no saved reports and no payees, so neither is loaded.
+        return computeDashboards(
+            db, ReportInputs(-1, db, data.accounts, data.groups, data.transactions), db.fetchDashboardPages(),
+            emptyList(), emptyList(), db.firstDayOfWeekPreference(), mutableMapOf(), mutableMapOf(),
+            widgetFilter = { it.id == cardId },
+        ).asSequence().flatMap { it.widgets.asSequence() }.firstOrNull { it.id == cardId }
+    }
+
     /** Saved Actual reports evaluated with an optional viewer-side date/account override. */
     fun savedReportWidgets(
         view: com.azimulkabir.actua.model.ReportViewFilter,
