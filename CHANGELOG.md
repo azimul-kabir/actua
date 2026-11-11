@@ -22,7 +22,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Made the home-screen widgets use the space they are given, with new one-row and single-figure sizes, and up to eight scrolling rows in Favourite categories and Account balances ([#1569](https://github.com/azimul-kabir/actua/pull/1569))
 - Improved home-screen widget accessibility with TalkBack descriptions, larger tap targets and amounts that fit at large font sizes ([#1570](https://github.com/azimul-kabir/actua/pull/1570))
 - Slimmed the Ready to Budget card in the Plan view to a single row ([#1562](https://github.com/azimul-kabir/actua/pull/1562))
-- Made the Favourite categories, Account balances and Upcoming schedules widgets place straight away without a setup screen on Android 12 and later, and refreshed their setup screens with search, the app's appearance and the app lock ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
+- Made the Favourite categories, Account balances and Upcoming schedules widgets place straight away without a setup screen on Android 12 and later, and refreshed their setup screens with search, the app's appearance and the app lock ([#1573](https://github.com/azimul-kabir/actua/pull/1573))
 
 ## [2.6.0] - 2026-11-10
 
