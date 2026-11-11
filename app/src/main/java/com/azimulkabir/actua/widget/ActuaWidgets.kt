@@ -243,6 +243,7 @@ object WidgetUpdater {
         )
     }
 
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
     private fun categoriesPreview(context: Context): RemoteViews {
         fun row(name: Int, amount: Int, percent: Int) = WidgetRow(
             sample(context, name), sample(context, amount), percent, "",
@@ -259,6 +260,7 @@ object WidgetUpdater {
         )
     }
 
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
     private fun accountsPreview(context: Context): RemoteViews {
         fun row(name: Int, amount: Int) = WidgetRow(sample(context, name), sample(context, amount), 0, "", spokenAmount = sample(context, amount))
         return collectionPreview(
@@ -272,6 +274,7 @@ object WidgetUpdater {
         )
     }
 
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
     private fun schedulesPreview(context: Context): RemoteViews {
         fun row(title: Int, due: Int, amount: Int) = RemoteViews(context.packageName, R.layout.widget_schedule_item).apply {
             setTextViewText(R.id.widget_schedule_title, sample(context, title))
@@ -291,6 +294,7 @@ object WidgetUpdater {
     }
 
     /** A list widget's real layout with fixed [rows] in place of its adapter, for a picker preview. */
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
     private fun collectionPreview(
         context: Context,
         plain: Int,
