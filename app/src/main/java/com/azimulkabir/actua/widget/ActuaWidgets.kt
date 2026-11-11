@@ -294,7 +294,7 @@ object WidgetUpdater {
                     context.getString(R.string.widget_ready), data.spokenReady ?: hidden,
                     context.getString(R.string.widget_budgeted), data.spokenBudgeted ?: hidden,
                     context.getString(R.string.widget_balance), data.spokenBalance ?: hidden,
-                ),
+                )
             },
         )
         WidgetStyles.apply(context, views)
