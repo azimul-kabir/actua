@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Six sample pairs of income and spending bars for the picker preview; the last, this month, is in the full tones. Not real data. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp" android:height="64dp"
+    android:viewportWidth="240" android:viewportHeight="64">
+    <path android:fillColor="@color/widget_primary" android:fillAlpha="0.6"
+        android:pathData="M4,14h12v50h-12z M44,10h12v54h-12z M84,18h12v46h-12z M124,12h12v52h-12z M164,16h12v48h-12z" />
+    <path android:fillColor="@color/widget_secondary_text" android:fillAlpha="0.6"
+        android:pathData="M18,28h12v36h-12z M58,22h12v42h-12z M98,34h12v30h-12z M138,26h12v38h-12z M178,30h12v34h-12z" />
+    <path android:fillColor="@color/widget_primary"
+        android:pathData="M204,14h12v50h-12z" />
+    <path android:fillColor="@color/widget_secondary_text"
+        android:pathData="M218,36h12v28h-12z" />
+</vector>

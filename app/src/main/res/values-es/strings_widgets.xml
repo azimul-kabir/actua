@@ -98,4 +98,17 @@
     <string name="credit_card_notification_title">Pago de %1$s con vencimiento %2$s</string>
     <string name="credit_card_notification_statement_body">El estado de cuenta vence el %1$s. El pago vence el %2$s.</string>
     <string name="credit_card_notification_body">Saldo actual: %1$s. El pago vence el %2$s.</string>
+    <string name="widget_income_spending">Ingresos y gastos</string>
+    <string name="widget_description_income_spending">Ingresos, gastos y lo que queda este mes, con los últimos seis meses en barras pareadas.</string>
+    <string name="widget_is_left_label">Queda este mes</string>
+    <string name="widget_is_left_rate">Queda este mes · %1$d%% ahorrado</string>
+    <string name="widget_is_income">Ingresos %1$s</string>
+    <string name="widget_is_spent">Gastos %1$s</string>
+    <string name="widget_is_empty">Sin ingresos ni gastos en los últimos seis meses</string>
+    <string name="widget_cd_income_spending">Ingresos y gastos, últimos %1$d meses: %2$s.</string>
+    <string name="widget_cd_income_spending_hidden">Ingresos y gastos. Los importes están ocultos.</string>
+    <string name="widget_cd_is_this_month">%1$s (este mes)</string>
+    <string name="widget_cd_is_month">%1$s ingresos %2$s, gastos %3$s</string>
+    <string name="widget_cd_is_left">Este mes quedan %1$s.</string>
+    <string name="widget_cd_is_rate">Tasa de ahorro: %1$d por ciento.</string>
 </resources>

@@ -82,3 +82,9 @@ internal val TrendVariants = listOf(
     WidgetVariant(40, 40, TrendLayout.Small),
     WidgetVariant(180, 100, TrendLayout.Chart),
 )
+
+/** Income and spending: this month's income against spending while small, six months of paired bars from 3x2. */
+internal val IncomeSpendingVariants = listOf(
+    WidgetVariant(40, 40, TrendLayout.Small),
+    WidgetVariant(180, 110, TrendLayout.Chart),
+)

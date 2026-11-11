@@ -48,7 +48,7 @@ class WidgetConfigurationTest {
             assertTrue("$info should still be reconfigurable", "reconfigurable" in value)
             assertTrue("$info keeps its configuration screen", File("src/main/res/xml/$info.xml").readText().contains("android:configure="))
         }
-        for (info in listOf("widget_budget_snapshot_info", "widget_quick_transaction_info", "widget_spending_trend_info")) {
+        for (info in listOf("widget_budget_snapshot_info", "widget_quick_transaction_info", "widget_spending_trend_info", "widget_income_spending_info")) {
             assertFalse("$info has nothing to configure", File("src/main/res/xml/$info.xml").readText().contains("android:configure="))
         }
     }

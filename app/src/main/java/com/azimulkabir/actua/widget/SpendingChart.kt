@@ -26,14 +26,48 @@ internal class ChartColors(
     val bar: Int,
     /** Month and amount labels. */
     val label: Int,
+    /** The spending bar beside an income bar, for this month, in a tone that tells it from the accent. */
+    val second: Int = label,
+    /** The spending bar for the other months. */
+    val secondPast: Int = label,
 )
 
 /** The chart's colors for a widget style: its accent for this month, a softer tone of it for the others. */
-internal fun chartColorsFor(colors: WidgetStyleColors): ChartColors = ChartColors(
-    highlight = colors.primary,
-    bar = blendArgb(colors.primary, colors.background or (0xFF shl 24), PAST_BAR_STRENGTH),
-    label = colors.secondary,
-)
+internal fun chartColorsFor(colors: WidgetStyleColors): ChartColors {
+    val backdrop = colors.background or (0xFF shl 24)
+    // The spending bar beside an income bar is a text tone that sits as far from the accent as it can while
+    // staying a clear shape on the background, so the two read as different series in every style, light and
+    // dark. The dimmed secondary tone is there for dark styles, where every full text tone is as light as the accent.
+    val candidates = listOf(
+        colors.onBackground, colors.secondary,
+        blendArgb(colors.secondary, backdrop, 0.6f), blendArgb(colors.secondary, backdrop, 0.45f),
+    ).filter { contrast(it, backdrop) >= MIN_SHAPE_CONTRAST }
+    val second = candidates.maxByOrNull { contrast(it, colors.primary) } ?: colors.secondary
+    val past = blendArgb(second, backdrop, PAST_BAR_STRENGTH).takeIf { contrast(it, backdrop) >= MIN_SHAPE_CONTRAST } ?: second
+    return ChartColors(
+        highlight = colors.primary,
+        bar = blendArgb(colors.primary, backdrop, PAST_BAR_STRENGTH),
+        label = colors.secondary,
+        second = second,
+        secondPast = past,
+    )
+}
+
+/** The contrast a bar needs against the background to stay a clear shape (WCAG's 3:1 for graphics). */
+private const val MIN_SHAPE_CONTRAST = 3.0
+
+private fun luminance(argb: Int): Double {
+    fun channel(shift: Int): Double {
+        val v = ((argb shr shift) and 0xFF) / 255.0
+        return if (v <= 0.03928) v / 12.92 else Math.pow((v + 0.055) / 1.055, 2.4)
+    }
+    return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0)
+}
+
+private fun contrast(a: Int, b: Int): Double {
+    val (light, dark) = listOf(luminance(a), luminance(b)).sortedDescending()
+    return (light + 0.05) / (dark + 0.05)
+}
 
 /** How much of the accent the past months' bars keep: enough to stay a clear shape on the background. */
 internal const val PAST_BAR_STRENGTH = 0.7f

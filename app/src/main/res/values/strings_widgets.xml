@@ -98,4 +98,17 @@
     <string name="credit_card_notification_title">%1$s payment due %2$s</string>
     <string name="credit_card_notification_statement_body">Statement due %1$s. Payment due %2$s.</string>
     <string name="credit_card_notification_body">Current balance %1$s. Payment due %2$s.</string>
+    <string name="widget_income_spending">Income and spending</string>
+    <string name="widget_description_income_spending">Income, spending and what is left this month, with the last six months as paired bars.</string>
+    <string name="widget_is_left_label">Left this month</string>
+    <string name="widget_is_left_rate">Left this month · %1$d%% saved</string>
+    <string name="widget_is_income">Income %1$s</string>
+    <string name="widget_is_spent">Spending %1$s</string>
+    <string name="widget_is_empty">No income or spending in the last six months</string>
+    <string name="widget_cd_income_spending">Income and spending, last %1$d months: %2$s.</string>
+    <string name="widget_cd_income_spending_hidden">Income and spending. Amounts are hidden.</string>
+    <string name="widget_cd_is_this_month">%1$s (this month)</string>
+    <string name="widget_cd_is_month">%1$s income %2$s, spending %3$s</string>
+    <string name="widget_cd_is_left">This month, %1$s left.</string>
+    <string name="widget_cd_is_rate">Savings rate %1$d percent.</string>
 </resources>
