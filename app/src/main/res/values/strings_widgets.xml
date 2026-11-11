@@ -20,8 +20,8 @@
 
     <string name="widget_off_budget">Off budget</string>
     <string name="widget_add">Add widget</string>
-    <string name="widget_choose_categories">Choose up to four categories to add to your shared favorites.</string>
-    <string name="widget_choose_accounts">Choose up to four accounts.</string>
+    <string name="widget_choose_categories">Choose up to eight categories to add to your shared favorites.</string>
+    <string name="widget_choose_accounts">Choose up to eight accounts.</string>
     <string name="widget_no_available_items">No available items in the open budget.</string>
     <string name="widget_schedule_period_prompt">Show scheduled transactions due within:</string>
     <plurals name="widget_period_days">

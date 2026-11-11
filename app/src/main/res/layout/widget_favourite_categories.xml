@@ -27,9 +27,7 @@
         <TextView android:id="@+id/widget_empty" android:layout_width="match_parent" android:layout_height="0dp"
             android:layout_weight="1" android:gravity="center" android:text="@string/widget_no_categories"
             android:textColor="@color/widget_secondary_text" android:visibility="gone" />
-        <include layout="@layout/widget_row_1" />
-        <include layout="@layout/widget_row_2" />
-        <include layout="@layout/widget_row_3" />
-        <include layout="@layout/widget_row_4" />
+        <ListView android:id="@+id/widget_item_list" android:layout_width="match_parent" android:layout_height="0dp"
+            android:layout_weight="1" android:divider="@null" android:dividerHeight="0dp" android:scrollbars="none" />
     </LinearLayout>
 </FrameLayout>

@@ -16,8 +16,7 @@ import com.azimulkabir.actua.data.preferences.DisplayPreferences
 /** Applies the chosen [WidgetStyle] to a widget's [RemoteViews]. Views a layout doesn't have are skipped by RemoteViews. */
 internal object WidgetStyles {
     private val onBackgroundIds = intArrayOf(
-        R.id.widget_title, R.id.widget_name_1, R.id.widget_name_2, R.id.widget_name_3, R.id.widget_name_4,
-        R.id.widget_schedule_title,
+        R.id.widget_title, R.id.widget_item_name, R.id.widget_schedule_title,
     )
     private val secondaryIds = intArrayOf(
         R.id.widget_empty, R.id.widget_month, R.id.widget_ready_label, R.id.widget_budgeted_label,
@@ -25,19 +24,15 @@ internal object WidgetStyles {
     )
     private val primaryIds = intArrayOf(
         R.id.widget_ready_value, R.id.widget_budgeted_value, R.id.widget_balance_value,
-        R.id.widget_amount_1, R.id.widget_amount_2, R.id.widget_amount_3, R.id.widget_amount_4,
-        R.id.widget_schedule_amount,
+        R.id.widget_item_amount, R.id.widget_schedule_amount,
     )
     private val buttonIds = intArrayOf(R.id.widget_expense, R.id.widget_income, R.id.widget_transfer)
 
     /** Tonal surfaces that are not buttons: the amount pills and the budget snapshot's tiles. */
     private val tileIds = intArrayOf(
-        R.id.widget_amount_1, R.id.widget_amount_2, R.id.widget_amount_3, R.id.widget_amount_4,
-        R.id.widget_schedule_amount, R.id.widget_tile_ready, R.id.widget_tile_budgeted, R.id.widget_tile_balance,
+        R.id.widget_item_amount, R.id.widget_schedule_amount, R.id.widget_tile_ready, R.id.widget_tile_budgeted, R.id.widget_tile_balance,
     )
-    private val progressIds = intArrayOf(
-        R.id.widget_progress_1, R.id.widget_progress_2, R.id.widget_progress_3, R.id.widget_progress_4,
-    )
+    private val progressIds = intArrayOf(R.id.widget_item_progress)
 
     /** Whether [WidgetStyle.AccentTinted] can be offered: tinting the rounded background needs Android 12. */
     fun accentTintedAvailable() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
