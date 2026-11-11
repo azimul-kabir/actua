@@ -33,9 +33,12 @@ internal object WidgetSizing {
  * grid of n cells: about 40, 110, 180 and 250 for one to four cells across or down.
  */
 
-internal enum class BudgetLayout { Mini, Small, Strip, Compact, Hero }
+internal enum class BudgetLayout { Mini, Small, Strip, Compact, Hero, HeroFull }
 
-/** Budget snapshot: one figure at 2x1, plus a title at 2x2, a one-row strip at 4x1, three tiles from 3x2, the full card from 2x3. */
+/**
+ * Budget snapshot: one figure at 2x1, plus a title at 2x2, a one-row strip at 4x1, three tiles from 3x2, the
+ * full card from 2x3, and from 4x4 also when it last updated and a refresh button (a 48dp footer).
+ */
 internal val BudgetVariants = listOf(
     WidgetVariant(40, 40, BudgetLayout.Mini),
     WidgetVariant(40, 100, BudgetLayout.Small),
@@ -43,6 +46,8 @@ internal val BudgetVariants = listOf(
     WidgetVariant(180, 100, BudgetLayout.Compact),
     WidgetVariant(40, 170, BudgetLayout.Hero),
     WidgetVariant(180, 170, BudgetLayout.Hero),
+    WidgetVariant(40, 230, BudgetLayout.HeroFull),
+    WidgetVariant(180, 230, BudgetLayout.HeroFull),
 )
 
 internal enum class QuickLayout { Single, Stacked, Row }

@@ -238,8 +238,9 @@ object WidgetUpdater {
         val budgeted = sample(context, R.string.widget_sample_amount_5)
         val balance = sample(context, R.string.widget_sample_amount_6)
         return bindBudget(
-            context, 0, BudgetLayout.Hero,
+            context, null, 0, BudgetLayout.Hero,
             BudgetData(month, ready, budgeted, balance, spokenReady = ready, spokenBudgeted = budgeted, spokenBalance = balance),
+            null,
         )
     }
 
@@ -311,6 +312,14 @@ object WidgetUpdater {
         views.setRemoteAdapter(listId, items.build())
         WidgetStyles.apply(context, views)
         return views
+    }
+
+    private val requestExecutor = Executors.newSingleThreadExecutor()
+
+    /** [requestAll] off the calling thread, for callers on the main thread such as configuration callbacks. */
+    fun requestAllAsync(context: Context) {
+        val app = context.applicationContext
+        requestExecutor.execute { requestAll(app) }
     }
 
     fun requestAll(context: Context) {
@@ -405,19 +414,28 @@ object WidgetUpdater {
 
     private fun updateBudget(context: Context, manager: AppWidgetManager, widgetId: Int) {
         val data = loadBudget(context)
+        val updatedAt = DateFormat.getTimeFormat(context).format(Date())
         manager.updateAppWidget(
             widgetId,
-            responsive(manager, widgetId, BudgetVariants) { bindBudget(context, widgetId, it, data) },
+            responsive(manager, widgetId, BudgetVariants) { bindBudget(context, manager, widgetId, it, data, updatedAt) },
         )
     }
 
-    private fun bindBudget(context: Context, widgetId: Int, layout: BudgetLayout, data: BudgetData): RemoteViews {
+    /** [manager] and [updatedAt] are null for a picker preview, which has nothing to refresh. */
+    private fun bindBudget(
+        context: Context,
+        manager: AppWidgetManager?,
+        widgetId: Int,
+        layout: BudgetLayout,
+        data: BudgetData,
+        updatedAt: String?,
+    ): RemoteViews {
         val layoutId = when (layout) {
             BudgetLayout.Mini -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot_mini, R.layout.widget_budget_snapshot_mini_styled)
             BudgetLayout.Small -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot_small, R.layout.widget_budget_snapshot_small_styled)
             BudgetLayout.Strip -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot_strip, R.layout.widget_budget_snapshot_strip_styled)
             BudgetLayout.Compact -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot_compact, R.layout.widget_budget_snapshot_compact_styled)
-            BudgetLayout.Hero -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot, R.layout.widget_budget_snapshot_styled)
+            BudgetLayout.Hero, BudgetLayout.HeroFull -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot, R.layout.widget_budget_snapshot_styled)
         }
         val views = RemoteViews(context.packageName, layoutId)
         // RemoteViews inflate in the launcher's locale, so rebind every catalog label through
@@ -432,6 +450,7 @@ object WidgetUpdater {
         views.setTextViewText(R.id.widget_budgeted_value, data.budgeted)
         views.setTextViewText(R.id.widget_balance_value, data.balance)
         views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.BUDGET, widgetId))
+        bindFreshness(context, manager, views, widgetId, layout == BudgetLayout.HeroFull && manager != null, updatedAt.orEmpty())
         // One announcement for the whole widget, whichever layout it is showing.
         val hidden = context.getString(R.string.widget_cd_hidden)
         views.setContentDescription(
@@ -773,7 +792,7 @@ object WidgetUpdater {
      */
     private fun bindFreshness(
         context: Context,
-        manager: AppWidgetManager,
+        manager: AppWidgetManager?,
         views: RemoteViews,
         widgetId: Int,
         show: Boolean,
@@ -783,7 +802,7 @@ object WidgetUpdater {
         if (!show) return
         views.setTextViewText(R.id.widget_updated, context.getString(R.string.widget_updated_at, updatedAt))
         views.setContentDescription(R.id.widget_updated, context.getString(R.string.widget_cd_refresh, updatedAt))
-        val provider = manager.getAppWidgetInfo(widgetId)?.provider ?: return
+        val provider = manager?.getAppWidgetInfo(widgetId)?.provider ?: return
         val refresh = Intent(WidgetActions.REFRESH).apply {
             component = provider
             putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
