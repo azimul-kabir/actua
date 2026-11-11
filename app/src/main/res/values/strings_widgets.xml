@@ -68,6 +68,15 @@
     <string name="widget_single_category_missing">Category not found. Tap to choose.</string>
     <string name="widget_choose_account">Choose the account to show.</string>
     <string name="widget_choose_category">Choose the category to show.</string>
+    <string name="widget_spending_trend">Spending trend</string>
+    <string name="widget_description_spending_trend">Spending over the last six months, with this month highlighted.</string>
+    <string name="widget_trend_period_months">Last 6 months</string>
+    <string name="widget_trend_period_this_month">This month</string>
+    <string name="widget_trend_no_spending">No spending in the last six months</string>
+    <string name="widget_cd_spending_trend">Spending trend, last %1$d months: %2$s. Total %3$s.</string>
+    <string name="widget_cd_spending_trend_hidden">Spending trend. Amounts are hidden.</string>
+    <string name="widget_cd_trend_this_month">%1$s (this month)</string>
+    <string name="widget_cd_trend_month">%1$s %2$s</string>
     <string name="widget_due_today">Today</string>
     <string name="widget_due_tomorrow">Tomorrow</string>
     <plurals name="widget_due_in_days">

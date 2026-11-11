@@ -266,6 +266,7 @@ lists what was ported, what was only checked by reading, and what is not ported.
   opens Add Transaction from the bar (suppressing the floating Add Transaction button on tab roots
   and a drilled-into account or budget category while it's enabled), and Restore Defaults; stored as
   a versioned, migration-safe local UI preference
+- The Spending trend home-screen widget (the last six months of spending, drawn as a bar chart into a bitmap) counts spending with the same code as the synced Spending dashboard widget, `CoreReportEngine.spendingTransactions` and `spentInMonth` (not deleted, not an off-budget account, not an income category, so an on-budget transfer leg counts as in the PWA), so it always agrees with Reports; amounts and labels respect hide balances, and tapping opens Reports
 - Saved Actual custom reports and custom report builder through a shared Actual-compatible aggregator (donut and per-interval charts, device-local total/average-per-period summary, viewer-side date/account filter, drill-down to transactions); custom report creation and editing, and dashboard widget/page authoring via CRDT mutations; see `docs/REPORTS_PARITY.md`
 - Synced report dashboard charts (Net Worth, Balance Forecast, Age of Money, Crossover, Budget
   Analysis, Monte Carlo, Cash Flow, Income/Expense, Calendar, Sankey, donut and bar graphs) are drawn

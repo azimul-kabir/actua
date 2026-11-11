@@ -21,11 +21,12 @@ internal object WidgetStyles {
     private val secondaryIds = intArrayOf(
         R.id.widget_empty, R.id.widget_month, R.id.widget_ready_label, R.id.widget_budgeted_label,
         R.id.widget_balance_label, R.id.widget_schedule_due, R.id.widget_updated,
-        R.id.widget_single_name, R.id.widget_single_message,
+        R.id.widget_single_name, R.id.widget_single_message, R.id.widget_trend_period, R.id.widget_trend_message,
     )
     private val primaryIds = intArrayOf(
         R.id.widget_ready_value, R.id.widget_budgeted_value, R.id.widget_balance_value,
         R.id.widget_item_amount, R.id.widget_schedule_amount, R.id.widget_single_amount,
+        R.id.widget_trend_total,
     )
     private val buttonIds = intArrayOf(R.id.widget_expense, R.id.widget_income, R.id.widget_transfer)
 
@@ -51,6 +52,24 @@ internal object WidgetStyles {
     fun lookSignature(context: Context): String {
         val preferences = DisplayPreferences(context)
         return "${activeStyle(context)}:${preferences.accent}:${preferences.useDynamicColor}"
+    }
+
+    /** The colors a chart drawn into a bitmap uses, so it matches the widget's style and the device theme at this update. */
+    fun chartColors(context: Context): ChartColors {
+        val style = activeStyle(context)
+        val night = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+        val accent = if (style == WidgetStyle.AccentTinted) accentScheme(context, DisplayPreferences(context), night) else null
+        style.colors(night, accent)?.let { return chartColorsFor(it) }
+        // The default style takes its colors from the color resources, which follow the device theme.
+        fun color(id: Int) = ContextCompat.getColor(context, id)
+        return chartColorsFor(
+            WidgetStyleColors(
+                background = color(R.color.widget_background), onBackground = color(R.color.widget_on_background),
+                secondary = color(R.color.widget_secondary_text), primary = color(R.color.widget_primary),
+                button = color(R.color.widget_button), buttonText = color(R.color.widget_primary),
+                progressTrack = color(R.color.widget_button), tile = color(R.color.widget_button),
+            ),
+        )
     }
 
     private fun activeStyle(context: Context): WidgetStyle {

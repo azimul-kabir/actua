@@ -1,0 +1,113 @@
+package com.azimulkabir.actua.widget
+
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Typeface
+import android.util.TypedValue
+import com.azimulkabir.actua.data.reports.SpendingTrend
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import kotlin.math.max
+import kotlin.math.min
+
+/** One bar of the Spending trend chart, in pixels, with its left edge at [left] and its base at [bottom]. */
+internal data class ChartBar(val left: Float, val top: Float, val right: Float, val bottom: Float) {
+    val height: Float get() = bottom - top
+    val centerX: Float get() = (left + right) / 2
+}
+
+/** The colors the chart is drawn in, taken from the widget's look. */
+internal class ChartColors(
+    /** The current month's bar, in the widget's accent. */
+    val highlight: Int,
+    /** The other months' bars. */
+    val bar: Int,
+    /** Month and amount labels. */
+    val label: Int,
+)
+
+/** The chart's colors for a widget style: its accent for this month, a softer tone of it for the others. */
+internal fun chartColorsFor(colors: WidgetStyleColors): ChartColors = ChartColors(
+    highlight = colors.primary,
+    bar = blendArgb(colors.primary, colors.background or (0xFF shl 24), PAST_BAR_STRENGTH),
+    label = colors.secondary,
+)
+
+/** How much of the accent the past months' bars keep: enough to stay a clear shape on the background. */
+internal const val PAST_BAR_STRENGTH = 0.7f
+
+internal object SpendingChart {
+    /**
+     * The bars for [spentCents] (oldest first) in a chart [width] x [height] pixels. The tallest month fills
+     * the height and the others are in proportion; a month with nothing spent, or net refunds, is a short
+     * stub of [minBar] so it still shows as a bar. Bars sit in equal slots and are at most [maxBarWidth] wide.
+     */
+    fun bars(spentCents: List<Long>, width: Float, height: Float, minBar: Float, maxBarWidth: Float): List<ChartBar> {
+        if (spentCents.isEmpty()) return emptyList()
+        val slot = width / spentCents.size
+        val barWidth = min(slot * 0.62f, maxBarWidth)
+        val tallest = max(spentCents.maxOf { it }, 1L)
+        return spentCents.mapIndexed { index, cents ->
+            val barHeight = if (cents <= 0) minBar else max(minBar, height * cents / tallest)
+            val left = slot * index + (slot - barWidth) / 2
+            ChartBar(left, height - barHeight, left + barWidth, height)
+        }
+    }
+
+    /**
+     * Draws [trend] as a bitmap [widthPx] x [heightPx], with a month label under each bar and, when
+     * [amountLabel] is set, this month's amount above its bar. Text sizes follow the user's font size.
+     */
+    fun render(
+        trend: SpendingTrend,
+        widthPx: Int,
+        heightPx: Int,
+        colors: ChartColors,
+        metrics: android.util.DisplayMetrics,
+        locale: Locale,
+        amountLabel: String?,
+    ): Bitmap {
+        val bitmap = Bitmap.createBitmap(widthPx.coerceAtLeast(1), heightPx.coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        fun dp(value: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, metrics)
+        fun sp(value: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, value, metrics)
+
+        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = colors.label
+            textSize = sp(10f)
+            textAlign = Paint.Align.CENTER
+        }
+        val amountPaint = Paint(text).apply {
+            color = colors.highlight
+            typeface = Typeface.DEFAULT_BOLD
+            textSize = sp(11f)
+        }
+        val labelBand = text.textSize + dp(4f)
+        val amountBand = if (amountLabel != null) amountPaint.textSize + dp(4f) else 0f
+        val chartTop = amountBand
+        val chartHeight = (heightPx - labelBand - chartTop).coerceAtLeast(dp(8f))
+
+        val bars = bars(trend.months.map { it.spentCents }, widthPx.toFloat(), chartHeight, dp(2f), dp(30f))
+        val fill = Paint(Paint.ANTI_ALIAS_FLAG)
+        val radius = dp(4f)
+        val monthFormat = DateTimeFormatter.ofPattern("MMM", locale)
+        trend.months.zip(bars).forEach { (month, bar) ->
+            fill.color = if (month.current) colors.highlight else colors.bar
+            val rect = RectF(bar.left, chartTop + bar.top, bar.right, chartTop + bar.bottom)
+            canvas.drawRoundRect(rect, radius, radius, fill)
+            // A slot too narrow for "Nov" shows its first letter.
+            val slotWidth = widthPx.toFloat() / trend.months.size
+            val label = month.month.format(monthFormat).let { if (text.measureText(it) > slotWidth) it.take(1) else it }
+            canvas.drawText(label, bar.centerX, heightPx - dp(3f), text)
+        }
+        if (amountLabel != null) {
+            val current = bars.last()
+            val half = amountPaint.measureText(amountLabel) / 2
+            val x = current.centerX.coerceIn(half, widthPx - half)
+            canvas.drawText(amountLabel, x, chartTop + current.top - dp(3f), amountPaint)
+        }
+        return bitmap
+    }
+}

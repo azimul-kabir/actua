@@ -20,7 +20,7 @@ class WidgetPickerTest {
 
     @Test
     fun everyWidgetHasItsOwnOneLineDescription() {
-        assertEquals("one provider info per widget", 7, infos.size)
+        assertEquals("one provider info per widget", 8, infos.size)
         val descriptions = infos.map { attr(it.readText(), "description") }
         descriptions.forEach { assertTrue("description should be widget_description_*: $it", it!!.startsWith("widget_description_")) }
         assertEquals("every widget describes itself differently", descriptions.size, descriptions.toSet().size)

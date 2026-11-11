@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Six sample bars for the picker preview; the last, this month, is in the full accent. Not real data. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp" android:height="64dp"
+    android:viewportWidth="240" android:viewportHeight="64">
+    <path android:fillColor="@color/widget_primary" android:fillAlpha="0.6"
+        android:pathData="M10,22h24v42h-24z M50,26h24v38h-24z M90,10h24v54h-24z M130,16h24v48h-24z M170,24h24v40h-24z" />
+    <path android:fillColor="@color/widget_primary"
+        android:pathData="M206,32h24v32h-24z" />
+</vector>
