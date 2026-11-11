@@ -8,9 +8,13 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.Bundle
 import android.util.SizeF
+import android.text.format.DateFormat
 import android.view.View
+import android.widget.Toast
 import android.widget.RemoteViews
 import com.azimulkabir.actua.MainActivity
 import com.azimulkabir.actua.R
@@ -30,6 +34,7 @@ import com.azimulkabir.actua.data.schedules.ScheduledAmount
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.applyDisplayFormats
 import com.azimulkabir.actua.ui.components.formatMoneyCents
+import java.util.Date
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
@@ -43,6 +48,7 @@ object WidgetActions {
     const val ADD_TRANSFER = "com.azimulkabir.actua.widget.ADD_TRANSFER"
     const val SEARCH = "com.azimulkabir.actua.widget.SEARCH"
     const val SCHEDULES = "com.azimulkabir.actua.widget.SCHEDULES"
+    const val REFRESH = "com.azimulkabir.actua.widget.REFRESH"
     const val EXTRA_TARGET = "widget_target"
 }
 
@@ -110,7 +116,28 @@ abstract class ActuaWidgetProvider : AppWidgetProvider() {
         kind?.let { WidgetPreferences(context).remove(it, widgetIds) }
     }
 
-    private fun scheduleUpdate(context: Context, manager: AppWidgetManager, widgetIds: IntArray) {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action != WidgetActions.REFRESH) {
+            super.onReceive(context, intent)
+            return
+        }
+        // The refresh target: re-read the local budget for this widget. No sync is started here.
+        val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
+        if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return
+        scheduleUpdate(context, AppWidgetManager.getInstance(context), intArrayOf(widgetId)) {
+            val localized = context.withAppLanguage()
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(localized, R.string.widget_refreshed, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun scheduleUpdate(
+        context: Context,
+        manager: AppWidgetManager,
+        widgetIds: IntArray,
+        onDone: () -> Unit = {},
+    ) {
         val pending = goAsync()
         EXECUTOR.execute {
             try {
@@ -118,6 +145,7 @@ abstract class ActuaWidgetProvider : AppWidgetProvider() {
                 // a configuration context for the app locale chosen in Settings.
                 val localizedContext = context.withAppLanguage()
                 widgetIds.forEach { WidgetUpdater.update(localizedContext, manager, it, this) }
+                onDone()
             } finally {
                 pending.finish()
             }
@@ -302,6 +330,11 @@ object WidgetUpdater {
     }
 
     private fun updateCategories(context: Context, manager: AppWidgetManager, widgetId: Int) {
+        val repository = ActuaRepository(context)
+        val usingBudget = try { repository.isUsingActualBudget } finally { repository.close() }
+        val budgetId = ActiveBudgetStore(context).budgetId ?: "no-budget"
+        val noFavorites = usingBudget && FavoritePreferences(context).ids(budgetId, FavoritePreferences.Type.CATEGORY).isEmpty()
+        val updatedAt = DateFormat.getTimeFormat(context).format(Date())
         manager.updateAppWidget(
             widgetId,
             responsive(manager, widgetId, ListVariants) { layout ->
@@ -309,11 +342,25 @@ object WidgetUpdater {
                     context.packageName,
                     when (layout) {
                         ListLayout.Mini -> WidgetStyles.layout(context, R.layout.widget_favourite_categories_mini, R.layout.widget_favourite_categories_mini_styled)
-                        ListLayout.Titled -> WidgetStyles.layout(context, R.layout.widget_favourite_categories, R.layout.widget_favourite_categories_styled)
+                        ListLayout.Titled, ListLayout.Full -> WidgetStyles.layout(context, R.layout.widget_favourite_categories, R.layout.widget_favourite_categories_styled)
                     },
                 )
                 views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_favourite_categories))
-                views.setTextViewText(R.id.widget_empty, context.getString(R.string.widget_no_categories))
+                // Three distinct empty states, each with a tap that leads somewhere: no budget, no favorites, none left.
+                views.setTextViewText(
+                    R.id.widget_empty,
+                    context.getString(when {
+                        !usingBudget -> R.string.widget_no_budget
+                        noFavorites -> R.string.widget_no_favorites
+                        else -> R.string.widget_no_categories
+                    }),
+                )
+                views.setOnClickPendingIntent(
+                    R.id.widget_empty,
+                    if (noFavorites) configure(context, WidgetConfigurationActivity::class.java, widgetId)
+                    else open(context, WidgetActions.BUDGET, widgetId),
+                )
+                bindFreshness(context, manager, views, widgetId, layout == ListLayout.Full, updatedAt)
                 bindItemList(context, views, widgetId, WidgetKind.Categories, WidgetActions.CATEGORY)
                 views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.BUDGET, widgetId))
                 WidgetStyles.apply(context, views)
@@ -351,6 +398,9 @@ object WidgetUpdater {
     }
 
     private fun updateAccounts(context: Context, manager: AppWidgetManager, widgetId: Int) {
+        val repository = ActuaRepository(context)
+        val usingBudget = try { repository.isUsingActualBudget } finally { repository.close() }
+        val updatedAt = DateFormat.getTimeFormat(context).format(Date())
         manager.updateAppWidget(
             widgetId,
             responsive(manager, widgetId, ListVariants) { layout ->
@@ -358,11 +408,16 @@ object WidgetUpdater {
                     context.packageName,
                     when (layout) {
                         ListLayout.Mini -> WidgetStyles.layout(context, R.layout.widget_account_balances_mini, R.layout.widget_account_balances_mini_styled)
-                        ListLayout.Titled -> WidgetStyles.layout(context, R.layout.widget_account_balances, R.layout.widget_account_balances_styled)
+                        ListLayout.Titled, ListLayout.Full -> WidgetStyles.layout(context, R.layout.widget_account_balances, R.layout.widget_account_balances_styled)
                     },
                 )
                 views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_account_balances))
-                views.setTextViewText(R.id.widget_empty, context.getString(R.string.widget_no_accounts))
+                views.setTextViewText(
+                    R.id.widget_empty,
+                    context.getString(if (usingBudget) R.string.widget_no_accounts else R.string.widget_no_budget),
+                )
+                views.setOnClickPendingIntent(R.id.widget_empty, open(context, WidgetActions.ACCOUNTS, widgetId))
+                bindFreshness(context, manager, views, widgetId, layout == ListLayout.Full, updatedAt)
                 bindItemList(context, views, widgetId, WidgetKind.Accounts, WidgetActions.ACCOUNTS)
                 views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.ACCOUNTS, widgetId))
                 WidgetStyles.apply(context, views)
@@ -396,6 +451,7 @@ object WidgetUpdater {
     private fun updateSchedules(context: Context, manager: AppWidgetManager, widgetId: Int) {
         val repository = ActuaRepository(context)
         val usingBudget = try { repository.isUsingActualBudget } finally { repository.close() }
+        val updatedAt = DateFormat.getTimeFormat(context).format(Date())
         manager.updateAppWidget(
             widgetId,
             responsive(manager, widgetId, ListVariants) { layout ->
@@ -403,7 +459,7 @@ object WidgetUpdater {
                     context.packageName,
                     when (layout) {
                         ListLayout.Mini -> WidgetStyles.layout(context, R.layout.widget_scheduled_transactions_mini, R.layout.widget_scheduled_transactions_mini_styled)
-                        ListLayout.Titled -> WidgetStyles.layout(context, R.layout.widget_scheduled_transactions, R.layout.widget_scheduled_transactions_styled)
+                        ListLayout.Titled, ListLayout.Full -> WidgetStyles.layout(context, R.layout.widget_scheduled_transactions, R.layout.widget_scheduled_transactions_styled)
                     },
                 )
                 views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_upcoming_schedules))
@@ -417,6 +473,8 @@ object WidgetUpdater {
                     // Makes the intent unique per widget, so each widget gets its own list.
                     data = Uri.parse(toUri(Intent.URI_INTENT_SCHEME))
                 }
+                views.setOnClickPendingIntent(R.id.widget_empty, open(context, WidgetActions.SCHEDULES, widgetId))
+                bindFreshness(context, manager, views, widgetId, layout == ListLayout.Full, updatedAt)
                 views.setRemoteAdapter(R.id.widget_schedule_list, rows)
                 views.setEmptyView(R.id.widget_schedule_list, R.id.widget_empty)
                 // Every row opens Scheduled; rows fill in an empty intent, so the template can stay immutable.
@@ -581,6 +639,44 @@ object WidgetUpdater {
         }
         return PendingIntent.getActivity(
             context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    /**
+     * The "Updated 10:42" line, which is also the refresh target. Only the taller layouts have room for
+     * its 48dp height; the others hide it.
+     */
+    private fun bindFreshness(
+        context: Context,
+        manager: AppWidgetManager,
+        views: RemoteViews,
+        widgetId: Int,
+        show: Boolean,
+        updatedAt: String,
+    ) {
+        views.setViewVisibility(R.id.widget_updated, if (show) View.VISIBLE else View.GONE)
+        if (!show) return
+        views.setTextViewText(R.id.widget_updated, context.getString(R.string.widget_updated_at, updatedAt))
+        views.setContentDescription(R.id.widget_updated, context.getString(R.string.widget_cd_refresh, updatedAt))
+        val provider = manager.getAppWidgetInfo(widgetId)?.provider ?: return
+        val refresh = Intent(WidgetActions.REFRESH).apply {
+            component = provider
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+        }
+        views.setOnClickPendingIntent(
+            R.id.widget_updated,
+            PendingIntent.getBroadcast(context, widgetId, refresh, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE),
+        )
+    }
+
+    /** Opens a widget's configuration screen, as the launcher does when it is reconfigured. */
+    private fun configure(context: Context, activity: Class<*>, widgetId: Int): PendingIntent {
+        val intent = Intent(context, activity).apply {
+            action = AppWidgetManager.ACTION_APPWIDGET_CONFIGURE
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+        }
+        return PendingIntent.getActivity(
+            context, widgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }
 

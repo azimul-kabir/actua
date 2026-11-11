@@ -58,10 +58,14 @@ internal val QuickVariants = listOf(
     WidgetVariant(240, 180, QuickLayout.Stacked),
 )
 
-internal enum class ListLayout { Mini, Titled }
+internal enum class ListLayout { Mini, Titled, Full }
 
-/** The list widgets (categories, accounts, schedules): the list alone while short, with a title from 2x2. */
+/**
+ * The list widgets (categories, accounts, schedules): the list alone while short, with a title from 2x2,
+ * and from 2x3 also when the widget last updated and a refresh button, which need room for a 48dp header.
+ */
 internal val ListVariants = listOf(
     WidgetVariant(40, 40, ListLayout.Mini),
     WidgetVariant(40, 100, ListLayout.Titled),
+    WidgetVariant(40, 150, ListLayout.Full),
 )

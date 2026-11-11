@@ -20,7 +20,7 @@ internal object WidgetStyles {
     )
     private val secondaryIds = intArrayOf(
         R.id.widget_empty, R.id.widget_month, R.id.widget_ready_label, R.id.widget_budgeted_label,
-        R.id.widget_balance_label, R.id.widget_schedule_due,
+        R.id.widget_balance_label, R.id.widget_schedule_due, R.id.widget_updated,
     )
     private val primaryIds = intArrayOf(
         R.id.widget_ready_value, R.id.widget_budgeted_value, R.id.widget_balance_value,

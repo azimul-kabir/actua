@@ -37,6 +37,10 @@
     <string name="widget_cd_account_row">%1$s, saldo %2$s</string>
     <string name="widget_cd_schedule_row">%1$s, %2$s, %3$s</string>
     <string name="widget_cd_budget_snapshot">%1$s, %2$s. %3$s: %4$s. %5$s: %6$s. %7$s: %8$s.</string>
+    <string name="widget_updated_at">↻ Actualizado %1$s</string>
+    <string name="widget_cd_refresh">Actualizar, actualizado %1$s</string>
+    <string name="widget_refreshed">Widget actualizado</string>
+    <string name="widget_no_favorites">No hay favoritos elegidos. Toca para elegir.</string>
     <string name="widget_due_today">Hoy</string>
     <string name="widget_due_tomorrow">Mañana</string>
     <plurals name="widget_due_in_days">
