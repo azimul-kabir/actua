@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Income and spending at its smallest: what is left this month, and this month's income against spending as two bars. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/widget_padding_compact"
+        android:paddingVertical="6dp">
+        <LinearLayout
+            android:id="@+id/widget_is_content"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/widget_is_period"
+                style="@style/WidgetLabel"
+                android:layout_width="match_parent"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="@string/widget_is_left_label" />
+            <TextView
+                android:id="@+id/widget_is_left"
+                style="@style/WidgetValue"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:autoSizeMaxTextSize="20sp" />
+        </LinearLayout>
+        <ImageView
+            android:id="@+id/widget_is_chart"
+            android:layout_width="44dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="8dp"
+            android:contentDescription="@string/widget_income_spending"
+            android:scaleType="fitCenter" />
+        <TextView
+            android:id="@+id/widget_is_message"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textColor="@color/widget_secondary_text"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="8sp"
+            android:autoSizeMaxTextSize="12sp"
+            android:visibility="gone" />
+    </LinearLayout>
+</FrameLayout>

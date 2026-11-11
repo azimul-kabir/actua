@@ -59,6 +59,9 @@ class SpendingChartTest {
         assertTrue("$name: this month's bar", contrast(chart.highlight, backdrop) >= 3.0)
         assertTrue("$name: other months' bars are a clear shape (3:1)", contrast(chart.bar, backdrop) >= 3.0)
         assertTrue("$name: month labels are readable (4.5:1)", contrast(chart.label, backdrop) >= 4.5)
+        assertTrue("$name: this month's spending bar", contrast(chart.second, backdrop) >= 3.0)
+        assertTrue("$name: other months' spending bars", contrast(chart.secondPast, backdrop) >= 3.0)
+        assertTrue("$name: income and spending bars tell apart", contrast(chart.highlight, chart.second) >= 1.3)
     }
 
     @Test

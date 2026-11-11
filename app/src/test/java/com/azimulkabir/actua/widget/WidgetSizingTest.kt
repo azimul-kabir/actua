@@ -80,6 +80,16 @@ class WidgetSizingTest {
         assertEquals(QuickLayout.entries.toSet(), reached(QuickVariants))
         assertEquals(ListLayout.entries.toSet(), reached(ListVariants))
         assertEquals(TrendLayout.entries.toSet(), reached(TrendVariants))
+        assertEquals(TrendLayout.entries.toSet(), reached(IncomeSpendingVariants))
+    }
+
+    @Test
+    fun incomeAndSpendingShowsThisMonthWhileSmallAndSixMonthsFromThreeByTwo() {
+        assertEquals(TrendLayout.Small, pick(IncomeSpendingVariants, 2, 1))
+        assertEquals(TrendLayout.Small, pick(IncomeSpendingVariants, 3, 1))
+        assertEquals(TrendLayout.Small, pick(IncomeSpendingVariants, 2, 2))
+        assertEquals(TrendLayout.Chart, pick(IncomeSpendingVariants, 3, 2))
+        assertEquals(TrendLayout.Chart, pick(IncomeSpendingVariants, 4, 3))
     }
 
     @Test

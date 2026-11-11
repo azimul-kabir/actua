@@ -39,7 +39,7 @@
             android:layout_marginTop="4dp"
             android:layout_weight="1"
             android:contentDescription="@string/widget_spending_trend"
-            android:scaleType="fitXY" />
+            android:scaleType="fitCenter" />
         <TextView
             android:id="@+id/widget_trend_message"
             android:layout_width="match_parent"

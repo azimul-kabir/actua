@@ -422,8 +422,8 @@ object SavedReportEngine {
             categoryGroupIds = view.categoryGroupIds.takeIf { it.isNotEmpty() },
             showOffBudget = view.includeOffBudget, showHiddenCategories = true, balanceType = ReportBalanceType.NET,
         )
-        val included = shared.aggregator.select(transactions, filter).filterNot(shared.aggregator::isBudgetTransfer)
-        val (income, expenses) = included.partition { shared.aggregator.categoryIsIncome(it.categoryId) }
+        val included = cashFlowRows(transactions, filter, shared.aggregator)
+        val (income, expenses) = splitIncomeAndExpenses(included, shared.aggregator)
         val incomeCents = income.sumOf { it.amountCents }
         val expenseCents = -expenses.sumOf { it.amountCents }
         val periods = intervalPoints(included, "Monthly", start, end, today).map { it.period }
@@ -439,6 +439,35 @@ object SavedReportEngine {
             points = periods.map { ReportPoint(it, incomeByPeriod[it] ?: 0L, expenseByPeriod[it] ?: 0L) },
             subtitle = "$start – $end",
         )
+    }
+
+    /**
+     * The rows Income vs expenses counts for [filter]: live, in range, off-budget accounts out unless the
+     * filter asks for them, and budget-internal transfers out. Shared with the Income and spending
+     * home-screen widget, so the two always agree.
+     */
+    fun cashFlowRows(
+        transactions: List<ActualTransaction>, filter: ReportFilter, aggregator: ReportAggregator,
+    ): List<ActualTransaction> = aggregator.select(transactions, filter).filterNot(aggregator::isBudgetTransfer)
+
+    /** [rows] split into income (income categories) and expenses (everything else), as Income vs expenses does. */
+    fun splitIncomeAndExpenses(
+        rows: List<ActualTransaction>, aggregator: ReportAggregator,
+    ): Pair<List<ActualTransaction>, List<ActualTransaction>> = rows.partition { aggregator.categoryIsIncome(it.categoryId) }
+
+    /**
+     * Income and expenses (as a positive amount) for [month], in integer cents, counted exactly as the
+     * Income vs expenses report counts a month. [monthStart] is not applied: the widget shows calendar months.
+     */
+    fun monthlyCashFlow(
+        transactions: List<ActualTransaction>, month: YearMonth, aggregator: ReportAggregator,
+    ): Pair<Long, Long> {
+        val filter = ReportFilter(
+            startDate = month.atDay(1).toYmd(), endDate = month.atEndOfMonth().toYmd(),
+            showOffBudget = false, showHiddenCategories = true, balanceType = ReportBalanceType.NET,
+        )
+        val (income, expenses) = splitIncomeAndExpenses(cashFlowRows(transactions, filter, aggregator), aggregator)
+        return income.sumOf { it.amountCents } to -expenses.sumOf { it.amountCents }
     }
 
     /**
