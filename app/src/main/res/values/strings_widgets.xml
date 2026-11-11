@@ -77,6 +77,22 @@
     <string name="widget_cd_spending_trend_hidden">Spending trend. Amounts are hidden.</string>
     <string name="widget_cd_trend_this_month">%1$s (this month)</string>
     <string name="widget_cd_trend_month">%1$s %2$s</string>
+    <string name="widget_report_card">Report card</string>
+    <string name="widget_description_report_card">One of your Reports dashboard cards as a single number.</string>
+    <string name="widget_choose_report_card">Choose the dashboard card to show.</string>
+    <string name="widget_report_card_missing">Card not found. Tap to choose.</string>
+    <string name="widget_no_report_cards">No dashboard cards with a single value</string>
+    <string name="widget_sample_report_card">Net worth</string>
+    <plurals name="widget_report_card_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="widget_report_card_years">%1$s years</string>
+    <string name="widget_report_card_not_reached">Not reached</string>
+    <string name="widget_report_card_unavailable">No value yet</string>
+    <string name="widget_report_card_comparison">vs %1$s</string>
+    <string name="widget_cd_report_card">%1$s: %2$s</string>
+    <string name="widget_cd_report_card_compared">%1$s: %2$s, compared with %3$s</string>
     <string name="widget_due_today">Today</string>
     <string name="widget_due_tomorrow">Tomorrow</string>
     <plurals name="widget_due_in_days">

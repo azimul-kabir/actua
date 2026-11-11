@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A report card from two rows tall: its name, a larger value, and what the value is compared with when
+     the card has a comparison. A state message (no budget, not found) replaces the card. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="@dimen/widget_padding_compact">
+        <TextView
+            android:id="@+id/widget_single_name"
+            style="@style/WidgetLabel"
+            android:layout_width="match_parent"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textSize="13sp" />
+        <TextView
+            android:id="@+id/widget_single_amount"
+            style="@style/WidgetHeroValue"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:autoSizeMaxTextSize="30sp" />
+        <TextView
+            android:id="@+id/widget_report_comparison"
+            style="@style/WidgetLabel"
+            android:layout_width="match_parent"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:visibility="gone" />
+        <TextView
+            android:id="@+id/widget_single_message"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textColor="@color/widget_secondary_text"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="8sp"
+            android:autoSizeMaxTextSize="14sp"
+            android:visibility="gone" />
+    </LinearLayout>
+</FrameLayout>

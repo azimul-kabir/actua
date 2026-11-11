@@ -23,6 +23,7 @@ internal object WidgetStyles {
         R.id.widget_balance_label, R.id.widget_schedule_due, R.id.widget_updated,
         R.id.widget_single_name, R.id.widget_single_message, R.id.widget_trend_period, R.id.widget_trend_message,
         R.id.widget_is_period, R.id.widget_is_spent, R.id.widget_is_message,
+        R.id.widget_report_comparison,
     )
     private val primaryIds = intArrayOf(
         R.id.widget_ready_value, R.id.widget_budgeted_value, R.id.widget_balance_value,

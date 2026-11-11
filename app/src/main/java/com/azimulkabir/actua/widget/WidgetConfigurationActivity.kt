@@ -99,6 +99,7 @@ class WidgetConfigurationActivity : WidgetConfigurationBaseActivity() {
             ComponentName(this, AccountBalancesWidgetProvider::class.java) -> WidgetKind.Accounts
             ComponentName(this, SingleCategoryWidgetProvider::class.java) -> WidgetKind.SingleCategory
             ComponentName(this, SingleAccountWidgetProvider::class.java) -> WidgetKind.SingleAccount
+            ComponentName(this, ReportCardWidgetProvider::class.java) -> WidgetKind.ReportCard
             else -> null
         }
     }
@@ -117,6 +118,9 @@ class WidgetConfigurationActivity : WidgetConfigurationBaseActivity() {
                         it.id, it.name,
                         if (it.offBudget) getString(R.string.widget_off_budget) else it.type,
                     )
+                }
+                WidgetKind.ReportCard -> repository.reportCardChoices().map {
+                    WidgetChoice(it.id, it.name, "${it.kindLabel} · ${it.pageName}")
                 }
             }
         } finally {
@@ -137,6 +141,7 @@ class WidgetConfigurationActivity : WidgetConfigurationBaseActivity() {
                 WidgetKind.Accounts -> AccountBalancesWidgetProvider()
                 WidgetKind.SingleCategory -> SingleCategoryWidgetProvider()
                 WidgetKind.SingleAccount -> SingleAccountWidgetProvider()
+                WidgetKind.ReportCard -> ReportCardWidgetProvider()
             }
             WidgetUpdater.update(this@WidgetConfigurationActivity, manager, widgetId, provider)
             withContext(Dispatchers.Main) {
@@ -190,6 +195,7 @@ private fun WidgetConfigurationScreen(
                             WidgetKind.Accounts -> R.string.widget_account_balances
                             WidgetKind.SingleCategory -> R.string.widget_single_category
                             WidgetKind.SingleAccount -> R.string.widget_single_account
+                            WidgetKind.ReportCard -> R.string.widget_report_card
                         },
                     ))
                 },
@@ -229,6 +235,7 @@ private fun WidgetConfigurationScreen(
                             WidgetKind.Accounts -> R.string.widget_choose_accounts
                             WidgetKind.SingleCategory -> R.string.widget_choose_category
                             WidgetKind.SingleAccount -> R.string.widget_choose_account
+                            WidgetKind.ReportCard -> R.string.widget_choose_report_card
                         },
                     ),
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
