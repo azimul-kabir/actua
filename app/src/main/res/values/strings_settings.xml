@@ -318,6 +318,10 @@
     <string name="settings_support_prompt_body">Actua is free and open source, built by an independent developer. If it helps you budget, you can support its development once or monthly. All features stay free either way.</string>
     <string name="settings_support_prompt_see_options">See options</string>
     <string name="settings_support_prompt_not_now">Not now</string>
+    <string name="settings_rating_prompt_title">Is Actua useful to you?</string>
+    <string name="settings_rating_prompt_body">If it is, a quick rating on Google Play helps other people find it. It only takes a moment.</string>
+    <string name="settings_rating_prompt_yes">Yes, rate it</string>
+    <string name="settings_rating_prompt_no">Not really</string>
 
     <!-- About page. -->
     <string name="settings_about_summary">Native Android client for Actual Budget\nVersion %1$s</string>

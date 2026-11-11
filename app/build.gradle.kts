@@ -125,6 +125,8 @@ dependencies {
     // WebDAV backups need PROPFIND, MKCOL and MOVE, which HttpURLConnection rejects.
     implementation(libs.okhttp)
     add("playstoreImplementation", libs.android.billing.ktx)
+    // Google's in-app review sheet for the one-time rating request; playstore only.
+    add("playstoreImplementation", libs.play.review.ktx)
     // On-device receipt text recognition (bundled models for Latin, Chinese, Japanese, Korean and Devanagari
     // scripts; nothing is sent anywhere); playstore only.
     add("playstoreImplementation", libs.mlkit.text.recognition)

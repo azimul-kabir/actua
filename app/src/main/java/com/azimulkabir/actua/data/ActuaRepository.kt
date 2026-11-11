@@ -18,6 +18,7 @@ import com.azimulkabir.actua.data.budget.BudgetMovementNote
 import com.azimulkabir.actua.data.budget.PayeeSuggestions
 import com.azimulkabir.actua.data.budget.ActualBudgetWriter
 import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
+import com.azimulkabir.actua.data.preferences.RatingPromptPreferences
 import com.azimulkabir.actua.data.preferences.SupportPromptPreferences
 import com.azimulkabir.actua.data.receipts.ReceiptKeepResult
 import com.azimulkabir.actua.data.receipts.ReceiptPhoto
@@ -146,6 +147,7 @@ const val LOAN_ESCROW_PAYEE = "Escrow"
 class ActuaRepository(context: Context) {
     private val appContext = context.applicationContext
     private val supportPrompt = SupportPromptPreferences(context)
+    private val ratingPrompt = RatingPromptPreferences(context)
     private val scheduleSync = {
         ActualSyncScheduler.scheduleMutation(appContext)
         WidgetUpdater.requestAll(appContext)
@@ -2044,7 +2046,10 @@ class ActuaRepository(context: Context) {
                 applyRules = !transaction.rulesApplied,
             )
             learnCategoriesFromSave(db, logBeforeSave)
-            if (createdId != null) supportPrompt.recordTransactionAdded()
+            if (createdId != null) {
+                supportPrompt.recordTransactionAdded()
+                ratingPrompt.recordTransactionAdded()
+            }
             return createdId
         }
         error("Connect to Actual and download a budget before adding transactions")
