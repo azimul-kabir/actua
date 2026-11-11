@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
@@ -28,6 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -94,6 +97,8 @@ class WidgetConfigurationActivity : WidgetConfigurationBaseActivity() {
         return when (provider) {
             ComponentName(this, FavouriteCategoriesWidgetProvider::class.java) -> WidgetKind.Categories
             ComponentName(this, AccountBalancesWidgetProvider::class.java) -> WidgetKind.Accounts
+            ComponentName(this, SingleCategoryWidgetProvider::class.java) -> WidgetKind.SingleCategory
+            ComponentName(this, SingleAccountWidgetProvider::class.java) -> WidgetKind.SingleAccount
             else -> null
         }
     }
@@ -102,12 +107,12 @@ class WidgetConfigurationActivity : WidgetConfigurationBaseActivity() {
         val repository = ActuaRepository(this@WidgetConfigurationActivity)
         try {
             when (kind) {
-                WidgetKind.Categories -> repository.budgetGroups()
+                WidgetKind.Categories, WidgetKind.SingleCategory -> repository.budgetGroups()
                     .filterNot { it.hidden || it.isIncome }
                     .flatMap { group -> group.categories.filterNot { it.hidden }.mapNotNull { category ->
                         category.id?.let { WidgetChoice(it, category.name, group.name) }
                     } }
-                WidgetKind.Accounts -> repository.accounts().filterNot { it.closed }.map {
+                WidgetKind.Accounts, WidgetKind.SingleAccount -> repository.accounts().filterNot { it.closed }.map {
                     WidgetChoice(
                         it.id, it.name,
                         if (it.offBudget) getString(R.string.widget_off_budget) else it.type,
@@ -130,6 +135,8 @@ class WidgetConfigurationActivity : WidgetConfigurationBaseActivity() {
             val provider = when (kind) {
                 WidgetKind.Categories -> FavouriteCategoriesWidgetProvider()
                 WidgetKind.Accounts -> AccountBalancesWidgetProvider()
+                WidgetKind.SingleCategory -> SingleCategoryWidgetProvider()
+                WidgetKind.SingleAccount -> SingleAccountWidgetProvider()
             }
             WidgetUpdater.update(this@WidgetConfigurationActivity, manager, widgetId, provider)
             withContext(Dispatchers.Main) {
@@ -178,8 +185,12 @@ private fun WidgetConfigurationScreen(
             TopAppBar(
                 title = {
                     Text(stringResource(
-                        if (kind == WidgetKind.Categories) R.string.widget_favourite_categories
-                        else R.string.widget_account_balances,
+                        when (kind) {
+                            WidgetKind.Categories -> R.string.widget_favourite_categories
+                            WidgetKind.Accounts -> R.string.widget_account_balances
+                            WidgetKind.SingleCategory -> R.string.widget_single_category
+                            WidgetKind.SingleAccount -> R.string.widget_single_account
+                        },
                     ))
                 },
                 navigationIcon = {
@@ -213,8 +224,12 @@ private fun WidgetConfigurationScreen(
             else -> Column(Modifier.fillMaxSize().padding(padding)) {
                 Text(
                     stringResource(
-                        if (kind == WidgetKind.Categories) R.string.widget_choose_categories
-                        else R.string.widget_choose_accounts,
+                        when (kind) {
+                            WidgetKind.Categories -> R.string.widget_choose_categories
+                            WidgetKind.Accounts -> R.string.widget_choose_accounts
+                            WidgetKind.SingleCategory -> R.string.widget_choose_category
+                            WidgetKind.SingleAccount -> R.string.widget_choose_account
+                        },
                     ),
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                     style = MaterialTheme.typography.bodyMedium,
@@ -236,12 +251,14 @@ private fun WidgetConfigurationScreen(
                         },
                     )
                 }
-                Text(
-                    stringResource(R.string.widget_selected_count, selected.size, MAX_WIDGET_ROWS),
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (!kind.isSingle) {
+                    Text(
+                        stringResource(R.string.widget_selected_count, selected.size, MAX_WIDGET_ROWS),
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 val visible = loaded.matching(query)
                 if (visible.isEmpty()) {
                     ConfigurationMessage(
@@ -249,21 +266,35 @@ private fun WidgetConfigurationScreen(
                         Modifier.fillMaxSize(),
                     )
                 } else {
-                    LazyColumn(Modifier.fillMaxSize()) {
+                    LazyColumn(Modifier.fillMaxSize().selectableGroup()) {
                         items(visible, key = { it.id }) { choice ->
                             val checked = choice.id in selected
-                            val enabled = checked || selected.size < MAX_WIDGET_ROWS
-                            ListItem(
-                                headlineContent = { Text(choice.name) },
-                                supportingContent = { Text(choice.subtitle) },
-                                leadingContent = { Checkbox(checked = checked, onCheckedChange = null, enabled = enabled) },
-                                modifier = Modifier.toggleable(
-                                    value = checked,
-                                    enabled = enabled,
-                                    role = Role.Checkbox,
-                                    onValueChange = { on -> selected = if (on) selected + choice.id else selected - choice.id },
-                                ),
-                            )
+                            if (kind.isSingle) {
+                                // One widget shows one item: picking another replaces the choice.
+                                ListItem(
+                                    headlineContent = { Text(choice.name) },
+                                    supportingContent = { Text(choice.subtitle) },
+                                    leadingContent = { RadioButton(selected = checked, onClick = null) },
+                                    modifier = Modifier.selectable(
+                                        selected = checked,
+                                        role = Role.RadioButton,
+                                        onClick = { selected = setOf(choice.id) },
+                                    ),
+                                )
+                            } else {
+                                val enabled = checked || selected.size < MAX_WIDGET_ROWS
+                                ListItem(
+                                    headlineContent = { Text(choice.name) },
+                                    supportingContent = { Text(choice.subtitle) },
+                                    leadingContent = { Checkbox(checked = checked, onCheckedChange = null, enabled = enabled) },
+                                    modifier = Modifier.toggleable(
+                                        value = checked,
+                                        enabled = enabled,
+                                        role = Role.Checkbox,
+                                        onValueChange = { on -> selected = if (on) selected + choice.id else selected - choice.id },
+                                    ),
+                                )
+                            }
                         }
                     }
                 }

@@ -33,6 +33,8 @@ internal class WidgetListRows(
         rows = when (kind) {
             WidgetKind.Categories -> WidgetUpdater.categoryRows(context)
             WidgetKind.Accounts -> WidgetUpdater.accountRows(context, widgetId)
+            // The single-item widgets have no list.
+            WidgetKind.SingleCategory, WidgetKind.SingleAccount -> emptyList()
         }
     }
 

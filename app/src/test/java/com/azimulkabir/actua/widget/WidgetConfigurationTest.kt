@@ -39,7 +39,10 @@ class WidgetConfigurationTest {
 
     @Test
     fun widgetsWithADefaultCanBePlacedWithoutTheSetupScreen() {
-        for (info in listOf("widget_favourite_categories_info", "widget_account_balances_info", "widget_scheduled_transactions_info")) {
+        for (info in listOf(
+            "widget_favourite_categories_info", "widget_account_balances_info", "widget_scheduled_transactions_info",
+            "widget_single_account_info", "widget_single_category_info",
+        )) {
             val value = features(info)!!.split('|')
             assertTrue("$info should be placeable without configuring", "configuration_optional" in value)
             assertTrue("$info should still be reconfigurable", "reconfigurable" in value)
