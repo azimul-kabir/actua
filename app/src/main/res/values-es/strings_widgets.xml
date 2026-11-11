@@ -28,6 +28,15 @@
         <item quantity="one">%d día</item>
         <item quantity="other">%d días</item>
     </plurals>
+    <!-- Spoken descriptions for TalkBack. A row is one announcement; hidden balances are never read out. -->
+    <string name="widget_cd_add_expense">Añadir gasto</string>
+    <string name="widget_cd_add_income">Añadir ingreso</string>
+    <string name="widget_cd_add_transfer">Añadir transferencia</string>
+    <string name="widget_cd_hidden">oculto</string>
+    <string name="widget_cd_category_row">%1$s, saldo %2$s, %3$d%% gastado</string>
+    <string name="widget_cd_account_row">%1$s, saldo %2$s</string>
+    <string name="widget_cd_schedule_row">%1$s, %2$s, %3$s</string>
+    <string name="widget_cd_budget_snapshot">%1$s, %2$s. %3$s: %4$s. %5$s: %6$s. %7$s: %8$s.</string>
     <string name="widget_due_today">Hoy</string>
     <string name="widget_due_tomorrow">Mañana</string>
     <plurals name="widget_due_in_days">

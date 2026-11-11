@@ -247,7 +247,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Run the Tasker Queue transaction action with Amount `Rs. 1,234.50` and Type Debit and verify an expense of 1234.50; with Type "From the amount's sign" and Amount `-%amount`, verify `10.69` queues as an expense and `-10.69` as income; with an unset `%amount` (or no digits), verify the import screen names the reason and nothing is queued.
 - [ ] Capture or share an alert whose payee is in capitals (e.g. "STARBUCKS 1234") and verify it imports with that exact case; import a CSV with the same payee and verify it is title-cased.
 - [ ] Budget Snapshot widget looks right and shows no clipped text at 2x1, 2x2, 4x1, 4x2 and 4x3, and resizing re-lays it out without a delay or flash.
-- [ ] Quick Transaction widget looks right at 2x1 (Expense only), 2x2, 4x1, 4x2 and 4x3, and all three actions open correctly.
+- [ ] Quick Transaction widget looks right at 2x1 and 2x2 (Expense only), 3x1 and 4x1 and 4x2 (a row of three), and 2x3 and larger (stacked), every button at least 48dp tall, and all three actions open correctly.
 - [ ] Favourite Categories and Account Balances widgets configure, refresh and deep-link correctly.
 - [ ] With more than four favorite categories (or selected accounts), the Favourite Categories and Account Balances widgets list up to eight rows, show more than four when tall enough, scroll when not, and tapping a row opens that category or account.
 - [ ] Upcoming Schedules widget shows overdue-first ordering, relative due labels (Today/Tomorrow/In N days/N days overdue), respects hide-balances, refreshes after schedule mutations and sync, and tapping it opens Scheduled Transactions.
@@ -255,6 +255,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Upcoming Schedules widget's 7/14/30-day period is chosen when the widget is added, persists per widget instance, and can be changed later through the reconfigure entry point.
 - [ ] With more than four schedules due in the widget's period, verify the Upcoming Schedules widget scrolls through all of them in the same order as the full layout.
 - [ ] Widget amounts respect hide-balances, currency and decimal display preferences.
+- [ ] With TalkBack on, each widget reads as sensible announcements: a Favourite Categories row as name, balance and percent spent, an Account Balances row as name and balance, a schedule row as title, due date and amount, the Budget Snapshot as one summary, and the Quick Transaction buttons as "Add expense/income/transfer"; with hide balances on, no amount is read out.
+- [ ] At 200% font size, no widget on 2x2 or larger shows clipped or overlapping text: names shorten before amounts, and the budget figures shrink to fit.
 
 ## UI and navigation
 

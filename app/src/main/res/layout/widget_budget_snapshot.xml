@@ -36,7 +36,7 @@
                 android:id="@+id/widget_ready_label"
                 style="@style/WidgetLabel"
                 android:text="@string/widget_ready" />
-            <TextView android:id="@+id/widget_ready_value" style="@style/WidgetHeroValue" />
+            <TextView android:id="@+id/widget_ready_value" style="@style/WidgetHeroValue" android:autoSizeMaxTextSize="30sp" />
         </LinearLayout>
 
         <LinearLayout
@@ -51,7 +51,7 @@
                     android:id="@+id/widget_budgeted_label"
                     style="@style/WidgetLabel"
                     android:text="@string/widget_budgeted" />
-                <TextView android:id="@+id/widget_budgeted_value" style="@style/WidgetValue" />
+                <TextView android:id="@+id/widget_budgeted_value" style="@style/WidgetValue" android:autoSizeMaxTextSize="15sp" />
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/widget_tile_balance"
@@ -61,7 +61,7 @@
                     android:id="@+id/widget_balance_label"
                     style="@style/WidgetLabel"
                     android:text="@string/widget_balance" />
-                <TextView android:id="@+id/widget_balance_value" style="@style/WidgetValue" />
+                <TextView android:id="@+id/widget_balance_value" style="@style/WidgetValue" android:autoSizeMaxTextSize="15sp" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
