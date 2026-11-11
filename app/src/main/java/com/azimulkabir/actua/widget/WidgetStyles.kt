@@ -46,6 +46,12 @@ internal object WidgetStyles {
      */
     fun layout(context: Context, plain: Int, styled: Int): Int = if (activeStyle(context) == WidgetStyle.Default) plain else styled
 
+    /** Changes whenever something that alters how a widget looks does, for deciding when previews are stale. */
+    fun lookSignature(context: Context): String {
+        val preferences = DisplayPreferences(context)
+        return "${activeStyle(context)}:${preferences.accent}:${preferences.useDynamicColor}"
+    }
+
     private fun activeStyle(context: Context): WidgetStyle {
         if (!supporterPerksAvailable()) return WidgetStyle.Default
         val style = DisplayPreferences(context).widgetStyle

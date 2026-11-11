@@ -3,6 +3,7 @@ package com.azimulkabir.actua.widget
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.appwidget.AppWidgetProviderInfo
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -16,6 +17,7 @@ import android.text.format.DateFormat
 import android.view.View
 import android.widget.Toast
 import android.widget.RemoteViews
+import com.azimulkabir.actua.BuildConfig
 import com.azimulkabir.actua.MainActivity
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
@@ -191,8 +193,129 @@ object WidgetUpdater {
         ScheduledTransactionsWidgetProvider::class.java,
     )
 
+    private val previewExecutor = Executors.newSingleThreadExecutor()
+
+    /**
+     * Android 15+: pushes a generated preview of each widget to the launcher's picker, so it shows the
+     * real layout in the chosen style rather than an empty one. The data is synthetic sample text, never
+     * from a budget. Earlier releases show the static preview layouts instead. The picker's previews are
+     * rate limited, so they are only pushed again when something that changes their look has changed.
+     */
+    private fun publishPreviews(context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) return
+        val localized = context.withAppLanguage()
+        val signature = listOf(
+            BuildConfig.VERSION_CODE,
+            localized.resources.configuration.locales[0].toLanguageTag(),
+            WidgetStyles.lookSignature(localized),
+        ).joinToString("|")
+        val state = localized.getSharedPreferences("widget_preview_state", Context.MODE_PRIVATE)
+        if (state.getString("signature", null) == signature) return
+        try {
+            val manager = AppWidgetManager.getInstance(localized)
+            val previews = listOf(
+                BudgetSnapshotWidgetProvider::class.java to budgetPreview(localized),
+                FavouriteCategoriesWidgetProvider::class.java to categoriesPreview(localized),
+                QuickTransactionWidgetProvider::class.java to bindQuick(localized, 0, QuickLayout.Row),
+                AccountBalancesWidgetProvider::class.java to accountsPreview(localized),
+                ScheduledTransactionsWidgetProvider::class.java to schedulesPreview(localized),
+            )
+            previews.forEach { (provider, views) ->
+                manager.setWidgetPreview(ComponentName(localized, provider), AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN, views)
+            }
+            state.edit().putString("signature", signature).apply()
+        } catch (e: RuntimeException) {
+            // Rate limited or refused: keep the static previews and try again at the next refresh.
+        }
+    }
+
+    private fun sample(context: Context, id: Int) = context.getString(id)
+
+    private fun budgetPreview(context: Context): RemoteViews {
+        val month = YearMonth.now()
+            .format(DateTimeFormatter.ofPattern("MMMM yyyy", context.resources.configuration.locales[0]))
+        val ready = sample(context, R.string.widget_sample_amount_4)
+        val budgeted = sample(context, R.string.widget_sample_amount_5)
+        val balance = sample(context, R.string.widget_sample_amount_6)
+        return bindBudget(
+            context, 0, BudgetLayout.Hero,
+            BudgetData(month, ready, budgeted, balance, spokenReady = ready, spokenBudgeted = budgeted, spokenBalance = balance),
+        )
+    }
+
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
+    private fun categoriesPreview(context: Context): RemoteViews {
+        fun row(name: Int, amount: Int, percent: Int) = WidgetRow(
+            sample(context, name), sample(context, amount), percent, "",
+            ProgressStatus.of(percent, overspent = false), showProgress = true, spokenAmount = sample(context, amount),
+        )
+        return collectionPreview(
+            context, R.layout.widget_favourite_categories, R.layout.widget_favourite_categories_styled,
+            R.string.widget_favourite_categories, R.id.widget_item_list,
+            listOf(
+                row(R.string.widget_sample_category_1, R.string.widget_sample_amount_1, 62),
+                row(R.string.widget_sample_category_2, R.string.widget_sample_amount_2, 91),
+                row(R.string.widget_sample_category_3, R.string.widget_sample_amount_3, 35),
+            ).map { listRow(context, it) },
+        )
+    }
+
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
+    private fun accountsPreview(context: Context): RemoteViews {
+        fun row(name: Int, amount: Int) = WidgetRow(sample(context, name), sample(context, amount), 0, "", spokenAmount = sample(context, amount))
+        return collectionPreview(
+            context, R.layout.widget_account_balances, R.layout.widget_account_balances_styled,
+            R.string.widget_account_balances, R.id.widget_item_list,
+            listOf(
+                row(R.string.widget_sample_account_1, R.string.widget_sample_amount_7),
+                row(R.string.widget_sample_account_2, R.string.widget_sample_amount_8),
+                row(R.string.widget_sample_account_3, R.string.widget_sample_amount_9),
+            ).map { listRow(context, it) },
+        )
+    }
+
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
+    private fun schedulesPreview(context: Context): RemoteViews {
+        fun row(title: Int, due: Int, amount: Int) = RemoteViews(context.packageName, R.layout.widget_schedule_item).apply {
+            setTextViewText(R.id.widget_schedule_title, sample(context, title))
+            setTextViewText(R.id.widget_schedule_due, sample(context, due))
+            setTextViewText(R.id.widget_schedule_amount, sample(context, amount))
+            WidgetStyles.apply(context, this)
+        }
+        return collectionPreview(
+            context, R.layout.widget_scheduled_transactions, R.layout.widget_scheduled_transactions_styled,
+            R.string.widget_upcoming_schedules, R.id.widget_schedule_list,
+            listOf(
+                row(R.string.widget_sample_schedule_1, R.string.widget_due_tomorrow, R.string.widget_sample_amount_10),
+                row(R.string.widget_sample_schedule_2, R.string.widget_due_today, R.string.widget_sample_amount_11),
+                row(R.string.widget_sample_schedule_3, R.string.widget_due_tomorrow, R.string.widget_sample_amount_12),
+            ),
+        )
+    }
+
+    /** A list widget's real layout with fixed [rows] in place of its adapter, for a picker preview. */
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
+    private fun collectionPreview(
+        context: Context,
+        plain: Int,
+        styled: Int,
+        title: Int,
+        listId: Int,
+        rows: List<RemoteViews>,
+    ): RemoteViews {
+        val views = RemoteViews(context.packageName, WidgetStyles.layout(context, plain, styled))
+        views.setTextViewText(R.id.widget_title, context.getString(title))
+        views.setViewVisibility(R.id.widget_updated, View.GONE)
+        val items = RemoteViews.RemoteCollectionItems.Builder().setHasStableIds(false).setViewTypeCount(1)
+        rows.forEachIndexed { index, row -> items.addItem(index.toLong(), row) }
+        views.setRemoteAdapter(listId, items.build())
+        WidgetStyles.apply(context, views)
+        return views
+    }
+
     fun requestAll(context: Context) {
         val app = context.applicationContext
+        previewExecutor.execute { publishPreviews(app) }
         val manager = AppWidgetManager.getInstance(app)
         providers.forEach { provider ->
             val component = ComponentName(app, provider)
@@ -373,28 +496,30 @@ object WidgetUpdater {
     private fun updateQuickTransaction(context: Context, manager: AppWidgetManager, widgetId: Int) {
         manager.updateAppWidget(
             widgetId,
-            responsive(manager, widgetId, QuickVariants) { layout ->
-                val views = RemoteViews(
-                    context.packageName,
-                    when (layout) {
-                        QuickLayout.Single -> WidgetStyles.layout(context, R.layout.widget_quick_transaction_single, R.layout.widget_quick_transaction_single_styled)
-                        QuickLayout.Stacked -> WidgetStyles.layout(context, R.layout.widget_quick_transaction, R.layout.widget_quick_transaction_styled)
-                        QuickLayout.Row -> WidgetStyles.layout(context, R.layout.widget_quick_transaction_row, R.layout.widget_quick_transaction_row_styled)
-                    },
-                )
-                views.setTextViewText(R.id.widget_expense, context.getString(R.string.widget_expense))
-                views.setTextViewText(R.id.widget_income, context.getString(R.string.widget_income))
-                views.setTextViewText(R.id.widget_transfer, context.getString(R.string.widget_transfer))
-                views.setContentDescription(R.id.widget_expense, context.getString(R.string.widget_cd_add_expense))
-                views.setContentDescription(R.id.widget_income, context.getString(R.string.widget_cd_add_income))
-                views.setContentDescription(R.id.widget_transfer, context.getString(R.string.widget_cd_add_transfer))
-                views.setOnClickPendingIntent(R.id.widget_expense, open(context, WidgetActions.ADD_EXPENSE, widgetId))
-                views.setOnClickPendingIntent(R.id.widget_income, open(context, WidgetActions.ADD_INCOME, widgetId))
-                views.setOnClickPendingIntent(R.id.widget_transfer, open(context, WidgetActions.ADD_TRANSFER, widgetId))
-                WidgetStyles.apply(context, views)
-                views
+            responsive(manager, widgetId, QuickVariants) { bindQuick(context, widgetId, it) },
+        )
+    }
+
+    private fun bindQuick(context: Context, widgetId: Int, layout: QuickLayout): RemoteViews {
+        val views = RemoteViews(
+            context.packageName,
+            when (layout) {
+                QuickLayout.Single -> WidgetStyles.layout(context, R.layout.widget_quick_transaction_single, R.layout.widget_quick_transaction_single_styled)
+                QuickLayout.Stacked -> WidgetStyles.layout(context, R.layout.widget_quick_transaction, R.layout.widget_quick_transaction_styled)
+                QuickLayout.Row -> WidgetStyles.layout(context, R.layout.widget_quick_transaction_row, R.layout.widget_quick_transaction_row_styled)
             },
         )
+        views.setTextViewText(R.id.widget_expense, context.getString(R.string.widget_expense))
+        views.setTextViewText(R.id.widget_income, context.getString(R.string.widget_income))
+        views.setTextViewText(R.id.widget_transfer, context.getString(R.string.widget_transfer))
+        views.setContentDescription(R.id.widget_expense, context.getString(R.string.widget_cd_add_expense))
+        views.setContentDescription(R.id.widget_income, context.getString(R.string.widget_cd_add_income))
+        views.setContentDescription(R.id.widget_transfer, context.getString(R.string.widget_cd_add_transfer))
+        views.setOnClickPendingIntent(R.id.widget_expense, open(context, WidgetActions.ADD_EXPENSE, widgetId))
+        views.setOnClickPendingIntent(R.id.widget_income, open(context, WidgetActions.ADD_INCOME, widgetId))
+        views.setOnClickPendingIntent(R.id.widget_transfer, open(context, WidgetActions.ADD_TRANSFER, widgetId))
+        WidgetStyles.apply(context, views)
+        return views
     }
 
     private fun updateAccounts(context: Context, manager: AppWidgetManager, widgetId: Int) {

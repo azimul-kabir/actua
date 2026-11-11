@@ -14,6 +14,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added a choice of home-screen widget style for Actua Supporters under Settings → Display in the Google Play version ([#1551](https://github.com/azimul-kabir/actua/pull/1551))
 - Added optional confetti celebrations for Actua Supporters when Ready to budget reaches zero or a reconciliation is finished, under Settings → Display in the Google Play version ([#1560](https://github.com/azimul-kabir/actua/pull/1560))
 - Added a last-updated time with a refresh tap to the Favourite categories, Account balances and Upcoming schedules widgets, and clearer messages when no budget or favorites are set ([#1571](https://github.com/azimul-kabir/actua/pull/1571))
+- Added sample previews and one-line descriptions for the widgets in the launcher's widget picker ([#1572](https://github.com/azimul-kabir/actua/pull/1572))
 
 ### Changed
 

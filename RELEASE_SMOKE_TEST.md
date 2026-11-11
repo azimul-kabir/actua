@@ -257,6 +257,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Upcoming Schedules widget's 7/14/30-day period is chosen when the widget is added, persists per widget instance, and can be changed later through the reconfigure entry point.
 - [ ] With more than four schedules due in the widget's period, verify the Upcoming Schedules widget scrolls through all of them in the same order as the full layout.
 - [ ] Widget amounts respect hide-balances, currency and decimal display preferences.
+- [ ] In the launcher's widget picker, every Actua widget shows a populated preview with sample figures (never real budget data) and a one-line description of what it shows; on Android 15+ the preview uses the chosen widget style, and changing the style or language updates it.
 - [ ] With TalkBack on, each widget reads as sensible announcements: a Favourite Categories row as name, balance and percent spent, an Account Balances row as name and balance, a schedule row as title, due date and amount, the Budget Snapshot as one summary, and the Quick Transaction buttons as "Add expense/income/transfer"; with hide balances on, no amount is read out.
 - [ ] At 200% font size, no widget on 2x2 or larger shows clipped or overlapping text: names shorten before amounts, and the budget figures shrink to fit.
 

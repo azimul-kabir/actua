@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Synthetic numbers for the widget picker's previews. They are never real budget data. -->
+    <string name="widget_sample_amount_1" translatable="false">$420.00</string>
+    <string name="widget_sample_amount_2" translatable="false">$86.50</string>
+    <string name="widget_sample_amount_3" translatable="false">$12.00</string>
+    <string name="widget_sample_amount_4" translatable="false">$1,240.00</string>
+    <string name="widget_sample_amount_5" translatable="false">$4,800.00</string>
+    <string name="widget_sample_amount_6" translatable="false">$3,102.40</string>
+    <string name="widget_sample_amount_7" translatable="false">$2,310.00</string>
+    <string name="widget_sample_amount_8" translatable="false">$9,800.00</string>
+    <string name="widget_sample_amount_9" translatable="false">-$410.25</string>
+    <string name="widget_sample_amount_10" translatable="false">$900.00</string>
+    <string name="widget_sample_amount_11" translatable="false">$35.00</string>
+    <string name="widget_sample_amount_12" translatable="false">$59.90</string>
+</resources>
