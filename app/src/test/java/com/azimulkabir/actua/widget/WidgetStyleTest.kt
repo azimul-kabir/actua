@@ -32,12 +32,16 @@ class WidgetStyleTest {
     private fun assertReadable(name: String, colors: WidgetStyleColors, backdrop: Int) {
         val background = over(colors.background, backdrop)
         val button = over(colors.button, background)
-        mapOf(
+        val tile = over(colors.tile, background)
+        val pairs = mapOf(
             "title/name text" to contrast(colors.onBackground, background),
             "secondary text" to contrast(colors.secondary, background),
             "value text" to contrast(colors.primary, background),
             "button text" to contrast(colors.buttonText, button),
-        ).forEach { (what, ratio) ->
+            "value text on a tile" to contrast(colors.primary, tile),
+            "label text on a tile" to contrast(colors.secondary, tile),
+        )
+        pairs.forEach { (what, ratio) ->
             assertTrue("$name $what is $ratio:1", ratio >= 4.5)
         }
     }
@@ -101,5 +105,16 @@ class WidgetStyleTest {
     fun blendingMovesBetweenTheTwoColors() {
         assertEquals(0xFF000000.toInt(), blendArgb(0xFFFFFFFF.toInt(), 0xFF000000.toInt(), 0f))
         assertEquals(0xFFFFFFFF.toInt(), blendArgb(0xFFFFFFFF.toInt(), 0xFF000000.toInt(), 1f))
+    }
+
+    @Test
+    fun progressStatusFollowsHowSpentACategoryIs() {
+        assertEquals(ProgressStatus.Normal, ProgressStatus.of(percentSpent = 0, overspent = false))
+        assertEquals(ProgressStatus.Normal, ProgressStatus.of(percentSpent = 84, overspent = false))
+        assertEquals(ProgressStatus.Warning, ProgressStatus.of(percentSpent = 85, overspent = false))
+        assertEquals(ProgressStatus.Warning, ProgressStatus.of(percentSpent = 100, overspent = false))
+        assertEquals(ProgressStatus.Overspent, ProgressStatus.of(percentSpent = 100, overspent = true))
+        // A negative balance wins even when the bar isn't full (a rolled-over deficit).
+        assertEquals(ProgressStatus.Overspent, ProgressStatus.of(percentSpent = 10, overspent = true))
     }
 }

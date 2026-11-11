@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The same widget under another layout id. A launcher reapplies an update onto the view it already
+     shows when the layout id is unchanged, so switching between this layout and the plain one always
+     inflates afresh and nothing from the previous look can linger. See WidgetStyles. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <include layout="@layout/widget_scheduled_transactions" />
+</FrameLayout>

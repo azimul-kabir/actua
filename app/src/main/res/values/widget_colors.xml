@@ -5,4 +5,6 @@
     <color name="widget_on_background">#1C1B20</color>
     <color name="widget_secondary_text">#625F68</color>
     <color name="widget_button">#DFE4FF</color>
+    <color name="widget_status_warning">#B26A00</color>
+    <color name="widget_status_danger">#BA1A1A</color>
 </resources>

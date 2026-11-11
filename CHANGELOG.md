@@ -16,6 +16,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Refreshed the look of the home-screen widgets with tonal tiles and pills, a larger budget figure and bar colors that show how spent a category is ([#1566](https://github.com/azimul-kabir/actua/pull/1566))
 - Slimmed the Ready to Budget card in the Plan view to a single row ([#1562](https://github.com/azimul-kabir/actua/pull/1562))
 
 ## [2.6.0] - 2026-11-10
