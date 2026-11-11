@@ -1708,6 +1708,25 @@ class ActuaRepository(context: Context) {
     }
 
     /**
+     * The last [months] months of income and spending for the Income and spending home-screen widget, or
+     * null without an open Actual budget. Counted by the same code as the Income vs expenses report, from
+     * the report data shared by every report widget ([SharedReportData]).
+     */
+    fun incomeSpending(
+        months: Int = com.azimulkabir.actua.data.reports.IncomeSpendingBuilder.DEFAULT_MONTHS,
+        today: java.time.LocalDate = java.time.LocalDate.now(),
+    ): com.azimulkabir.actua.data.reports.IncomeSpending? {
+        val data = reportDataForWidgets() ?: return null
+        return com.azimulkabir.actua.data.reports.IncomeSpendingBuilder.build(
+            transactions = data.transactions,
+            accounts = data.accounts,
+            groups = data.groups,
+            today = today,
+            months = months,
+        )
+    }
+
+    /**
      * The open budget's report data for the report widgets, or null without an open Actual budget. Shared
      * between widgets, so use it rather than fetching report transactions again.
      */

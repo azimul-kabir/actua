@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Static picker preview with synthetic sample data. The real widget is bound with budget data. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="@dimen/widget_padding_compact">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <TextView
+                style="@style/WidgetTitle.Compact"
+                android:text="@string/widget_income_spending" />
+            <TextView
+                style="@style/WidgetValue"
+                android:layout_width="wrap_content"
+                android:autoSizeTextType="none"
+                android:textSize="16sp"
+                android:text="@string/widget_sample_amount_4" />
+        </LinearLayout>
+        <TextView
+            style="@style/WidgetLabel"
+            android:layout_width="match_parent"
+            android:text="@string/widget_is_left_label" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <TextView
+                style="@style/WidgetLabel"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textStyle="bold" android:text="@string/widget_sample_amount_5" />
+            <TextView
+                style="@style/WidgetLabel"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textStyle="bold" android:text="@string/widget_sample_amount_6" />
+        </LinearLayout>
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="4dp"
+            android:layout_weight="1"
+            android:importantForAccessibility="no"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_preview_income_spending_chart" />
+    </LinearLayout>
+</FrameLayout>

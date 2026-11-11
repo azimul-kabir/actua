@@ -62,7 +62,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Optional app lock (biometrics or the device PIN, with a relock timeout) and a setting that hides Actua in the recents screen and blocks screenshots (see [docs/APP_LOCK.md](docs/APP_LOCK.md))
 - Automatic local backups and restore, with recovery options (try again, re-download, restore a backup or delete) for a budget that can't be opened, plus optional Google Drive backup and restore with client-side authenticated AES-256-GCM encryption
 - Optional encrypted WebDAV backup and restore for Nextcloud, ownCloud and other WebDAV servers, with the same client-side encryption (see [docs/WEBDAV_BACKUPS.md](docs/WEBDAV_BACKUPS.md))
-- Home-screen widgets (budget snapshot, favorite categories, account balances, upcoming schedules, quick transaction, spending trend, a report card showing one of your dashboard cards as a single number, and small single-account and single-category widgets) and launcher shortcuts
+- Home-screen widgets (budget snapshot, favorite categories, account balances, upcoming schedules, quick transaction, spending trend, income and spending, a report card showing one of your dashboard cards as a single number, and small single-account and single-category widgets) and launcher shortcuts
 - Currency (including the symbol before or after the amount), date and number formats that follow your budget's Actual settings or a device override, plus appearance options with an optional Material You dynamic-color mode (Android 12+)
 - Actual tag management, with colored `#tag` rendering, notes autocomplete, a Manage Tags screen, and tap-a-tag transaction filtering
 - Multiple downloaded budgets with a quick switcher in Manage

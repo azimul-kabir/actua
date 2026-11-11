@@ -114,4 +114,17 @@
     <string name="credit_card_notification_title">Pagamento de %1$s vence %2$s</string>
     <string name="credit_card_notification_statement_body">Total da fatura %1$s. Pagamento vence %2$s.</string>
     <string name="credit_card_notification_body">Saldo atual %1$s. Pagamento vence %2$s.</string>
+    <string name="widget_income_spending">Receitas e gastos</string>
+    <string name="widget_description_income_spending">Receitas, gastos e o que sobra neste mês, com os últimos seis meses em barras pareadas.</string>
+    <string name="widget_is_left_label">Sobra neste mês</string>
+    <string name="widget_is_left_rate">Sobra neste mês · %1$d%% poupado</string>
+    <string name="widget_is_income">Receitas %1$s</string>
+    <string name="widget_is_spent">Gastos %1$s</string>
+    <string name="widget_is_empty">Sem receitas nem gastos nos últimos seis meses</string>
+    <string name="widget_cd_income_spending">Receitas e gastos, últimos %1$d meses: %2$s.</string>
+    <string name="widget_cd_income_spending_hidden">Receitas e gastos. Os valores estão ocultos.</string>
+    <string name="widget_cd_is_this_month">%1$s (este mês)</string>
+    <string name="widget_cd_is_month">%1$s receitas %2$s, gastos %3$s</string>
+    <string name="widget_cd_is_left">Neste mês sobram %1$s.</string>
+    <string name="widget_cd_is_rate">Taxa de poupança: %1$d por cento.</string>
 </resources>

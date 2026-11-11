@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Income and spending with room for the bars: title, what is left, income and spending, and a chart drawn into a bitmap. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="@dimen/widget_padding_compact">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <TextView
+                android:id="@+id/widget_title"
+                style="@style/WidgetTitle.Compact"
+                android:text="@string/widget_income_spending" />
+            <TextView
+                android:id="@+id/widget_is_left"
+                style="@style/WidgetValue"
+                android:layout_width="wrap_content"
+                android:autoSizeTextType="none"
+                android:textSize="16sp" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/widget_is_period"
+            style="@style/WidgetLabel"
+            android:layout_width="match_parent"
+            android:maxLines="1"
+            android:text="@string/widget_is_left_label" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <TextView
+                android:id="@+id/widget_is_income"
+                style="@style/WidgetLabel"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/widget_is_spent"
+                style="@style/WidgetLabel"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textStyle="bold" />
+        </LinearLayout>
+        <ImageView
+            android:id="@+id/widget_is_chart"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="4dp"
+            android:layout_weight="1"
+            android:contentDescription="@string/widget_income_spending"
+            android:scaleType="fitCenter" />
+        <TextView
+            android:id="@+id/widget_is_message"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:textColor="@color/widget_secondary_text"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="9sp"
+            android:autoSizeMaxTextSize="13sp"
+            android:visibility="gone" />
+    </LinearLayout>
+</FrameLayout>
