@@ -1689,22 +1689,31 @@ class ActuaRepository(context: Context) {
 
     /**
      * The last [months] months of spending for the Spending trend home-screen widget, or null without an
-     * open Actual budget. Counted by the same code as the Spending report, so the two agree.
+     * open Actual budget. Counted by the same code as the Spending report, so the two agree, from the report
+     * data shared by every report widget ([SharedReportData]), which is read once per change however many
+     * widgets are updating.
      */
     fun spendingTrend(
         months: Int = com.azimulkabir.actua.data.reports.SpendingTrendBuilder.DEFAULT_MONTHS,
         today: java.time.LocalDate = java.time.LocalDate.now(),
     ): com.azimulkabir.actua.data.reports.SpendingTrend? {
-        val db = actualDatabase ?: return null
-        val accounts = db.fetchAccounts()
-        val groups = db.fetchCategoryGroups()
+        val data = reportDataForWidgets() ?: return null
         return com.azimulkabir.actua.data.reports.SpendingTrendBuilder.build(
-            transactions = db.fetchTransactionsForReports(),
-            offBudgetAccountIds = accounts.filter { it.offBudget }.mapTo(mutableSetOf()) { it.id },
-            incomeCategoryIds = groups.flatMap { it.categories }.filter { it.isIncome }.mapTo(mutableSetOf()) { it.id },
+            transactions = data.transactions,
+            offBudgetAccountIds = data.offBudgetAccountIds,
+            incomeCategoryIds = data.incomeCategoryIds,
             today = today,
             months = months,
         )
+    }
+
+    /**
+     * The open budget's report data for the report widgets, or null without an open Actual budget. Shared
+     * between widgets, so use it rather than fetching report transactions again.
+     */
+    internal fun reportDataForWidgets(): com.azimulkabir.actua.data.reports.ReportDataSnapshot? {
+        val db = actualDatabase ?: return null
+        return com.azimulkabir.actua.data.reports.SharedReportData.get(ActiveBudgetStore(appContext).budgetId, db)
     }
 
     /** Saved Actual reports evaluated with an optional viewer-side date/account override. */
