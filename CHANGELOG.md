@@ -17,7 +17,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added sample previews and one-line descriptions for the widgets in the launcher's widget picker ([#1572](https://github.com/azimul-kabir/actua/pull/1572))
 - Added Single account and Single category home-screen widgets that fit a 1x1 or 2x1 spot ([#1575](https://github.com/azimul-kabir/actua/pull/1575))
 - Added a Spending trend home-screen widget showing the last six months of spending as bars ([#1576](https://github.com/azimul-kabir/actua/pull/1576))
-- Added a Report card home-screen widget showing one of your Reports dashboard cards as a single number ([#1579](https://github.com/azimul-kabir/actua/issues/1579))
+- Added a Report card home-screen widget showing one of your Reports dashboard cards as a single number ([#1584](https://github.com/azimul-kabir/actua/pull/1584))
 
 ### Changed
 
