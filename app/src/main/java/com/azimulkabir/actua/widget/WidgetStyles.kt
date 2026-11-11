@@ -21,10 +21,11 @@ internal object WidgetStyles {
     private val secondaryIds = intArrayOf(
         R.id.widget_empty, R.id.widget_month, R.id.widget_ready_label, R.id.widget_budgeted_label,
         R.id.widget_balance_label, R.id.widget_schedule_due, R.id.widget_updated,
+        R.id.widget_single_name, R.id.widget_single_message,
     )
     private val primaryIds = intArrayOf(
         R.id.widget_ready_value, R.id.widget_budgeted_value, R.id.widget_balance_value,
-        R.id.widget_item_amount, R.id.widget_schedule_amount,
+        R.id.widget_item_amount, R.id.widget_schedule_amount, R.id.widget_single_amount,
     )
     private val buttonIds = intArrayOf(R.id.widget_expense, R.id.widget_income, R.id.widget_transfer)
 
@@ -32,7 +33,7 @@ internal object WidgetStyles {
     private val tileIds = intArrayOf(
         R.id.widget_item_amount, R.id.widget_schedule_amount, R.id.widget_tile_ready, R.id.widget_tile_budgeted, R.id.widget_tile_balance,
     )
-    private val progressIds = intArrayOf(R.id.widget_item_progress)
+    private val progressIds = intArrayOf(R.id.widget_item_progress, R.id.widget_single_progress)
 
     /** Whether [WidgetStyle.AccentTinted] can be offered: tinting the rounded background needs Android 12. */
     fun accentTintedAvailable() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S

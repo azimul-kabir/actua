@@ -33,6 +33,7 @@ import com.azimulkabir.actua.data.schedules.ScheduleWidgetEntry
 import com.azimulkabir.actua.data.schedules.ScheduleWidgetPeriod
 import com.azimulkabir.actua.data.schedules.ScheduleWidgetProjection
 import com.azimulkabir.actua.data.schedules.ScheduledAmount
+import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.applyDisplayFormats
 import com.azimulkabir.actua.ui.components.formatMoneyCents
@@ -54,7 +55,10 @@ object WidgetActions {
     const val EXTRA_TARGET = "widget_target"
 }
 
-enum class WidgetKind { Categories, Accounts }
+enum class WidgetKind { Categories, Accounts, SingleCategory, SingleAccount }
+
+/** Whether the widget shows one chosen item, so its setup screen is a single-choice list. */
+internal val WidgetKind.isSingle: Boolean get() = this == WidgetKind.SingleCategory || this == WidgetKind.SingleAccount
 
 internal class WidgetPreferences(context: Context) {
     private val values = context.applicationContext.getSharedPreferences(NAME, Context.MODE_PRIVATE)
@@ -175,6 +179,14 @@ class AccountBalancesWidgetProvider : ActuaWidgetProvider() {
     override val kind = WidgetKind.Accounts
 }
 
+class SingleCategoryWidgetProvider : ActuaWidgetProvider() {
+    override val kind = WidgetKind.SingleCategory
+}
+
+class SingleAccountWidgetProvider : ActuaWidgetProvider() {
+    override val kind = WidgetKind.SingleAccount
+}
+
 class ScheduledTransactionsWidgetProvider : ActuaWidgetProvider() {
     override val kind: WidgetKind? = null
 
@@ -191,6 +203,8 @@ object WidgetUpdater {
         QuickTransactionWidgetProvider::class.java,
         AccountBalancesWidgetProvider::class.java,
         ScheduledTransactionsWidgetProvider::class.java,
+        SingleCategoryWidgetProvider::class.java,
+        SingleAccountWidgetProvider::class.java,
     )
 
     private val previewExecutor = Executors.newSingleThreadExecutor()
@@ -219,6 +233,8 @@ object WidgetUpdater {
                 QuickTransactionWidgetProvider::class.java to bindQuick(localized, 0, QuickLayout.Row),
                 AccountBalancesWidgetProvider::class.java to accountsPreview(localized),
                 ScheduledTransactionsWidgetProvider::class.java to schedulesPreview(localized),
+                SingleCategoryWidgetProvider::class.java to singleCategoryPreview(localized),
+                SingleAccountWidgetProvider::class.java to singleAccountPreview(localized),
             )
             previews.forEach { (provider, views) ->
                 manager.setWidgetPreview(ComponentName(localized, provider), AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN, views)
@@ -242,6 +258,27 @@ object WidgetUpdater {
             BudgetData(month, ready, budgeted, balance, spokenReady = ready, spokenBudgeted = budgeted, spokenBalance = balance),
             null,
         )
+    }
+
+    private fun singleCategoryPreview(context: Context): RemoteViews {
+        val views = RemoteViews(context.packageName, WidgetStyles.layout(context, R.layout.widget_single_category, R.layout.widget_single_category_styled))
+        val amount = sample(context, R.string.widget_sample_amount_1)
+        val row = WidgetRow(
+            sample(context, R.string.widget_sample_category_1), amount, 62, "",
+            ProgressStatus.Normal, showProgress = true, spokenAmount = amount,
+        )
+        showSingleItem(context, views, row, open(context, WidgetActions.CATEGORY, 0, row.name))
+        WidgetStyles.apply(context, views)
+        return views
+    }
+
+    private fun singleAccountPreview(context: Context): RemoteViews {
+        val views = RemoteViews(context.packageName, WidgetStyles.layout(context, R.layout.widget_single_account, R.layout.widget_single_account_styled))
+        val amount = sample(context, R.string.widget_sample_amount_7)
+        val row = WidgetRow(sample(context, R.string.widget_sample_account_1), amount, 0, "", spokenAmount = amount)
+        showSingleItem(context, views, row, open(context, WidgetActions.ACCOUNTS, 0, row.name))
+        WidgetStyles.apply(context, views)
+        return views
     }
 
     @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
@@ -350,6 +387,8 @@ object WidgetUpdater {
             is QuickTransactionWidgetProvider -> updateQuickTransaction(context, manager, widgetId)
             is AccountBalancesWidgetProvider -> updateAccounts(context, manager, widgetId)
             is ScheduledTransactionsWidgetProvider -> updateSchedules(context, manager, widgetId)
+            is SingleCategoryWidgetProvider -> updateSingleCategory(context, manager, widgetId)
+            is SingleAccountWidgetProvider -> updateSingleAccount(context, manager, widgetId)
             else -> Unit
         }
     }
@@ -710,6 +749,124 @@ object WidgetUpdater {
         val spokenAmount: String? = null,
     )
 
+    /** A category as a widget row: its available amount, and how much of what was budgeted is spent. */
+    private fun categoryRowOf(context: Context, row: BudgetCategory): WidgetRow {
+        val spent = row.spentCents.coerceAtLeast(0)
+        val denominator = row.assignedCents.coerceAtLeast(1)
+        val percent = ((spent * 100 / denominator).coerceIn(0, 100)).toInt()
+        return WidgetRow(
+            row.name, money(context, row.balanceCents), percent, row.name,
+            ProgressStatus.of(percent, overspent = row.balanceCents < 0), showProgress = true,
+            spokenAmount = spoken(context, row.balanceCents),
+        )
+    }
+
+    private fun updateSingleCategory(context: Context, manager: AppWidgetManager, widgetId: Int) {
+        val views = RemoteViews(context.packageName, WidgetStyles.layout(context, R.layout.widget_single_category, R.layout.widget_single_category_styled))
+        val repository = ActuaRepository(context)
+        try {
+            loadBudgetFormats(repository)
+            if (!repository.isUsingActualBudget) {
+                showSingleMessage(views, context.getString(R.string.widget_no_budget), open(context, WidgetActions.BUDGET, widgetId))
+            } else {
+                val budgetId = ActiveBudgetStore(context).budgetId ?: "no-budget"
+                val favorites = FavoritePreferences(context).ids(budgetId, FavoritePreferences.Type.CATEGORY)
+                // Skipping setup shows the first favorite, or the first category when there are none.
+                val categories = repository.budgetGroups().asSequence()
+                    .filterNot { it.hidden || it.isIncome }
+                    .flatMap { it.categories.asSequence() }
+                    .filterNot { it.hidden || it.id == null }
+                    .sortedByDescending { it.id in favorites }
+                    .toList()
+                val selected = WidgetPreferences(context).selected(WidgetKind.SingleCategory, widgetId).firstOrNull()
+                when (val choice = resolveSingle(categories, selected) { it.id.orEmpty() }) {
+                    is SingleChoice.Found -> showSingleItem(
+                        context, views, categoryRowOf(context, choice.item),
+                        open(context, WidgetActions.CATEGORY, widgetId, choice.item.name),
+                    )
+                    SingleChoice.NotFound -> showSingleMessage(
+                        views, context.getString(R.string.widget_single_category_missing),
+                        configure(context, WidgetConfigurationActivity::class.java, widgetId),
+                    )
+                    SingleChoice.Empty -> showSingleMessage(
+                        views, context.getString(R.string.widget_no_categories), open(context, WidgetActions.BUDGET, widgetId),
+                    )
+                }
+            }
+            WidgetStyles.apply(context, views)
+            manager.updateAppWidget(widgetId, views)
+        } finally {
+            repository.close()
+        }
+    }
+
+    private fun updateSingleAccount(context: Context, manager: AppWidgetManager, widgetId: Int) {
+        val views = RemoteViews(context.packageName, WidgetStyles.layout(context, R.layout.widget_single_account, R.layout.widget_single_account_styled))
+        val repository = ActuaRepository(context)
+        try {
+            loadBudgetFormats(repository)
+            if (!repository.isUsingActualBudget) {
+                showSingleMessage(views, context.getString(R.string.widget_no_budget), open(context, WidgetActions.BUDGET, widgetId))
+            } else {
+                val accounts = repository.accounts().filterNot { it.closed }
+                val selected = WidgetPreferences(context).selected(WidgetKind.SingleAccount, widgetId).firstOrNull()
+                when (val choice = resolveSingle(accounts, selected) { it.id }) {
+                    is SingleChoice.Found -> showSingleItem(
+                        context, views,
+                        WidgetRow(
+                            choice.item.name, money(context, choice.item.balanceCents), 0, choice.item.name,
+                            spokenAmount = spoken(context, choice.item.balanceCents),
+                        ),
+                        open(context, WidgetActions.ACCOUNTS, widgetId, choice.item.name),
+                    )
+                    SingleChoice.NotFound -> showSingleMessage(
+                        views, context.getString(R.string.widget_single_account_missing),
+                        configure(context, WidgetConfigurationActivity::class.java, widgetId),
+                    )
+                    SingleChoice.Empty -> showSingleMessage(
+                        views, context.getString(R.string.widget_no_accounts), open(context, WidgetActions.ACCOUNTS, widgetId),
+                    )
+                }
+            }
+            WidgetStyles.apply(context, views)
+            manager.updateAppWidget(widgetId, views)
+        } finally {
+            repository.close()
+        }
+    }
+
+    /** One account or category in a single-item widget: its name and amount, and a progress bar for a category. */
+    private fun showSingleItem(context: Context, views: RemoteViews, row: WidgetRow, tap: PendingIntent) {
+        views.setViewVisibility(R.id.widget_single_message, View.GONE)
+        views.setViewVisibility(R.id.widget_single_name, View.VISIBLE)
+        views.setViewVisibility(R.id.widget_single_amount, View.VISIBLE)
+        views.setTextViewText(R.id.widget_single_name, row.name)
+        views.setTextViewText(R.id.widget_single_amount, row.amount)
+        views.setViewVisibility(R.id.widget_single_progress, if (row.showProgress) View.VISIBLE else View.GONE)
+        if (row.showProgress) {
+            views.setProgressBar(R.id.widget_single_progress, 100, row.progress, false)
+            WidgetStyles.applyProgressStatus(context, views, R.id.widget_single_progress, row.status)
+        }
+        val amount = row.spokenAmount ?: context.getString(R.string.widget_cd_hidden)
+        views.setContentDescription(
+            R.id.widget_root,
+            if (row.showProgress) context.getString(R.string.widget_cd_category_row, row.name, amount, row.progress)
+            else context.getString(R.string.widget_cd_account_row, row.name, amount),
+        )
+        views.setOnClickPendingIntent(R.id.widget_root, tap)
+    }
+
+    /** A state with nothing to show (no budget, item not found), saying what to do and opening the right screen. */
+    private fun showSingleMessage(views: RemoteViews, text: String, tap: PendingIntent) {
+        views.setViewVisibility(R.id.widget_single_name, View.GONE)
+        views.setViewVisibility(R.id.widget_single_amount, View.GONE)
+        views.setViewVisibility(R.id.widget_single_progress, View.GONE)
+        views.setViewVisibility(R.id.widget_single_message, View.VISIBLE)
+        views.setTextViewText(R.id.widget_single_message, text)
+        views.setContentDescription(R.id.widget_root, text)
+        views.setOnClickPendingIntent(R.id.widget_root, tap)
+    }
+
     internal fun categoryRows(context: Context): List<WidgetRow> {
         val repository = ActuaRepository(context)
         try {
@@ -721,16 +878,7 @@ object WidgetUpdater {
                 .toList()
             val budgetId = ActiveBudgetStore(context).budgetId ?: "no-budget"
             val favorites = FavoritePreferences(context).ids(budgetId, FavoritePreferences.Type.CATEGORY)
-            return all.filter { it.id in favorites }.take(MAX_WIDGET_ROWS).map { row ->
-                val spent = row.spentCents.coerceAtLeast(0)
-                val denominator = row.assignedCents.coerceAtLeast(1)
-                val percent = ((spent * 100 / denominator).coerceIn(0, 100)).toInt()
-                WidgetRow(
-                    row.name, money(context, row.balanceCents), percent, row.name,
-                    ProgressStatus.of(percent, overspent = row.balanceCents < 0), showProgress = true,
-                    spokenAmount = spoken(context, row.balanceCents),
-                )
-            }
+            return all.filter { it.id in favorites }.take(MAX_WIDGET_ROWS).map { categoryRowOf(context, it) }
         } finally {
             repository.close()
         }

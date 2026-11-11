@@ -60,6 +60,14 @@
     <string name="widget_clear_search">Limpar pesquisa</string>
     <string name="widget_selected_count">%1$d de %2$d selecionados</string>
     <string name="widget_no_matches">Nenhum resultado para “%1$s”</string>
+    <string name="widget_single_account">Uma conta</string>
+    <string name="widget_single_category">Uma categoria</string>
+    <string name="widget_description_single_account">O saldo de uma conta, em pouco espaço.</string>
+    <string name="widget_description_single_category">O valor disponível de uma categoria e o progresso.</string>
+    <string name="widget_single_account_missing">Conta não encontrada. Toque para escolher.</string>
+    <string name="widget_single_category_missing">Categoria não encontrada. Toque para escolher.</string>
+    <string name="widget_choose_account">Escolha a conta a mostrar.</string>
+    <string name="widget_choose_category">Escolha a categoria a mostrar.</string>
     <string name="widget_due_today">Hoje</string>
     <string name="widget_due_tomorrow">Amanhã</string>
     <plurals name="widget_due_in_days">

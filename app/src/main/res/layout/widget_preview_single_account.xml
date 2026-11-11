@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Static picker preview with synthetic sample data. The real widget is bound with budget data. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="vertical"
+        android:padding="8dp">
+        <TextView style="@style/WidgetLabel" android:layout_width="match_parent" android:maxLines="1" android:ellipsize="end" android:text="@string/widget_sample_account_1" />
+        <TextView style="@style/WidgetValue" android:autoSizeMaxTextSize="22sp" android:text="@string/widget_sample_amount_7" />
+    </LinearLayout>
+</FrameLayout>
