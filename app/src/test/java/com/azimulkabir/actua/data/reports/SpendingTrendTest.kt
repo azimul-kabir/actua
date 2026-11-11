@@ -17,7 +17,7 @@ class SpendingTrendTest {
         id: String, date: Int, amount: Long, account: String = "checking", category: String? = "food",
         tombstone: Boolean = false,
     ) = ActualTransaction(id, account, date, amount, null, null, category, null, null, false, false, null,
-        tombstone, null, false, null, null, null, null)
+        false, null, tombstone, null, null, null, null)
 
     private fun trend(rows: List<ActualTransaction>, months: Int = 6) =
         SpendingTrendBuilder.build(rows, offBudget, income, today, months)
