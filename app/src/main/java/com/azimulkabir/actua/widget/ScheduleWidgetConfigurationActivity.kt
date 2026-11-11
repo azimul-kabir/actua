@@ -1,14 +1,13 @@
 package com.azimulkabir.actua.widget
 
-import com.azimulkabir.actua.data.preferences.ScreenPrivacyPreferences
 import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,23 +32,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.schedules.ScheduleWidgetPeriod
-import com.azimulkabir.actua.ui.theme.ActuaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class ScheduleWidgetConfigurationActivity : AppCompatActivity() {
+class ScheduleWidgetConfigurationActivity : WidgetConfigurationBaseActivity() {
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ScreenPrivacyPreferences.apply(this)
         widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
         if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
             finish()
@@ -58,7 +56,7 @@ class ScheduleWidgetConfigurationActivity : AppCompatActivity() {
         setResult(Activity.RESULT_CANCELED, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
         enableEdgeToEdge()
         setContent {
-            ActuaTheme {
+            WidgetConfigurationTheme(this) {
                 ScheduleWidgetConfigurationScreen(widgetId = widgetId, onCancel = ::finish, onSave = ::save)
             }
         }
@@ -103,14 +101,16 @@ private fun ScheduleWidgetConfigurationScreen(widgetId: Int, onCancel: () -> Uni
             ) { Text(stringResource(R.string.widget_add)) }
         },
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp, vertical = 12.dp)) {
+        Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp, vertical = 12.dp).selectableGroup()) {
             Text(stringResource(R.string.widget_schedule_period_prompt), style = MaterialTheme.typography.bodyMedium)
             ScheduleWidgetPeriod.entries.forEach { period ->
                 Row(
-                    modifier = Modifier.fillMaxWidth().clickable { selected = period.days }.padding(vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                        .selectable(selected = selected == period.days, role = Role.RadioButton, onClick = { selected = period.days })
+                        .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    RadioButton(selected = selected == period.days, onClick = { selected = period.days })
+                    RadioButton(selected = selected == period.days, onClick = null)
                     Text(
                         pluralStringResource(R.plurals.widget_period_days, period.days, period.days),
                         modifier = Modifier.padding(start = 8.dp),

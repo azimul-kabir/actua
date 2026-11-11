@@ -9,5 +9,5 @@
     android:minResizeWidth="40dp" android:minResizeHeight="40dp"
     android:targetCellWidth="2" android:targetCellHeight="3"
     android:updatePeriodMillis="1800000"
-    android:widgetFeatures="reconfigurable"
+    android:widgetFeatures="configuration_optional|reconfigurable"
     android:widgetCategory="home_screen" />

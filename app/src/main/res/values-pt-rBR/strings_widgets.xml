@@ -56,6 +56,10 @@
     <string name="widget_sample_schedule_1">Aluguel</string>
     <string name="widget_sample_schedule_2">Telefone</string>
     <string name="widget_sample_schedule_3">Internet</string>
+    <string name="widget_search_hint">Pesquisar</string>
+    <string name="widget_clear_search">Limpar pesquisa</string>
+    <string name="widget_selected_count">%1$d de %2$d selecionados</string>
+    <string name="widget_no_matches">Nenhum resultado para “%1$s”</string>
     <string name="widget_due_today">Hoje</string>
     <string name="widget_due_tomorrow">Amanhã</string>
     <plurals name="widget_due_in_days">
