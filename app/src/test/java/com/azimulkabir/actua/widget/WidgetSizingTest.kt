@@ -21,6 +21,8 @@ class WidgetSizingTest {
         assertEquals(BudgetLayout.Compact, pick(BudgetVariants, 4, 2))
         assertEquals(BudgetLayout.Hero, pick(BudgetVariants, 2, 3))
         assertEquals(BudgetLayout.Hero, pick(BudgetVariants, 4, 3))
+        assertEquals(BudgetLayout.HeroFull, pick(BudgetVariants, 2, 4))
+        assertEquals(BudgetLayout.HeroFull, pick(BudgetVariants, 4, 4))
     }
 
     @Test
@@ -54,7 +56,7 @@ class WidgetSizingTest {
     @Test
     fun anUnknownSizeGetsTheLargestVariant() {
         // Launchers that report no size leave the options unset, which the fallback reads as unbounded.
-        assertEquals(BudgetLayout.Hero, WidgetSizing.pick(BudgetVariants, Int.MAX_VALUE, Int.MAX_VALUE).layout)
+        assertEquals(BudgetLayout.HeroFull, WidgetSizing.pick(BudgetVariants, Int.MAX_VALUE, Int.MAX_VALUE).layout)
         assertEquals(QuickLayout.Stacked, WidgetSizing.pick(QuickVariants, Int.MAX_VALUE, Int.MAX_VALUE).layout)
     }
 

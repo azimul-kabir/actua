@@ -64,5 +64,17 @@
                 <TextView android:id="@+id/widget_balance_value" style="@style/WidgetValue" android:autoSizeMaxTextSize="15sp" />
             </LinearLayout>
         </LinearLayout>
+        <!-- Shown from 4x4: when the widget last updated, and a 48dp target that refreshes it. -->
+        <TextView
+            android:id="@+id/widget_updated"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:minHeight="48dp"
+            android:textColor="@color/widget_secondary_text"
+            android:textSize="11sp"
+            android:visibility="gone" />
     </LinearLayout>
 </FrameLayout>
