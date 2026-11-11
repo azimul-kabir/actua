@@ -18,6 +18,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added Single account and Single category home-screen widgets that fit a 1x1 or 2x1 spot ([#1575](https://github.com/azimul-kabir/actua/pull/1575))
 - Added an Income and spending home-screen widget showing this month's income, spending, what is left and the savings rate, with the last six months as paired bars ([#1577](https://github.com/azimul-kabir/actua/pull/1583))
 - Added a Spending trend home-screen widget showing the last six months of spending as bars ([#1576](https://github.com/azimul-kabir/actua/pull/1576))
+- Added an Account type icons switch to the Accounts tab's display options to show or hide the icon beside each account ([#1585](https://github.com/azimul-kabir/actua/issues/1585))
 
 ### Changed
 

@@ -228,6 +228,11 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(SHOW_ACCOUNTS_MONTHLY_SUMMARY, true)
         set(value) { preferences.edit().putBoolean(SHOW_ACCOUNTS_MONTHLY_SUMMARY, value).apply() }
 
+    /** Whether account rows in the Accounts tab show an icon for the account's type. */
+    var showAccountTypeIcons: Boolean
+        get() = preferences.getBoolean(SHOW_ACCOUNT_TYPE_ICONS, true)
+        set(value) { preferences.edit().putBoolean(SHOW_ACCOUNT_TYPE_ICONS, value).apply() }
+
     /** Whether a new transaction starts with the date of the last one added; off starts at today. */
     var keepLastTransactionDate: Boolean
         get() = preferences.getBoolean(KEEP_LAST_TRANSACTION_DATE, false)
@@ -311,6 +316,7 @@ class DisplayPreferences(context: Context) {
         const val DEFAULT_ACCOUNT = "default_account"
         const val GROUP_TRANSACTIONS_BY_DATE = "group_transactions_by_date"
         const val SHOW_ACCOUNTS_MONTHLY_SUMMARY = "show_accounts_monthly_summary"
+        const val SHOW_ACCOUNT_TYPE_ICONS = "show_account_type_icons"
         const val CONVENTIONAL_AMOUNT_ENTRY = "conventional_amount_entry"
         const val KEEP_LAST_TRANSACTION_DATE = "keep_last_transaction_date"
         const val SHOW_BOTTOM_NAVIGATION_LABELS = "show_bottom_navigation_labels"

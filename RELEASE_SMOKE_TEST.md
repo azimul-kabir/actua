@@ -324,6 +324,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Manage Categories: delete a category group and verify Actua prompts to reassign contained categories to another group before tombstoning.
 - [ ] Accounts monthly summary: customize the pay cycle start day and verify month-to-date income and expense recalculate according to the custom cycle.
 - [ ] 2.0.0 overflow menus: Budget, Accounts and account Transactions menus show switches (not checkboxes) for their display options; Reports header buttons use the same tonal pill as Budget and Accounts.
+- [ ] Accounts tab ⋮ menu: turn off Account type icons and the icon beside every account name disappears with the name starting at the row's edge; turn it back on and the icons return. The choice survives restarting the app.
 - [ ] 2.0.0 Budget table: amount columns fit their content with one shared width at normal width, on a 360dp-wide screen and at the largest font size.
 - [ ] 2.0.0 Category details: filter the Transactions tab, open a category's details and confirm recent activity still lists its transactions.
 - [ ] 2.0.0 Budget download/switch: download a large server budget and switch budgets; the loading dialog appears, the app stays responsive (no ANR), and Back is ignored until it finishes.
