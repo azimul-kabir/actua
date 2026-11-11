@@ -724,6 +724,7 @@ fun AppNavigation(
     var defaultAccount by remember { mutableStateOf(displayPreferences.defaultAccount) }
     var groupTransactionsByDate by remember { mutableStateOf(displayPreferences.groupTransactionsByDate) }
     var showAccountsMonthlySummary by remember { mutableStateOf(displayPreferences.showAccountsMonthlySummary) }
+    var showAccountTypeIcons by remember { mutableStateOf(displayPreferences.showAccountTypeIcons) }
     var conventionalAmountEntry by remember { mutableStateOf(displayPreferences.conventionalAmountEntry) }
     val receiptScanner = remember { createReceiptScanner(context) }
     // The scanned receipt photo the user chose to keep with the transaction being added. It stays a cache
@@ -3259,6 +3260,11 @@ fun AppNavigation(
                         displayPreferences.showAccountsMonthlySummary = it
                         showAccountsMonthlySummary = it
                     },
+                    showAccountTypeIcons = showAccountTypeIcons,
+                    onShowAccountTypeIconsChange = {
+                        displayPreferences.showAccountTypeIcons = it
+                        showAccountTypeIcons = it
+                    },
                     creditCards = creditCards,
                     onAccountClick = {
                         transactionAccount = it
@@ -4197,6 +4203,8 @@ private fun NavigationAccountsScreen(
     hideDecimalPlaces: Boolean,
     showMonthlySummary: Boolean,
     onShowMonthlySummaryChange: (Boolean) -> Unit,
+    showAccountTypeIcons: Boolean,
+    onShowAccountTypeIconsChange: (Boolean) -> Unit,
     creditCards: List<CreditCardStatus>,
     onAccountClick: (String) -> Unit,
     onAllAccountsClick: () -> Unit,
@@ -4222,6 +4230,8 @@ private fun NavigationAccountsScreen(
         hideDecimalPlaces = hideDecimalPlaces,
         showMonthlySummary = showMonthlySummary,
         onShowMonthlySummaryChange = onShowMonthlySummaryChange,
+        showAccountTypeIcons = showAccountTypeIcons,
+        onShowAccountTypeIconsChange = onShowAccountTypeIconsChange,
         creditCards = creditCards,
         onAccountClick = onAccountClick,
         onAllAccountsClick = onAllAccountsClick,

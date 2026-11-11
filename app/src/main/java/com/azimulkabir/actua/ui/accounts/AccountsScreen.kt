@@ -170,6 +170,8 @@ fun AccountsScreen(
     hideDecimalPlaces: Boolean = false,
     showMonthlySummary: Boolean = true,
     onShowMonthlySummaryChange: (Boolean) -> Unit = {},
+    showAccountTypeIcons: Boolean = true,
+    onShowAccountTypeIconsChange: (Boolean) -> Unit = {},
     creditCards: List<CreditCardStatus> = emptyList(),
     onAccountClick: (String) -> Unit = {},
     onAllAccountsClick: () -> Unit = {},
@@ -330,6 +332,11 @@ fun AccountsScreen(
                                     checked = showMonthlySummary,
                                     onCheckedChange = onShowMonthlySummaryChange,
                                 )
+                                ActuaSwitchMenuItem(
+                                    label = "Account type icons",
+                                    checked = showAccountTypeIcons,
+                                    onCheckedChange = onShowAccountTypeIconsChange,
+                                )
                                 DropdownMenuItem(
                                     text = { Text("Reorder accounts") },
                                     leadingIcon = { Icon(Icons.Outlined.SwapVert, contentDescription = null) },
@@ -455,6 +462,7 @@ fun AccountsScreen(
                                         onLongClick = { selectedAccount = account },
                                         hideDecimalPlaces = hideDecimalPlaces,
                                         newTransactions = newTransactionCounts[account.id] ?: 0,
+                                        showTypeIcon = showAccountTypeIcons,
                                     )
                                 }
                             }
@@ -680,6 +688,8 @@ private fun AccountGroupHeader(
     }
 }
 
+internal const val ACCOUNT_TYPE_ICON_TAG = "account-type-icon"
+
 /** Display-only icon for an account row, from its credit-card status or free-text Actual account type. */
 internal fun accountTypeIcon(type: String, isCreditCard: Boolean): ImageVector {
     val normalized = type.lowercase()
@@ -704,6 +714,7 @@ private fun AccountRow(
     onLongClick: () -> Unit,
     hideDecimalPlaces: Boolean,
     newTransactions: Int = 0,
+    showTypeIcon: Boolean = true,
 ) {
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     ActuaGroupedItem(position = position) {
@@ -714,8 +725,13 @@ private fun AccountRow(
                 .padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(accountTypeIcon(account.type, creditCard != null), contentDescription = null, tint = muted)
-            Spacer(Modifier.width(Spacing.lg))
+            if (showTypeIcon) {
+                Icon(
+                    accountTypeIcon(account.type, creditCard != null), contentDescription = null, tint = muted,
+                    modifier = Modifier.testTag(ACCOUNT_TYPE_ICON_TAG),
+                )
+                Spacer(Modifier.width(Spacing.lg))
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(account.name, style = MaterialTheme.typography.bodyLarge)
                 if (newTransactions > 0) Text(newBankTransactionsLabel(newTransactions),
