@@ -68,6 +68,15 @@
     <string name="widget_single_category_missing">Categoria não encontrada. Toque para escolher.</string>
     <string name="widget_choose_account">Escolha a conta a mostrar.</string>
     <string name="widget_choose_category">Escolha a categoria a mostrar.</string>
+    <string name="widget_spending_trend">Tendência de gastos</string>
+    <string name="widget_description_spending_trend">Os gastos dos últimos seis meses, com este mês em destaque.</string>
+    <string name="widget_trend_period_months">Últimos 6 meses</string>
+    <string name="widget_trend_period_this_month">Este mês</string>
+    <string name="widget_trend_no_spending">Sem gastos nos últimos seis meses</string>
+    <string name="widget_cd_spending_trend">Tendência de gastos, últimos %1$d meses: %2$s. Total %3$s.</string>
+    <string name="widget_cd_spending_trend_hidden">Tendência de gastos. Os valores estão ocultos.</string>
+    <string name="widget_cd_trend_this_month">%1$s (este mês)</string>
+    <string name="widget_cd_trend_month">%1$s %2$s</string>
     <string name="widget_due_today">Hoje</string>
     <string name="widget_due_tomorrow">Amanhã</string>
     <plurals name="widget_due_in_days">

@@ -227,6 +227,12 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_single_account_info" />
         </receiver>
+        <receiver android:name=".widget.SpendingTrendWidgetProvider" android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_spending_trend_info" />
+        </receiver>
     </application>
 
 </manifest>

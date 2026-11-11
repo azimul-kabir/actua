@@ -74,3 +74,11 @@ internal val ListVariants = listOf(
     WidgetVariant(40, 100, ListLayout.Titled),
     WidgetVariant(40, 150, ListLayout.Full),
 )
+
+internal enum class TrendLayout { Small, Chart }
+
+/** Spending trend: this month against last as two bars while small, six months of bars from 3x2. */
+internal val TrendVariants = listOf(
+    WidgetVariant(40, 40, TrendLayout.Small),
+    WidgetVariant(180, 100, TrendLayout.Chart),
+)

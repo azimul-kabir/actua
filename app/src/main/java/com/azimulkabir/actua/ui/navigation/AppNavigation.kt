@@ -1584,6 +1584,10 @@ fun AppNavigation(
                 destination = MainDestination.Manage
                 detail = DetailDestination.Schedules
             }
+            WidgetActions.REPORTS -> {
+                destination = MainDestination.Reports
+                detail = DetailDestination.Main
+            }
             WidgetActions.ADD_EXPENSE, WidgetActions.ADD_INCOME, WidgetActions.ADD_TRANSFER -> {
                 destination = MainDestination.Transactions
                 addOrigin = MainDestination.Transactions

@@ -1102,6 +1102,31 @@ object CoreReportEngine {
             valueCents = points.sumOf { it.primaryCents - it.secondaryCents })
     }
 
+    /**
+     * The transactions the Spending dashboard widget counts as spending: not deleted, not in an off-budget
+     * account and not in an income category (PWA's hardcoded `makeQuery` filters). Shared with the Spending
+     * trend home-screen widget, so the two always agree.
+     */
+    fun spendingTransactions(
+        transactions: List<ActualTransaction>,
+        offBudgetAccountIds: Set<String>,
+        incomeCategoryIds: Set<String>,
+    ): List<ActualTransaction> = transactions.filterNot {
+        it.tombstone || it.accountId in offBudgetAccountIds || it.categoryId in incomeCategoryIds
+    }
+
+    /**
+     * What was spent in [month] over [rows], as positive cents, optionally only up to [throughDay]. Shared
+     * with the Spending trend home-screen widget; money stays integer cents.
+     */
+    fun spentInMonth(rows: List<ActualTransaction>, month: YearMonth, throughDay: Int? = null): Long {
+        val endDay = throughDay?.coerceAtMost(month.lengthOfMonth())
+        return -rows.sumOf { transaction ->
+            val date = transaction.localDate()
+            if (YearMonth.from(date) == month && (endDay == null || date.dayOfMonth <= endDay)) transaction.amountCents else 0L
+        }
+    }
+
     private fun spending(
         id: String, name: String, meta: JSONObject?, transactions: List<ActualTransaction>,
         context: RuleContext, incomeCategoryIds: Set<String>,
@@ -1113,8 +1138,7 @@ object CoreReportEngine {
         // off-budget (or between two on-budget accounts) still counts, same as PWA. Whatever the
         // widget's own `conditions` (set in the PWA) additionally exclude is applied below via
         // RulesEngine, not hardcoded here.
-        val scoped = transactions.filterNot { it.tombstone ||
-            it.accountId in context.offBudgetAccountIds || it.categoryId in incomeCategoryIds }
+        val scoped = spendingTransactions(transactions, context.offBudgetAccountIds, incomeCategoryIds)
         val conditions = parseConditions(meta)
         val matching = scoped.filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }
         val currentMonth = YearMonth.from(today)
@@ -1177,7 +1201,7 @@ object CoreReportEngine {
                 YearMonth.from(date) == month && (endDay == null || date.dayOfMonth <= endDay)
             }
         }
-        fun spent(month: YearMonth, throughDay: Int? = null): Long = -spentRows(month, throughDay).sumOf { it.amountCents }
+        fun spent(month: YearMonth, throughDay: Int? = null): Long = spentInMonth(matching, month, throughDay)
         val current = spent(compare, currentCutoff)
         val currentIds = spentRows(compare, currentCutoff).map { it.id }
         var comparisonIds = emptyList<String>()

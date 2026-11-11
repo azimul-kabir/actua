@@ -1687,6 +1687,26 @@ class ActuaRepository(context: Context) {
             .also { reportInputs = it }
     }
 
+    /**
+     * The last [months] months of spending for the Spending trend home-screen widget, or null without an
+     * open Actual budget. Counted by the same code as the Spending report, so the two agree.
+     */
+    fun spendingTrend(
+        months: Int = com.azimulkabir.actua.data.reports.SpendingTrendBuilder.DEFAULT_MONTHS,
+        today: java.time.LocalDate = java.time.LocalDate.now(),
+    ): com.azimulkabir.actua.data.reports.SpendingTrend? {
+        val db = actualDatabase ?: return null
+        val accounts = db.fetchAccounts()
+        val groups = db.fetchCategoryGroups()
+        return com.azimulkabir.actua.data.reports.SpendingTrendBuilder.build(
+            transactions = db.fetchTransactionsForReports(),
+            offBudgetAccountIds = accounts.filter { it.offBudget }.mapTo(mutableSetOf()) { it.id },
+            incomeCategoryIds = groups.flatMap { it.categories }.filter { it.isIncome }.mapTo(mutableSetOf()) { it.id },
+            today = today,
+            months = months,
+        )
+    }
+
     /** Saved Actual reports evaluated with an optional viewer-side date/account override. */
     fun savedReportWidgets(
         view: com.azimulkabir.actua.model.ReportViewFilter,

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Static picker preview with synthetic sample data. The real widget is bound with budget data. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="@dimen/widget_padding_compact">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <TextView
+                style="@style/WidgetTitle.Compact"
+                android:text="@string/widget_spending_trend" />
+            <TextView
+                style="@style/WidgetValue"
+                android:layout_width="wrap_content"
+                android:autoSizeTextType="none"
+                android:textSize="16sp"
+                android:text="@string/widget_sample_amount_5" />
+        </LinearLayout>
+        <TextView
+            style="@style/WidgetLabel"
+            android:layout_width="match_parent"
+            android:text="@string/widget_trend_period_months" />
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="4dp"
+            android:layout_weight="1"
+            android:importantForAccessibility="no"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_preview_trend_chart" />
+    </LinearLayout>
+</FrameLayout>

@@ -49,6 +49,17 @@ class WidgetSizingTest {
     }
 
     @Test
+    fun spendingTrendShowsTwoMonthsWhileSmallAndSixFromThreeByTwo() {
+        assertEquals(TrendLayout.Small, pick(TrendVariants, 2, 1))
+        assertEquals(TrendLayout.Small, pick(TrendVariants, 3, 1))
+        assertEquals(TrendLayout.Small, pick(TrendVariants, 2, 2))
+        assertEquals(TrendLayout.Chart, pick(TrendVariants, 3, 2))
+        assertEquals("too short for six bars", TrendLayout.Small, pick(TrendVariants, 4, 1))
+        assertEquals(TrendLayout.Chart, pick(TrendVariants, 4, 2))
+        assertEquals(TrendLayout.Chart, pick(TrendVariants, 4, 3))
+    }
+
+    @Test
     fun aSizeSmallerThanEveryVariantGetsTheSmallest() {
         assertEquals(BudgetLayout.Mini, WidgetSizing.pick(BudgetVariants, 20, 20).layout)
     }
@@ -68,6 +79,7 @@ class WidgetSizingTest {
         assertEquals(BudgetLayout.entries.toSet(), reached(BudgetVariants))
         assertEquals(QuickLayout.entries.toSet(), reached(QuickVariants))
         assertEquals(ListLayout.entries.toSet(), reached(ListVariants))
+        assertEquals(TrendLayout.entries.toSet(), reached(TrendVariants))
     }
 
     @Test
