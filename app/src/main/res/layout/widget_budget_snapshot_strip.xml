@@ -16,7 +16,7 @@
             style="@style/WidgetTile"
             android:paddingVertical="4dp">
             <TextView android:id="@+id/widget_ready_label" android:text="@string/widget_ready" style="@style/WidgetLabel" android:textSize="10sp" android:maxLines="1" android:ellipsize="end" />
-            <TextView android:id="@+id/widget_ready_value" style="@style/WidgetValue" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" />
+            <TextView android:id="@+id/widget_ready_value" style="@style/WidgetValue" android:textSize="14sp" android:autoSizeMaxTextSize="14sp" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/widget_tile_budgeted"
@@ -24,14 +24,14 @@
             android:layout_marginHorizontal="6dp"
             android:paddingVertical="4dp">
             <TextView android:id="@+id/widget_budgeted_label" android:text="@string/widget_budgeted" style="@style/WidgetLabel" android:textSize="10sp" android:maxLines="1" android:ellipsize="end" />
-            <TextView android:id="@+id/widget_budgeted_value" style="@style/WidgetValue" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" />
+            <TextView android:id="@+id/widget_budgeted_value" style="@style/WidgetValue" android:textSize="14sp" android:autoSizeMaxTextSize="14sp" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/widget_tile_balance"
             style="@style/WidgetTile"
             android:paddingVertical="4dp">
             <TextView android:id="@+id/widget_balance_label" android:text="@string/widget_balance" style="@style/WidgetLabel" android:textSize="10sp" android:maxLines="1" android:ellipsize="end" />
-            <TextView android:id="@+id/widget_balance_value" style="@style/WidgetValue" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" />
+            <TextView android:id="@+id/widget_balance_value" style="@style/WidgetValue" android:textSize="14sp" android:autoSizeMaxTextSize="14sp" />
         </LinearLayout>
     </LinearLayout>
 </FrameLayout>

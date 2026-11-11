@@ -19,7 +19,6 @@
         <TextView
             android:id="@+id/widget_ready_value"
             style="@style/WidgetValue"
-            android:maxLines="1" android:ellipsize="end"
-            android:textSize="22sp" />
+            android:textSize="22sp" android:autoSizeMaxTextSize="22sp" />
     </LinearLayout>
 </FrameLayout>

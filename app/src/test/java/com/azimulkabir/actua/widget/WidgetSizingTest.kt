@@ -27,10 +27,12 @@ class WidgetSizingTest {
     fun quickTransactionUsesTheSpaceItIsGiven() {
         assertEquals(QuickLayout.Single, pick(QuickVariants, 2, 1))
         assertEquals(QuickLayout.Single, pick(QuickVariants, 3, 1))
-        assertEquals(QuickLayout.Stacked, pick(QuickVariants, 2, 2))
+        assertEquals(QuickLayout.Single, pick(QuickVariants, 2, 2))
+        assertEquals(QuickLayout.Single, pick(QuickVariants, 3, 2))
         assertEquals(QuickLayout.Row, pick(QuickVariants, 4, 1))
         assertEquals(QuickLayout.Row, pick(QuickVariants, 4, 2))
         assertEquals(QuickLayout.Stacked, pick(QuickVariants, 2, 3))
+        assertEquals(QuickLayout.Stacked, pick(QuickVariants, 3, 3))
         assertEquals(QuickLayout.Stacked, pick(QuickVariants, 4, 3))
     }
 

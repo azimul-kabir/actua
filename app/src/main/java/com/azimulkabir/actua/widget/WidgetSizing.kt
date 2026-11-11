@@ -47,12 +47,15 @@ internal val BudgetVariants = listOf(
 
 internal enum class QuickLayout { Single, Stacked, Row }
 
-/** Quick transaction: Expense alone at 2x1, three stacked buttons from 2x2, a row of three at 4x1 and 4x2. */
+/**
+ * Quick transaction: every button keeps a 48dp touch target, so Expense stands alone until there is room
+ * for three: a row of three from 4x1 and three stacked buttons from 2x3.
+ */
 internal val QuickVariants = listOf(
     WidgetVariant(40, 40, QuickLayout.Single),
-    WidgetVariant(40, 100, QuickLayout.Stacked),
     WidgetVariant(240, 40, QuickLayout.Row),
-    WidgetVariant(240, 150, QuickLayout.Stacked),
+    WidgetVariant(40, 180, QuickLayout.Stacked),
+    WidgetVariant(240, 180, QuickLayout.Stacked),
 )
 
 internal enum class ListLayout { Mini, Titled }

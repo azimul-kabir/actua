@@ -216,14 +216,24 @@ object WidgetUpdater {
         return build(WidgetSizing.pick(variants, width, height).layout)
     }
 
-    private class BudgetData(val month: String, val ready: String, val budgeted: String, val balance: String)
+    /** The figures as displayed, and as spoken (null when balances are hidden, so they are never read out). */
+    private class BudgetData(
+        val month: String,
+        val ready: String,
+        val budgeted: String,
+        val balance: String,
+        val hasBudget: Boolean = true,
+        val spokenReady: String? = null,
+        val spokenBudgeted: String? = null,
+        val spokenBalance: String? = null,
+    )
 
     private fun loadBudget(context: Context): BudgetData {
         val repository = ActuaRepository(context)
         try {
             loadBudgetFormats(repository)
             if (!repository.isUsingActualBudget) {
-                return BudgetData(context.getString(R.string.widget_no_budget), "—", "—", "—")
+                return BudgetData(context.getString(R.string.widget_no_budget), "—", "—", "—", hasBudget = false)
             }
             val overview = repository.budgetOverview()
             val month = YearMonth.now()
@@ -233,6 +243,9 @@ object WidgetUpdater {
                 overview.toBudgetCents?.let { money(context, it) } ?: "—",
                 money(context, overview.budgetedCents),
                 money(context, overview.availableCents),
+                spokenReady = overview.toBudgetCents?.let { spoken(context, it) } ?: "—",
+                spokenBudgeted = spoken(context, overview.budgetedCents),
+                spokenBalance = spoken(context, overview.availableCents),
             )
         } finally {
             repository.close()
@@ -268,6 +281,22 @@ object WidgetUpdater {
         views.setTextViewText(R.id.widget_budgeted_value, data.budgeted)
         views.setTextViewText(R.id.widget_balance_value, data.balance)
         views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.BUDGET, widgetId))
+        // One announcement for the whole widget, whichever layout it is showing.
+        val hidden = context.getString(R.string.widget_cd_hidden)
+        views.setContentDescription(
+            R.id.widget_root,
+            if (!data.hasBudget) {
+                "${context.getString(R.string.widget_budget_snapshot)}, ${data.month}"
+            } else {
+                context.getString(
+                    R.string.widget_cd_budget_snapshot,
+                    context.getString(R.string.widget_budget_snapshot), data.month,
+                    context.getString(R.string.widget_ready), data.spokenReady ?: hidden,
+                    context.getString(R.string.widget_budgeted), data.spokenBudgeted ?: hidden,
+                    context.getString(R.string.widget_balance), data.spokenBalance ?: hidden,
+                )
+            },
+        )
         WidgetStyles.apply(context, views)
         return views
     }
@@ -309,6 +338,9 @@ object WidgetUpdater {
                 views.setTextViewText(R.id.widget_expense, context.getString(R.string.widget_expense))
                 views.setTextViewText(R.id.widget_income, context.getString(R.string.widget_income))
                 views.setTextViewText(R.id.widget_transfer, context.getString(R.string.widget_transfer))
+                views.setContentDescription(R.id.widget_expense, context.getString(R.string.widget_cd_add_expense))
+                views.setContentDescription(R.id.widget_income, context.getString(R.string.widget_cd_add_income))
+                views.setContentDescription(R.id.widget_transfer, context.getString(R.string.widget_cd_add_transfer))
                 views.setOnClickPendingIntent(R.id.widget_expense, open(context, WidgetActions.ADD_EXPENSE, widgetId))
                 views.setOnClickPendingIntent(R.id.widget_income, open(context, WidgetActions.ADD_INCOME, widgetId))
                 views.setOnClickPendingIntent(R.id.widget_transfer, open(context, WidgetActions.ADD_TRANSFER, widgetId))
@@ -426,6 +458,13 @@ object WidgetUpdater {
             setTextViewText(R.id.widget_schedule_title, entry.item.title)
             setTextViewText(R.id.widget_schedule_due, relativeDueLabel(localized, entry.dueDate))
             setTextViewText(R.id.widget_schedule_amount, scheduleAmount(localized, entry.item.schedule))
+            val due = relativeDueLabel(localized, entry.dueDate)
+            val amount = if (balancesHidden(localized)) localized.getString(R.string.widget_cd_hidden)
+                else scheduleAmount(localized, entry.item.schedule)
+            setContentDescription(
+                R.id.widget_schedule_row,
+                localized.getString(R.string.widget_cd_schedule_row, entry.item.title, due, amount),
+            )
             setOnClickFillInIntent(R.id.widget_schedule_row, Intent())
             WidgetStyles.apply(localized, this)
         }
@@ -465,6 +504,8 @@ object WidgetUpdater {
         val target: String,
         val status: ProgressStatus = ProgressStatus.Normal,
         val showProgress: Boolean = false,
+        /** The amount as spoken, or null when balances are hidden. */
+        val spokenAmount: String? = null,
     )
 
     internal fun categoryRows(context: Context): List<WidgetRow> {
@@ -485,6 +526,7 @@ object WidgetUpdater {
                 WidgetRow(
                     row.name, money(context, row.balanceCents), percent, row.name,
                     ProgressStatus.of(percent, overspent = row.balanceCents < 0), showProgress = true,
+                    spokenAmount = spoken(context, row.balanceCents),
                 )
             }
         } finally {
@@ -499,7 +541,9 @@ object WidgetUpdater {
             val all = repository.accounts().filterNot { it.closed }
             val selected = WidgetPreferences(context).selected(WidgetKind.Accounts, widgetId)
             val rows = if (selected.isEmpty()) all else all.filter { it.id in selected }
-            return rows.take(MAX_WIDGET_ROWS).map { WidgetRow(it.name, money(context, it.balanceCents), 0, it.name) }
+            return rows.take(MAX_WIDGET_ROWS).map {
+                WidgetRow(it.name, money(context, it.balanceCents), 0, it.name, spokenAmount = spoken(context, it.balanceCents))
+            }
         } finally {
             repository.close()
         }
@@ -517,6 +561,13 @@ object WidgetUpdater {
                 setProgressBar(R.id.widget_item_progress, 100, row.progress, false)
                 WidgetStyles.applyProgressStatus(localized, this, R.id.widget_item_progress, row.status)
             }
+            // The whole row is one announcement: name, amount and, for a category, how much is spent.
+            val amount = row.spokenAmount ?: localized.getString(R.string.widget_cd_hidden)
+            setContentDescription(
+                R.id.widget_item_row,
+                if (row.showProgress) localized.getString(R.string.widget_cd_category_row, row.name, amount, row.progress)
+                else localized.getString(R.string.widget_cd_account_row, row.name, amount),
+            )
             setOnClickFillInIntent(R.id.widget_item_row, Intent().putExtra(WidgetActions.EXTRA_TARGET, row.target))
             WidgetStyles.apply(localized, this)
         }
@@ -551,6 +602,12 @@ object WidgetUpdater {
         CurrencyDisplay.decimalPlaces = repository.budgetDecimalPlaces()
         budgetFormats = repository.budgetDisplayFormats()
     }
+
+    private fun balancesHidden(context: Context): Boolean = DisplayPreferences(context).resolve(budgetFormats).hideBalances
+
+    /** [cents] formatted for TalkBack, or null when balances are hidden: the dots on screen are never read out. */
+    private fun spoken(context: Context, cents: Long): String? =
+        if (balancesHidden(context)) null else money(context, cents)
 
     private fun money(context: Context, cents: Long): String {
         val formats = DisplayPreferences(context).resolve(budgetFormats)
