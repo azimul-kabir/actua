@@ -50,13 +50,16 @@ class SupporterPerks(private val store: SupporterPerksStore) {
 
     /**
      * Stores [isSupporter] as confirmed by Play at [nowMillis]. Returns true when this turned a
-     * supporter into a non-supporter, in which case every extra has been reset.
+     * supporter into a non-supporter, in which case every extra has been reset. When it turned a
+     * non-supporter into a supporter, the actions from [onGained] have run.
      */
     fun record(isSupporter: Boolean, nowMillis: Long = System.currentTimeMillis()): Boolean {
         val lapsed = store.isSupporter && !isSupporter
+        val gained = !store.isSupporter && isSupporter
         store.isSupporter = isSupporter
         store.lastCheckedAt = nowMillis
         if (lapsed) resetAll()
+        if (gained) runGained()
         return lapsed
     }
 
@@ -75,6 +78,22 @@ class SupporterPerks(private val store: SupporterPerksStore) {
             resets[id] = reset
         }
 
+        private val gained = linkedMapOf<String, () -> Unit>()
+
+        /**
+         * Registers what an extra does when the cached status turns from non-supporter to supporter, for
+         * extras that are drawn from the status and so have to be redrawn. Registering again replaces it.
+         */
+        @Synchronized
+        fun onGained(id: String, action: () -> Unit) {
+            gained[id] = action
+        }
+
+        private fun runGained() {
+            val actions = synchronized(this) { gained.values.toList() }
+            actions.forEach { it() }
+        }
+
         /** Resets every registered extra to its default. */
         fun resetAll() {
             val actions = synchronized(this) { resets.values.toList() }
@@ -82,6 +101,9 @@ class SupporterPerks(private val store: SupporterPerksStore) {
         }
 
         @Synchronized
-        internal fun clearRegistrations() = resets.clear()
+        internal fun clearRegistrations() {
+            resets.clear()
+            gained.clear()
+        }
     }
 }

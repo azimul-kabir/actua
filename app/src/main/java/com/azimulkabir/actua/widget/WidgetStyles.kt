@@ -12,6 +12,7 @@ import androidx.core.content.ContextCompat
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.billing.supporterPerksAvailable
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
+import com.azimulkabir.actua.data.preferences.SupporterPerks
 
 /** Applies the chosen [WidgetStyle] to a widget's [RemoteViews]. Views a layout doesn't have are skipped by RemoteViews. */
 internal object WidgetStyles {
@@ -75,11 +76,12 @@ internal object WidgetStyles {
         )
     }
 
-    private fun activeStyle(context: Context): WidgetStyle {
-        if (!supporterPerksAvailable()) return WidgetStyle.Default
-        val style = DisplayPreferences(context).widgetStyle
-        return if (style == WidgetStyle.AccentTinted && !accentTintedAvailable()) WidgetStyle.Default else style
-    }
+    private fun activeStyle(context: Context): WidgetStyle = effectiveWidgetStyle(
+        perksAvailable = supporterPerksAvailable(),
+        isSupporter = SupporterPerks(context).isSupporter,
+        stored = DisplayPreferences(context).widgetStyle,
+        accentTintedAvailable = accentTintedAvailable(),
+    )
 
     /**
      * Sets the style's colors on [views], which came from [layout]. Between two styled looks the same
@@ -214,6 +216,22 @@ internal object WidgetStyles {
         } else {
             preferences.accent.colorScheme(night)
         }
+}
+
+/**
+ * The widget style that is drawn: the [stored] choice only for a supporter on the Play build, and not
+ * Accent-tinted where it cannot be tinted. The cached supporter status is what gates it, so a stored style
+ * of someone who is not (or no longer) a supporter is never drawn, whether or not its reset has run.
+ */
+internal fun effectiveWidgetStyle(
+    perksAvailable: Boolean,
+    isSupporter: Boolean,
+    stored: WidgetStyle,
+    accentTintedAvailable: Boolean,
+): WidgetStyle = when {
+    !perksAvailable || !isSupporter -> WidgetStyle.Default
+    stored == WidgetStyle.AccentTinted && !accentTintedAvailable -> WidgetStyle.Default
+    else -> stored
 }
 
 /** How far a category row's budget is used, for [WidgetStyles.applyProgressStatus]. */

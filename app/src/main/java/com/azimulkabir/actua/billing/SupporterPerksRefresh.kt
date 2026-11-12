@@ -22,6 +22,9 @@ fun registerSupporterExtras(context: Context) {
         DisplayPreferences(appContext).widgetStyle = WidgetStyle.Default
         WidgetUpdater.requestAll(appContext)
     }
+    // The widget style is drawn only for a confirmed supporter, so widgets chosen before the first
+    // confirmation (a new device, a restore) are redrawn once Play confirms.
+    SupporterPerks.onGained(WIDGET_STYLE_RESET_ID) { WidgetUpdater.requestAllAsync(appContext) }
     SupporterPerks.register(CELEBRATIONS_RESET_ID) { DisplayPreferences(appContext).celebrationsEnabled = false }
     SupporterPerks.register(AccentPalette.RESET_ID) { DisplayPreferences(appContext).accent = AccentPalette.Violet }
 }

@@ -101,4 +101,30 @@ class SupporterPerksTest {
         SupporterPerks.resetAll()
         assertEquals(listOf("icon-v2", "theme"), resets)
     }
+
+    @Test
+    fun gainingSupportRunsTheRegisteredActionsOnceAndNeverOnALapse() {
+        val gained = mutableListOf<String>()
+        SupporterPerks.onGained("widgets") { gained += "widgets" }
+
+        perks.record(owned, nowMillis = 1_000)
+        assertEquals("first confirmation as a supporter", listOf("widgets"), gained)
+
+        perks.record(owned, nowMillis = 2_000)
+        assertEquals("an unchanged status is not gained again", listOf("widgets"), gained)
+
+        perks.record(owned.copy(ownedProducts = emptySet()), nowMillis = 3_000)
+        assertEquals("a lapse is not a gain", listOf("widgets"), gained)
+
+        perks.record(owned, nowMillis = 4_000)
+        assertEquals("support bought again", listOf("widgets", "widgets"), gained)
+    }
+
+    @Test
+    fun anUnconfirmedStateRunsNoGainedActions() {
+        var ran = 0
+        SupporterPerks.onGained("widgets") { ran++ }
+        perks.record(owned.copy(purchasesRestored = false), nowMillis = 1_000)
+        assertEquals(0, ran)
+    }
 }

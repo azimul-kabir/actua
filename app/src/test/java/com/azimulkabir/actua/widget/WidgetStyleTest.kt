@@ -156,6 +156,39 @@ class WidgetStyleTest {
     }
 
     @Test
+    fun aStyleIsOnlyDrawnForASupporterOnThePlayBuild() {
+        val stored = WidgetStyle.SolidDark
+        assertEquals("a supporter", stored, effectiveWidgetStyle(perksAvailable = true, isSupporter = true, stored = stored, accentTintedAvailable = true))
+        assertEquals(
+            "not a supporter, or support lapsed before the reset ran",
+            WidgetStyle.Default, effectiveWidgetStyle(perksAvailable = true, isSupporter = false, stored = stored, accentTintedAvailable = true),
+        )
+        assertEquals(
+            "the F-Droid build has no extras, whatever is stored",
+            WidgetStyle.Default, effectiveWidgetStyle(perksAvailable = false, isSupporter = true, stored = stored, accentTintedAvailable = true),
+        )
+        assertEquals(
+            WidgetStyle.Default, effectiveWidgetStyle(perksAvailable = false, isSupporter = false, stored = stored, accentTintedAvailable = true),
+        )
+    }
+
+    @Test
+    fun accentTintedIsNotDrawnWhereItCannotBeTinted() {
+        assertEquals(
+            WidgetStyle.Default,
+            effectiveWidgetStyle(perksAvailable = true, isSupporter = true, stored = WidgetStyle.AccentTinted, accentTintedAvailable = false),
+        )
+        assertEquals(
+            WidgetStyle.AccentTinted,
+            effectiveWidgetStyle(perksAvailable = true, isSupporter = true, stored = WidgetStyle.AccentTinted, accentTintedAvailable = true),
+        )
+        assertEquals(
+            WidgetStyle.Default,
+            effectiveWidgetStyle(perksAvailable = true, isSupporter = true, stored = WidgetStyle.Default, accentTintedAvailable = false),
+        )
+    }
+
+    @Test
     fun onlyAccentTintedFollowsTheAccent() {
         assertEquals(listOf(WidgetStyle.AccentTinted), WidgetStyle.entries.filter { it.followsAccent })
     }

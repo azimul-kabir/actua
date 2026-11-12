@@ -1072,7 +1072,10 @@ fun SettingsScreen(
                 }
                 SettingsPage.Holidays -> HolidaysSettings(holidays, onHolidaysChange)
                 SettingsPage.AppIconPicker -> AppIconSettings()
-                SettingsPage.WidgetStylePicker -> WidgetStyleSettings()
+                SettingsPage.WidgetStylePicker -> WidgetStyleSettings(
+                    isSupporter = if (supportPurchaseState.purchasesRestored) supportPurchaseState.isSupporter else supporterPerks.isSupporter,
+                    onOpenSupport = { page = SettingsPage.Support },
+                )
                 SettingsPage.AccentPicker -> AccentSettings(
                     isSupporter = if (supportPurchaseState.purchasesRestored) supportPurchaseState.isSupporter else supporterPerks.isSupporter,
                     useDynamicColor = useDynamicColor,
