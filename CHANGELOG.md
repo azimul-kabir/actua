@@ -40,6 +40,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed Accent-tinted widgets keeping the old color after changing the accent color or Material You ([#1604](https://github.com/azimul-kabir/actua/pull/1604))
 - Fixed dashboard cards and reports that exclude a category by name leaving out transactions without a category ([#1533](https://github.com/azimul-kabir/actua/pull/1533))
 - Fixed the year-to-date dashboard cards leaving out transactions whose payee is an account but that aren’t linked transfers ([#1531](https://github.com/azimul-kabir/actua/pull/1531))
 - Fixed a failed budget download or import being able to delete the budget it replaced, or lose its latest changes ([#1530](https://github.com/azimul-kabir/actua/pull/1530))
