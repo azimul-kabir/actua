@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -73,6 +74,33 @@ class AccountsScreenTest {
         compose.onNodeWithContentDescription("Account display options").performClick()
         compose.onNodeWithText("Reorder accounts").performClick()
         assert(reorderClicked)
+    }
+
+    @Test fun accountTypeIconsCanBeTurnedOffFromTheDisplayOptionsMenu() {
+        val checking = Account("Checking", 10_000, "checking", id = "checking")
+        val savings = Account("Savings", 20_000, "savings", id = "savings")
+        var showIcons by mutableStateOf(true)
+
+        compose.setContent {
+            MaterialTheme {
+                AccountsScreen(
+                    accounts = listOf(checking, savings),
+                    showMonthlySummary = false,
+                    showAccountTypeIcons = showIcons,
+                    onShowAccountTypeIconsChange = { showIcons = it },
+                )
+            }
+        }
+
+        compose.onAllNodesWithTag(ACCOUNT_TYPE_ICON_TAG, useUnmergedTree = true).assertCountEquals(2)
+
+        compose.onNodeWithContentDescription("Account display options").performClick()
+        compose.onNodeWithText("Account type icons").performClick()
+
+        compose.runOnIdle { assert(!showIcons) }
+        compose.onAllNodesWithTag(ACCOUNT_TYPE_ICON_TAG, useUnmergedTree = true).assertCountEquals(0)
+        compose.onAllNodesWithText("Checking").assertCountEquals(1)
+        compose.onAllNodesWithText("Savings").assertCountEquals(1)
     }
 
     /** Regression coverage for issue #619: collapsing an account section survives leaving and returning to Accounts. */
