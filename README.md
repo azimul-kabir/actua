@@ -168,10 +168,18 @@ See [BACKEND_PARITY.md](BACKEND_PARITY.md) for detailed compatibility and implem
         </picture>
       </a>
     </td>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/light/widgets.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/widgets.png">
+          <img src="artwork/screenshots/light/widgets.png" width="200" alt="Actua home-screen widgets: budget snapshot, favourite categories, account balances, upcoming schedules, spending charts and quick actions">
+        </picture>
+      </a>
+    </td>
   </tr>
 </table>
 
-Screenshots use the built-in demo budget and follow your GitHub light or dark theme.
+Screenshots use a demo budget and follow your GitHub light or dark theme.
 
 ### Supporter extras
 
