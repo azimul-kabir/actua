@@ -318,6 +318,10 @@
     <string name="settings_support_prompt_body">O Actua é gratuito e de código aberto, feito por um desenvolvedor independente. Se ele ajuda você no orçamento, você pode apoiar o desenvolvimento uma vez ou todo mês. Todos os recursos continuam gratuitos de qualquer forma.</string>
     <string name="settings_support_prompt_see_options">Ver opções</string>
     <string name="settings_support_prompt_not_now">Agora não</string>
+    <string name="settings_rating_prompt_title">O Actua é útil para você?</string>
+    <string name="settings_rating_prompt_body">Se for, uma avaliação rápida no Google Play ajuda outras pessoas a encontrá-lo. Leva só um instante.</string>
+    <string name="settings_rating_prompt_yes">Sim, avaliar</string>
+    <string name="settings_rating_prompt_no">Nem tanto</string>
 
     <!-- Sobre. -->
     <string name="settings_about_summary">Cliente Android nativo para o Actual Budget\nVersão %1$s</string>

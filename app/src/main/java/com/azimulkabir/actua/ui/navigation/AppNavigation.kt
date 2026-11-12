@@ -125,6 +125,7 @@ import com.azimulkabir.actua.ui.settings.BudgetSelectionItem
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.azimulkabir.actua.ui.settings.SettingsScreen
+import com.azimulkabir.actua.ui.settings.RatingPrompt
 import com.azimulkabir.actua.ui.settings.SupportPrompt
 import com.azimulkabir.actua.ui.settings.ConnectionScreen
 import com.azimulkabir.actua.ui.settings.CreditCardsScreen
@@ -1723,6 +1724,10 @@ fun AppNavigation(
             destination = MainDestination.Manage
             detail = DetailDestination.Main
         },
+    )
+    RatingPrompt(
+        canShow = repository.isUsingActualBudget && detail == DetailDestination.Main &&
+            unopenedBudgetDialog == null && !budgetReplacementInProgress,
     )
     unopenedBudgetDialog?.let { budget ->
         UnopenedBudgetRecoveryDialog(
