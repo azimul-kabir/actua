@@ -22,7 +22,7 @@ internal fun filterTransactionsForSummary(
     val monthTransactions = transactions.filter {
         val digits = it.date.filter(Char::isDigit)
         if (period == null) {
-            val monthKey = "%04d%02d".format(today.year, today.monthValue)
+            val monthKey = String.format(java.util.Locale.ROOT, "%04d%02d", today.year, today.monthValue)
             digits.startsWith(monthKey)
         } else {
             digits.length == 8 && digits.toInt() in period

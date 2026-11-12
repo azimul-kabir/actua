@@ -52,6 +52,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.R
+import com.azimulkabir.actua.data.schedules.formatIsoDay
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.importing.accountForImportHint
 import com.azimulkabir.actua.data.importing.importAccountMemoryKey
@@ -889,7 +890,7 @@ private fun ReviewRow.toCandidateOrNull(): ImportCandidate? = runCatching {
 private fun ReviewRow.toQueuedCandidateOrNull(): ImportCandidate? =
     toCandidateOrNull()?.copy(confidence = confidence, sourceLabel = sourceLabel, accountHint = accountHint, queueId = queueId)
 
-private fun formatDate(value: Int): String = "%04d-%02d-%02d".format(value / 10_000, value / 100 % 100, value % 100)
+private fun formatDate(value: Int): String = formatIsoDay(value)
 
 private fun InputStream.readLimitedStatement(maxBytes: Int = 25 * 1024 * 1024): ByteArray {
     val output = ByteArrayOutputStream()

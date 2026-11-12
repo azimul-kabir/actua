@@ -120,6 +120,7 @@ import com.azimulkabir.actua.data.schedules.ScheduleFormFields
 import com.azimulkabir.actua.data.schedules.ScheduleDiscovery
 import com.azimulkabir.actua.data.schedules.BillCalendarItem
 import com.azimulkabir.actua.data.schedules.BillsCalendarEngine
+import com.azimulkabir.actua.data.schedules.formatIsoMonth
 import com.azimulkabir.actua.data.schedules.sortedForDisplay
 import com.azimulkabir.actua.model.BudgetScheduleFunding
 import com.azimulkabir.actua.widget.WidgetUpdater
@@ -2752,5 +2753,5 @@ class ActuaRepository(context: Context) {
     private fun currentMonth(): String = java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US)
         .format(java.util.Date())
 
-    private fun dateMonth(date: Int): String = "%04d-%02d".format(date / 10_000, date / 100 % 100)
+    private fun dateMonth(date: Int): String = formatIsoMonth(date / 10_000, date / 100 % 100)
 }
