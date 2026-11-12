@@ -7,6 +7,7 @@ import com.azimulkabir.actua.data.network.EnableBankingAccount
 import com.azimulkabir.actua.data.network.EnableBankingAuthResult
 import com.azimulkabir.actua.data.network.EnableBankingAuthStart
 import com.azimulkabir.actua.data.network.EnableBankingBank
+import com.azimulkabir.actua.util.suspendRunCatching
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -50,7 +51,7 @@ class EnableBankingFlow(
     fun loadBanks(country: String) {
         banksLoading = true
         scope.launch {
-            val result = runCatching { withContext(io) { loadBanks.invoke(country) } }
+            val result = suspendRunCatching { withContext(io) { loadBanks.invoke(country) } }
             banks = result.getOrElse { error ->
                 if (error is CancellationException) throw error
                 onError(error.message?.takeIf(String::isNotBlank) ?: messages.loadFailed.format(country))

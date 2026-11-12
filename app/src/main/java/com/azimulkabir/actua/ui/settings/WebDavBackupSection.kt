@@ -48,6 +48,7 @@ import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
 import com.azimulkabir.actua.ui.components.ActuaGroupLabel
 import com.azimulkabir.actua.ui.theme.Spacing
+import com.azimulkabir.actua.util.suspendRunCatching
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -103,7 +104,7 @@ fun WebDavBackupSection(
             return
         }
         scope.launch {
-            remoteBackups = runCatching {
+            remoteBackups = suspendRunCatching {
                 withContext(Dispatchers.IO) { manager.listRemoteBackups(budgetId) }
             }.getOrDefault(emptyList())
         }
@@ -140,7 +141,7 @@ fun WebDavBackupSection(
     fun uploadNowChecked() {
         onBusyChange(true)
         scope.launch {
-            runCatching {
+            suspendRunCatching {
                 withContext(Dispatchers.IO) {
                     val archive = service.makeBackup(budgetId)
                     manager.uploadBackup(budgetId, archive)
@@ -175,7 +176,7 @@ fun WebDavBackupSection(
         onBusyChange(true)
         onBeforeRestore()
         scope.launch {
-            runCatching {
+            suspendRunCatching {
                 withContext(Dispatchers.IO) {
                     manager.restoreRemoteBackup(
                         remoteBackupId = item.id,

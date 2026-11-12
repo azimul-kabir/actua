@@ -117,6 +117,7 @@ import com.azimulkabir.actua.ui.components.ActuaHeroAmount
 import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
 import com.azimulkabir.actua.ui.theme.Spacing
+import com.azimulkabir.actua.util.suspendRunCatching
 import java.time.Instant
 import java.io.File
 import java.time.LocalDate
@@ -1126,7 +1127,7 @@ internal fun PickerTextField(
             locationActionMessage = null
             when (action) {
                 PayeeLocationInlineAction.Nearby -> {
-                    val result = runCatching { onFindNearby?.invoke() }.getOrNull()
+                    val result = suspendRunCatching { onFindNearby?.invoke() }.getOrNull()
                     if (result == null) {
                         locationActionMessage = locationStrings.nearbyFailed
                     } else {
@@ -1142,7 +1143,7 @@ internal fun PickerTextField(
                     }
                 }
                 PayeeLocationInlineAction.SaveLocation -> {
-                    val result = runCatching { onSavePayeeLocation?.invoke(value) }.getOrNull()
+                    val result = suspendRunCatching { onSavePayeeLocation?.invoke(value) }.getOrNull()
                     if (result == null) {
                         locationActionMessage = locationStrings.saveFailed
                     } else {
@@ -1301,7 +1302,7 @@ private fun SearchableTransactionPicker(
             coroutineScope.launch {
                 nearbyLoading = true
                 nearbyMessage = null
-                val result = runCatching { findNearby() }.getOrElse {
+                val result = suspendRunCatching { findNearby() }.getOrElse {
                     NearbyPayeeSearchResult(
                         message = locationStrings.findFailed,
                     )
@@ -1430,7 +1431,7 @@ private fun SearchableTransactionPicker(
                                         { option ->
                                             coroutineScope.launch {
                                                 forgettingLocationId = option.locationId
-                                                val deleted = runCatching {
+                                                val deleted = suspendRunCatching {
                                                     forgetLocation(option.locationId)
                                                 }.getOrDefault(false)
                                                 if (deleted) {

@@ -130,6 +130,7 @@ import com.azimulkabir.actua.ui.components.ActuaFormTextField
 import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.ui.components.ActuaGroupLabel
 import com.azimulkabir.actua.ui.theme.Spacing
+import com.azimulkabir.actua.util.suspendRunCatching
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -387,7 +388,7 @@ fun ConnectionScreen(
         val token = credentials.token() ?: return
         loading = true
         scope.launch {
-            runCatching { withContext(Dispatchers.IO) {
+            suspendRunCatching { withContext(Dispatchers.IO) {
                 runCatching { serverUrl to client.listFiles(serverUrl, token) }.getOrElse { primary ->
                     if (primary is ActualServerException.SessionExpired) throw primary
                     val fallback = fallbackServerUrl.takeIf { it.isNotBlank() && it != serverUrl } ?: throw primary
@@ -412,7 +413,7 @@ fun ConnectionScreen(
             return
         }
         scope.launch {
-            runCatching {
+            suspendRunCatching {
                 withContext(Dispatchers.IO) { inspectServerCertificate(failedUrl) }
             }.onSuccess { info ->
                 pendingCertificateTrust = PendingCertificateTrust(
@@ -435,7 +436,7 @@ fun ConnectionScreen(
             // trust prompt triggered by the fallback's failure inspects the fallback's
             // certificate rather than always re-probing the primary URL.
             var attemptedUrl = serverUrl
-            runCatching {
+            suspendRunCatching {
                 withContext(Dispatchers.IO) {
                     val normalized = client.normalizeServerUrl(serverUrl)
                     attemptedUrl = normalized
@@ -484,7 +485,7 @@ fun ConnectionScreen(
             // Tracks whichever URL the most recent OpenID step targeted, so a certificate trust
             // prompt inspects the certificate that actually failed rather than always the primary.
             var attemptedUrl = serverUrl
-            runCatching {
+            suspendRunCatching {
                 val pending = withContext(Dispatchers.IO) {
                     val primary = client.normalizeServerUrl(serverUrl)
                     attemptedUrl = primary
@@ -584,7 +585,7 @@ fun ConnectionScreen(
         message = null
         onBeforeBudgetReplacement()
         scope.launch {
-            runCatching { withContext(Dispatchers.IO) { DemoBudgetManager.recreate(files) } }
+            suspendRunCatching { withContext(Dispatchers.IO) { DemoBudgetManager.recreate(files) } }
                 .onSuccess { metadata ->
                     activeBudget.budgetId = metadata.id
                     message = if (previousBudgetId == metadata.id) {
@@ -625,7 +626,7 @@ fun ConnectionScreen(
             loading = true
             message = null
             scope.launch {
-                runCatching {
+                suspendRunCatching {
                     withContext(Dispatchers.IO) {
                         context.contentResolver.openInputStream(uri)?.use { stream ->
                             files.importLocalBudget(stream)
@@ -791,7 +792,7 @@ fun ConnectionScreen(
                         onBeforeBudgetReplacement()
                         scope.launch {
                             var tryAgain = false
-                            runCatching {
+                            suspendRunCatching {
                                 withContext(Dispatchers.IO) {
                                     resetRecovery.recover(
                                         activeServerUrl, token, budgetId,
@@ -890,7 +891,7 @@ fun ConnectionScreen(
                 loading = true; message = null
                 scope.launch {
                     var localId: String? = null
-                    runCatching { withContext(Dispatchers.IO) {
+                    suspendRunCatching { withContext(Dispatchers.IO) {
                         val token = credentials.token() ?: throw ActualServerException.Unauthorized
                         val local = files.createBudget(name); localId = local.id
                         val cloudFileId = UUID.randomUUID().toString().lowercase()
@@ -938,7 +939,7 @@ fun ConnectionScreen(
                 onClick = {
                     loading = true; message = null; onBeforeBudgetReplacement()
                     scope.launch {
-                        runCatching { withContext(Dispatchers.IO) {
+                        suspendRunCatching { withContext(Dispatchers.IO) {
                             val token = credentials.token() ?: throw ActualServerException.Unauthorized
                             val local = files.listLocalBudgets().firstOrNull { it.cloudFileId == remote.fileId }
                             if (local?.id == activeBudget.budgetId) runCatching { ActualSyncRunner.run(context) }
@@ -978,7 +979,7 @@ fun ConnectionScreen(
             val budgetId = activeBudget.budgetId ?: return@TextButton
             backupBusy = true
             scope.launch {
-                runCatching { withContext(Dispatchers.IO) { backupService.makeBackup(budgetId) } }
+                suspendRunCatching { withContext(Dispatchers.IO) { backupService.makeBackup(budgetId) } }
                     .onSuccess { message = resources.getString(R.string.backup_created) }
                     .onFailure { message = it.message ?: resources.getString(R.string.could_not_create_a_backup) }
                 backupBusy = false; refreshBackups()
@@ -1015,7 +1016,7 @@ fun ConnectionScreen(
                     loading = true
                     message = null
                     scope.launch {
-                        runCatching {
+                        suspendRunCatching {
                             withContext(Dispatchers.IO) {
                                 files.createBudget(name)
                             }
@@ -1067,7 +1068,7 @@ fun ConnectionScreen(
                         // Releases the app's handle on the open budget before its files change.
                         if (isActive) onBeforeBudgetReplacement()
                         scope.launch {
-                            runCatching {
+                            suspendRunCatching {
                                 withContext(Dispatchers.IO) { renamer.rename(activeServerUrl, credentials.token(), target.id, newName) }
                             }.onSuccess {
                                 message = resources.getString(R.string.budget_renamed, newName)
@@ -1123,7 +1124,7 @@ fun ConnectionScreen(
                         message = null
                         onBeforeBudgetReplacement()
                         scope.launch {
-                            runCatching {
+                            suspendRunCatching {
                                 withContext(Dispatchers.IO) {
                                     local.cloudFileId?.let { BudgetEncryptionKeyStore(context).remove(it) }
                                     files.deleteBudget(local.id)
@@ -1169,7 +1170,7 @@ fun ConnectionScreen(
                         loading = true
                         message = null
                         scope.launch {
-                            runCatching {
+                            suspendRunCatching {
                                 withContext(Dispatchers.IO) {
                                     val token = credentials.token() ?: throw ActualServerException.Unauthorized
                                     val cloudFileId = UUID.randomUUID().toString().lowercase()
@@ -1208,7 +1209,7 @@ fun ConnectionScreen(
     fun restoreDriveStandalone(item: GoogleDriveBackupItem, passphrase: String?) {
         driveLoading = true
         scope.launch {
-            runCatching {
+            suspendRunCatching {
                 withContext(Dispatchers.IO) {
                     val driveManager = GoogleDriveBackupManager(context)
                     driveManager.restoreRemoteBackup(
@@ -1450,7 +1451,7 @@ fun ConnectionScreen(
                         showBrowseDriveBackupsDialog = true
                         driveLoading = true
                         scope.launch {
-                            val list = runCatching {
+                            val list = suspendRunCatching {
                                 withContext(Dispatchers.IO) { driveManager.listRemoteBackups(null) }
                             }.getOrDefault(emptyList())
                             driveBackups = list
@@ -1694,7 +1695,7 @@ fun ConnectionScreen(
                     ConnectionAction(text = stringResource(R.string.save), primary = true, busy = loading, modifier = Modifier.weight(1f), onClick = {
                         loading = true; message = null
                         scope.launch {
-                            runCatching { withContext(Dispatchers.IO) {
+                            suspendRunCatching { withContext(Dispatchers.IO) {
                                 val primary = client.normalizeServerUrl(serverUrl)
                                 val fallback = fallbackServerUrl.trim().takeIf(String::isNotEmpty)?.let(client::normalizeServerUrl).orEmpty()
                                 client.loginMethods(primary)
@@ -1797,7 +1798,7 @@ fun ConnectionScreen(
                             val budgetId = activeBudget.budgetId ?: return@FilledTonalButton
                             message = null
                             scope.launch {
-                                runCatching { withContext(Dispatchers.IO) { resetRecovery.unsyncedChanges(budgetId) } }
+                                suspendRunCatching { withContext(Dispatchers.IO) { resetRecovery.unsyncedChanges(budgetId) } }
                                     .onSuccess {
                                         newKeyPassword = ""
                                         resetRecoveryPrompt = ResetRecoveryPrompt(
@@ -1814,7 +1815,7 @@ fun ConnectionScreen(
                     shape = MaterialTheme.shapes.large, onClick = {
                         syncing = true; message = null
                         scope.launch {
-                            runCatching { withContext(Dispatchers.IO) {
+                            suspendRunCatching { withContext(Dispatchers.IO) {
                                 ActualSyncRunner.run(context, trigger = SYNC_TRIGGER_MANUAL)
                             } }.onSuccess { result ->
                                 when (result) {
@@ -1916,7 +1917,7 @@ fun ConnectionScreen(
                                             downloadingId = remote.fileId
                                             message = null
                                             scope.launch {
-                                                runCatching {
+                                                suspendRunCatching {
                                                     withContext(Dispatchers.IO) {
                                                         val needsKey = remote.encryptedKeyId != null &&
                                                             BudgetEncryptionKeyStore(context).load(remote.fileId) == null
@@ -1990,7 +1991,7 @@ fun ConnectionScreen(
                         syncing = true
                         message = null
                         scope.launch {
-                            runCatching {
+                            suspendRunCatching {
                                 withContext(Dispatchers.IO) {
                                     ActualSyncRunner.run(context, trigger = SYNC_TRIGGER_MANUAL)
                                 }
@@ -2044,7 +2045,7 @@ fun ConnectionScreen(
                             } else {
                                 backupBusy = true; message = null
                                 scope.launch {
-                                    runCatching { withContext(Dispatchers.IO) { backupService.makeBackup(budgetId) } }
+                                    suspendRunCatching { withContext(Dispatchers.IO) { backupService.makeBackup(budgetId) } }
                                         .onSuccess { message = resources.getString(R.string.backup_created) }
                                         .onFailure { message = it.message ?: resources.getString(R.string.could_not_create_a_backup) }
                                     backupBusy = false; refreshBackups()

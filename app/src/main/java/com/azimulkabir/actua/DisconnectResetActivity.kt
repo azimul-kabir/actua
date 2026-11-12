@@ -27,6 +27,7 @@ import com.azimulkabir.actua.data.sync.SyncRunResult
 import com.azimulkabir.actua.billing.supporterPerksAvailable
 import com.azimulkabir.actua.ui.theme.AccentPalette
 import com.azimulkabir.actua.ui.theme.ActuaTheme
+import com.azimulkabir.actua.util.suspendRunCatching
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -122,7 +123,7 @@ class DisconnectResetActivity : AppCompatActivity() {
         stage = Stage.Syncing
         syncFailure = null
         lifecycleScope.launch {
-            val result = runCatching {
+            val result = suspendRunCatching {
                 withContext(Dispatchers.IO) { syncAllDownloadedBudgets() }
             }
             result.onSuccess { resetAndRestart() }
@@ -183,7 +184,7 @@ class DisconnectResetActivity : AppCompatActivity() {
 
     private fun resetAndRestart() {
         lifecycleScope.launch {
-            runCatching {
+            suspendRunCatching {
                 withContext(Dispatchers.IO) {
                     DisconnectResetManager(this@DisconnectResetActivity).resetLocalServerData()
                 }

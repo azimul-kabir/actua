@@ -46,6 +46,7 @@ import com.azimulkabir.actua.data.budget.backup.RemoteBackupItem
 import com.azimulkabir.actua.data.budget.webdav.WebDavBackupManager
 import com.azimulkabir.actua.data.budget.webdav.WebDavConfig
 import com.azimulkabir.actua.data.network.TrustedCertificateStore
+import com.azimulkabir.actua.util.suspendRunCatching
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -106,7 +107,7 @@ fun rememberWebDavRestore(
         loading = true
         listError = null
         scope.launch {
-            runCatching { withContext(Dispatchers.IO) { manager.listRemoteBackups(null) } }
+            suspendRunCatching { withContext(Dispatchers.IO) { manager.listRemoteBackups(null) } }
                 .onSuccess { backups = it }
                 .onFailure { error ->
                     backups = emptyList()
@@ -144,7 +145,7 @@ fun rememberWebDavRestore(
     fun restore(item: RemoteBackupItem, passphrase: String?) {
         restoring = true
         scope.launch {
-            runCatching {
+            suspendRunCatching {
                 withContext(Dispatchers.IO) {
                     val imported = manager.restoreRemoteBackup(
                         remoteBackupId = item.id,
