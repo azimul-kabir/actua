@@ -14,7 +14,18 @@ class WidgetStyleColors(
     val progressTrack: Int,
     /** The tonal surface behind amount pills and the budget tiles. */
     val tile: Int,
-)
+    /** A category's progress bar from 85% spent, readable on [background]. */
+    val warning: Int,
+    /** A category's progress bar once it is overspent, readable on [background]. */
+    val danger: Int,
+) {
+    /** The color a category's progress bar is filled with for [status]. */
+    internal fun progressFill(status: ProgressStatus): Int = when (status) {
+        ProgressStatus.Normal -> primary
+        ProgressStatus.Warning -> warning
+        ProgressStatus.Overspent -> danger
+    }
+}
 
 /**
  * The global home-screen widget look, a supporter extra on the Play build. [Default] leaves the
@@ -47,23 +58,27 @@ enum class WidgetStyle {
                 background = 0xCC101014.toInt(), onBackground = 0xFFFFFFFF.toInt(), secondary = 0xFFE3DFE8.toInt(),
                 primary = 0xFFD0D8FF.toInt(), button = 0x26FFFFFF, buttonText = 0xFFD0D8FF.toInt(),
                 progressTrack = 0x40FFFFFF, tile = 0x26FFFFFF,
+                warning = DARK_WARNING, danger = DARK_DANGER,
             )
         } else {
             WidgetStyleColors(
                 background = 0xD9F5F2FA.toInt(), onBackground = 0xFF1C1B20.toInt(), secondary = 0xFF4A4753.toInt(),
                 primary = 0xFF33427A.toInt(), button = 0x24485786, buttonText = 0xFF33427A.toInt(),
                 progressTrack = 0x40485786, tile = 0x24485786,
+                warning = LIGHT_WARNING, danger = LIGHT_DANGER,
             )
         }
         SolidDark -> WidgetStyleColors(
             background = 0xFF1E1B22.toInt(), onBackground = 0xFFE7E1E9.toInt(), secondary = 0xFFC9C4CE.toInt(),
             primary = 0xFFBAC6FF.toInt(), button = 0xFF3D4666.toInt(), buttonText = 0xFFBAC6FF.toInt(),
             progressTrack = 0xFF3D4666.toInt(), tile = 0xFF3D4666.toInt(),
+            warning = DARK_WARNING, danger = DARK_DANGER,
         )
         SolidLight -> WidgetStyleColors(
             background = 0xFFF5F2FA.toInt(), onBackground = 0xFF1C1B20.toInt(), secondary = 0xFF625F68.toInt(),
             primary = 0xFF485786.toInt(), button = 0xFFDFE4FF.toInt(), buttonText = 0xFF485786.toInt(),
             progressTrack = 0xFFDFE4FF.toInt(), tile = 0xFFDFE4FF.toInt(),
+            warning = LIGHT_WARNING, danger = LIGHT_DANGER,
         )
         AccentTinted -> accent?.let { scheme ->
             val background = scheme.primaryContainer.toArgb()
@@ -77,6 +92,8 @@ enum class WidgetStyle {
                 buttonText = scheme.onPrimary.toArgb(),
                 progressTrack = blendArgb(onBackground, background, 0.25f),
                 tile = blendArgb(onBackground, background, 0.08f),
+                warning = statusTone(LIGHT_WARNING, DARK_WARNING, background),
+                danger = statusTone(LIGHT_DANGER, DARK_DANGER, background),
             )
         }
     }
@@ -84,6 +101,31 @@ enum class WidgetStyle {
     companion object {
         fun fromName(name: String?): WidgetStyle = entries.firstOrNull { it.name == name } ?: Default
     }
+}
+
+// Progress bar tones for the amber and red states: the deeper pair for light backgrounds, the lighter for dark.
+// The light pair is deep enough to keep 3:1 even on the translucent light scrim over a black wallpaper.
+private const val LIGHT_WARNING = 0xFF8A5400.toInt()
+private const val LIGHT_DANGER = 0xFFB3261E.toInt()
+private const val DARK_WARNING = 0xFFFFB74D.toInt()
+private const val DARK_DANGER = 0xFFFF8A80.toInt()
+
+/** The contrast a graphic needs against its background to stay a clear shape (WCAG's 3:1). */
+private const val MIN_STATUS_CONTRAST = 3.0
+
+/**
+ * The status color for a progress bar on [background]: whichever of [light] and [dark] stands out more, moved
+ * toward white or black only if that is still short of 3:1, as it can be on a mid-tone accent container.
+ */
+internal fun statusTone(light: Int, dark: Int, background: Int): Int {
+    val tone = if (contrast(light, background) >= contrast(dark, background)) light else dark
+    if (contrast(tone, background) >= MIN_STATUS_CONTRAST) return tone
+    val target = if (contrast(0xFFFFFFFF.toInt(), background) >= contrast(0xFF000000.toInt(), background)) 0xFFFFFFFF.toInt() else 0xFF000000.toInt()
+    for (step in 1..10) {
+        val moved = blendArgb(target, tone, step / 10f)
+        if (contrast(moved, background) >= MIN_STATUS_CONTRAST) return moved
+    }
+    return target
 }
 
 /** [foreground] over [background] at [ratio] (0 = all background, 1 = all foreground), opaque. */

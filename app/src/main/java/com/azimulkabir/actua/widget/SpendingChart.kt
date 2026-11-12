@@ -56,7 +56,7 @@ internal fun chartColorsFor(colors: WidgetStyleColors): ChartColors {
 /** The contrast a bar needs against the background to stay a clear shape (WCAG's 3:1 for graphics). */
 private const val MIN_SHAPE_CONTRAST = 3.0
 
-private fun luminance(argb: Int): Double {
+internal fun luminance(argb: Int): Double {
     fun channel(shift: Int): Double {
         val v = ((argb shr shift) and 0xFF) / 255.0
         return if (v <= 0.03928) v / 12.92 else Math.pow((v + 0.055) / 1.055, 2.4)
@@ -64,7 +64,7 @@ private fun luminance(argb: Int): Double {
     return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0)
 }
 
-private fun contrast(a: Int, b: Int): Double {
+internal fun contrast(a: Int, b: Int): Double {
     val (light, dark) = listOf(luminance(a), luminance(b)).sortedDescending()
     return (light + 0.05) / (dark + 0.05)
 }

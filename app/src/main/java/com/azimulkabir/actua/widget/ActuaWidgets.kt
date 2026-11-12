@@ -332,8 +332,8 @@ object WidgetUpdater {
             sample(context, R.string.widget_sample_category_1), amount, 62, "",
             ProgressStatus.Normal, showProgress = true, spokenAmount = amount,
         )
-        showSingleItem(context, views, row, open(context, WidgetActions.CATEGORY, 0, row.name))
-        WidgetStyles.apply(context, views)
+        val status = showSingleItem(context, views, row, open(context, WidgetActions.CATEGORY, 0, row.name))
+        WidgetStyles.apply(context, views, status)
         return views
     }
 
@@ -1087,6 +1087,7 @@ object WidgetUpdater {
     private fun updateSingleCategory(context: Context, manager: AppWidgetManager, widgetId: Int) {
         val views = RemoteViews(context.packageName, WidgetStyles.layout(context, R.layout.widget_single_category, R.layout.widget_single_category_styled))
         val repository = ActuaRepository(context)
+        var progressStatus = ProgressStatus.Normal
         try {
             loadBudgetFormats(repository)
             if (!repository.isUsingActualBudget) {
@@ -1103,7 +1104,7 @@ object WidgetUpdater {
                     .toList()
                 val selected = WidgetPreferences(context).selected(WidgetKind.SingleCategory, widgetId).firstOrNull()
                 when (val choice = resolveSingle(categories, selected) { it.id.orEmpty() }) {
-                    is SingleChoice.Found -> showSingleItem(
+                    is SingleChoice.Found -> progressStatus = showSingleItem(
                         context, views, categoryRowOf(context, choice.item),
                         open(context, WidgetActions.CATEGORY, widgetId, choice.item.name),
                     )
@@ -1116,7 +1117,7 @@ object WidgetUpdater {
                     )
                 }
             }
-            WidgetStyles.apply(context, views)
+            WidgetStyles.apply(context, views, progressStatus)
             manager.updateAppWidget(widgetId, views)
         } finally {
             repository.close()
@@ -1159,7 +1160,7 @@ object WidgetUpdater {
     }
 
     /** One account or category in a single-item widget: its name and amount, and a progress bar for a category. */
-    private fun showSingleItem(context: Context, views: RemoteViews, row: WidgetRow, tap: PendingIntent) {
+    private fun showSingleItem(context: Context, views: RemoteViews, row: WidgetRow, tap: PendingIntent): ProgressStatus {
         views.setViewVisibility(R.id.widget_single_message, View.GONE)
         views.setViewVisibility(R.id.widget_single_name, View.VISIBLE)
         views.setViewVisibility(R.id.widget_single_amount, View.VISIBLE)
@@ -1177,6 +1178,7 @@ object WidgetUpdater {
             else context.getString(R.string.widget_cd_account_row, row.name, amount),
         )
         views.setOnClickPendingIntent(R.id.widget_root, tap)
+        return if (row.showProgress) row.status else ProgressStatus.Normal
     }
 
     /** A state with nothing to show (no budget, item not found), saying what to do and opening the right screen. */
@@ -1337,7 +1339,7 @@ object WidgetUpdater {
                 else localized.getString(R.string.widget_cd_account_row, row.name, amount),
             )
             setOnClickFillInIntent(R.id.widget_item_row, Intent().putExtra(WidgetActions.EXTRA_TARGET, row.target))
-            WidgetStyles.apply(localized, this)
+            WidgetStyles.apply(localized, this, if (row.showProgress) row.status else ProgressStatus.Normal)
         }
     }
 

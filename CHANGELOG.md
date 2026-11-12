@@ -24,6 +24,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Kept the amber and red category progress bars on widgets in every widget style, not only Default ([#1607](https://github.com/azimul-kabir/actua/pull/1607))
 - Refreshed the look of the home-screen widgets with tonal tiles and pills, a larger budget figure and bar colors that show how spent a category is ([#1566](https://github.com/azimul-kabir/actua/pull/1566))
 - Made the home-screen widgets use the space they are given, with new one-row and single-figure sizes, and up to eight scrolling rows in Favourite categories and Account balances ([#1569](https://github.com/azimul-kabir/actua/pull/1569))
 - Improved home-screen widget accessibility with TalkBack descriptions, larger tap targets and amounts that fit at large font sizes ([#1570](https://github.com/azimul-kabir/actua/pull/1570))
