@@ -72,6 +72,16 @@ Actua is an independent community project and is not affiliated with or endorsed
 
 See [BACKEND_PARITY.md](BACKEND_PARITY.md) for detailed compatibility and implementation status. Actua is reviewed against Actual Budget 26.11, as of 2.4.0 ([details](docs/ACTUAL_26_11_COMPATIBILITY.md)).
 
+## Watch Actua
+
+<p align="center">
+  <a href="artwork/actua-promo.mp4">
+    <img src="artwork/actua-promo-poster.png" alt="Play the 30-second Actua video: budget plan and table views, accounts and loans, the payoff planner, credit cards, reports and widgets" width="640">
+  </a>
+</p>
+
+A 30-second tour of the budget, accounts and loans, credit cards, reports and widgets, on a demo budget. Select the picture to play it.
+
 ## Screenshots
 
 <table>
