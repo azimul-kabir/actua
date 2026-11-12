@@ -118,9 +118,14 @@ private fun WidgetStyleTile(style: WidgetStyle, selected: Boolean, modifier: Mod
 /** A small card in the style's colors, over a light-and-dark backdrop so translucency shows. */
 @Composable
 private fun WidgetPreview(style: WidgetStyle) {
-    val accent = MaterialTheme.colorScheme
-    // Widgets follow the device theme, not the app's own appearance setting.
-    val colors = style.colors(isSystemInDarkTheme(), accent)
+    val context = LocalContext.current
+    // Widgets follow the device theme, not the app's own appearance setting, so the accent they are tinted
+    // with comes from the same place the widget takes it, not from the app's current theme.
+    val night = isSystemInDarkTheme()
+    val accent = if (style.followsAccent) {
+        remember(night) { WidgetStyles.accentScheme(context, DisplayPreferences(context), night) }
+    } else null
+    val colors = style.colors(night, accent)
     val background = colors?.let { Color(it.background) } ?: colorResource(R.color.widget_background)
     val onBackground = colors?.let { Color(it.onBackground) } ?: colorResource(R.color.widget_on_background)
     val primary = colors?.let { Color(it.primary) } ?: colorResource(R.color.widget_primary)
