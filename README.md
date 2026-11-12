@@ -38,7 +38,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 ## Features
 
 - Native Material You Android interface
-- English and Brazilian Portuguese (pt-BR) with in-app language selection
+- English, Brazilian Portuguese (pt-BR) and Spanish (es) with in-app language selection
 - Home dashboard with an at-a-glance financial overview (ready to budget, favorite categories/accounts, upcoming bills, this month, reports and recent activity), customizable via show/hide and drag-to-reorder, with an optional start day for the This Month summary to match mid-month pay cycles
 - Customizable floating bottom tab bar: show/hide and reorder tabs (Reports and Bills can be added as their own tabs), plus an optional "Add" quick-add tab, and optional hiding while you scroll
 - App-wide favorites for categories, accounts and reports, shared by Home, the Budget favorites filter and the home-screen widget
@@ -62,7 +62,8 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Optional app lock (biometrics or the device PIN, with a relock timeout) and a setting that hides Actua in the recents screen and blocks screenshots (see [docs/APP_LOCK.md](docs/APP_LOCK.md))
 - Automatic local backups and restore, with recovery options (try again, re-download, restore a backup or delete) for a budget that can't be opened, plus optional Google Drive backup and restore with client-side authenticated AES-256-GCM encryption
 - Optional encrypted WebDAV backup and restore for Nextcloud, ownCloud and other WebDAV servers, with the same client-side encryption (see [docs/WEBDAV_BACKUPS.md](docs/WEBDAV_BACKUPS.md))
-- Home-screen widgets (budget snapshot, favorite categories, account balances, upcoming schedules, quick transaction, spending trend, income and spending, a report card showing one of your dashboard cards as a single number, and small single-account and single-category widgets) and launcher shortcuts
+- Home-screen widgets (budget snapshot, favorite categories, account balances, upcoming schedules, quick transaction, spending trend, income and spending, a report card showing one of your dashboard cards as a single number, and small single-account and single-category widgets) and launcher shortcuts; supporters can restyle every widget as Translucent, Solid dark, Solid light or Accent-tinted
+- Optional Supporter extras in the Google Play version, all cosmetic and found under Settings → Display: app icons (Dark, Mono, Light), accent colors (Teal, Amber, Rose, Forest, Ocean, Mono), widget styles and confetti celebrations when Ready to budget reaches zero or you finish a reconciliation; budgeting itself always stays free
 - Currency (including the symbol before or after the amount), date and number formats that follow your budget's Actual settings or a device override, plus appearance options with an optional Material You dynamic-color mode (Android 12+)
 - Actual tag management, with colored `#tag` rendering, notes autocomplete, a Manage Tags screen, and tap-a-tag transaction filtering
 - Multiple downloaded budgets with a quick switcher in Manage
@@ -171,6 +172,39 @@ See [BACKEND_PARITY.md](BACKEND_PARITY.md) for detailed compatibility and implem
 </table>
 
 Screenshots use the built-in demo budget and follow your GitHub light or dark theme.
+
+### Supporter extras
+
+Optional and cosmetic, in the Google Play version: choose an app icon, an accent color and a widget style under Settings → Display. Budgeting always stays free, and Violet and Material You accents are free for everyone.
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <a href="artwork/screenshots/light/accent-colors.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/accent-colors.png">
+          <img src="artwork/screenshots/light/accent-colors.png" width="200" alt="Actua accent color picker with Violet, Teal, Amber, Rose, Forest, Ocean and Mono">
+        </picture>
+      </a>
+    </td>
+    <td align="center" width="33%">
+      <a href="artwork/screenshots/light/app-icon.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/app-icon.png">
+          <img src="artwork/screenshots/light/app-icon.png" width="200" alt="Actua app icon picker with Default, Dark, Mono and Light">
+        </picture>
+      </a>
+    </td>
+    <td align="center" width="33%">
+      <a href="artwork/screenshots/light/widget-styles.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/widget-styles.png">
+          <img src="artwork/screenshots/light/widget-styles.png" width="200" alt="Actua widget style picker with Default, Translucent, Solid dark, Solid light and Accent-tinted">
+        </picture>
+      </a>
+    </td>
+  </tr>
+</table>
 
 ## Try Actua
 
