@@ -42,7 +42,15 @@ internal fun chartColorsFor(colors: WidgetStyleColors): ChartColors {
         colors.onBackground, colors.secondary,
         blendArgb(colors.secondary, backdrop, 0.6f), blendArgb(colors.secondary, backdrop, 0.45f),
     ).filter { contrast(it, backdrop) >= MIN_SHAPE_CONTRAST }
-    val second = candidates.maxByOrNull { contrast(it, colors.primary) } ?: colors.secondary
+    var second = candidates.maxByOrNull { contrast(it, colors.primary) } ?: colors.secondary
+    if (contrast(second, colors.primary) < MIN_SERIES_CONTRAST) {
+        // A soft secondary text color sits close to the accent, and its dimmed tones fall below the shape contrast, so
+        // the candidates above can all be too near the accent. Also try the main text color dimmed toward the backdrop.
+        val dimmed = listOf(0.8f, 0.7f, 0.6f, 0.5f)
+            .map { blendArgb(colors.onBackground, backdrop, it) }
+            .filter { contrast(it, backdrop) >= MIN_SHAPE_CONTRAST }
+        (candidates + dimmed).maxByOrNull { contrast(it, colors.primary) }?.let { second = it }
+    }
     val past = blendArgb(second, backdrop, PAST_BAR_STRENGTH).takeIf { contrast(it, backdrop) >= MIN_SHAPE_CONTRAST } ?: second
     return ChartColors(
         highlight = colors.primary,
@@ -55,6 +63,9 @@ internal fun chartColorsFor(colors: WidgetStyleColors): ChartColors {
 
 /** The contrast a bar needs against the background to stay a clear shape (WCAG's 3:1 for graphics). */
 private const val MIN_SHAPE_CONTRAST = 3.0
+
+/** The contrast the spending bars need against the income bars (the accent) to read as another series. */
+private const val MIN_SERIES_CONTRAST = 1.3
 
 internal fun luminance(argb: Int): Double {
     fun channel(shift: Int): Double {

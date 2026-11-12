@@ -189,6 +189,48 @@ class WidgetStyleTest {
     }
 
     @Test
+    fun accentTintedSecondaryTextIsVisiblySofterThanTheMainText() {
+        for (accent in AccentPalette.entries) {
+            for (night in listOf(false, true)) {
+                val name = "AccentTinted $accent night=$night"
+                val colors = WidgetStyle.AccentTinted.colors(night, accent.colorScheme(night))!!
+                val main = contrast(colors.onBackground, colors.background)
+                val secondary = contrast(colors.secondary, colors.background)
+                assertTrue("$name: secondary text is $secondary:1 against $main:1 for the main text", secondary <= main * 0.92)
+                assertTrue("$name: secondary text stays readable ($secondary:1)", secondary >= 4.5)
+            }
+        }
+    }
+
+    @Test
+    fun secondaryToneKeepsItsSoftStrengthWhenThereIsPlentyOfContrast() {
+        val black = 0xFF000000.toInt()
+        val white = 0xFFFFFFFF.toInt()
+        val tile = blendArgb(black, white, 0.08f)
+        val tone = secondaryTone(onBackground = black, background = white, tile = tile)
+        assertEquals(blendArgb(black, white, 0.78f), tone)
+    }
+
+    @Test
+    fun secondaryToneFirmsUpOnlyAsFarAsReadabilityNeeds() {
+        // A text color that is barely readable to begin with: the soft tone would fall below 4.5:1.
+        val background = 0xFFFFFFFF.toInt()
+        val onBackground = 0xFF6A6A6A.toInt()
+        val tile = blendArgb(onBackground, background, 0.08f)
+        val tone = secondaryTone(onBackground, background, tile)
+        assertTrue(contrast(tone, background) >= 4.5)
+        assertTrue(contrast(tone, tile) >= 4.5)
+        assertTrue("it moved toward the text color, not all the way", tone != onBackground || contrast(onBackground, tile) < 4.5)
+    }
+
+    @Test
+    fun secondaryToneIsTheMainColorWhenTheContainerLeavesNoRoom() {
+        val background = 0xFF808080.toInt()
+        val onBackground = 0xFF909090.toInt()
+        assertEquals(onBackground, secondaryTone(onBackground, background, blendArgb(onBackground, background, 0.08f)))
+    }
+
+    @Test
     fun onlyAccentTintedFollowsTheAccent() {
         assertEquals(listOf(WidgetStyle.AccentTinted), WidgetStyle.entries.filter { it.followsAccent })
     }
