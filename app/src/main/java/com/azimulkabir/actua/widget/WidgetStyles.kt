@@ -239,10 +239,14 @@ internal enum class ProgressStatus {
     Normal, Warning, Overspent;
 
     companion object {
-        /** [percentSpent] is spent over budgeted, 0..100; [overspent] means the category's balance is below zero. */
+        /**
+         * [percentSpent] is spent over budgeted, 0..100; [overspent] means the category's balance is below zero.
+         * Amber warns that the budget is nearly used up; a category spent exactly to its budget is on plan, so
+         * it keeps the normal color.
+         */
         fun of(percentSpent: Int, overspent: Boolean): ProgressStatus = when {
             overspent -> Overspent
-            percentSpent >= 85 -> Warning
+            percentSpent in 85..99 -> Warning
             else -> Normal
         }
     }
