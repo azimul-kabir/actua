@@ -40,6 +40,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed the Widget style previews showing English text in other languages, and made TalkBack announce each style by name and whether it is selected ([#1606](https://github.com/azimul-kabir/actua/pull/1606))
 - Fixed the Accent-tinted tile on the Widget style page showing different colors from the widget when Appearance differs from the device theme ([#1605](https://github.com/azimul-kabir/actua/pull/1605))
 - Fixed Accent-tinted widgets keeping the old color after changing the accent color or Material You ([#1604](https://github.com/azimul-kabir/actua/pull/1604))
 - Fixed dashboard cards and reports that exclude a category by name leaving out transactions without a category ([#1533](https://github.com/azimul-kabir/actua/pull/1533))
