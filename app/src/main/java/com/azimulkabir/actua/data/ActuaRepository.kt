@@ -1270,7 +1270,10 @@ class ActuaRepository(context: Context) {
     }
 
     /** Paired category id → the month its loan's target is skipped for, for open loans. */
-    fun loanSnoozedMonths(): Map<String, String> = loans().mapNotNull { loan ->
+    fun loanSnoozedMonths(): Map<String, String> = snoozedMonthsOf(loans())
+
+    /** [loanSnoozedMonths] for loans already in hand, so a caller that loaded them needn't read twice. */
+    fun snoozedMonthsOf(loans: List<LoanStatus>): Map<String, String> = loans.mapNotNull { loan ->
         val category = loan.config.categoryId ?: return@mapNotNull null
         loan.config.targetSnoozedMonth?.let { category to it }
     }.toMap()

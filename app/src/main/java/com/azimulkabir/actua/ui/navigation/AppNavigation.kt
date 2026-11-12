@@ -187,7 +187,9 @@ import com.azimulkabir.actua.data.home.HolidayCodec
 import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.data.navigation.TabItem
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
+import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
+import com.azimulkabir.actua.data.rules.RuleEditorData
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.EffectiveDisplayFormats
 import com.azimulkabir.actua.data.preferences.FavoritePreferences
@@ -495,34 +497,48 @@ fun AppNavigation(
     var budgetMonth by rememberSaveable {
         mutableStateOf(java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US).format(java.util.Date()))
     }
-    val budgetMonthRange = remember(dataVersion, repository) { repository.budgetMonthRange() }
+    // The selected month's data loads off the main thread. The previous month stays on screen
+    // until the new one arrives, and the screen reads its month from the data it shows so an edit
+    // never lands on a month other than the one displayed.
+    val loadedBudgetMonth = rememberLoaded<BudgetMonthData?>(repository, dataVersion, budgetMonth, initial = null) {
+        BudgetMonthData.load(repository, budgetMonth)
+    }
+    val budgetData = loadedBudgetMonth ?: remember(budgetMonth) { BudgetMonthData.empty(budgetMonth) }
+    val shownBudgetMonth = budgetData.month
+    val budgetMonthRange = budgetData.monthRange
     // Actual has no budget outside its range, so keep the selected month inside it.
     LaunchedEffect(budgetMonthRange) {
         val range = budgetMonthRange ?: return@LaunchedEffect
         val selected = java.time.YearMonth.parse(budgetMonth)
         if (selected !in range) budgetMonth = selected.coerceIn(range.start, range.endInclusive).toString()
     }
-    val budgetGroups = remember(dataVersion, budgetMonth) { repository.budgetGroups(budgetMonth) }
+    val budgetGroups = budgetData.groups
     // Marks the first frame where the landing (Budget) screen has real data to show, so
     // Macrobenchmark's StartupTimingMetric can capture time-to-full-display instead of only
     // time-to-initial-display (which fires on the first empty/placeholder frame).
     var reportedFullyDrawn by remember { mutableStateOf(false) }
-    LaunchedEffect(repository.isUsingActualBudget, budgetGroups) {
-        if (!reportedFullyDrawn && repository.isUsingActualBudget) {
+    LaunchedEffect(repository.isUsingActualBudget, loadedBudgetMonth) {
+        if (!reportedFullyDrawn && repository.isUsingActualBudget && loadedBudgetMonth != null) {
             reportedFullyDrawn = true
             (context as? Activity)?.reportFullyDrawn()
         }
     }
-    val budgetScheduleFunding = remember(dataVersion, budgetMonth) {
-        repository.budgetScheduleFunding(budgetMonth)
+    val budgetScheduleFunding = budgetData.scheduleFunding
+    val budgetOverview = budgetData.overview
+    val budgetMonthNote = budgetData.note
+    val budgetSettings = rememberLoaded(repository, dataVersion, initial = BudgetSettings.Default) {
+        BudgetSettings.load(repository)
     }
-    val budgetOverview = remember(dataVersion, budgetMonth) { repository.budgetOverview(budgetMonth) }
-    val budgetMonthNote = remember(dataVersion, budgetMonth) { repository.monthNote(budgetMonth) }
-    val budgetHidesFraction = remember(dataVersion) { repository.budgetHidesFraction() }
-    val budgetType = remember(dataVersion, repository) { repository.budgetType() }
+    val budgetHidesFraction = budgetSettings.hidesFraction
+    val budgetType = budgetSettings.type
     // Set during composition, before any amount below is formatted or parsed.
-    CurrencyDisplay.decimalPlaces = remember(dataVersion, repository) { repository.budgetDecimalPlaces() }
-    val accounts = remember(dataVersion) { repository.accounts() }
+    CurrencyDisplay.decimalPlaces = budgetSettings.decimalPlaces
+    // The shared account, category, payee, credit card and loan lists load together off the main
+    // thread and keep their last value while reloading.
+    val rootLists = rememberLoaded(repository, dataVersion, initial = RootListData.Empty) {
+        RootListData.load(repository)
+    }
+    val accounts = rootLists.accounts
     // Transactions bank sync added that haven't been looked at yet, by account id (#1066).
     val newBankTransactionStore = remember { NewBankTransactions(context) }
     var newBankTransactions by remember(activeBudgetId) {
@@ -535,33 +551,40 @@ fun AppNavigation(
     }
     val newBankTransactionCounts = remember(newBankTransactions) { newBankTransactions.mapValues { it.value.size } }
     // Actual's synced per-account `hide-reconciled-<accountId>` preference, shared with the PWA.
-    val hideReconciledAccountIds = remember(dataVersion) { repository.hideReconciledAccountIds() }
+    val hideReconciledAccountIds = rootLists.hideReconciledAccountIds
     var showUpcomingTransactions by remember {
         mutableStateOf(displayPreferences.showUpcomingTransactions)
     }
     var transactionStatusFilter by rememberSaveable { mutableStateOf(TransactionStatusFilter.ALL) }
-    val transactions = remember(dataVersion) { repository.transactions() }
+    // The full history is loaded off the main thread, once per data change; the filtered list
+    // below reuses it unless a status filter narrows it.
+    val transactions = rememberLoaded(repository, dataVersion, initial = emptyList()) {
+        repository.transactions()
+    }
     // Hiding reconciled rows is per account, so it's applied by TransactionsScreen for the open
     // account rather than here, where the list backs every account and the Transactions tab.
-    val filteredTransactions = remember(dataVersion, transactionStatusFilter) {
-        repository.transactions(statusFilter = transactionStatusFilter)
-    }
+    val narrowedTransactions = rememberLoaded(
+        repository, dataVersion, transactionStatusFilter,
+        initial = emptyList(),
+        enabled = transactionStatusFilter != TransactionStatusFilter.ALL,
+    ) { repository.transactions(statusFilter = transactionStatusFilter) }
+    val filteredTransactions = transactionsForStatusFilter(transactionStatusFilter, transactions, narrowedTransactions)
     val searchTransactions: suspend (String) -> List<Transaction> = remember(repository, transactionStatusFilter) {
         { query -> withContext(Dispatchers.IO) {
             repository.transactions(query, statusFilter = transactionStatusFilter)
         } }
     }
-    val categoryNames = remember(dataVersion) { repository.categoryNames() }
+    val categoryNames = rootLists.categoryNames
     // Transaction pickers show these labels and save the ids behind them (#747).
-    val categoryChoices = remember(dataVersion) { repository.categoryChoices() }
+    val categoryChoices = rootLists.categoryChoices
     val accountChoices = remember(accounts) {
         PickerChoices.accounts(accounts.filterNot { it.closed }.map { it.id to it.name })
     }
-    val payeeNames = remember(dataVersion) { repository.payeeNames() }
-    val suggestedPayees = remember(dataVersion) { repository.suggestedPayeeNames() }
-    val creditCards = remember(dataVersion) { repository.creditCards() }
-    val loans = remember(dataVersion) { repository.loans() }
-    val loanSnoozedMonths = remember(dataVersion) { repository.loanSnoozedMonths() }
+    val payeeNames = rootLists.payeeNames
+    val suggestedPayees = rootLists.suggestedPayees
+    val creditCards = rootLists.creditCards
+    val loans = rootLists.loans
+    val loanSnoozedMonths = rootLists.loanSnoozedMonths
     // reportSnapshot, rules/rulesSupported/scheduleOwnedRuleIds/ruleEditorData, and
     // reorderCategoryGroups are each read by exactly one destination (Reports, Rules,
     // ManageCategories/ReorderGroups) that isn't always on screen, unlike the values above. Per
@@ -746,7 +769,9 @@ fun AppNavigation(
     var showNotes by remember { mutableStateOf(displayPreferences.showNotes) }
     var hideIncomeGroupInBudget by remember { mutableStateOf(displayPreferences.hideIncomeGroupInBudget) }
     var showReportSummary by remember { mutableStateOf(displayPreferences.showReportSummary) }
-    val budgetDisplayFormats = remember(dataVersion, repository) { repository.budgetDisplayFormats() }
+    val budgetDisplayFormats = rememberLoaded(repository, dataVersion, initial = BudgetDisplayFormats()) {
+        repository.budgetDisplayFormats()
+    }
     // Device choices, or the budget's synced preferences where the device is set to "Same as budget".
     val displayFormats = EffectiveDisplayFormats.resolve(
         currencyCode, currencySymbolOnly, currencySymbolPosition, currencySymbolSpacing,
@@ -855,11 +880,11 @@ fun AppNavigation(
         LoanScreenActions(repository, transactionLoanAccount) { res, action -> mutate(res, action = action) }
     }
 
-    // Drag-to-reorder screens need to know synchronously whether a move was accepted, to decide
-    // whether to keep the just-dropped optimistic order or snap back to the last confirmed one.
-    // Reorder writes are single-row updates (not the batched writes this main-thread-blocking fix
-    // targets), so this stays synchronous rather than gaining the same async/onChanged shape as
-    // [mutate]. labelRes is a runtime @StringRes parameter (see [mutate]).
+    // Drag and arrow reorders need to know synchronously whether a move was accepted, to decide
+    // whether to keep the just-dropped optimistic order or snap back to the last confirmed one, so
+    // they stay on the calling thread (single-row writes). Moves that show nothing optimistically,
+    // such as the Move to group dialog and the account-group sheet arrows, use [mutate] instead.
+    // labelRes is a runtime @StringRes parameter (see [mutate]).
     @SuppressLint("LocalContextGetResourceValueCall")
     fun mutateSync(@StringRes labelRes: Int, action: () -> Boolean): Boolean {
         val label = context.getString(labelRes)
@@ -2877,11 +2902,13 @@ fun AppNavigation(
                 onCreateAndLink = { discovered, name, offBudget, source -> createAndLinkBankAccount(discovered, name, offBudget, source) },
                 onUnlink = ::unlinkBankAccount,
             )
-            DetailDestination.Rules -> RulesScreen(
-                rules = remember(dataVersion) { repository.rules() },
-                supported = remember(dataVersion) { repository.rulesSupported() },
-                scheduleOwnedRuleIds = remember(dataVersion) { repository.scheduleOwnedRuleIds() },
-                editorData = remember(dataVersion) { repository.ruleEditorData() },
+            DetailDestination.Rules -> {
+            val rulesData = rememberLoaded(repository, dataVersion, initial = RulesData.Initial) { RulesData.load(repository) }
+            RulesScreen(
+                rules = rulesData.rules,
+                supported = rulesData.supported,
+                scheduleOwnedRuleIds = rulesData.scheduleOwnedRuleIds,
+                editorData = rulesData.editorData,
                 onBack = {
                     if (scheduleRuleId != null) returnFromScheduleRule() else detail = DetailDestination.Main
                 },
@@ -2899,6 +2926,7 @@ fun AppNavigation(
                 initialRuleId = scheduleRuleId,
                 onInitialRuleClosed = ::returnFromScheduleRule,
             )
+            }
             DetailDestination.ManageCategories -> NavigationManageCategoriesScreen(
                 repository = repository,
                 dataVersion = dataVersion,
@@ -2947,7 +2975,7 @@ fun AppNavigation(
                 BudgetAutomationScreen(
                     group = group,
                     category = category,
-                    month = budgetMonth,
+                    month = shownBudgetMonth,
                     hideDecimalPlaces = hideDecimalPlaces,
                     scheduleFunding = budgetScheduleFunding,
                     incomeCategories = budgetGroups.filter { it.isIncome }.flatMap { it.categories }
@@ -3035,7 +3063,7 @@ fun AppNavigation(
                         favoriteAccountIds,
                         favoriteReportIds,
                         reportSnapshot,
-                        budgetMonth,
+                        shownBudgetMonth,
                         homeMonthStart,
                     ) {
                         HomeDashboardProjection.from(
@@ -3048,7 +3076,7 @@ fun AppNavigation(
                             favoriteCategoryIds = favoriteCategoryIds,
                             favoriteAccountIds = favoriteAccountIds,
                             favoriteReportIds = favoriteReportIds,
-                            month = budgetMonth,
+                            month = shownBudgetMonth,
                             monthStart = homeMonthStart,
                         )
                     },
@@ -3084,7 +3112,7 @@ fun AppNavigation(
                     contentModifier,
                     groups = budgetGroups,
                     overview = budgetOverview,
-                    month = budgetMonth,
+                    month = shownBudgetMonth,
                     monthRange = budgetMonthRange,
                     onMonthChange = { budgetMonth = it },
                     hideDecimalPlaces = hideDecimalPlaces,
@@ -3135,62 +3163,62 @@ fun AppNavigation(
                         transactionsReturnCategory = category.takeIf { returnToDetails }
                         transactionAccount = null
                         transactionCategory = category
-                        transactionMonth = if (thisMonth) budgetMonth else null
+                        transactionMonth = if (thisMonth) shownBudgetMonth else null
                         transactionSearch = ""
                         detail = DetailDestination.Transactions
                     },
                     onTransferBudget = { fromGroup, fromCategory, toGroup, toCategory, amount ->
                         mutate(R.string.navigation_moving_budget) {
-                            repository.transferBudget(fromGroup, fromCategory, toGroup, toCategory, amount, budgetMonth)
+                            repository.transferBudget(fromGroup, fromCategory, toGroup, toCategory, amount, shownBudgetMonth)
                         }
                     },
                     onSummaryMove = { group, category, amount, covering ->
                         mutate(R.string.navigation_moving_budget) {
                             if (covering) {
-                                repository.transferBudget(group, category, null, null, amount, budgetMonth,
+                                repository.transferBudget(group, category, null, null, amount, shownBudgetMonth,
                                     ActuaRepository.BudgetMoveKind.COVER_OVERBUDGETED)
                             } else {
-                                repository.transferBudget(null, null, group, category, amount, budgetMonth,
+                                repository.transferBudget(null, null, group, category, amount, shownBudgetMonth,
                                     ActuaRepository.BudgetMoveKind.FROM_TO_BUDGET)
                             }
                         }
                     },
                     onSetBudgetAmount = { group, category, amount ->
-                        mutate(R.string.navigation_updating_budget) { repository.setBudgetAmount(group, category, amount, budgetMonth) }
+                        mutate(R.string.navigation_updating_budget) { repository.setBudgetAmount(group, category, amount, shownBudgetMonth) }
                     },
                     monthNote = budgetMonthNote,
                     onSetMonthNote = { note ->
-                        mutate(R.string.navigation_saving_month_note) { repository.setMonthNote(budgetMonth, note) }
+                        mutate(R.string.navigation_saving_month_note) { repository.setMonthNote(shownBudgetMonth, note) }
                     },
                     onSetCategoryNote = { categoryId, note ->
                         mutate(R.string.navigation_saving_category_note) { repository.setCategoryNote(categoryId, note) }
                     },
                     onSetCategoryCarryover = { categoryId, enabled ->
-                        mutate(R.string.navigation_updating_rollover) { repository.setCategoryCarryover(categoryId, enabled, budgetMonth) }
+                        mutate(R.string.navigation_updating_rollover) { repository.setCategoryCarryover(categoryId, enabled, shownBudgetMonth) }
                     },
                     onHoldForNextMonth = { amount ->
-                        mutate(R.string.navigation_holding_for_next_month) { repository.setBufferedAmount(budgetMonth, amount) }
+                        mutate(R.string.navigation_holding_for_next_month) { repository.setBufferedAmount(shownBudgetMonth, amount) }
                     },
                     onResetNextMonthBuffer = {
-                        mutate(R.string.navigation_resetting_next_month_buffer) { repository.resetNextMonthBuffer(budgetMonth) }
+                        mutate(R.string.navigation_resetting_next_month_buffer) { repository.resetNextMonthBuffer(shownBudgetMonth) }
                     },
                     onCopyPreviousMonth = {
-                        mutate(R.string.navigation_copying_previous_month_budget) { repository.copyPreviousMonthBudget(budgetMonth) }
+                        mutate(R.string.navigation_copying_previous_month_budget) { repository.copyPreviousMonthBudget(shownBudgetMonth) }
                     },
                     onCategoryBudgetAction = { categoryId, action ->
                         mutate(R.string.navigation_updating_budget) {
                             when (action) {
-                                CategoryBudgetAction.COPY_LAST_MONTH -> repository.copyCategoryFromPreviousMonth(categoryId, budgetMonth)
-                                CategoryBudgetAction.AVERAGE_3 -> repository.setCategoryAverage(categoryId, budgetMonth, 3)
-                                CategoryBudgetAction.AVERAGE_6 -> repository.setCategoryAverage(categoryId, budgetMonth, 6)
-                                CategoryBudgetAction.AVERAGE_12 -> repository.setCategoryAverage(categoryId, budgetMonth, 12)
-                                CategoryBudgetAction.COPY_TO_YEAR_END -> repository.copyCategoryToYearEnd(categoryId, budgetMonth)
+                                CategoryBudgetAction.COPY_LAST_MONTH -> repository.copyCategoryFromPreviousMonth(categoryId, shownBudgetMonth)
+                                CategoryBudgetAction.AVERAGE_3 -> repository.setCategoryAverage(categoryId, shownBudgetMonth, 3)
+                                CategoryBudgetAction.AVERAGE_6 -> repository.setCategoryAverage(categoryId, shownBudgetMonth, 6)
+                                CategoryBudgetAction.AVERAGE_12 -> repository.setCategoryAverage(categoryId, shownBudgetMonth, 12)
+                                CategoryBudgetAction.COPY_TO_YEAR_END -> repository.copyCategoryToYearEnd(categoryId, shownBudgetMonth)
                             }
                         }
                     },
-                    onPreviewAverageBudget = { months -> repository.averageBudgetPreview(budgetMonth, months) },
+                    onPreviewAverageBudget = { months -> repository.averageBudgetPreview(shownBudgetMonth, months) },
                     onResetIncomeHold = {
-                        mutate(R.string.navigation_updating_automatic_holds) { repository.resetIncomeHold(budgetMonth) }
+                        mutate(R.string.navigation_updating_automatic_holds) { repository.resetIncomeHold(shownBudgetMonth) }
                     },
                     onEditAutomations = { _, category ->
                         editingAutomationCategory = category.name
@@ -3202,7 +3230,7 @@ fun AppNavigation(
                     scheduleFunding = budgetScheduleFunding,
                     templateHideFraction = budgetHidesFraction,
                     loanSnoozedMonths = loanSnoozedMonths,
-                    onPreviewCleanup = { repository.previewCleanup(budgetMonth) },
+                    onPreviewCleanup = { repository.previewCleanup(shownBudgetMonth) },
                     onRefreshNoteTemplates = {
                         mutate(R.string.navigation_reading_template_notes) { repository.refreshNoteTemplates() }
                     },
@@ -3216,7 +3244,7 @@ fun AppNavigation(
                     onShowUncategorizedTransactions = {
                         transactionAccount = null
                         transactionCategory = null
-                        transactionMonth = budgetMonth
+                        transactionMonth = shownBudgetMonth
                         transactionSearch = ""
                         transactionStatusFilter = TransactionStatusFilter.UNCATEGORIZED
                         detail = DetailDestination.Transactions
@@ -3652,6 +3680,8 @@ private fun NavigationReportsScreen(
     onMutate: (labelRes: Int, action: () -> Boolean) -> Unit,
     onExportReportCsv: (ReportDataTable, Uri) -> Unit,
 ) {
+    val savedReports = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.savedReports() }
+    val reportEditorData = rememberLoaded(repository, dataVersion, initial = RuleEditorData()) { repository.ruleEditorData() }
     ReportsScreen(
         snapshot = snapshot ?: ReportSnapshot(emptyList(), emptyList(), 0),
         hideDecimalPlaces = hideDecimalPlaces,
@@ -3674,8 +3704,8 @@ private fun NavigationReportsScreen(
         initialPageId = initialPageId,
         initialPageRequest = initialPageRequest,
         hasFab = hasFab,
-        savedReports = remember(dataVersion) { repository.savedReports() },
-        ruleEditorData = remember(dataVersion) { repository.ruleEditorData() },
+        savedReports = savedReports,
+        ruleEditorData = reportEditorData,
         onComputePreview = { draft -> repository.computeCustomReportPreview(draft) },
         onSaveCustomReport = { draft ->
             onMutate(if (draft.id.isBlank()) R.string.navigation_creating_custom_report else R.string.navigation_updating_custom_report) {
@@ -3935,8 +3965,10 @@ private fun NavigationScheduleScreens(
             },
             modifier = contentModifier,
         )
-        DetailDestination.PayeeLocations -> PayeeLocationsScreen(
-            locations = remember(dataVersion) { repository.payeeLocations() },
+        DetailDestination.PayeeLocations -> {
+        val locations = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.payeeLocations() }
+        PayeeLocationsScreen(
+            locations = locations,
             writesSupported = repository.payeeLocationWritesSupported(),
             onBack = { onDetailChange(DetailDestination.Main) },
             onDelete = { id ->
@@ -3947,9 +3979,13 @@ private fun NavigationScheduleScreens(
             },
             modifier = contentModifier,
         )
-        DetailDestination.ManagePayees -> ManagePayeesScreen(
-            payees = remember(dataVersion) { repository.managedPayees() },
-            learnCategoriesEnabled = remember(dataVersion) { repository.learnCategoriesEnabled() },
+        }
+        DetailDestination.ManagePayees -> {
+        val managedPayees = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.managedPayees() }
+        val learnCategoriesEnabled = rememberLoaded(repository, dataVersion, initial = false) { repository.learnCategoriesEnabled() }
+        ManagePayeesScreen(
+            payees = managedPayees,
+            learnCategoriesEnabled = learnCategoriesEnabled,
             onBack = { onDetailChange(DetailDestination.Main) },
             onSetLearnCategoriesEnabled = { enabled ->
                 onMutate(R.string.navigation_changing_category_learning, {}) { repository.setLearnCategoriesEnabled(enabled) }
@@ -3967,6 +4003,7 @@ private fun NavigationScheduleScreens(
             },
             modifier = contentModifier,
         )
+        }
         DetailDestination.ImportTransactions -> ImportTransactionsScreen(
             accounts = accounts.filterNot { it.closed },
             findMatches = repository::importMatches,
@@ -4129,8 +4166,9 @@ private fun NavigationManageCategoriesScreen(
     onMutate: (labelRes: Int, action: () -> Boolean) -> Unit,
     onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
 ) {
+    val groups = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.categoryGroupsForReorder() }
     ManageCategoriesScreen(
-        groups = remember(dataVersion) { repository.categoryGroupsForReorder() },
+        groups = groups,
         onBack = onBack,
         onReorderGroupsClick = onReorderGroupsClick,
         onCreateGroup = { name -> onMutate(R.string.navigation_creating_group) { repository.createCategoryGroup(name) } },
@@ -4157,6 +4195,7 @@ private fun NavigationManageCategoriesScreen(
             onMutate(R.string.navigation_deleting_group) { repository.deleteCategoryGroup(group.id, targetGroupId) }
         },
         onMoveCategory = { move -> onMutateSync(R.string.navigation_reordering_category) { repository.moveCategory(move) } },
+        onMoveCategoryToGroup = { move -> onMutate(R.string.navigation_reordering_category) { repository.moveCategory(move) } },
         modifier = contentModifier,
     )
 }
@@ -4169,8 +4208,9 @@ private fun NavigationReorderGroupsScreen(
     onBack: () -> Unit,
     onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
 ) {
+    val groups = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.categoryGroupsForReorder() }
     ReorderGroupsScreen(
-        groups = remember(dataVersion) { repository.categoryGroupsForReorder() },
+        groups = groups,
         onBack = onBack,
         onMoveGroup = { move -> onMutateSync(R.string.navigation_reordering_category_group) { repository.moveCategoryGroup(move) } },
         modifier = contentModifier,
@@ -4186,12 +4226,15 @@ private fun NavigationReorderAccountsScreen(
     onMutate: (labelRes: Int, action: () -> Boolean) -> Unit,
     onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
 ) {
+    val accounts = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.accountsForReorder() }
+    val groups = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.accountGroupsForReorder() }
     ReorderAccountsScreen(
-        accounts = remember(dataVersion) { repository.accountsForReorder() },
-        groups = remember(dataVersion) { repository.accountGroupsForReorder() },
+        accounts = accounts,
+        groups = groups,
         onBack = onBack,
         onMoveAccount = { move -> onMutateSync(R.string.navigation_reordering_account) { repository.moveAccount(move) } },
         onMoveGroup = { move -> onMutateSync(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
+        onMoveGroupFromSheet = { move -> onMutate(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
         onCreateGroup = { name -> onMutate(R.string.navigation_creating_account_group) { repository.createAccountGroup(name) } },
         onRenameGroup = { id, name -> onMutate(R.string.navigation_renaming_account_group) { repository.renameAccountGroup(id, name) } },
         onDeleteGroup = { id -> onMutate(R.string.navigation_deleting_account_group) { repository.deleteAccountGroup(id) } },
@@ -4229,6 +4272,8 @@ private fun NavigationAccountsScreen(
     hasFab: Boolean,
     monthStart: MonthStartRule,
 ) {
+    val accountGroups = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.accountGroupsForReorder() }
+    val accountsForReorder = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.accountsForReorder() }
     AccountsScreen(
         modifier = contentModifier,
         accounts = accounts,
@@ -4268,13 +4313,14 @@ private fun NavigationAccountsScreen(
         onCreateAccount = { name, offBudget, balance, type, groupId ->
             onMutate(R.string.navigation_creating_account) { repository.createAccount(name, offBudget, balance, type, groupId) }
         },
-        accountGroups = remember(dataVersion) { repository.accountGroupsForReorder() },
+        accountGroups = accountGroups,
         onSetAccountGroup = { account, groupId ->
             onMutate(R.string.navigation_updating_account_group) { repository.setAccountGroup(account.id, groupId) }
         },
-        accountsForReorder = remember(dataVersion) { repository.accountsForReorder() },
+        accountsForReorder = accountsForReorder,
         onMoveAccount = { move -> onMutateSync(R.string.navigation_reordering_account) { repository.moveAccount(move) } },
         onMoveGroup = { move -> onMutateSync(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
+        onMoveGroupFromSheet = { move -> onMutate(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
         onCreateGroup = { name -> onMutate(R.string.navigation_creating_account_group) { repository.createAccountGroup(name) } },
         onRenameGroup = { id, name -> onMutate(R.string.navigation_renaming_account_group) { repository.renameAccountGroup(id, name) } },
         onDeleteGroup = { id -> onMutate(R.string.navigation_deleting_account_group) { repository.deleteAccountGroup(id) } },
