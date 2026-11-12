@@ -540,12 +540,19 @@ fun AppNavigation(
         mutableStateOf(displayPreferences.showUpcomingTransactions)
     }
     var transactionStatusFilter by rememberSaveable { mutableStateOf(TransactionStatusFilter.ALL) }
-    val transactions = remember(dataVersion) { repository.transactions() }
+    // The full history is loaded off the main thread, once per data change; the filtered list
+    // below reuses it unless a status filter narrows it.
+    val transactions = rememberLoaded(repository, dataVersion, initial = emptyList()) {
+        repository.transactions()
+    }
     // Hiding reconciled rows is per account, so it's applied by TransactionsScreen for the open
     // account rather than here, where the list backs every account and the Transactions tab.
-    val filteredTransactions = remember(dataVersion, transactionStatusFilter) {
-        repository.transactions(statusFilter = transactionStatusFilter)
-    }
+    val narrowedTransactions = rememberLoaded(
+        repository, dataVersion, transactionStatusFilter,
+        initial = emptyList(),
+        enabled = transactionStatusFilter != TransactionStatusFilter.ALL,
+    ) { repository.transactions(statusFilter = transactionStatusFilter) }
+    val filteredTransactions = transactionsForStatusFilter(transactionStatusFilter, transactions, narrowedTransactions)
     val searchTransactions: suspend (String) -> List<Transaction> = remember(repository, transactionStatusFilter) {
         { query -> withContext(Dispatchers.IO) {
             repository.transactions(query, statusFilter = transactionStatusFilter)
