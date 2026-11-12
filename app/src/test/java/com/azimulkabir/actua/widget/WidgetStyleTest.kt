@@ -253,7 +253,9 @@ class WidgetStyleTest {
         assertEquals(ProgressStatus.Normal, ProgressStatus.of(percentSpent = 0, overspent = false))
         assertEquals(ProgressStatus.Normal, ProgressStatus.of(percentSpent = 84, overspent = false))
         assertEquals(ProgressStatus.Warning, ProgressStatus.of(percentSpent = 85, overspent = false))
-        assertEquals(ProgressStatus.Warning, ProgressStatus.of(percentSpent = 100, overspent = false))
+        assertEquals(ProgressStatus.Warning, ProgressStatus.of(percentSpent = 99, overspent = false))
+        // Spent exactly to the budget is on plan, not a warning.
+        assertEquals(ProgressStatus.Normal, ProgressStatus.of(percentSpent = 100, overspent = false))
         assertEquals(ProgressStatus.Overspent, ProgressStatus.of(percentSpent = 100, overspent = true))
         // A negative balance wins even when the bar isn't full (a rolled-over deficit).
         assertEquals(ProgressStatus.Overspent, ProgressStatus.of(percentSpent = 10, overspent = true))
