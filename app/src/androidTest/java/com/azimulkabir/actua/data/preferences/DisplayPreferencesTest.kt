@@ -3,6 +3,8 @@ package com.azimulkabir.actua.data.preferences
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.azimulkabir.actua.ui.theme.AccentPalette
+import com.azimulkabir.actua.widget.WidgetStyle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -16,6 +18,25 @@ class DisplayPreferencesTest {
         ApplicationProvider.getApplicationContext<Context>()
             .getSharedPreferences("display_preferences", Context.MODE_PRIVATE)
             .edit().clear().commit()
+    }
+
+    @Test fun accentSourceObserverHearsAccentAndMaterialYouChangesOnly() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val preferences = DisplayPreferences(context)
+        var calls = 0
+        val stop = preferences.observeAccentSource { calls++ }
+
+        preferences.accent = AccentPalette.Teal
+        assertEquals("a new palette", 1, calls)
+        preferences.useDynamicColor = true
+        assertEquals("Material You switched on", 2, calls)
+        preferences.appearance = "Dark"
+        preferences.widgetStyle = WidgetStyle.SolidDark
+        assertEquals("other display settings are not the accent", 2, calls)
+
+        stop()
+        preferences.accent = AccentPalette.Rose
+        assertEquals("nothing after stopping", 2, calls)
     }
 
     @Test fun legacyMoreStartPageMigratesToManage() {

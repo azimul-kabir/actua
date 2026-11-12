@@ -31,6 +31,9 @@ enum class WidgetStyle {
     AccentTinted,
     ;
 
+    /** Whether this style is drawn from the app's accent, so a new accent has to reach the widgets. */
+    val followsAccent: Boolean get() = this == AccentTinted
+
     /**
      * The colors for this style, or null for [Default], which changes nothing. [night] is the device's
      * dark mode, which [Translucent] follows; [accent] is only used by [AccentTinted].

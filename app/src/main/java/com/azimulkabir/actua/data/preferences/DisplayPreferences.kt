@@ -181,6 +181,19 @@ class DisplayPreferences(context: Context) {
         return { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
     }
 
+    /**
+     * Calls [onChange] whenever what the app's accent is drawn from changes: the accent palette (including a
+     * supporter-status reset) or Material You. Returns how to stop. SharedPreferences holds listeners
+     * weakly, so keep the returned function for as long as the observer should live.
+     */
+    fun observeAccentSource(onChange: () -> Unit): () -> Unit {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == ACCENT || key == USE_DYNAMIC_COLOR) onChange()
+        }
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        return { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
     /** The global home-screen widget look (Play build); Default until a supporter chooses one. */
     var widgetStyle: WidgetStyle
         get() = WidgetStyle.fromName(preferences.getString(WIDGET_STYLE, null))
