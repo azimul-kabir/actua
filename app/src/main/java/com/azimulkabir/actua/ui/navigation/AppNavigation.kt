@@ -187,7 +187,9 @@ import com.azimulkabir.actua.data.home.HolidayCodec
 import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.data.navigation.TabItem
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
+import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
+import com.azimulkabir.actua.data.rules.RuleEditorData
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.EffectiveDisplayFormats
 import com.azimulkabir.actua.data.preferences.FavoritePreferences
@@ -767,7 +769,9 @@ fun AppNavigation(
     var showNotes by remember { mutableStateOf(displayPreferences.showNotes) }
     var hideIncomeGroupInBudget by remember { mutableStateOf(displayPreferences.hideIncomeGroupInBudget) }
     var showReportSummary by remember { mutableStateOf(displayPreferences.showReportSummary) }
-    val budgetDisplayFormats = remember(dataVersion, repository) { repository.budgetDisplayFormats() }
+    val budgetDisplayFormats = rememberLoaded(repository, dataVersion, initial = BudgetDisplayFormats()) {
+        repository.budgetDisplayFormats()
+    }
     // Device choices, or the budget's synced preferences where the device is set to "Same as budget".
     val displayFormats = EffectiveDisplayFormats.resolve(
         currencyCode, currencySymbolOnly, currencySymbolPosition, currencySymbolSpacing,
@@ -2898,11 +2902,13 @@ fun AppNavigation(
                 onCreateAndLink = { discovered, name, offBudget, source -> createAndLinkBankAccount(discovered, name, offBudget, source) },
                 onUnlink = ::unlinkBankAccount,
             )
-            DetailDestination.Rules -> RulesScreen(
-                rules = remember(dataVersion) { repository.rules() },
-                supported = remember(dataVersion) { repository.rulesSupported() },
-                scheduleOwnedRuleIds = remember(dataVersion) { repository.scheduleOwnedRuleIds() },
-                editorData = remember(dataVersion) { repository.ruleEditorData() },
+            DetailDestination.Rules -> {
+            val rulesData = rememberLoaded(repository, dataVersion, initial = RulesData.Initial) { RulesData.load(repository) }
+            RulesScreen(
+                rules = rulesData.rules,
+                supported = rulesData.supported,
+                scheduleOwnedRuleIds = rulesData.scheduleOwnedRuleIds,
+                editorData = rulesData.editorData,
                 onBack = {
                     if (scheduleRuleId != null) returnFromScheduleRule() else detail = DetailDestination.Main
                 },
@@ -2920,6 +2926,7 @@ fun AppNavigation(
                 initialRuleId = scheduleRuleId,
                 onInitialRuleClosed = ::returnFromScheduleRule,
             )
+            }
             DetailDestination.ManageCategories -> NavigationManageCategoriesScreen(
                 repository = repository,
                 dataVersion = dataVersion,
@@ -3673,6 +3680,8 @@ private fun NavigationReportsScreen(
     onMutate: (labelRes: Int, action: () -> Boolean) -> Unit,
     onExportReportCsv: (ReportDataTable, Uri) -> Unit,
 ) {
+    val savedReports = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.savedReports() }
+    val reportEditorData = rememberLoaded(repository, dataVersion, initial = RuleEditorData()) { repository.ruleEditorData() }
     ReportsScreen(
         snapshot = snapshot ?: ReportSnapshot(emptyList(), emptyList(), 0),
         hideDecimalPlaces = hideDecimalPlaces,
@@ -3695,8 +3704,8 @@ private fun NavigationReportsScreen(
         initialPageId = initialPageId,
         initialPageRequest = initialPageRequest,
         hasFab = hasFab,
-        savedReports = remember(dataVersion) { repository.savedReports() },
-        ruleEditorData = remember(dataVersion) { repository.ruleEditorData() },
+        savedReports = savedReports,
+        ruleEditorData = reportEditorData,
         onComputePreview = { draft -> repository.computeCustomReportPreview(draft) },
         onSaveCustomReport = { draft ->
             onMutate(if (draft.id.isBlank()) R.string.navigation_creating_custom_report else R.string.navigation_updating_custom_report) {
@@ -3956,8 +3965,10 @@ private fun NavigationScheduleScreens(
             },
             modifier = contentModifier,
         )
-        DetailDestination.PayeeLocations -> PayeeLocationsScreen(
-            locations = remember(dataVersion) { repository.payeeLocations() },
+        DetailDestination.PayeeLocations -> {
+        val locations = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.payeeLocations() }
+        PayeeLocationsScreen(
+            locations = locations,
             writesSupported = repository.payeeLocationWritesSupported(),
             onBack = { onDetailChange(DetailDestination.Main) },
             onDelete = { id ->
@@ -3968,9 +3979,13 @@ private fun NavigationScheduleScreens(
             },
             modifier = contentModifier,
         )
-        DetailDestination.ManagePayees -> ManagePayeesScreen(
-            payees = remember(dataVersion) { repository.managedPayees() },
-            learnCategoriesEnabled = remember(dataVersion) { repository.learnCategoriesEnabled() },
+        }
+        DetailDestination.ManagePayees -> {
+        val managedPayees = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.managedPayees() }
+        val learnCategoriesEnabled = rememberLoaded(repository, dataVersion, initial = false) { repository.learnCategoriesEnabled() }
+        ManagePayeesScreen(
+            payees = managedPayees,
+            learnCategoriesEnabled = learnCategoriesEnabled,
             onBack = { onDetailChange(DetailDestination.Main) },
             onSetLearnCategoriesEnabled = { enabled ->
                 onMutate(R.string.navigation_changing_category_learning, {}) { repository.setLearnCategoriesEnabled(enabled) }
@@ -3988,6 +4003,7 @@ private fun NavigationScheduleScreens(
             },
             modifier = contentModifier,
         )
+        }
         DetailDestination.ImportTransactions -> ImportTransactionsScreen(
             accounts = accounts.filterNot { it.closed },
             findMatches = repository::importMatches,
@@ -4150,8 +4166,9 @@ private fun NavigationManageCategoriesScreen(
     onMutate: (labelRes: Int, action: () -> Boolean) -> Unit,
     onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
 ) {
+    val groups = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.categoryGroupsForReorder() }
     ManageCategoriesScreen(
-        groups = remember(dataVersion) { repository.categoryGroupsForReorder() },
+        groups = groups,
         onBack = onBack,
         onReorderGroupsClick = onReorderGroupsClick,
         onCreateGroup = { name -> onMutate(R.string.navigation_creating_group) { repository.createCategoryGroup(name) } },
@@ -4190,8 +4207,9 @@ private fun NavigationReorderGroupsScreen(
     onBack: () -> Unit,
     onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
 ) {
+    val groups = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.categoryGroupsForReorder() }
     ReorderGroupsScreen(
-        groups = remember(dataVersion) { repository.categoryGroupsForReorder() },
+        groups = groups,
         onBack = onBack,
         onMoveGroup = { move -> onMutateSync(R.string.navigation_reordering_category_group) { repository.moveCategoryGroup(move) } },
         modifier = contentModifier,
@@ -4207,9 +4225,11 @@ private fun NavigationReorderAccountsScreen(
     onMutate: (labelRes: Int, action: () -> Boolean) -> Unit,
     onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
 ) {
+    val accounts = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.accountsForReorder() }
+    val groups = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.accountGroupsForReorder() }
     ReorderAccountsScreen(
-        accounts = remember(dataVersion) { repository.accountsForReorder() },
-        groups = remember(dataVersion) { repository.accountGroupsForReorder() },
+        accounts = accounts,
+        groups = groups,
         onBack = onBack,
         onMoveAccount = { move -> onMutateSync(R.string.navigation_reordering_account) { repository.moveAccount(move) } },
         onMoveGroup = { move -> onMutateSync(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
@@ -4250,6 +4270,8 @@ private fun NavigationAccountsScreen(
     hasFab: Boolean,
     monthStart: MonthStartRule,
 ) {
+    val accountGroups = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.accountGroupsForReorder() }
+    val accountsForReorder = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.accountsForReorder() }
     AccountsScreen(
         modifier = contentModifier,
         accounts = accounts,
@@ -4289,11 +4311,11 @@ private fun NavigationAccountsScreen(
         onCreateAccount = { name, offBudget, balance, type, groupId ->
             onMutate(R.string.navigation_creating_account) { repository.createAccount(name, offBudget, balance, type, groupId) }
         },
-        accountGroups = remember(dataVersion) { repository.accountGroupsForReorder() },
+        accountGroups = accountGroups,
         onSetAccountGroup = { account, groupId ->
             onMutate(R.string.navigation_updating_account_group) { repository.setAccountGroup(account.id, groupId) }
         },
-        accountsForReorder = remember(dataVersion) { repository.accountsForReorder() },
+        accountsForReorder = accountsForReorder,
         onMoveAccount = { move -> onMutateSync(R.string.navigation_reordering_account) { repository.moveAccount(move) } },
         onMoveGroup = { move -> onMutateSync(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
         onCreateGroup = { name -> onMutate(R.string.navigation_creating_account_group) { repository.createAccountGroup(name) } },
