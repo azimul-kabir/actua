@@ -106,6 +106,25 @@ class AccountMonthlySummaryCalculatorTest {
         assertEquals(listOf(txOct1, txOct15), filtered)
     }
 
+    @Test fun `filterTransactionsForSummary matches the current month under a non-Latin-digit locale`() {
+        val original = java.util.Locale.getDefault()
+        try {
+            listOf("ar-EG", "fa-IR", "bn-BD").map(java.util.Locale::forLanguageTag).forEach { locale ->
+                java.util.Locale.setDefault(locale)
+                val october = transaction(10_000, date = "2026-10-01")
+                val september = transaction(20_000, date = "2026-09-30")
+                val (filtered, _) = filterTransactionsForSummary(
+                    transactions = listOf(october, september),
+                    monthStart = MonthStartRule(1),
+                    today = java.time.LocalDate.of(2026, 10, 18),
+                )
+                assertEquals(locale.toLanguageTag(), listOf(october), filtered)
+            }
+        } finally {
+            java.util.Locale.setDefault(original)
+        }
+    }
+
     @Test fun `filterTransactionsForSummary with custom start day filters by pay cycle period`() {
         // Today is Oct 18, start day is 25 -> period is Sep 25 to Oct 24
         val txBefore = transaction(10_000, date = "2026-09-24")

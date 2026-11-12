@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.data.bank
 
 import com.azimulkabir.actua.data.budget.ActualBudgetDatabase
+import com.azimulkabir.actua.data.schedules.formatIsoDay
 import com.azimulkabir.actua.data.budget.ActualEntityWriter
 import com.azimulkabir.actua.data.budget.ActualTransactionWriter
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
@@ -56,7 +57,7 @@ class BankSyncService(
             // Actual's `getAccountOldestTransaction` ignores rows dated after today.
             val oldest = database.oldestTransactionDate(id, onOrBefore = todayDay)
             val day = oldest?.coerceAtLeast(floor) ?: floor
-            return "%04d-%02d-%02d".format(day / 10000, day / 100 % 100, day % 100)
+            return formatIsoDay(day)
         }
         // Actual's `newAccount`: no transactions dated today or earlier. Its first sync gets a
         // starting-balance row, and GoCardless is only asked for balances then (#1003).
