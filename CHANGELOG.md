@@ -24,6 +24,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Made Budget, Accounts, Transactions and other screens load their data off the main thread, so edits and syncs no longer stall the screen ([#1619](https://github.com/azimul-kabir/actua/pull/1619))
 - Made labels and dates on Accent-tinted widgets a softer tone than titles and amounts ([#1610](https://github.com/azimul-kabir/actua/pull/1610))
 - Kept the amber and red category progress bars on widgets in every widget style, not only Default ([#1607](https://github.com/azimul-kabir/actua/pull/1607))
 - Refreshed the look of the home-screen widgets with tonal tiles and pills, a larger budget figure and bar colors that show how spent a category is ([#1566](https://github.com/azimul-kabir/actua/pull/1566))
