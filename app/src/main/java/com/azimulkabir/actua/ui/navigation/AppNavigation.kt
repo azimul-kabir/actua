@@ -531,7 +531,12 @@ fun AppNavigation(
     val budgetType = budgetSettings.type
     // Set during composition, before any amount below is formatted or parsed.
     CurrencyDisplay.decimalPlaces = budgetSettings.decimalPlaces
-    val accounts = remember(dataVersion) { repository.accounts() }
+    // The shared account, category, payee, credit card and loan lists load together off the main
+    // thread and keep their last value while reloading.
+    val rootLists = rememberLoaded(repository, dataVersion, initial = RootListData.Empty) {
+        RootListData.load(repository)
+    }
+    val accounts = rootLists.accounts
     // Transactions bank sync added that haven't been looked at yet, by account id (#1066).
     val newBankTransactionStore = remember { NewBankTransactions(context) }
     var newBankTransactions by remember(activeBudgetId) {
@@ -544,7 +549,7 @@ fun AppNavigation(
     }
     val newBankTransactionCounts = remember(newBankTransactions) { newBankTransactions.mapValues { it.value.size } }
     // Actual's synced per-account `hide-reconciled-<accountId>` preference, shared with the PWA.
-    val hideReconciledAccountIds = remember(dataVersion) { repository.hideReconciledAccountIds() }
+    val hideReconciledAccountIds = rootLists.hideReconciledAccountIds
     var showUpcomingTransactions by remember {
         mutableStateOf(displayPreferences.showUpcomingTransactions)
     }
@@ -567,17 +572,17 @@ fun AppNavigation(
             repository.transactions(query, statusFilter = transactionStatusFilter)
         } }
     }
-    val categoryNames = remember(dataVersion) { repository.categoryNames() }
+    val categoryNames = rootLists.categoryNames
     // Transaction pickers show these labels and save the ids behind them (#747).
-    val categoryChoices = remember(dataVersion) { repository.categoryChoices() }
+    val categoryChoices = rootLists.categoryChoices
     val accountChoices = remember(accounts) {
         PickerChoices.accounts(accounts.filterNot { it.closed }.map { it.id to it.name })
     }
-    val payeeNames = remember(dataVersion) { repository.payeeNames() }
-    val suggestedPayees = remember(dataVersion) { repository.suggestedPayeeNames() }
-    val creditCards = remember(dataVersion) { repository.creditCards() }
-    val loans = remember(dataVersion) { repository.loans() }
-    val loanSnoozedMonths = remember(dataVersion) { repository.loanSnoozedMonths() }
+    val payeeNames = rootLists.payeeNames
+    val suggestedPayees = rootLists.suggestedPayees
+    val creditCards = rootLists.creditCards
+    val loans = rootLists.loans
+    val loanSnoozedMonths = rootLists.loanSnoozedMonths
     // reportSnapshot, rules/rulesSupported/scheduleOwnedRuleIds/ruleEditorData, and
     // reorderCategoryGroups are each read by exactly one destination (Reports, Rules,
     // ManageCategories/ReorderGroups) that isn't always on screen, unlike the values above. Per
