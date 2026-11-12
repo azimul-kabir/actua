@@ -36,6 +36,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Made the spending bars in the Income and spending widget a softer tone instead of near-black on light widget styles ([#1621](https://github.com/azimul-kabir/actua/pull/1621))
 - Fixed dates in schedules, bank sync and monthly summaries being written in native digits on Arabic, Persian, Bengali and similar device languages ([#1612](https://github.com/azimul-kabir/actua/pull/1612))
 
 ## [2.6.0] - 2026-11-10
