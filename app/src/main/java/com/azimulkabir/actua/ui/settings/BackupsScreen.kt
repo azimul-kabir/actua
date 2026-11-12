@@ -63,6 +63,7 @@ import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
 import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.ui.theme.Spacing
+import com.azimulkabir.actua.util.suspendRunCatching
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -124,7 +125,7 @@ fun BackupsScreen(
         GoogleDriveAuthManager.updateFromStorage(context)
         if (driveManager.isConnected()) {
             scope.launch {
-                val list = runCatching {
+                val list = suspendRunCatching {
                     withContext(Dispatchers.IO) { driveManager.listRemoteBackups(budgetId) }
                 }.getOrDefault(emptyList())
                 remoteBackups = list
@@ -137,7 +138,7 @@ fun BackupsScreen(
     fun makeBackup() {
         busy = true
         scope.launch {
-            runCatching { withContext(Dispatchers.IO) { service.makeBackup(budgetId) } }
+            suspendRunCatching { withContext(Dispatchers.IO) { service.makeBackup(budgetId) } }
                 .onSuccess {
                     message = resources.getString(R.string.backup_created)
                     val driveQueued = driveManager.isConnected() && driveManager.hasEncryptionPassphrase()
@@ -164,7 +165,7 @@ fun BackupsScreen(
         }
         busy = true
         scope.launch {
-            runCatching {
+            suspendRunCatching {
                 withContext(Dispatchers.IO) {
                     val archive = service.makeBackup(budgetId)
                     driveManager.uploadBackup(budgetId, archive)
@@ -184,7 +185,7 @@ fun BackupsScreen(
         busy = true
         onBeforeRestore()
         scope.launch {
-            runCatching {
+            suspendRunCatching {
                 withContext(Dispatchers.IO) {
                     driveManager.restoreRemoteBackup(
                         remoteFileId = item.id,
@@ -223,7 +224,7 @@ fun BackupsScreen(
         uri ?: return@rememberLauncherForActivityResult
         busy = true
         scope.launch {
-            runCatching {
+            suspendRunCatching {
                 withContext(Dispatchers.IO) {
                     destinations.select(uri, null)
                     service.mirrorExisting(budgetId)
@@ -240,7 +241,7 @@ fun BackupsScreen(
         pendingExport = null
         if (uri != null && backup != null) scope.launch {
             busy = true
-            runCatching {
+            suspendRunCatching {
                 withContext(Dispatchers.IO) {
                     context.contentResolver.openOutputStream(uri, "w")!!.use { output ->
                         service.archiveFile(budgetId, backup.id).inputStream().use { it.copyTo(output) }
@@ -255,7 +256,7 @@ fun BackupsScreen(
     val importBackup = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) scope.launch {
             busy = true
-            runCatching {
+            suspendRunCatching {
                 withContext(Dispatchers.IO) {
                     context.contentResolver.openInputStream(uri)?.use { service.importArchive(budgetId, it) }
                         ?: throw SelectedBackupUnreadableException()
@@ -515,7 +516,7 @@ fun BackupsScreen(
                     busy = true
                     onBeforeRestore()
                     scope.launch {
-                        runCatching {
+                        suspendRunCatching {
                             withContext(Dispatchers.IO) {
                                 service.restore(budgetId, when (backup) {
                                     BackupItem.Latest -> BackupService.LATEST_ID

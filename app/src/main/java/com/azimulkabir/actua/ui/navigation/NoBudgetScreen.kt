@@ -51,6 +51,7 @@ import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveBackupManager
 import com.azimulkabir.actua.data.budget.gdrive.InvalidPassphraseException
 import com.azimulkabir.actua.data.budget.gdrive.PassphraseRequiredException
 import com.azimulkabir.actua.ui.settings.rememberWebDavRestore
+import com.azimulkabir.actua.util.suspendRunCatching
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -101,7 +102,7 @@ internal fun NoBudgetScreen(
     fun restoreSelectedBackup(item: GoogleDriveBackupItem, passphrase: String?) {
         driveLoading = true
         scope.launch {
-            runCatching {
+            suspendRunCatching {
                 withContext(Dispatchers.IO) {
                     driveManager.restoreRemoteBackup(
                         remoteFileId = item.id,
@@ -138,7 +139,7 @@ internal fun NoBudgetScreen(
         if (uri != null) {
             errorMessage = null
             scope.launch {
-                runCatching {
+                suspendRunCatching {
                     withContext(Dispatchers.IO) {
                         context.contentResolver.openInputStream(uri)?.use { stream ->
                             BudgetFileManager(context).importLocalBudget(stream)
@@ -325,7 +326,7 @@ internal fun NoBudgetScreen(
                             return@TextButton
                         }
                         scope.launch {
-                            runCatching {
+                            suspendRunCatching {
                                 withContext(Dispatchers.IO) {
                                     files.createBudget(name)
                                 }
@@ -389,7 +390,7 @@ internal fun NoBudgetScreen(
                     showBrowseDriveBackupsDialog = true
                     driveLoading = true
                     scope.launch {
-                        val list = runCatching {
+                        val list = suspendRunCatching {
                             withContext(Dispatchers.IO) { driveManager.listRemoteBackups(null) }
                         }.getOrDefault(emptyList())
                         remoteBackups = list

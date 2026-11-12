@@ -40,6 +40,7 @@ import com.azimulkabir.actua.data.budget.webdav.WebDavException
 import com.azimulkabir.actua.data.network.ServerCertificateInfo
 import com.azimulkabir.actua.data.network.TrustedCertificateStore
 import com.azimulkabir.actua.data.network.inspectServerCertificate
+import com.azimulkabir.actua.util.suspendRunCatching
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -74,7 +75,7 @@ internal suspend fun connectWebDav(
     withContext(Dispatchers.IO) { manager.connect(config) }
     WebDavConnectResult.Connected
 } catch (error: WebDavException.Tls) {
-    val info = runCatching {
+    val info = suspendRunCatching {
         withContext(Dispatchers.IO) { inspectServerCertificate(config.serverUrl.trim()) }
     }.getOrNull()
     if (info != null) {

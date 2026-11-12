@@ -41,6 +41,7 @@ import com.azimulkabir.actua.ui.components.ActuaFormRow
 import com.azimulkabir.actua.ui.components.ActuaGroupLabel
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.theme.Spacing
+import com.azimulkabir.actua.util.suspendRunCatching
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -71,7 +72,7 @@ fun DiagnosticsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         if (uri == null) return@rememberLauncherForActivityResult
         val text = report()
         scope.launch {
-            message = runCatching {
+            message = suspendRunCatching {
                 withContext(Dispatchers.IO) {
                     context.contentResolver.openOutputStream(uri, "w")!!.use { it.write(text.toByteArray()) }
                 }

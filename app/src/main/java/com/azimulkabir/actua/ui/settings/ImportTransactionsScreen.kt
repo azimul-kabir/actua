@@ -82,6 +82,7 @@ import com.azimulkabir.actua.data.importing.StatementDocumentReader
 import com.azimulkabir.actua.data.importing.StatementFormatDetector
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.util.suspendRunCatching
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -221,7 +222,7 @@ fun ImportTransactionsScreen(
     val readyRows = rows.withIndex().filter { it.value.selected }
         .mapNotNull { (index, row) -> row.toCandidateOrNull()?.let { Triple(index, it, row.targetAccountId()) } }
     val matchesByRow by produceState(emptyMap<Int, ImportMatch>(), readyRows) {
-        value = runCatching {
+        value = suspendRunCatching {
             withContext(Dispatchers.IO) {
                 readyRows.filter { it.third != null }.groupBy { requireNotNull(it.third) }
                     .flatMap { (accountId, inAccount) ->
@@ -320,7 +321,7 @@ fun ImportTransactionsScreen(
     fun load(uri: Uri, requireKnownFormat: Boolean = false) {
         busy = true
         scope.launch {
-            runCatching { withContext(Dispatchers.IO) {
+            suspendRunCatching { withContext(Dispatchers.IO) {
                 val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
                     ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
                     ?: resources.getString(R.string.default_statement_filename)
