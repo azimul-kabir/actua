@@ -18,7 +18,7 @@ class ScheduleWidgetService : RemoteViewsService() {
 internal class ScheduleWidgetRows(
     private val context: Context,
     private val widgetId: Int,
-    private val load: (Context, Int) -> List<ScheduleWidgetEntry> = WidgetUpdater::scheduleEntries,
+    private val load: (Context, Int) -> List<ScheduleWidgetEntry> = ScheduledTransactionsWidget::scheduleEntries,
 ) : RemoteViewsService.RemoteViewsFactory {
     private var entries: List<ScheduleWidgetEntry> = emptyList()
 
@@ -36,7 +36,7 @@ internal class ScheduleWidgetRows(
     override fun getCount(): Int = entries.size
 
     override fun getViewAt(position: Int): RemoteViews? =
-        entries.getOrNull(position)?.let { WidgetUpdater.scheduleRow(context, it) }
+        entries.getOrNull(position)?.let { ScheduledTransactionsWidget.scheduleRow(context, it) }
 
     override fun getLoadingView(): RemoteViews? = null
 

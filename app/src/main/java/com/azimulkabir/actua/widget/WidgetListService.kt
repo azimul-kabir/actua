@@ -24,15 +24,15 @@ internal class WidgetListRows(
     private val widgetId: Int,
     private val kind: WidgetKind,
 ) : RemoteViewsService.RemoteViewsFactory {
-    private var rows: List<WidgetUpdater.WidgetRow> = emptyList()
+    private var rows: List<WidgetRow> = emptyList()
 
     override fun onCreate() = Unit
 
     // Called on a binder thread, so reading the budget here doesn't block the main thread.
     override fun onDataSetChanged() {
         rows = when (kind) {
-            WidgetKind.Categories -> WidgetUpdater.categoryRows(context)
-            WidgetKind.Accounts -> WidgetUpdater.accountRows(context, widgetId)
+            WidgetKind.Categories -> FavouriteCategoriesWidget.categoryRows(context)
+            WidgetKind.Accounts -> AccountBalancesWidget.accountRows(context, widgetId)
             // The single-item widgets have no list.
             WidgetKind.SingleCategory, WidgetKind.SingleAccount, WidgetKind.ReportCard -> emptyList()
         }
@@ -45,7 +45,7 @@ internal class WidgetListRows(
     override fun getCount(): Int = rows.size
 
     override fun getViewAt(position: Int): RemoteViews? =
-        rows.getOrNull(position)?.let { WidgetUpdater.listRow(context, it) }
+        rows.getOrNull(position)?.let { listRow(context, it) }
 
     override fun getLoadingView(): RemoteViews? = null
 
