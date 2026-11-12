@@ -35,21 +35,24 @@ internal class ChartColors(
 /** The chart's colors for a widget style: its accent for this month, a softer tone of it for the others. */
 internal fun chartColorsFor(colors: WidgetStyleColors): ChartColors {
     val backdrop = colors.background or (0xFF shl 24)
-    // The spending bar beside an income bar is a text tone that sits as far from the accent as it can while
-    // staying a clear shape on the background, so the two read as different series in every style, light and
-    // dark. The dimmed secondary tone is there for dark styles, where every full text tone is as light as the accent.
-    val candidates = listOf(
-        colors.onBackground, colors.secondary,
-        blendArgb(colors.secondary, backdrop, 0.6f), blendArgb(colors.secondary, backdrop, 0.45f),
-    ).filter { contrast(it, backdrop) >= MIN_SHAPE_CONTRAST }
-    var second = candidates.maxByOrNull { contrast(it, colors.primary) } ?: colors.secondary
-    if (contrast(second, colors.primary) < MIN_SERIES_CONTRAST) {
-        // A soft secondary text color sits close to the accent, and its dimmed tones fall below the shape contrast, so
-        // the candidates above can all be too near the accent. Also try the main text color dimmed toward the backdrop.
+    // The spending bar beside an income bar is a tone of the text colors that reads as another series than the
+    // accent. It is the softest such tone that is still a clear shape on the background: the strongest text tone
+    // would be near-black (or near-white) and outweigh the accent bar it sits beside.
+    val tones = listOf(colors.onBackground, colors.secondary).flatMap { text ->
+        listOf(1f, 0.85f, 0.75f, 0.65f, 0.55f, 0.45f).map { blendArgb(text, backdrop, it) }
+    }.filter { contrast(it, backdrop) >= MIN_SHAPE_CONTRAST && contrast(it, colors.primary) >= MIN_SERIES_CONTRAST }
+    var second = tones.minByOrNull { contrast(it, backdrop) }
+    if (second == null) {
+        // No tone of the text colors is both a clear shape and apart from the accent (a soft secondary color sits
+        // close to it), so take the text tone that sits furthest from the accent.
+        val candidates = listOf(
+            colors.onBackground, colors.secondary,
+            blendArgb(colors.secondary, backdrop, 0.6f), blendArgb(colors.secondary, backdrop, 0.45f),
+        ).filter { contrast(it, backdrop) >= MIN_SHAPE_CONTRAST }
         val dimmed = listOf(0.8f, 0.7f, 0.6f, 0.5f)
             .map { blendArgb(colors.onBackground, backdrop, it) }
             .filter { contrast(it, backdrop) >= MIN_SHAPE_CONTRAST }
-        (candidates + dimmed).maxByOrNull { contrast(it, colors.primary) }?.let { second = it }
+        second = (candidates + dimmed).maxByOrNull { contrast(it, colors.primary) } ?: colors.secondary
     }
     val past = blendArgb(second, backdrop, PAST_BAR_STRENGTH).takeIf { contrast(it, backdrop) >= MIN_SHAPE_CONTRAST } ?: second
     return ChartColors(

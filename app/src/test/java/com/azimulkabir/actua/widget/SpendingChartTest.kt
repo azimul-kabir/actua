@@ -86,6 +86,20 @@ class SpendingChartTest {
     }
 
     @Test
+    fun theSpendingBarIsASoftToneNotTheStrongestText() {
+        // On a light backdrop the body text is near-black (about 15:1); the spending bar is a clear shape that stays well below it.
+        for ((name, colors) in listOf(
+            "solid light" to WidgetStyle.SolidLight.colors(night = false, accent = null)!!,
+            "translucent light" to WidgetStyle.Translucent.colors(night = false, accent = null)!!,
+        )) {
+            val backdrop = colors.background or (0xFF shl 24)
+            val chart = chartColorsFor(colors)
+            assertTrue("$name: spending bar is softer than the body text", contrast(chart.second, backdrop) < contrast(colors.onBackground, backdrop) / 2)
+            assertTrue("$name: spending bar is softer than the label", contrast(chart.second, backdrop) <= contrast(colors.secondary, backdrop))
+        }
+    }
+
+    @Test
     fun theChartIsReadableInTheDefaultStyleLightAndDark() {
         fun parse(path: String) = Regex("""<color name="(\w+)">#([0-9A-Fa-f]{6})</color>""")
             .findAll(File("src/main/res/$path/widget_colors.xml").readText())
