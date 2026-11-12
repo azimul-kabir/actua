@@ -94,6 +94,67 @@ class WidgetStyleTest {
         assertNotNull(WidgetStyle.AccentTinted.colors(night = false, accent = AccentPalette.Teal.colorScheme(false)))
     }
 
+    /** The amber and red progress states must be clear shapes (3:1) on the background they sit on. */
+    private fun assertStatusTonesAreClear(name: String, colors: WidgetStyleColors, backdrop: Int) {
+        val background = over(colors.background, backdrop)
+        for ((what, tone) in mapOf("warning" to colors.warning, "danger" to colors.danger)) {
+            val ratio = contrast(tone, background)
+            assertTrue("$name $what is $ratio:1", ratio >= 3.0)
+        }
+        assertTrue("$name warning and danger differ", colors.warning != colors.danger)
+        assertTrue("$name warning differs from the usual bar", colors.warning != colors.primary)
+        assertTrue("$name danger differs from the usual bar", colors.danger != colors.primary)
+    }
+
+    @Test
+    fun progressStatesAreClearInEveryFixedStyleLightAndDark() {
+        for (style in listOf(WidgetStyle.SolidDark, WidgetStyle.SolidLight)) {
+            for (night in listOf(false, true)) {
+                assertStatusTonesAreClear(style.name, style.colors(night, null)!!, backdrop = 0xFFFFFFFF.toInt())
+            }
+        }
+        for (night in listOf(false, true)) {
+            val colors = WidgetStyle.Translucent.colors(night, null)!!
+            assertStatusTonesAreClear("Translucent night=$night over white", colors, backdrop = 0xFFFFFFFF.toInt())
+            assertStatusTonesAreClear("Translucent night=$night over black", colors, backdrop = 0xFF000000.toInt())
+        }
+    }
+
+    @Test
+    fun progressStatesAreClearInAccentTintedForEveryAccentLightAndDark() {
+        for (accent in AccentPalette.entries) {
+            for (night in listOf(false, true)) {
+                val colors = WidgetStyle.AccentTinted.colors(night, accent.colorScheme(night))!!
+                assertStatusTonesAreClear("AccentTinted $accent night=$night", colors, backdrop = 0xFFFFFFFF.toInt())
+            }
+        }
+    }
+
+    @Test
+    fun statusToneKeepsAPassingToneAndPicksTheStrongerOfTheTwo() {
+        val white = 0xFFFFFFFF.toInt()
+        val black = 0xFF000000.toInt()
+        val deep = 0xFF8A5400.toInt()
+        val pale = 0xFFFFB74D.toInt()
+        assertEquals("deep tone on a light background", deep, statusTone(deep, pale, white))
+        assertEquals("pale tone on a dark background", pale, statusTone(deep, pale, black))
+    }
+
+    @Test
+    fun statusToneMovesTowardWhiteOrBlackWhenNeitherToneIsClearEnough() {
+        val midTone = 0xFF8A5400.toInt()
+        val tone = statusTone(midTone, midTone, background = 0xFF8A5C10.toInt())
+        assertTrue("the adjusted tone is ${contrast(tone, 0xFF8A5C10.toInt())}:1", contrast(tone, 0xFF8A5C10.toInt()) >= 3.0)
+    }
+
+    @Test
+    fun progressFillFollowsTheStatus() {
+        val colors = WidgetStyle.SolidLight.colors(night = false, accent = null)!!
+        assertEquals(colors.primary, colors.progressFill(ProgressStatus.Normal))
+        assertEquals(colors.warning, colors.progressFill(ProgressStatus.Warning))
+        assertEquals(colors.danger, colors.progressFill(ProgressStatus.Overspent))
+    }
+
     @Test
     fun onlyAccentTintedFollowsTheAccent() {
         assertEquals(listOf(WidgetStyle.AccentTinted), WidgetStyle.entries.filter { it.followsAccent })

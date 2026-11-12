@@ -70,6 +70,7 @@ internal object WidgetStyles {
                 secondary = color(R.color.widget_secondary_text), primary = color(R.color.widget_primary),
                 button = color(R.color.widget_button), buttonText = color(R.color.widget_primary),
                 progressTrack = color(R.color.widget_button), tile = color(R.color.widget_button),
+                warning = color(R.color.widget_status_warning), danger = color(R.color.widget_status_danger),
             ),
         )
     }
@@ -89,8 +90,11 @@ internal object WidgetStyles {
      * the current theme, so a styled widget follows a device theme change by itself. Older releases take
      * one value, chosen for the theme at this update, so after a theme change the look stays consistent
      * (background and text were chosen together) until the widget's next refresh.
+     *
+     * [progressStatus] is how spent the widget's category is, for its progress bar's amber and red states; it
+     * has to be passed here because this sets the bar's color, so a status applied before would be overwritten.
      */
-    fun apply(context: Context, views: RemoteViews) {
+    fun apply(context: Context, views: RemoteViews, progressStatus: ProgressStatus = ProgressStatus.Normal) {
         val style = activeStyle(context)
         if (style == WidgetStyle.Default) return
         val preferences = DisplayPreferences(context)
@@ -99,18 +103,18 @@ internal object WidgetStyles {
             val accentDark = if (style == WidgetStyle.AccentTinted) accentScheme(context, preferences, night = true) else null
             val light = style.colors(night = false, accent = accentLight) ?: return
             val dark = style.colors(night = true, accent = accentDark) ?: return
-            applyThemeAware(views, light, dark)
+            applyThemeAware(views, light, dark, progressStatus)
             return
         }
         val night = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
         val accent = if (style == WidgetStyle.AccentTinted) accentScheme(context, preferences, night) else null
         val colors = style.colors(night, accent) ?: return
-        applyFixed(views, style, night, colors)
+        applyFixed(views, style, night, colors, progressStatus)
     }
 
     /** Android 14+: each color is a (light, dark) pair resolved by the launcher, on top of the default drawables. */
     @androidx.annotation.RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private fun applyThemeAware(views: RemoteViews, light: WidgetStyleColors, dark: WidgetStyleColors) {
+    private fun applyThemeAware(views: RemoteViews, light: WidgetStyleColors, dark: WidgetStyleColors, status: ProgressStatus) {
         fun text(ids: IntArray, light: Int, dark: Int) = ids.forEach { views.setColorInt(it, "setTextColor", light, dark) }
         fun tint(id: Int, method: String, light: Int, dark: Int) =
             views.setColorStateList(id, method, ColorStateList.valueOf(light), ColorStateList.valueOf(dark))
@@ -129,13 +133,13 @@ internal object WidgetStyles {
             tint(it, "setBackgroundTintList", light.tile, dark.tile)
         }
         progressIds.forEach {
-            tint(it, "setProgressTintList", light.primary, dark.primary)
+            tint(it, "setProgressTintList", light.progressFill(status), dark.progressFill(status))
             tint(it, "setProgressBackgroundTintList", light.progressTrack, dark.progressTrack)
         }
     }
 
     /** Before Android 14: one value per color, chosen for the theme at this update. */
-    private fun applyFixed(views: RemoteViews, style: WidgetStyle, night: Boolean, colors: WidgetStyleColors) {
+    private fun applyFixed(views: RemoteViews, style: WidgetStyle, night: Boolean, colors: WidgetStyleColors, status: ProgressStatus) {
         onBackgroundIds.forEach { views.setTextColor(it, colors.onBackground) }
         secondaryIds.forEach { views.setTextColor(it, colors.secondary) }
         primaryIds.forEach { views.setTextColor(it, colors.primary) }
@@ -154,15 +158,15 @@ internal object WidgetStyles {
             tileIds.forEach { clearTint(views, it, "setBackgroundTintList") }
         }
         progressIds.forEach {
-            tint(views, it, "setProgressTintList", colors.primary)
+            tint(views, it, "setProgressTintList", colors.progressFill(status))
             tint(views, it, "setProgressBackgroundTintList", colors.progressTrack)
         }
     }
 
     /**
      * Colors a category row's progress bar by how spent it is: the usual color, amber from 85% spent and
-     * red once overspent. Only for the default style on Android 12+, where a tint can be passed; a
-     * styled widget keeps its own one-color bars.
+     * red once overspent. Only for the default style on Android 12+, where a tint can be passed. A styled
+     * widget gets the same states from [apply], in tones chosen for its style.
      */
     fun applyProgressStatus(context: Context, views: RemoteViews, progressId: Int, status: ProgressStatus) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || activeStyle(context) != WidgetStyle.Default) return

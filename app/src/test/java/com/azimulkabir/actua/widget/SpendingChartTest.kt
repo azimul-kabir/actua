@@ -87,6 +87,7 @@ class SpendingChartTest {
                     secondary = c.getValue("widget_secondary_text"), primary = c.getValue("widget_primary"),
                     button = c.getValue("widget_button"), buttonText = c.getValue("widget_primary"),
                     progressTrack = c.getValue("widget_button"), tile = c.getValue("widget_button"),
+                    warning = c.getValue("widget_status_warning"), danger = c.getValue("widget_status_danger"),
                 ),
             )
         }
