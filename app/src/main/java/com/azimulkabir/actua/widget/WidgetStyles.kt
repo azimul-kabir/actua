@@ -16,28 +16,28 @@ import com.azimulkabir.actua.data.preferences.SupporterPerks
 
 /** Applies the chosen [WidgetStyle] to a widget's [RemoteViews]. Views a layout doesn't have are skipped by RemoteViews. */
 internal object WidgetStyles {
-    private val onBackgroundIds = intArrayOf(
+    internal val onBackgroundIds = intArrayOf(
         R.id.widget_title, R.id.widget_item_name, R.id.widget_schedule_title,
     )
-    private val secondaryIds = intArrayOf(
+    internal val secondaryIds = intArrayOf(
         R.id.widget_empty, R.id.widget_month, R.id.widget_ready_label, R.id.widget_budgeted_label,
         R.id.widget_balance_label, R.id.widget_schedule_due, R.id.widget_updated,
         R.id.widget_single_name, R.id.widget_single_message, R.id.widget_trend_period, R.id.widget_trend_message,
         R.id.widget_is_period, R.id.widget_is_spent, R.id.widget_is_message,
         R.id.widget_report_comparison,
     )
-    private val primaryIds = intArrayOf(
+    internal val primaryIds = intArrayOf(
         R.id.widget_ready_value, R.id.widget_budgeted_value, R.id.widget_balance_value,
         R.id.widget_item_amount, R.id.widget_schedule_amount, R.id.widget_single_amount,
         R.id.widget_trend_total, R.id.widget_is_left, R.id.widget_is_income,
     )
-    private val buttonIds = intArrayOf(R.id.widget_expense, R.id.widget_income, R.id.widget_transfer)
+    internal val buttonIds = intArrayOf(R.id.widget_expense, R.id.widget_income, R.id.widget_transfer)
 
     /** Tonal surfaces that are not buttons: the amount pills and the budget snapshot's tiles. */
-    private val tileIds = intArrayOf(
+    internal val tileIds = intArrayOf(
         R.id.widget_item_amount, R.id.widget_schedule_amount, R.id.widget_tile_ready, R.id.widget_tile_budgeted, R.id.widget_tile_balance,
     )
-    private val progressIds = intArrayOf(R.id.widget_item_progress, R.id.widget_single_progress)
+    internal val progressIds = intArrayOf(R.id.widget_item_progress, R.id.widget_single_progress)
 
     /** Whether [WidgetStyle.AccentTinted] can be offered: tinting the rounded background needs Android 12. */
     fun accentTintedAvailable() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
