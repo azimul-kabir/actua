@@ -3,12 +3,16 @@ package com.azimulkabir.actua.data.preferences
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.azimulkabir.actua.ui.theme.AccentPalette
+import com.azimulkabir.actua.widget.WidgetStyle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.atomic.AtomicInteger
 
 @RunWith(AndroidJUnit4::class)
 class DisplayPreferencesTest {
@@ -16,6 +20,27 @@ class DisplayPreferencesTest {
         ApplicationProvider.getApplicationContext<Context>()
             .getSharedPreferences("display_preferences", Context.MODE_PRIVATE)
             .edit().clear().commit()
+    }
+
+    @Test fun accentSourceObserverHearsAccentAndMaterialYouChangesOnly() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val preferences = DisplayPreferences(instrumentation.targetContext)
+        // SharedPreferences delivers change callbacks on the main thread, so wait for it to settle.
+        val calls = AtomicInteger()
+        val stop = preferences.observeAccentSource { calls.incrementAndGet() }
+        fun settle() = instrumentation.waitForIdleSync()
+
+        preferences.accent = AccentPalette.Teal; settle()
+        assertEquals("a new palette", 1, calls.get())
+        preferences.useDynamicColor = true; settle()
+        assertEquals("Material You switched on", 2, calls.get())
+        preferences.appearance = "Dark"
+        preferences.widgetStyle = WidgetStyle.SolidDark; settle()
+        assertEquals("other display settings are not the accent", 2, calls.get())
+
+        stop()
+        preferences.accent = AccentPalette.Rose; settle()
+        assertEquals("nothing after stopping", 2, calls.get())
     }
 
     @Test fun legacyMoreStartPageMigratesToManage() {

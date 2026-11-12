@@ -95,6 +95,11 @@ class WidgetStyleTest {
     }
 
     @Test
+    fun onlyAccentTintedFollowsTheAccent() {
+        assertEquals(listOf(WidgetStyle.AccentTinted), WidgetStyle.entries.filter { it.followsAccent })
+    }
+
+    @Test
     fun anUnknownStoredNameFallsBackToDefault() {
         assertEquals(WidgetStyle.Default, WidgetStyle.fromName(null))
         assertEquals(WidgetStyle.Default, WidgetStyle.fromName("Holographic"))
