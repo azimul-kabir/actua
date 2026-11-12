@@ -199,7 +199,12 @@ internal object WidgetStyles {
         }
     }
 
-    private fun accentScheme(context: Context, preferences: DisplayPreferences, night: Boolean): ColorScheme =
+    /**
+     * The scheme an [WidgetStyle.AccentTinted] widget is drawn from, for the device theme [night]: Material You
+     * when it is on (Android 12+), otherwise the chosen palette. The Widget style page previews with this too,
+     * so the tile and the widget cannot disagree.
+     */
+    internal fun accentScheme(context: Context, preferences: DisplayPreferences, night: Boolean): ColorScheme =
         if (preferences.useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (night) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         } else {
