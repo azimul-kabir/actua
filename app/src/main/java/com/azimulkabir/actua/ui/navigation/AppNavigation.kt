@@ -495,33 +495,42 @@ fun AppNavigation(
     var budgetMonth by rememberSaveable {
         mutableStateOf(java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US).format(java.util.Date()))
     }
-    val budgetMonthRange = remember(dataVersion, repository) { repository.budgetMonthRange() }
+    // The selected month's data loads off the main thread. The previous month stays on screen
+    // until the new one arrives, and the screen reads its month from the data it shows so an edit
+    // never lands on a month other than the one displayed.
+    val loadedBudgetMonth = rememberLoaded<BudgetMonthData?>(repository, dataVersion, budgetMonth, initial = null) {
+        BudgetMonthData.load(repository, budgetMonth)
+    }
+    val budgetData = loadedBudgetMonth ?: remember(budgetMonth) { BudgetMonthData.empty(budgetMonth) }
+    val shownBudgetMonth = budgetData.month
+    val budgetMonthRange = budgetData.monthRange
     // Actual has no budget outside its range, so keep the selected month inside it.
     LaunchedEffect(budgetMonthRange) {
         val range = budgetMonthRange ?: return@LaunchedEffect
         val selected = java.time.YearMonth.parse(budgetMonth)
         if (selected !in range) budgetMonth = selected.coerceIn(range.start, range.endInclusive).toString()
     }
-    val budgetGroups = remember(dataVersion, budgetMonth) { repository.budgetGroups(budgetMonth) }
+    val budgetGroups = budgetData.groups
     // Marks the first frame where the landing (Budget) screen has real data to show, so
     // Macrobenchmark's StartupTimingMetric can capture time-to-full-display instead of only
     // time-to-initial-display (which fires on the first empty/placeholder frame).
     var reportedFullyDrawn by remember { mutableStateOf(false) }
-    LaunchedEffect(repository.isUsingActualBudget, budgetGroups) {
-        if (!reportedFullyDrawn && repository.isUsingActualBudget) {
+    LaunchedEffect(repository.isUsingActualBudget, loadedBudgetMonth) {
+        if (!reportedFullyDrawn && repository.isUsingActualBudget && loadedBudgetMonth != null) {
             reportedFullyDrawn = true
             (context as? Activity)?.reportFullyDrawn()
         }
     }
-    val budgetScheduleFunding = remember(dataVersion, budgetMonth) {
-        repository.budgetScheduleFunding(budgetMonth)
+    val budgetScheduleFunding = budgetData.scheduleFunding
+    val budgetOverview = budgetData.overview
+    val budgetMonthNote = budgetData.note
+    val budgetSettings = rememberLoaded(repository, dataVersion, initial = BudgetSettings.Default) {
+        BudgetSettings.load(repository)
     }
-    val budgetOverview = remember(dataVersion, budgetMonth) { repository.budgetOverview(budgetMonth) }
-    val budgetMonthNote = remember(dataVersion, budgetMonth) { repository.monthNote(budgetMonth) }
-    val budgetHidesFraction = remember(dataVersion) { repository.budgetHidesFraction() }
-    val budgetType = remember(dataVersion, repository) { repository.budgetType() }
+    val budgetHidesFraction = budgetSettings.hidesFraction
+    val budgetType = budgetSettings.type
     // Set during composition, before any amount below is formatted or parsed.
-    CurrencyDisplay.decimalPlaces = remember(dataVersion, repository) { repository.budgetDecimalPlaces() }
+    CurrencyDisplay.decimalPlaces = budgetSettings.decimalPlaces
     val accounts = remember(dataVersion) { repository.accounts() }
     // Transactions bank sync added that haven't been looked at yet, by account id (#1066).
     val newBankTransactionStore = remember { NewBankTransactions(context) }
@@ -2954,7 +2963,7 @@ fun AppNavigation(
                 BudgetAutomationScreen(
                     group = group,
                     category = category,
-                    month = budgetMonth,
+                    month = shownBudgetMonth,
                     hideDecimalPlaces = hideDecimalPlaces,
                     scheduleFunding = budgetScheduleFunding,
                     incomeCategories = budgetGroups.filter { it.isIncome }.flatMap { it.categories }
@@ -3042,7 +3051,7 @@ fun AppNavigation(
                         favoriteAccountIds,
                         favoriteReportIds,
                         reportSnapshot,
-                        budgetMonth,
+                        shownBudgetMonth,
                         homeMonthStart,
                     ) {
                         HomeDashboardProjection.from(
@@ -3055,7 +3064,7 @@ fun AppNavigation(
                             favoriteCategoryIds = favoriteCategoryIds,
                             favoriteAccountIds = favoriteAccountIds,
                             favoriteReportIds = favoriteReportIds,
-                            month = budgetMonth,
+                            month = shownBudgetMonth,
                             monthStart = homeMonthStart,
                         )
                     },
@@ -3091,7 +3100,7 @@ fun AppNavigation(
                     contentModifier,
                     groups = budgetGroups,
                     overview = budgetOverview,
-                    month = budgetMonth,
+                    month = shownBudgetMonth,
                     monthRange = budgetMonthRange,
                     onMonthChange = { budgetMonth = it },
                     hideDecimalPlaces = hideDecimalPlaces,
@@ -3142,62 +3151,62 @@ fun AppNavigation(
                         transactionsReturnCategory = category.takeIf { returnToDetails }
                         transactionAccount = null
                         transactionCategory = category
-                        transactionMonth = if (thisMonth) budgetMonth else null
+                        transactionMonth = if (thisMonth) shownBudgetMonth else null
                         transactionSearch = ""
                         detail = DetailDestination.Transactions
                     },
                     onTransferBudget = { fromGroup, fromCategory, toGroup, toCategory, amount ->
                         mutate(R.string.navigation_moving_budget) {
-                            repository.transferBudget(fromGroup, fromCategory, toGroup, toCategory, amount, budgetMonth)
+                            repository.transferBudget(fromGroup, fromCategory, toGroup, toCategory, amount, shownBudgetMonth)
                         }
                     },
                     onSummaryMove = { group, category, amount, covering ->
                         mutate(R.string.navigation_moving_budget) {
                             if (covering) {
-                                repository.transferBudget(group, category, null, null, amount, budgetMonth,
+                                repository.transferBudget(group, category, null, null, amount, shownBudgetMonth,
                                     ActuaRepository.BudgetMoveKind.COVER_OVERBUDGETED)
                             } else {
-                                repository.transferBudget(null, null, group, category, amount, budgetMonth,
+                                repository.transferBudget(null, null, group, category, amount, shownBudgetMonth,
                                     ActuaRepository.BudgetMoveKind.FROM_TO_BUDGET)
                             }
                         }
                     },
                     onSetBudgetAmount = { group, category, amount ->
-                        mutate(R.string.navigation_updating_budget) { repository.setBudgetAmount(group, category, amount, budgetMonth) }
+                        mutate(R.string.navigation_updating_budget) { repository.setBudgetAmount(group, category, amount, shownBudgetMonth) }
                     },
                     monthNote = budgetMonthNote,
                     onSetMonthNote = { note ->
-                        mutate(R.string.navigation_saving_month_note) { repository.setMonthNote(budgetMonth, note) }
+                        mutate(R.string.navigation_saving_month_note) { repository.setMonthNote(shownBudgetMonth, note) }
                     },
                     onSetCategoryNote = { categoryId, note ->
                         mutate(R.string.navigation_saving_category_note) { repository.setCategoryNote(categoryId, note) }
                     },
                     onSetCategoryCarryover = { categoryId, enabled ->
-                        mutate(R.string.navigation_updating_rollover) { repository.setCategoryCarryover(categoryId, enabled, budgetMonth) }
+                        mutate(R.string.navigation_updating_rollover) { repository.setCategoryCarryover(categoryId, enabled, shownBudgetMonth) }
                     },
                     onHoldForNextMonth = { amount ->
-                        mutate(R.string.navigation_holding_for_next_month) { repository.setBufferedAmount(budgetMonth, amount) }
+                        mutate(R.string.navigation_holding_for_next_month) { repository.setBufferedAmount(shownBudgetMonth, amount) }
                     },
                     onResetNextMonthBuffer = {
-                        mutate(R.string.navigation_resetting_next_month_buffer) { repository.resetNextMonthBuffer(budgetMonth) }
+                        mutate(R.string.navigation_resetting_next_month_buffer) { repository.resetNextMonthBuffer(shownBudgetMonth) }
                     },
                     onCopyPreviousMonth = {
-                        mutate(R.string.navigation_copying_previous_month_budget) { repository.copyPreviousMonthBudget(budgetMonth) }
+                        mutate(R.string.navigation_copying_previous_month_budget) { repository.copyPreviousMonthBudget(shownBudgetMonth) }
                     },
                     onCategoryBudgetAction = { categoryId, action ->
                         mutate(R.string.navigation_updating_budget) {
                             when (action) {
-                                CategoryBudgetAction.COPY_LAST_MONTH -> repository.copyCategoryFromPreviousMonth(categoryId, budgetMonth)
-                                CategoryBudgetAction.AVERAGE_3 -> repository.setCategoryAverage(categoryId, budgetMonth, 3)
-                                CategoryBudgetAction.AVERAGE_6 -> repository.setCategoryAverage(categoryId, budgetMonth, 6)
-                                CategoryBudgetAction.AVERAGE_12 -> repository.setCategoryAverage(categoryId, budgetMonth, 12)
-                                CategoryBudgetAction.COPY_TO_YEAR_END -> repository.copyCategoryToYearEnd(categoryId, budgetMonth)
+                                CategoryBudgetAction.COPY_LAST_MONTH -> repository.copyCategoryFromPreviousMonth(categoryId, shownBudgetMonth)
+                                CategoryBudgetAction.AVERAGE_3 -> repository.setCategoryAverage(categoryId, shownBudgetMonth, 3)
+                                CategoryBudgetAction.AVERAGE_6 -> repository.setCategoryAverage(categoryId, shownBudgetMonth, 6)
+                                CategoryBudgetAction.AVERAGE_12 -> repository.setCategoryAverage(categoryId, shownBudgetMonth, 12)
+                                CategoryBudgetAction.COPY_TO_YEAR_END -> repository.copyCategoryToYearEnd(categoryId, shownBudgetMonth)
                             }
                         }
                     },
-                    onPreviewAverageBudget = { months -> repository.averageBudgetPreview(budgetMonth, months) },
+                    onPreviewAverageBudget = { months -> repository.averageBudgetPreview(shownBudgetMonth, months) },
                     onResetIncomeHold = {
-                        mutate(R.string.navigation_updating_automatic_holds) { repository.resetIncomeHold(budgetMonth) }
+                        mutate(R.string.navigation_updating_automatic_holds) { repository.resetIncomeHold(shownBudgetMonth) }
                     },
                     onEditAutomations = { _, category ->
                         editingAutomationCategory = category.name
@@ -3209,7 +3218,7 @@ fun AppNavigation(
                     scheduleFunding = budgetScheduleFunding,
                     templateHideFraction = budgetHidesFraction,
                     loanSnoozedMonths = loanSnoozedMonths,
-                    onPreviewCleanup = { repository.previewCleanup(budgetMonth) },
+                    onPreviewCleanup = { repository.previewCleanup(shownBudgetMonth) },
                     onRefreshNoteTemplates = {
                         mutate(R.string.navigation_reading_template_notes) { repository.refreshNoteTemplates() }
                     },
@@ -3223,7 +3232,7 @@ fun AppNavigation(
                     onShowUncategorizedTransactions = {
                         transactionAccount = null
                         transactionCategory = null
-                        transactionMonth = budgetMonth
+                        transactionMonth = shownBudgetMonth
                         transactionSearch = ""
                         transactionStatusFilter = TransactionStatusFilter.UNCATEGORIZED
                         detail = DetailDestination.Transactions
