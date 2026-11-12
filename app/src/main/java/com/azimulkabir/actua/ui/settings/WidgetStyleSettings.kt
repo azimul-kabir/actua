@@ -55,13 +55,17 @@ internal fun widgetStyleLabelRes(style: WidgetStyle): Int = when (style) {
 
 /**
  * The Widget style page (Settings → Display → Supporter extras): a preview of every style with the
- * chosen one marked. A tap restyles all home-screen widgets straight away.
+ * chosen one marked. A tap restyles all home-screen widgets straight away. A non-supporter, who can reach
+ * this page again from a restored screen after support lapsed, sees every style but Default marked
+ * "Supporter", and a tap on one opens the Support page.
  */
 @Composable
-internal fun WidgetStyleSettings(modifier: Modifier = Modifier) {
+internal fun WidgetStyleSettings(isSupporter: Boolean, onOpenSupport: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val preferences = remember { DisplayPreferences(context) }
-    var selected by remember { mutableStateOf(preferences.widgetStyle) }
+    var chosen by remember { mutableStateOf(preferences.widgetStyle) }
+    // A widget is only drawn in a chosen style for a supporter, so that is also what a non-supporter sees marked.
+    val selected = if (isSupporter) chosen else WidgetStyle.Default
     val styles = WidgetStyle.entries.filter { it != WidgetStyle.AccentTinted || WidgetStyles.accentTintedAvailable() }
     Column(
         // The tiles are one set of radio choices, so a screen reader announces them as a group.
@@ -71,14 +75,20 @@ internal fun WidgetStyleSettings(modifier: Modifier = Modifier) {
         styles.chunked(2).forEach { rowStyles ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 rowStyles.forEach { style ->
+                    val locked = !isSupporter && style != WidgetStyle.Default
                     WidgetStyleTile(
                         style = style,
                         selected = style == selected,
+                        locked = locked,
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            selected = style
-                            preferences.widgetStyle = style
-                            WidgetUpdater.requestAll(context)
+                            if (locked) {
+                                onOpenSupport()
+                            } else {
+                                chosen = style
+                                preferences.widgetStyle = style
+                                WidgetUpdater.requestAll(context)
+                            }
                         },
                     )
                 }
@@ -95,7 +105,7 @@ internal fun WidgetStyleSettings(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun WidgetStyleTile(style: WidgetStyle, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun WidgetStyleTile(style: WidgetStyle, selected: Boolean, locked: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Surface(
         modifier = modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
         shape = RoundedCornerShape(24.dp),
@@ -113,6 +123,13 @@ private fun WidgetStyleTile(style: WidgetStyle, selected: Boolean, modifier: Mod
                     Icon(Icons.Outlined.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                 }
                 Text(stringResource(widgetStyleLabelRes(style)), style = MaterialTheme.typography.bodyLarge)
+            }
+            if (locked) {
+                Text(
+                    stringResource(R.string.settings_supporter_extras_marker),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }
