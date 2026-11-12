@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
@@ -34,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
@@ -62,7 +64,8 @@ internal fun WidgetStyleSettings(modifier: Modifier = Modifier) {
     var selected by remember { mutableStateOf(preferences.widgetStyle) }
     val styles = WidgetStyle.entries.filter { it != WidgetStyle.AccentTinted || WidgetStyles.accentTintedAvailable() }
     Column(
-        modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
+        // The tiles are one set of radio choices, so a screen reader announces them as a group.
+        modifier.selectableGroup().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         styles.chunked(2).forEach { rowStyles ->
@@ -131,6 +134,8 @@ private fun WidgetPreview(style: WidgetStyle) {
     val primary = colors?.let { Color(it.primary) } ?: colorResource(R.color.widget_primary)
     Box(
         Modifier
+            // Decoration: a tile is announced by its style name and whether it is selected, not its sample text.
+            .clearAndSetSemantics {}
             .fillMaxWidth()
             .height(72.dp)
             .clip(RoundedCornerShape(16.dp))
@@ -146,8 +151,9 @@ private fun WidgetPreview(style: WidgetStyle) {
                 .padding(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text("Budget", style = MaterialTheme.typography.labelMedium, color = onBackground)
-            Text("$1,240.00", style = MaterialTheme.typography.titleSmall, color = primary)
+            Text(stringResource(R.string.budget_budget), style = MaterialTheme.typography.labelMedium, color = onBackground, maxLines = 1)
+            // The same synthetic figure the launcher's widget picker previews use, never real budget data.
+            Text(stringResource(R.string.widget_sample_amount_4), style = MaterialTheme.typography.titleSmall, color = primary, maxLines = 1)
         }
     }
 }
