@@ -880,11 +880,11 @@ fun AppNavigation(
         LoanScreenActions(repository, transactionLoanAccount) { res, action -> mutate(res, action = action) }
     }
 
-    // Drag-to-reorder screens need to know synchronously whether a move was accepted, to decide
-    // whether to keep the just-dropped optimistic order or snap back to the last confirmed one.
-    // Reorder writes are single-row updates (not the batched writes this main-thread-blocking fix
-    // targets), so this stays synchronous rather than gaining the same async/onChanged shape as
-    // [mutate]. labelRes is a runtime @StringRes parameter (see [mutate]).
+    // Drag and arrow reorders need to know synchronously whether a move was accepted, to decide
+    // whether to keep the just-dropped optimistic order or snap back to the last confirmed one, so
+    // they stay on the calling thread (single-row writes). Moves that show nothing optimistically,
+    // such as the Move to group dialog and the account-group sheet arrows, use [mutate] instead.
+    // labelRes is a runtime @StringRes parameter (see [mutate]).
     @SuppressLint("LocalContextGetResourceValueCall")
     fun mutateSync(@StringRes labelRes: Int, action: () -> Boolean): Boolean {
         val label = context.getString(labelRes)
@@ -4195,6 +4195,7 @@ private fun NavigationManageCategoriesScreen(
             onMutate(R.string.navigation_deleting_group) { repository.deleteCategoryGroup(group.id, targetGroupId) }
         },
         onMoveCategory = { move -> onMutateSync(R.string.navigation_reordering_category) { repository.moveCategory(move) } },
+        onMoveCategoryToGroup = { move -> onMutate(R.string.navigation_reordering_category) { repository.moveCategory(move) } },
         modifier = contentModifier,
     )
 }
@@ -4233,6 +4234,7 @@ private fun NavigationReorderAccountsScreen(
         onBack = onBack,
         onMoveAccount = { move -> onMutateSync(R.string.navigation_reordering_account) { repository.moveAccount(move) } },
         onMoveGroup = { move -> onMutateSync(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
+        onMoveGroupFromSheet = { move -> onMutate(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
         onCreateGroup = { name -> onMutate(R.string.navigation_creating_account_group) { repository.createAccountGroup(name) } },
         onRenameGroup = { id, name -> onMutate(R.string.navigation_renaming_account_group) { repository.renameAccountGroup(id, name) } },
         onDeleteGroup = { id -> onMutate(R.string.navigation_deleting_account_group) { repository.deleteAccountGroup(id) } },
@@ -4318,6 +4320,7 @@ private fun NavigationAccountsScreen(
         accountsForReorder = accountsForReorder,
         onMoveAccount = { move -> onMutateSync(R.string.navigation_reordering_account) { repository.moveAccount(move) } },
         onMoveGroup = { move -> onMutateSync(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
+        onMoveGroupFromSheet = { move -> onMutate(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
         onCreateGroup = { name -> onMutate(R.string.navigation_creating_account_group) { repository.createAccountGroup(name) } },
         onRenameGroup = { id, name -> onMutate(R.string.navigation_renaming_account_group) { repository.renameAccountGroup(id, name) } },
         onDeleteGroup = { id -> onMutate(R.string.navigation_deleting_account_group) { repository.deleteAccountGroup(id) } },

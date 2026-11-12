@@ -200,6 +200,12 @@ fun AccountsScreen(
     accountsForReorder: List<ActualAccount> = emptyList(),
     onMoveAccount: (AccountReorderPlanner.AccountMove) -> Boolean = { false },
     onMoveGroup: ((AccountGroupReorderPlanner.GroupMove) -> Boolean)? = null,
+    /**
+     * Saves a group move made from the manage-groups sheet. Unlike [onMoveGroup] it reports no result
+     * because the sheet never shows a move optimistically, so the write can run off the main thread.
+     * Falls back to [onMoveGroup] when null.
+     */
+    onMoveGroupFromSheet: ((AccountGroupReorderPlanner.GroupMove) -> Unit)? = null,
     onCreateGroup: ((String) -> Unit)? = null,
     onRenameGroup: ((String, String) -> Unit)? = null,
     onDeleteGroup: ((String) -> Unit)? = null,
@@ -377,6 +383,7 @@ fun AccountsScreen(
                     .fillMaxWidth(),
                 groups = accountGroups,
                 onMoveGroup = onMoveGroup,
+                onMoveGroupFromSheet = onMoveGroupFromSheet,
                 onCreateGroup = onCreateGroup,
                 onRenameGroup = onRenameGroup,
                 onDeleteGroup = onDeleteGroup,

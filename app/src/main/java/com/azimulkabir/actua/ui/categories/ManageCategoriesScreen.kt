@@ -86,6 +86,12 @@ fun ManageCategoriesScreen(
     loadCategoryDeletePlan: suspend (group: String, category: String) -> CategoryDeletePlan?,
     onDeleteGroup: (group: ActualCategoryGroup, targetGroupId: String) -> Unit = { _, _ -> },
     onMoveCategory: (CategoryReorderPlanner.CategoryMove) -> Boolean,
+    /**
+     * Saves a move chosen in the Move to group dialog. Unlike [onMoveCategory] it reports no result,
+     * because the dialog never shows the move optimistically, so the write can run off the main
+     * thread. Falls back to [onMoveCategory] when null.
+     */
+    onMoveCategoryToGroup: ((CategoryReorderPlanner.CategoryMove) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val orderKey = remember(groups) { groups.joinToString("|") { g -> g.id + ":" + g.categories.joinToString(",") { it.id } } }
@@ -257,7 +263,8 @@ fun ManageCategoriesScreen(
             onDismiss = { movingCategory = null },
             onMove = { targetGroupName ->
                 val targetGroup = localGroups.first { it.name == targetGroupName }
-                onMoveCategory(CategoryReorderPlanner.CategoryMove(category.id, targetGroup.id, null))
+                val move = CategoryReorderPlanner.CategoryMove(category.id, targetGroup.id, null)
+                onMoveCategoryToGroup?.invoke(move) ?: onMoveCategory(move)
                 movingCategory = null
             },
         )
