@@ -50,7 +50,7 @@ fun ManageAccountGroupsSheet(
     onCreateGroup: (String) -> Unit,
     onRenameGroup: (String, String) -> Unit,
     onDeleteGroup: (String) -> Unit,
-    onMoveGroup: (AccountGroupReorderPlanner.GroupMove) -> Boolean,
+    onMoveGroup: (AccountGroupReorderPlanner.GroupMove) -> Unit,
 ) {
     val sortedGroups = remember(groups) { groups.sortedWith(compareBy({ it.sortOrder }, { it.id })) }
     var creatingGroup by remember { mutableStateOf(false) }
