@@ -44,23 +44,23 @@ class ScheduleWidgetRowsTest {
 
         assertEquals(
             context.getString(R.string.widget_due_today),
-            WidgetUpdater.relativeDueLabel(context, now),
+            ScheduledTransactionsWidget.relativeDueLabel(context, now),
         )
         assertEquals(
             context.getString(R.string.widget_due_tomorrow),
-            WidgetUpdater.relativeDueLabel(context, now.addingDays(1)),
+            ScheduledTransactionsWidget.relativeDueLabel(context, now.addingDays(1)),
         )
         assertEquals(
             context.resources.getQuantityString(R.plurals.widget_due_in_days, 5, 5),
-            WidgetUpdater.relativeDueLabel(context, now.addingDays(5)),
+            ScheduledTransactionsWidget.relativeDueLabel(context, now.addingDays(5)),
         )
         assertEquals(
             context.resources.getQuantityString(R.plurals.widget_days_overdue, 1, 1),
-            WidgetUpdater.relativeDueLabel(context, now.addingDays(-1)),
+            ScheduledTransactionsWidget.relativeDueLabel(context, now.addingDays(-1)),
         )
         assertEquals(
             context.resources.getQuantityString(R.plurals.widget_days_overdue, 3, 3),
-            WidgetUpdater.relativeDueLabel(context, now.addingDays(-3)),
+            ScheduledTransactionsWidget.relativeDueLabel(context, now.addingDays(-3)),
         )
     }
 }
