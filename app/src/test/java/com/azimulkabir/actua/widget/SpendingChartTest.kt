@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.widget
 
+import com.azimulkabir.actua.ui.theme.AccentPalette
 import java.io.File
 import kotlin.math.pow
 import org.junit.Assert.assertEquals
@@ -8,6 +9,18 @@ import org.junit.Test
 
 class SpendingChartTest {
     private fun bars(cents: List<Long>) = SpendingChart.bars(cents, width = 300f, height = 100f, minBar = 4f, maxBarWidth = 40f)
+
+    @Test
+    fun accentTintedChartsAreReadableForEveryAccentLightAndDark() {
+        for (accent in AccentPalette.entries) {
+            for (night in listOf(false, true)) {
+                assertChartReadable(
+                    "accent tinted $accent night=$night",
+                    WidgetStyle.AccentTinted.colors(night, accent.colorScheme(night))!!,
+                )
+            }
+        }
+    }
 
     @Test
     fun theTallestMonthFillsTheHeightAndOthersAreInProportion() {

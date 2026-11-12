@@ -83,15 +83,16 @@ enum class WidgetStyle {
         AccentTinted -> accent?.let { scheme ->
             val background = scheme.primaryContainer.toArgb()
             val onBackground = scheme.onPrimaryContainer.toArgb()
+            val tile = blendArgb(onBackground, background, 0.08f)
             WidgetStyleColors(
                 background = background,
                 onBackground = onBackground,
-                secondary = blendArgb(onBackground, background, 0.97f),
+                secondary = secondaryTone(onBackground, background, tile),
                 primary = onBackground,
                 button = scheme.primary.toArgb(),
                 buttonText = scheme.onPrimary.toArgb(),
                 progressTrack = blendArgb(onBackground, background, 0.25f),
-                tile = blendArgb(onBackground, background, 0.08f),
+                tile = tile,
                 warning = statusTone(LIGHT_WARNING, DARK_WARNING, background),
                 danger = statusTone(LIGHT_DANGER, DARK_DANGER, background),
             )
@@ -126,6 +127,28 @@ internal fun statusTone(light: Int, dark: Int, background: Int): Int {
         if (contrast(moved, background) >= MIN_STATUS_CONTRAST) return moved
     }
     return target
+}
+
+/** How much of the main text color the secondary text keeps, at its softest. */
+private const val SECONDARY_STRENGTH = 0.78f
+
+/** The contrast text needs against its background (WCAG AA for normal text). */
+private const val MIN_TEXT_CONTRAST = 4.5
+
+/**
+ * The secondary text color on an accent container: the main text color softened toward the background to
+ * [SECONDARY_STRENGTH], so labels read as a step below the main text, and firmed up only as far as it takes
+ * to stay readable (4.5:1) on both the [background] and a [tile] drawn on it. A container with little contrast
+ * to begin with ends up at the main text color itself.
+ */
+internal fun secondaryTone(onBackground: Int, background: Int, tile: Int): Int {
+    var strength = SECONDARY_STRENGTH
+    while (strength < 1f) {
+        val tone = blendArgb(onBackground, background, strength)
+        if (contrast(tone, background) >= MIN_TEXT_CONTRAST && contrast(tone, tile) >= MIN_TEXT_CONTRAST) return tone
+        strength += 0.02f
+    }
+    return onBackground
 }
 
 /** [foreground] over [background] at [ratio] (0 = all background, 1 = all foreground), opaque. */
