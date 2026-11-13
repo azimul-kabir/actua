@@ -8,6 +8,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -148,6 +151,28 @@ class HomeScreenTest {
         compose.onAllNodesWithTag("favoriteCategoryCard").assertCountEquals(2)
         compose.onNodeWithText("Groceries").assertExists()
         compose.onNodeWithText("Transport").assertExists()
+    }
+
+    @Test fun homeShowsEveryFavoriteCategoryNotJustTheFirstFive() {
+        val favorites = (1..7).map { BudgetCategory("Category $it", 1_000, -100, id = "category-$it") }
+        val projection = HomeDashboardProjection.empty().copy(favoriteCategories = favorites)
+        compose.setContent {
+            MaterialTheme {
+                HomeScreen(
+                    sections = listOf(HomeSection.FAVORITE_CATEGORIES),
+                    projection = projection,
+                )
+            }
+        }
+
+        // The cards are a lazy row, so scroll it to the last favorite: the sixth and seventh are there too.
+        val cards = compose.onNode(
+            hasScrollToNodeAction() and hasAnyDescendant(hasTestTag("favoriteCategoryCard")) and !hasTestTag("homeList"),
+        )
+        cards.performScrollToNode(hasText("Category 6"))
+        compose.onNodeWithText("Category 6").assertExists()
+        cards.performScrollToNode(hasText("Category 7"))
+        compose.onNodeWithText("Category 7").assertExists()
     }
 
     @Test fun favoriteAccountRowRoutesToItsTransactions() {

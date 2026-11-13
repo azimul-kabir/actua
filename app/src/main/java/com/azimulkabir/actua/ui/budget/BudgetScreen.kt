@@ -471,6 +471,59 @@ fun BudgetScreen(
                 overview = overview.takeIf { showOverview && budgetView != "Plan" },
             )
             val tableStacked = budgetView != "Plan" && tableLayout == null
+            // One row of the category list, shared by the grouped list and the flat Favorites list. [visible] is false
+            // for the rows of a collapsed group.
+            val categoryRow: @Composable (BudgetGroup, BudgetCategory, Int, Int, Boolean) -> Unit = { group, category, index, count, visible ->
+                AnimatedVisibility(
+                    visible = visible,
+                    enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
+                    exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
+                ) {
+                    if (category.isIncome) {
+                        IncomeBudgetCategoryRow(
+                            category = category,
+                            position = GroupPosition.of(index, count),
+                            hideDecimalPlaces = hideDecimalPlaces,
+                            onClick = { onShowCategoryTransactions(category, true, false) },
+                            onLongClick = { selectedCategory = category },
+                        )
+                    } else if (budgetView == "Plan") {
+                        PlanBudgetCategoryRow(
+                            category = category,
+                            showSpendingDetails = showSpent,
+                            showProgressBar = showProgressBars,
+                            position = GroupPosition.of(index, count),
+                            hideDecimalPlaces = hideDecimalPlaces,
+                            onClick = { editingBudget = group to category },
+                            onLongClick = { selectedCategory = category },
+                            scheduleFunding = scheduleFunding,
+                        )
+                    } else {
+                        CategoryRow(
+                            category = category,
+                            showSpent = showSpent,
+                            stacked = tableStacked,
+                            showProgressBar = showProgressBars,
+                            position = GroupPosition.of(index, count),
+                            onLongClick = { selectedCategory = category },
+                            onOpen = { editingBudget = group to category },
+                            hideDecimalPlaces = hideDecimalPlaces,
+                            scheduleFunding = scheduleFunding,
+                        )
+                    }
+                }
+            }
+            val categoryRowType: (BudgetCategory) -> String = { category ->
+                when {
+                    category.isIncome -> "income-row"
+                    budgetView == "Plan" -> "plan-row"
+                    else -> "table-row"
+                }
+            }
+            // With the Favorites filter on, the same visible categories as a single flat list.
+            val flatFavorites = remember(visibleGroups, favoritesOnly) {
+                if (favoritesOnly) visibleGroups.flatMap { (group, categories, _) -> categories.map { group to it } } else null
+            }
             CompositionLocalProvider(LocalTableLayout provides tableLayout) { LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
@@ -534,7 +587,27 @@ fun BudgetScreen(
                         )
                     }
                 }
-                visibleGroups.forEach { (group, visibleCategories, headerGroup) ->
+                if (flatFavorites != null) {
+                    // The Favorites filter lists just the favorite categories, with no group headers, in budget order.
+                    // Groups are not collapsible here (there is no header to expand them from).
+                    if (flatFavorites.isEmpty()) {
+                        item(key = "no-favorites", contentType = "no-favorites") {
+                            Text(
+                                stringResource(R.string.home_no_favorite_categories),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.lg),
+                            )
+                        }
+                    }
+                    itemsIndexed(
+                        flatFavorites,
+                        key = { _, row -> "favorite-${row.first.name}-${row.second.name}" },
+                        contentType = { _, row -> categoryRowType(row.second) },
+                    ) { index, (group, category) ->
+                        categoryRow(group, category, index, flatFavorites.size, true)
+                    }
+                } else visibleGroups.forEach { (group, visibleCategories, headerGroup) ->
                     val collapsed = group.name in collapsedGroups
                     stickyHeader(
                         key = "header-${group.name}",
@@ -586,52 +659,9 @@ fun BudgetScreen(
                     itemsIndexed(
                         visibleCategories,
                         key = { _, category -> "${group.name}-${category.name}" },
-                        contentType = { _, category ->
-                            when {
-                                category.isIncome -> "income-row"
-                                budgetView == "Plan" -> "plan-row"
-                                else -> "table-row"
-                            }
-                        },
+                        contentType = { _, category -> categoryRowType(category) },
                     ) { index, category ->
-                        AnimatedVisibility(
-                            visible = !collapsed,
-                            enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
-                            exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
-                        ) {
-                            if (category.isIncome) {
-                                IncomeBudgetCategoryRow(
-                                    category = category,
-                                    position = GroupPosition.of(index, visibleCategories.size),
-                                    hideDecimalPlaces = hideDecimalPlaces,
-                                    onClick = { onShowCategoryTransactions(category, true, false) },
-                                    onLongClick = { selectedCategory = category },
-                                )
-                            } else if (budgetView == "Plan") {
-                                PlanBudgetCategoryRow(
-                                    category = category,
-                                    showSpendingDetails = showSpent,
-                                    showProgressBar = showProgressBars,
-                                    position = GroupPosition.of(index, visibleCategories.size),
-                                    hideDecimalPlaces = hideDecimalPlaces,
-                                    onClick = { editingBudget = group to category },
-                                    onLongClick = { selectedCategory = category },
-                                    scheduleFunding = scheduleFunding,
-                                )
-                            } else {
-                                CategoryRow(
-                                    category = category,
-                                    showSpent = showSpent,
-                                    stacked = tableStacked,
-                                    showProgressBar = showProgressBars,
-                                    position = GroupPosition.of(index, visibleCategories.size),
-                                    onLongClick = { selectedCategory = category },
-                                    onOpen = { editingBudget = group to category },
-                                    hideDecimalPlaces = hideDecimalPlaces,
-                                    scheduleFunding = scheduleFunding,
-                                )
-                            }
-                        }
+                        categoryRow(group, category, index, visibleCategories.size, !collapsed)
                     }
                 }
                 item { Spacer(Modifier.height(20.dp)) }
