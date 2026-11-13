@@ -39,6 +39,18 @@ internal val BackdropBlurSupported: Boolean get() = Build.VERSION.SDK_INT >= Bui
 internal class TabBarBackdrop(val layer: GraphicsLayer) {
     var contentOrigin: Offset = Offset.Zero
     var revision by mutableLongStateOf(0L)
+        private set
+
+    private var recordings = 0L
+
+    /**
+     * Marks the content as re-recorded so the bar redraws. It is called while the content draws, so it must
+     * only write [revision]: reading it there (as `revision += 1` would) makes the content observe its own
+     * change, and it would then redraw, and write, on every frame, forever.
+     */
+    fun markRecorded() {
+        revision = ++recordings
+    }
 }
 
 @Composable
@@ -55,7 +67,7 @@ internal fun Modifier.recordsBackdrop(backdrop: TabBarBackdrop): Modifier =
         .drawWithContent {
             backdrop.layer.record { this@drawWithContent.drawContent() }
             drawLayer(backdrop.layer)
-            backdrop.revision += 1
+            backdrop.markRecorded()
         }
 
 private class WindowOrigin { var value: Offset = Offset.Zero }
