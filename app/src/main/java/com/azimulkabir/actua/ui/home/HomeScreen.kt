@@ -35,8 +35,6 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.SubcomposeLayout
-import androidx.compose.ui.unit.Constraints
 import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
 import com.azimulkabir.actua.model.BudgetScheduleFunding
 import com.azimulkabir.actua.ui.budget.BalancePill
@@ -81,6 +79,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.home.HomeSection
@@ -241,9 +241,9 @@ private fun FavoriteCategoriesSection(categories: List<BudgetCategory>, hideDeci
         }
         CompositionLocalProvider(LocalShowBalancePills provides display.showBalancePills, LocalShowGoalIcons provides display.showGoalIcons) {
             DashboardSurface {
-                FiveRowScroller(categories.size, "favoriteCategoriesList") { index ->
+                FiveRowScroller(categories.size, "favoriteCategoriesList") { index, rowHeight ->
                     val category = categories[index]
-                    FavoriteCategoryRow(category, hideDecimals, display, scheduleFunding) { onCategoryClick(category.categoryKey) }
+                    FavoriteCategoryRow(category, hideDecimals, display, scheduleFunding, rowHeight) { onCategoryClick(category.categoryKey) }
                     if (index != categories.lastIndex) DashboardDivider()
                 }
             }
@@ -253,9 +253,9 @@ private fun FavoriteCategoriesSection(categories: List<BudgetCategory>, hideDeci
 
 @Composable
 private fun FavoriteCategoryRow(category: BudgetCategory, hideDecimals: Boolean, display: BudgetDisplayOptions,
-    scheduleFunding: List<BudgetScheduleFunding>, onClick: () -> Unit) {
+    scheduleFunding: List<BudgetScheduleFunding>, rowHeight: Dp, onClick: () -> Unit) {
     val status = category.statusState(scheduleFunding)
-    Column(Modifier.fillMaxWidth().heightIn(min = Sizes.compactRowMinHeight).clickable(onClick = onClick)
+    Column(Modifier.fillMaxWidth().height(rowHeight).clickable(onClick = onClick)
         .padding(horizontal = Spacing.lg, vertical = Spacing.md).testTag("favoriteCategoryRow"),
         verticalArrangement = Arrangement.Center) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -290,9 +290,9 @@ private fun FavoriteAccountsSection(accounts: List<Account>, hideDecimals: Boole
             return@CollapsibleBody
         }
         DashboardSurface {
-            FiveRowScroller(accounts.size, "favoriteAccountsList") { index ->
+            FiveRowScroller(accounts.size, "favoriteAccountsList") { index, rowHeight ->
                 val account = accounts[index]
-                AccountRow(account, hideDecimals, showTypeIcon) { onAccountClick(account.name) }
+                AccountRow(account, hideDecimals, showTypeIcon, rowHeight) { onAccountClick(account.name) }
                 if (index != accounts.lastIndex) DashboardDivider()
             }
         }
@@ -300,8 +300,8 @@ private fun FavoriteAccountsSection(accounts: List<Account>, hideDecimals: Boole
 }
 
 @Composable
-private fun AccountRow(account: Account, hideDecimals: Boolean, showTypeIcon: Boolean, onClick: () -> Unit) {
-    DashboardRow(onClick) {
+private fun AccountRow(account: Account, hideDecimals: Boolean, showTypeIcon: Boolean, rowHeight: Dp, onClick: () -> Unit) {
+    DashboardRow(onClick, Modifier.height(rowHeight)) {
         if (showTypeIcon) {
             Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer) {
@@ -322,29 +322,27 @@ private fun AccountRow(account: Account, hideDecimals: Boolean, showTypeIcon: Bo
 }
 
 /**
- * A column of [count] rows that shows [VISIBLE_ROWS] of them and scrolls the rest, with half of the sixth
- * showing as a cue. The rows are measured once to get their real heights (font scale, a progress bar); a list
- * of five or fewer simply wraps its rows.
+ * A column of [count] equal-height rows that shows [VISIBLE_ROWS] of them and scrolls the rest, with half of the
+ * sixth showing as a cue. The row height follows the font scale (it is in sp), so the rows stay a fixed, known
+ * size and the viewport needs no measuring pass: each row is composed exactly once. A list of five or fewer
+ * simply wraps its rows and doesn't scroll.
  */
 @Composable
-private fun FiveRowScroller(count: Int, tag: String, row: @Composable (Int) -> Unit) {
+private fun FiveRowScroller(count: Int, tag: String, row: @Composable (Int, Dp) -> Unit) {
     val scroll = rememberScrollState()
     // Who owns a drag over the card, the card or the page, is decided once per gesture.
     val owner = remember(scroll) { ScrollOwnerConnection({ scroll.canScrollBackward }, { scroll.canScrollForward }) }
-    SubcomposeLayout(Modifier.testTag(tag).then(if (count > VISIBLE_ROWS) Modifier.nestedScroll(owner) else Modifier)) { constraints ->
-        val rowConstraints = Constraints(maxWidth = constraints.maxWidth)
-        val heights = (0 until count).map { index ->
-            subcompose("measure-$index") { Column { row(index) } }.first().measure(rowConstraints).height
-        }
-        // Half of the next row shows below the fifth, the usual cue that the list scrolls.
-        val viewport = heights.take(VISIBLE_ROWS).sum() + (heights.getOrNull(VISIBLE_ROWS)?.div(2) ?: 0)
-        val content = subcompose("content") {
-            Column(Modifier.verticalScroll(scroll)) { (0 until count).forEach { row(it) } }
-        }.first().measure(constraints.copy(minHeight = 0, maxHeight = viewport))
-        layout(content.width, content.height) { content.placeRelative(0, 0) }
+    val rowHeight = with(LocalDensity.current) { ROW_HEIGHT_SP.sp.toDp() }
+    val scrolls = count > VISIBLE_ROWS
+    // The dividers between rows are 1dp each.
+    val viewport = rowHeight * VISIBLE_ROWS + rowHeight / 2 + VISIBLE_ROWS.dp
+    Column(Modifier.testTag(tag)
+        .then(if (scrolls) Modifier.heightIn(max = viewport).nestedScroll(owner).verticalScroll(scroll) else Modifier)) {
+        (0 until count).forEach { row(it, rowHeight) }
     }
 }
 
+private const val ROW_HEIGHT_SP = 64
 private const val VISIBLE_ROWS = 5
 
 @Composable
@@ -565,8 +563,8 @@ private fun DashboardSurface(content: @Composable ColumnScope.() -> Unit) {
 
 /** A tappable list row inside a [DashboardSurface], at the compact row height. */
 @Composable
-private fun DashboardRow(onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = Sizes.compactRowMinHeight).clickable(onClick = onClick)
+private fun DashboardRow(onClick: () -> Unit, modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
+    Row(Modifier.fillMaxWidth().heightIn(min = Sizes.compactRowMinHeight).then(modifier).clickable(onClick = onClick)
         .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         verticalAlignment = Alignment.CenterVertically, content = content)
 }
