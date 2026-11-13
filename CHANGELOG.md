@@ -26,6 +26,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Moved the Supporter extras from Settings → Display to their own page under the Support group, keeping the accent color choice in Display ([#1642](https://github.com/azimul-kabir/actua/pull/1642))
 - Changed Home to show favorite accounts and categories as full rows that follow the Budget display settings, Recent Activity to show each transaction's cleared or reconciled state, and its section headers to drop the "View" links ([#1638](https://github.com/azimul-kabir/actua/pull/1638))
 - Removed the floating Transaction button from the Reports tab ([#1638](https://github.com/azimul-kabir/actua/pull/1638))
 - Showed favorite categories as a flat list without group headers when the Budget tab's Favorites filter is on, and all favorite categories on Home instead of the first five ([#1629](https://github.com/azimul-kabir/actua/pull/1629))

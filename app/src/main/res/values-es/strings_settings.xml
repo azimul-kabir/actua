@@ -50,7 +50,7 @@
 <string name="settings_privacy_description">Saldos y controles opcionales de beneficiarios según su ubicación</string>
 <string name="settings_budget">Presupuesto</string>
 <string name="settings_budget_description">Indicador de estado de las categorías, colores de las barras de progreso y grupo de ingresos</string>
-<string name="settings_section_support">Ayuda</string>
+<string name="settings_section_support">Colaboradores</string>
 <string name="settings_support_actua">Apoyar a Actua</string>
 <string name="settings_support_thank_you">¡Gracias por apoyar a Actua!</string>
 <string name="settings_support_description">Actua es gratuito y de código abierto. Hazte colaborador, una vez o cada mes.</string>
@@ -266,8 +266,9 @@
 <string name="settings_supporter_badge">Colaborador de Actua</string>
 <string name="settings_supporter_thanks">¡Gracias por apoyar a Actua!</string>
 <string name="settings_supporter_description">Un agradecimiento único que te da una insignia permanente de colaborador.</string>
-<string name="settings_support_free">El presupuesto siempre sigue siendo gratuito. Los colaboradores también reciben extras estéticos en Configuración → Visualización, como iconos de la app, temas de acento, estilos de widget y celebraciones.</string>
+<string name="settings_support_free">El presupuesto siempre sigue siendo gratuito. Los colaboradores también reciben extras estéticos en Configuración → Extras para colaboradores, como iconos de la app, temas de acento, estilos de widget y celebraciones.</string>
 <string name="settings_supporter_extras_section">Extras para colaboradores</string>
+<string name="settings_supporter_extras_description">Icono de la app, color de acento, estilo de widget, saludo y celebraciones</string>
 <string name="settings_supporter_extras_marker">Colaborador</string>
 <string name="settings_app_icon">Icono de la app</string>
 <string name="settings_app_icon_default">Predeterminado</string>

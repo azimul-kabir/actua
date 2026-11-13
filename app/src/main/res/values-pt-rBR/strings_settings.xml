@@ -52,7 +52,7 @@
     <string name="settings_privacy_description">Saldos e controles opcionais de beneficiários por localização</string>
     <string name="settings_budget">Orçamento</string>
     <string name="settings_budget_description">Ponto de status das categorias, cores da barra de progresso e grupo de receitas</string>
-    <string name="settings_section_support">Apoio</string>
+    <string name="settings_section_support">Apoiadores</string>
     <string name="settings_support_actua">Apoiar o Actua</string>
     <string name="settings_support_thank_you">Você é um Apoiador do Actua — obrigado!</string>
     <string name="settings_support_description">O Actua é gratuito e de código aberto. Torne-se um Apoiador, uma vez ou todo mês.</string>
@@ -277,8 +277,9 @@
     <string name="settings_supporter_badge">Apoiador do Actua</string>
     <string name="settings_supporter_thanks">Obrigado por apoiar o Actua!</string>
     <string name="settings_supporter_description">Um agradecimento único que dá a você um selo permanente de Apoiador.</string>
-    <string name="settings_support_free">O orçamento continua sempre gratuito. Apoiadores também recebem extras estéticos em Configurações → Exibir, como ícones do app, temas de destaque, estilos de widget e comemorações.</string>
+    <string name="settings_support_free">O orçamento continua sempre gratuito. Apoiadores também recebem extras estéticos em Configurações → Extras para apoiadores, como ícones do app, temas de destaque, estilos de widget e comemorações.</string>
     <string name="settings_supporter_extras_section">Extras para apoiadores</string>
+    <string name="settings_supporter_extras_description">Ícone do app, cor de destaque, estilo de widget, saudação e comemorações</string>
     <string name="settings_supporter_extras_marker">Apoiador</string>
     <string name="settings_app_icon">Ícone do app</string>
     <string name="settings_app_icon_default">Padrão</string>

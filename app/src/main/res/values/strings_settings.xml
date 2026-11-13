@@ -52,7 +52,7 @@
     <string name="settings_privacy_description">Balances and optional location-aware payee controls</string>
     <string name="settings_budget">Budget</string>
     <string name="settings_budget_description">Category status dot, progress bar colors and income group</string>
-    <string name="settings_section_support">Support</string>
+    <string name="settings_section_support">Supporters</string>
     <string name="settings_support_actua">Support Actua</string>
     <string name="settings_support_thank_you">You\'re an Actua Supporter — thank you!</string>
     <string name="settings_support_description">Actua is free and open source. Become a supporter, once or monthly.</string>
@@ -277,8 +277,9 @@
     <string name="settings_supporter_badge">Actua Supporter</string>
     <string name="settings_supporter_thanks">Thank you for supporting Actua!</string>
     <string name="settings_supporter_description">A one-time thank-you that gives you a permanent Supporter badge.</string>
-    <string name="settings_support_free">Budgeting always stays free. Supporters also get cosmetic extras in Settings → Display, such as app icons, accent themes, widget styles and celebrations.</string>
+    <string name="settings_support_free">Budgeting always stays free. Supporters also get cosmetic extras in Settings → Supporter extras, such as app icons, accent themes, widget styles and celebrations.</string>
     <string name="settings_supporter_extras_section">Supporter extras</string>
+    <string name="settings_supporter_extras_description">App icon, accent color, widget style, greeting and celebrations</string>
     <string name="settings_supporter_extras_marker">Supporter</string>
     <string name="settings_app_icon">App icon</string>
     <string name="settings_app_icon_default">Default</string>
