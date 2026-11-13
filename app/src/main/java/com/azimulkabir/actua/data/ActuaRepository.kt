@@ -948,6 +948,10 @@ class ActuaRepository(context: Context) {
         return BudgetOverview(null, 0, 0, 0)
     }
 
+    /** The counts for the supporter greeting; zeros when no budget is open. */
+    fun greetingStats(fromDay: Int, toDay: Int): ActualBudgetDatabase.GreetingStats =
+        actualDatabase?.fetchGreetingStats(fromDay, toDay) ?: ActualBudgetDatabase.GreetingStats(0, 0, 0)
+
     fun accounts(): List<Account> {
         actualDatabase?.let { db ->
             val fetched = db.fetchAccounts()

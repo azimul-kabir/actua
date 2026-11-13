@@ -377,4 +377,8 @@
     <string name="diagnostics_clipboard_label">Diagnóstico do Actua</string>
     <string name="diagnostics_email_subject">Relatório de diagnóstico do Actua</string>
     <string name="diagnostics_email_chooser">Enviar diagnóstico por e-mail</string>
+    <string name="settings_greeting">Saudação</string>
+    <string name="settings_greeting_description">Uma saudação amigável com algumas contagens sobre o seu orçamento, uma vez por dia na página inicial e no Início. Nunca mostra valores.</string>
+    <string name="settings_greeting_nickname">Apelido</string>
+    <string name="settings_greeting_nickname_description">Opcional. Usado na saudação e guardado neste dispositivo.</string>
 </resources>

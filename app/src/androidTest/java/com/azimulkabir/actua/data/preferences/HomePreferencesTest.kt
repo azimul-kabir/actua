@@ -24,6 +24,7 @@ class HomePreferencesTest {
         val customized = HomeLayout(
             order = listOf(
                 HomeSection.READY_TO_BUDGET,
+                HomeSection.GREETING,
                 HomeSection.RECENT_ACTIVITY,
                 HomeSection.FAVORITE_CATEGORIES,
                 HomeSection.FAVORITE_ACCOUNTS,

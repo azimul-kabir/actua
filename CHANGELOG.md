@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a greeting with a few counts about your budgeting for Actua Supporters, shown once a day on the start page, on Home and on Support Actua in the Google Play version ([#1636](https://github.com/azimul-kabir/actua/pull/1636))
 - Added more Actua Supporter prices and an optional monthly supporter subscription to Support Actua in the Google Play version ([#1538](https://github.com/azimul-kabir/actua/pull/1538))
 - Added a one-time invitation to support Actua after 30 days or 100 added transactions in the Google Play version ([#1540](https://github.com/azimul-kabir/actua/pull/1540))
 - Added a Supporter extras section to Settings → Display in the Google Play version, where Actua Supporters will find cosmetic extras ([#1548](https://github.com/azimul-kabir/actua/pull/1548))

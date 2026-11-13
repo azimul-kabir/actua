@@ -56,6 +56,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -92,6 +93,9 @@ import com.azimulkabir.actua.data.preferences.EffectiveDisplayFormats
 import com.azimulkabir.actua.data.preferences.LocationPreferences
 import com.azimulkabir.actua.data.preferences.ScreenPrivacyPreferences
 import com.azimulkabir.actua.data.preferences.SupporterPerks
+import com.azimulkabir.actua.ui.home.GreetingCard
+import com.azimulkabir.actua.ui.home.GreetingFigure
+import com.azimulkabir.actua.ui.home.GreetingNickname
 import com.azimulkabir.actua.data.security.AppLockPreferences
 import com.azimulkabir.actua.data.security.AppLockTimeout
 import com.azimulkabir.actua.ui.lock.AppLock
@@ -150,6 +154,9 @@ fun SettingsScreen(
     onMonthStartChange: (MonthStartRule) -> Unit = {},
     holidays: List<Holiday> = emptyList(),
     onHolidaysChange: (List<Holiday>) -> Unit = {},
+    greetingFigures: List<GreetingFigure> = emptyList(),
+    greetingVisible: Boolean = false,
+    greetingNickname: String = "",
     budgetType: String = "envelope",
     onBudgetTypeChange: (String) -> Unit = {},
     currencyCode: String = EffectiveDisplayFormats.FOLLOW_BUDGET,
@@ -1084,6 +1091,9 @@ fun SettingsScreen(
                 )
                 SettingsPage.Support -> SupportSettings(
                     state = supportPurchaseState,
+                    greetingFigures = greetingFigures,
+                    greetingVisible = greetingVisible,
+                    greetingNickname = greetingNickname,
                     onPurchase = { product -> (context as? Activity)?.let { supportBillingManager.launchPurchase(it, product) } },
                     onManageSubscription = {
                         uriHandler.openUri(
@@ -1294,6 +1304,9 @@ private fun startPageLabel(value: String): String =
 @Composable
 private fun SupportSettings(
     state: SupportPurchaseState,
+    greetingFigures: List<GreetingFigure>,
+    greetingVisible: Boolean,
+    greetingNickname: String,
     onPurchase: (SupportProduct) -> Unit,
     onManageSubscription: () -> Unit,
 ) {
@@ -1321,6 +1334,8 @@ private fun SupportSettings(
                 )
             }
         }
+        // The supporter's own page shows the greeting whatever the Greeting toggle says.
+        if (state.isSupporter && greetingVisible) GreetingCard(greetingFigures, greetingNickname, Modifier.padding(top = Spacing.md))
     }
     val offered = state.offeredOptions
     if (offered.isNotEmpty()) {
@@ -1383,6 +1398,29 @@ private fun SupporterExtras(
         )
         SettingsDivider()
         if (isSupporter) {
+            var greeting by remember { mutableStateOf(DisplayPreferences(context).greetingEnabled) }
+            SettingsToggle(
+                stringResource(R.string.settings_greeting),
+                stringResource(R.string.settings_greeting_description),
+                greeting,
+            ) {
+                greeting = it
+                DisplayPreferences(context).greetingEnabled = it
+            }
+            SettingsDivider()
+            var nickname by remember { mutableStateOf(DisplayPreferences(context).greetingNickname) }
+            OutlinedTextField(
+                value = nickname,
+                onValueChange = {
+                    nickname = it.take(GreetingNickname.MAX_NICKNAME_LENGTH)
+                    DisplayPreferences(context).greetingNickname = nickname
+                },
+                label = { Text(stringResource(R.string.settings_greeting_nickname)) },
+                supportingText = { Text(stringResource(R.string.settings_greeting_nickname_description)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+            )
+            SettingsDivider()
             var celebrations by remember { mutableStateOf(DisplayPreferences(context).celebrationsEnabled) }
             SettingsToggle(
                 stringResource(R.string.settings_celebrations),
