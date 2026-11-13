@@ -39,8 +39,8 @@ Actua is an independent community project and is not affiliated with or endorsed
 
 - Native Material You Android interface
 - English, Brazilian Portuguese (pt-BR) and Spanish (es) with in-app language selection
-- Home dashboard with an at-a-glance financial overview (ready to budget, favorite categories/accounts, upcoming bills, this month, reports and recent activity), customizable via show/hide and drag-to-reorder, with an optional start day for the This Month summary to match mid-month pay cycles
-- Customizable floating bottom tab bar: show/hide and reorder tabs (Reports and Bills can be added as their own tabs), plus an optional "Add" quick-add tab, and optional hiding while you scroll
+- Home dashboard with an at-a-glance financial overview (ready to budget, favorite categories and accounts as full-row lists that follow the Budget display settings, upcoming bills, this month, reports and recent activity with cleared and reconciled marks), customizable via show/hide and drag-to-reorder, with sections you can collapse (Actua remembers which), and an optional start day for the This Month summary to match mid-month pay cycles
+- Customizable floating bottom tab bar, translucent and blurring what scrolls under it on Android 12 and newer: show/hide and reorder tabs (Reports and Bills can be added as their own tabs), plus an optional "Add" quick-add tab, and optional hiding while you scroll
 - App-wide favorites for categories, accounts and reports, shared by Home, the Budget favorites filter and the home-screen widget
 - Password and OpenID/OIDC login
 - Standalone on-device budgets: full envelope budgeting without needing a server, with automated schedule posting, local backups, and export/import compatibility with Actual Budget archives (see [docs/STANDALONE_BUDGETS.md](docs/STANDALONE_BUDGETS.md))
@@ -197,7 +197,7 @@ Optional and cosmetic, in the Google Play version: choose an app icon, an accent
 
 <table>
   <tr>
-    <td align="center" width="33%">
+    <td align="center" width="25%">
       <a href="artwork/screenshots/light/accent-colors.png">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/accent-colors.png">
@@ -205,7 +205,15 @@ Optional and cosmetic, in the Google Play version: choose an app icon, an accent
         </picture>
       </a>
     </td>
-    <td align="center" width="33%">
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/light/catppuccin.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/catppuccin.png">
+          <img src="artwork/screenshots/light/catppuccin.png" width="200" alt="Actua Catppuccin theme picker with the Latte, Frappé, Macchiato and Mocha flavors and 14 accents">
+        </picture>
+      </a>
+    </td>
+    <td align="center" width="25%">
       <a href="artwork/screenshots/light/app-icon.png">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/app-icon.png">
@@ -213,7 +221,7 @@ Optional and cosmetic, in the Google Play version: choose an app icon, an accent
         </picture>
       </a>
     </td>
-    <td align="center" width="33%">
+    <td align="center" width="25%">
       <a href="artwork/screenshots/light/widget-styles.png">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/widget-styles.png">
