@@ -191,7 +191,7 @@ private fun FavoriteCategoriesSection(categories: List<BudgetCategory>, hideDeci
     }
     LazyRow(contentPadding = PaddingValues(horizontal = Spacing.screenHorizontal),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        items(categories.take(5), key = { it.id ?: it.name }) { category ->
+        items(categories, key = { it.id ?: it.name }) { category ->
             CategoryProgressCard(category, hideDecimals) { onCategoryClick(category.name) }
         }
     }
