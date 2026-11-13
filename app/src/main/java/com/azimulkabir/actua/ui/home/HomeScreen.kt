@@ -64,6 +64,7 @@ import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.model.ReportDashboardPage
 import com.azimulkabir.actua.model.Transaction
+import com.azimulkabir.actua.model.categoryKey
 import com.azimulkabir.actua.ui.accounts.AccountMonthlySummaryCalculator
 import com.azimulkabir.actua.ui.accounts.accountTypeIcon
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
@@ -192,7 +193,7 @@ private fun FavoriteCategoriesSection(categories: List<BudgetCategory>, hideDeci
     LazyRow(contentPadding = PaddingValues(horizontal = Spacing.screenHorizontal),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         items(categories.take(5), key = { it.id ?: it.name }) { category ->
-            CategoryProgressCard(category, hideDecimals) { onCategoryClick(category.name) }
+            CategoryProgressCard(category, hideDecimals) { onCategoryClick(category.categoryKey) }
         }
     }
 }
