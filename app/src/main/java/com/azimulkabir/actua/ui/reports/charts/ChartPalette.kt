@@ -1,5 +1,7 @@
 package com.azimulkabir.actua.ui.reports.charts
 
+import com.azimulkabir.actua.ui.theme.CatppuccinAccent
+import com.azimulkabir.actua.ui.theme.LocalCatppuccin
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -118,8 +120,20 @@ fun rememberChartPalette(
     val dynamicSuccess = colors.success
     val dynamicDanger = colors.danger
     val dynamicWarning = colors.warning
-    return remember(isDark, useDynamicColor, colors, dynamicSuccess, dynamicDanger, dynamicWarning) {
+    val catppuccin = LocalCatppuccin.current
+    return remember(isDark, useDynamicColor, colors, dynamicSuccess, dynamicDanger, dynamicWarning, catppuccin) {
         val baseSemantic = if (isDark) ChartPalette.DarkSemantic else ChartPalette.LightSemantic
+        if (catppuccin != null) {
+            // Series come from the flavor's accents, ordered so neighbors differ in hue.
+            val accents = catppuccin.flavor(isDark).palette.accents
+            return@remember ChartPaletteColors(
+                ChartSemanticColors(
+                    income = dynamicSuccess, expense = dynamicDanger, overspending = dynamicWarning,
+                    balance = colors.primary, forecast = colors.tertiary,
+                ),
+                CatppuccinChartOrder.map { accents.getValue(it) },
+            )
+        }
         val semantic = if (useDynamicColor) {
             ChartSemanticColors(
                 income = dynamicSuccess,
@@ -135,3 +149,11 @@ fun rememberChartPalette(
         ChartPaletteColors(semantic, categorical)
     }
 }
+
+/** Catppuccin accents in the order chart series take them, so neighboring series are far apart in hue. */
+private val CatppuccinChartOrder = listOf(
+    CatppuccinAccent.Blue, CatppuccinAccent.Peach, CatppuccinAccent.Green, CatppuccinAccent.Mauve,
+    CatppuccinAccent.Yellow, CatppuccinAccent.Teal, CatppuccinAccent.Pink, CatppuccinAccent.Sapphire,
+    CatppuccinAccent.Red, CatppuccinAccent.Lavender, CatppuccinAccent.Sky, CatppuccinAccent.Maroon,
+    CatppuccinAccent.Flamingo, CatppuccinAccent.Rosewater,
+)

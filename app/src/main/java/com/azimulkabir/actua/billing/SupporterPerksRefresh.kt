@@ -5,6 +5,7 @@ import com.azimulkabir.actua.data.preferences.AppIcons
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.SupporterPerks
 import com.azimulkabir.actua.ui.theme.AccentPalette
+import com.azimulkabir.actua.ui.theme.CatppuccinTheme
 import com.azimulkabir.actua.widget.WidgetStyle
 import com.azimulkabir.actua.widget.WidgetUpdater
 import kotlinx.coroutines.flow.first
@@ -29,6 +30,8 @@ fun registerSupporterExtras(context: Context) {
     // The nickname is kept, so a returning supporter doesn't retype it.
     SupporterPerks.register(GREETING_RESET_ID) { DisplayPreferences(appContext).greetingEnabled = true }
     SupporterPerks.register(AccentPalette.RESET_ID) { DisplayPreferences(appContext).accent = AccentPalette.Violet }
+    // Back to Violet: the theme goes off. The flavor and accent picks stay, so a returning supporter finds them.
+    SupporterPerks.register(CatppuccinTheme.RESET_ID) { DisplayPreferences(appContext).catppuccinEnabled = false }
 }
 
 private const val WIDGET_STYLE_RESET_ID = "widget_style"

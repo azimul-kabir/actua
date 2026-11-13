@@ -382,4 +382,11 @@
     <string name="settings_greeting_description">A friendly hello with a few counts about your budgeting, once a day on your start page and on Home. Never shows amounts.</string>
     <string name="settings_greeting_nickname">Nickname</string>
     <string name="settings_greeting_nickname_description">Optional. Used in the greeting and kept on this device.</string>
+    <string name="settings_catppuccin">Catppuccin</string>
+    <string name="settings_catppuccin_use">Use a Catppuccin theme</string>
+    <string name="settings_catppuccin_description">Light mode uses Latte and dark mode uses the flavor you pick. Turns Material You off.</string>
+    <string name="settings_catppuccin_dark_flavor">Dark flavor</string>
+    <string name="settings_catppuccin_accent">Accent</string>
+    <string name="settings_catppuccin_credit">Based on the Catppuccin palette</string>
+    <string name="settings_catppuccin_about_description">Based on the Catppuccin palette, MIT licensed. Actua is not an official Catppuccin port and is not endorsed by Catppuccin.</string>
 </resources>

@@ -56,6 +56,7 @@ class DisconnectResetActivity : AppCompatActivity() {
                 appearance = DisplayPreferences(this).appearance,
                 dynamicColor = DisplayPreferences(this).useDynamicColor,
                 accent = if (supporterPerksAvailable()) DisplayPreferences(this).accent else AccentPalette.Violet,
+                catppuccin = if (supporterPerksAvailable()) DisplayPreferences(this).catppuccinTheme() else null,
             ) {
                 when (stage) {
                     Stage.Confirm -> AlertDialog(

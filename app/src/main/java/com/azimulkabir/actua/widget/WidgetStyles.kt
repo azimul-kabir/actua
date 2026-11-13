@@ -9,6 +9,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.core.content.ContextCompat
+import com.azimulkabir.actua.ui.theme.CatppuccinStatusColors
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.billing.supporterPerksAvailable
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
@@ -54,15 +55,17 @@ internal object WidgetStyles {
     /** Changes whenever something that alters how a widget looks does, for deciding when previews are stale. */
     fun lookSignature(context: Context): String {
         val preferences = DisplayPreferences(context)
-        return "${activeStyle(context)}:${preferences.accent}:${preferences.useDynamicColor}"
+        return "${activeStyle(context)}:${preferences.accent}:${preferences.catppuccinTheme()}:${preferences.useDynamicColor}"
     }
 
     /** The colors a chart drawn into a bitmap uses, so it matches the widget's style and the device theme at this update. */
     fun chartColors(context: Context): ChartColors {
         val style = activeStyle(context)
         val night = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-        val accent = if (style == WidgetStyle.AccentTinted) accentScheme(context, DisplayPreferences(context), night) else null
-        style.colors(night, accent)?.let { return chartColorsFor(it) }
+        val preferences = DisplayPreferences(context)
+        val accent = if (style == WidgetStyle.AccentTinted) accentScheme(context, preferences, night) else null
+        val status = if (style == WidgetStyle.AccentTinted) accentStatus(context, preferences, night) else null
+        style.colors(night, accent, status)?.let { return chartColorsFor(it) }
         // The default style takes its colors from the color resources, which follow the device theme.
         fun color(id: Int) = ContextCompat.getColor(context, id)
         return chartColorsFor(
@@ -103,14 +106,16 @@ internal object WidgetStyles {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             val accentLight = if (style == WidgetStyle.AccentTinted) accentScheme(context, preferences, night = false) else null
             val accentDark = if (style == WidgetStyle.AccentTinted) accentScheme(context, preferences, night = true) else null
-            val light = style.colors(night = false, accent = accentLight) ?: return
-            val dark = style.colors(night = true, accent = accentDark) ?: return
+            val tinted = style == WidgetStyle.AccentTinted
+            val light = style.colors(night = false, accent = accentLight, status = if (tinted) accentStatus(context, preferences, false) else null) ?: return
+            val dark = style.colors(night = true, accent = accentDark, status = if (tinted) accentStatus(context, preferences, true) else null) ?: return
             applyThemeAware(views, light, dark, progressStatus)
             return
         }
         val night = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
         val accent = if (style == WidgetStyle.AccentTinted) accentScheme(context, preferences, night) else null
-        val colors = style.colors(night, accent) ?: return
+        val status = if (style == WidgetStyle.AccentTinted) accentStatus(context, preferences, night) else null
+        val colors = style.colors(night, accent, status) ?: return
         applyFixed(views, style, night, colors, progressStatus)
     }
 
@@ -210,11 +215,19 @@ internal object WidgetStyles {
      * when it is on (Android 12+), otherwise the chosen palette. The Widget style page previews with this too,
      * so the tile and the widget cannot disagree.
      */
+    /**
+     * The Catppuccin theme's warning and overspent colors for [night], when a Catppuccin theme is what
+     * [accentScheme] draws from (so not while Material You is on), else null.
+     */
+    internal fun accentStatus(context: Context, preferences: DisplayPreferences, night: Boolean): CatppuccinStatusColors? =
+        if (preferences.useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) null
+        else preferences.catppuccinTheme()?.statusColors(night)
+
     internal fun accentScheme(context: Context, preferences: DisplayPreferences, night: Boolean): ColorScheme =
         if (preferences.useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (night) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         } else {
-            preferences.accent.colorScheme(night)
+            preferences.appColorScheme(night)
         }
 }
 

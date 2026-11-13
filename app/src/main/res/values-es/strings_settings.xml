@@ -366,4 +366,11 @@
     <string name="settings_greeting_description">Un saludo amable con algunos recuentos de tu presupuesto, una vez al día en tu página de inicio y en Inicio. Nunca muestra importes.</string>
     <string name="settings_greeting_nickname">Apodo</string>
     <string name="settings_greeting_nickname_description">Opcional. Se usa en el saludo y se guarda en este dispositivo.</string>
+<string name="settings_catppuccin">Catppuccin</string>
+<string name="settings_catppuccin_use">Usar un tema Catppuccin</string>
+<string name="settings_catppuccin_description">El modo claro usa Latte y el modo oscuro usa el sabor que elijas. Desactiva Material You.</string>
+<string name="settings_catppuccin_dark_flavor">Sabor oscuro</string>
+<string name="settings_catppuccin_accent">Acento</string>
+<string name="settings_catppuccin_credit">Basado en la paleta Catppuccin</string>
+<string name="settings_catppuccin_about_description">Basado en la paleta Catppuccin, con licencia MIT. Actua no es un port oficial de Catppuccin ni cuenta con su respaldo.</string>
 </resources>

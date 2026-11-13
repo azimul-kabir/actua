@@ -382,4 +382,11 @@
     <string name="settings_greeting_description">Uma saudação amigável com algumas contagens sobre o seu orçamento, uma vez por dia na página inicial e no Início. Nunca mostra valores.</string>
     <string name="settings_greeting_nickname">Apelido</string>
     <string name="settings_greeting_nickname_description">Opcional. Usado na saudação e guardado neste dispositivo.</string>
+    <string name="settings_catppuccin">Catppuccin</string>
+    <string name="settings_catppuccin_use">Usar um tema Catppuccin</string>
+    <string name="settings_catppuccin_description">O modo claro usa Latte e o modo escuro usa o sabor que você escolher. Desativa o Material You.</string>
+    <string name="settings_catppuccin_dark_flavor">Sabor escuro</string>
+    <string name="settings_catppuccin_accent">Destaque</string>
+    <string name="settings_catppuccin_credit">Baseado na paleta Catppuccin</string>
+    <string name="settings_catppuccin_about_description">Baseado na paleta Catppuccin, com licença MIT. O Actua não é uma versão oficial do Catppuccin nem é endossado por ele.</string>
 </resources>

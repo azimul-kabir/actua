@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added Catppuccin themes (Latte, Frappé, Macchiato and Mocha, with 14 accents) as a Supporter extra under Settings → Supporter extras → Accent color in the Google Play version ([#1643](https://github.com/azimul-kabir/actua/pull/1643))
 - Added collapsible Home sections that remember whether you collapsed them ([#1638](https://github.com/azimul-kabir/actua/pull/1638))
 - Added a greeting with a few counts about your budgeting for Actua Supporters, shown once a day on the start page, on Home and on Support Actua in the Google Play version ([#1636](https://github.com/azimul-kabir/actua/pull/1636))
 - Added more Actua Supporter prices and an optional monthly supporter subscription to Support Actua in the Google Play version ([#1538](https://github.com/azimul-kabir/actua/pull/1538))
@@ -26,7 +27,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
-- Moved the Supporter extras from Settings → Display to their own page under the Supporters group, keeping the accent color choice in Display ([#1642](https://github.com/azimul-kabir/actua/pull/1642))
+- Moved the Supporter extras from Settings → Display to their own page under the Supporters group ([#1642](https://github.com/azimul-kabir/actua/pull/1642))
 - Changed the bottom tab bar and the + Transaction button to be translucent, with a blur on Android 12 and newer, and more screens to scroll under the bar ([#1640](https://github.com/azimul-kabir/actua/pull/1640))
 - Changed Home to show favorite accounts and categories as full rows that follow the Budget display settings, Recent Activity to show each transaction's cleared or reconciled state, and its section headers to drop the "View" links ([#1638](https://github.com/azimul-kabir/actua/pull/1638))
 - Removed the floating Transaction button from the Reports tab ([#1638](https://github.com/azimul-kabir/actua/pull/1638))

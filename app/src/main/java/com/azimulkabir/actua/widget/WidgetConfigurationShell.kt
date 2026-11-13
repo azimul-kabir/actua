@@ -49,6 +49,7 @@ internal fun WidgetConfigurationTheme(context: Context, content: @Composable () 
         appearance = display.appearance,
         dynamicColor = display.useDynamicColor,
         accent = if (supporterPerksAvailable()) display.accent else AccentPalette.Violet,
+        catppuccin = if (supporterPerksAvailable()) display.catppuccinTheme() else null,
     ) {
         AppLockGate(locked = AppLock.locked, onUnlocked = AppLock::unlock, content = content)
     }

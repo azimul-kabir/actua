@@ -16,6 +16,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
@@ -61,21 +62,28 @@ class MainActivity : AppCompatActivity() {
         // Decide before the first frame so a locked app never draws budget content, not even briefly.
         refreshAppLock()
         enableEdgeToEdge()
+        applyCatppuccinWindowBackground()
         setContent {
             var appearance by remember { mutableStateOf(DisplayPreferences(this).appearance) }
             var useDynamicColor by remember { mutableStateOf(DisplayPreferences(this).useDynamicColor) }
             val categoryStatusColorState = remember { CategoryStatusColorState(this) }
             var accent by remember { mutableStateOf(DisplayPreferences(this).accent) }
-            // Follows the preference so a pick on the Settings page, or a reset when supporter
+            var catppuccin by remember { mutableStateOf(DisplayPreferences(this).catppuccinTheme()) }
+            // Follows the preferences so a pick on the Settings page, or a reset when supporter
             // status lapses, applies right away without recreating the activity.
             DisposableEffect(Unit) {
-                val stopObserving = DisplayPreferences(this@MainActivity).observeAccent { accent = it }
+                val display = DisplayPreferences(this@MainActivity)
+                val stopObserving = display.observeAccentSource {
+                    accent = display.accent
+                    catppuccin = display.catppuccinTheme()
+                }
                 onDispose(stopObserving)
             }
             ActuaTheme(
                 appearance = appearance,
                 dynamicColor = useDynamicColor,
                 accent = if (supporterPerksAvailable()) accent else AccentPalette.Violet,
+                catppuccin = if (supporterPerksAvailable()) catppuccin else null,
             ) {
                 AppLockGate(locked = AppLock.locked, onUnlocked = AppLock::unlock) {
                     CompositionLocalProvider(LocalCategoryStatusColors provides categoryStatusColorState) {
@@ -150,4 +158,23 @@ class MainActivity : AppCompatActivity() {
             ?.let { AppLaunchRequest(SHARED_IMPORT_ACTION, it) }
         ?: takeIf { allowSharedFile }?.let(SharedStatementIntent::fileUri)
             ?.let { AppLaunchRequest(SHARED_IMPORT_FILE_ACTION, it.toString()) }
+
+    /**
+     * The window shows behind the first frame, so with a Catppuccin theme on it takes that theme's background right
+     * away instead of the default one (the theme sets it again once Compose is running).
+     */
+    private fun applyCatppuccinWindowBackground() {
+        if (!supporterPerksAvailable()) return
+        val display = DisplayPreferences(this)
+        val theme = display.catppuccinTheme() ?: return
+        val dark = when (display.appearance) {
+            "Dark" -> true
+            "Light" -> false
+            else -> resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
+                android.content.res.Configuration.UI_MODE_NIGHT_YES
+        }
+        window.setBackgroundDrawable(
+            android.graphics.drawable.ColorDrawable(theme.colorScheme(dark).background.toArgb()),
+        )
+    }
 }
