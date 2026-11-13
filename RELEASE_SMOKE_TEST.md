@@ -358,7 +358,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] 2.3.0 Budget menu: verify the row icons and that the Switch budget row shows the active budget's name.
 - [ ] 2.4.0 Rule formulas: in a rule, set a formula such as `=amount * 0.5` on a 10.00 transaction and verify the result is 5.00 (not 0.05 or 500.00); verify `=amount / 100` now divides twice, and that a rule created in Actual 26.11 gives the same result in Actua.
 - [ ] 2.4.0 Tag reports: sync a custom report that groups by Tag (with and without a tag selection) from Actual and verify its groups and totals match the web app; verify other group-by reports are unchanged.
-- [ ] 2.4.0 Hide reconciled: in All Accounts toggle Hide reconciled transactions and verify reconciled rows disappear and return, the setting persists, and it matches Actual; single-account lists are unaffected.
+- [ ] 2.4.0 Hide reconciled: in All Accounts (both the Transactions tab and Home's Recent Activity View all) toggle Hide reconciled transactions and verify the switch moves, reconciled rows disappear and return, the setting persists, and it matches Actual; single-account lists are unaffected.
 - [ ] 2.4.0 Fund goal: in an envelope budget, underfund a goal category and open its menu; verify Fund goal from To Budget budgets the lesser of the shortfall and To Budget, is absent in a tracking budget, for income categories and for long-term goals, and syncs to Actual.
 - [ ] 2.4.0 Forecast axis: sync a Balance Forecast widget set to a zero-based y-axis and verify it starts at zero; one without the setting autoscales as before.
 - [ ] 2.4.0 Currencies: pick NOK, TZS and ZAR in Settings and verify formatting; verify the Swiss franc shows as CHF.

@@ -39,6 +39,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed the Transactions tab's "Hide reconciled transactions" switch doing nothing ([#1633](https://github.com/azimul-kabir/actua/pull/1633))
 - Fixed a favorite category opening the first category with the same name instead of the one in its own group ([#1628](https://github.com/azimul-kabir/actua/pull/1628))
 - Made the spending bars in the Income and spending widget a softer tone instead of near-black on light widget styles ([#1621](https://github.com/azimul-kabir/actua/pull/1621))
 - Fixed dates in schedules, bank sync and monthly summaries being written in native digits on Arabic, Persian, Bengali and similar device languages ([#1612](https://github.com/azimul-kabir/actua/pull/1612))
