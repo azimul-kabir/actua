@@ -112,6 +112,7 @@ import com.azimulkabir.actua.ui.components.MonthStartDayRow
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.navigation.mainDestinationLabelRes
 import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.ui.theme.Spacing
 
 internal enum class SettingsPage(@StringRes val titleRes: Int, val depth: Int) {
@@ -381,7 +382,7 @@ fun SettingsScreen(
         label = "Settings navigation motion",
     ) { shownPage ->
         if (shownPage == SettingsPage.Diagnostics) {
-            DiagnosticsScreen(onBack = ::navigateBack, modifier = Modifier.fillMaxSize())
+            DiagnosticsScreen(onBack = ::navigateBack, modifier = Modifier.fillMaxSize().padding(bottom = floatingBarClearance()))
         } else if (shownPage == SettingsPage.Tags) {
             ManageTagsScreen(
                 tags = managedTags,
@@ -1195,7 +1196,8 @@ fun SettingsScreen(
                 }
                 SettingsPage.Tags, SettingsPage.Diagnostics -> Unit
             }
-            Spacer(Modifier.height(Spacing.xl))
+            // This screen runs behind the floating tab bar, so its last row has to clear it.
+            Spacer(Modifier.height(floatingBarClearance() + Spacing.xl))
         }
     }
 }

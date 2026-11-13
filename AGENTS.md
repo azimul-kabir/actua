@@ -64,6 +64,20 @@ check small screens, keyboard/insets and font scaling for UI changes.
 Keep changes focused; avoid unrelated refactors, generated files, local IDE
 settings, signing material or versionCode/versionName changes unless requested.
 
+The floating tab bar (`ui/navigation/FloatingTabBar.kt`) is translucent and blurs
+what scrolls under it. `drawsBehindTabBar` in `AppNavigation.kt` decides which
+screens run behind it: the main tabs, plus the detail screens listed in
+`DetailsBehindTabBar`; any other detail screen still ends above the bar and needs
+no extra padding. A screen that runs behind the bar clears it itself, because
+nothing applies that padding globally: a scrolling list adds
+`floatingBarClearance()` to its bottom content padding (a `LazyColumn`'s
+`contentPadding`, or the bottom padding inside a `verticalScroll` column) so its
+last row stays reachable, plus another `96.dp` where the floating Transaction
+button is shown. A bottom button or floating action button on such a screen takes
+the same clearance so the bar never covers it. When you add a list screen that
+should scroll under the bar, add its `DetailDestination` to `DetailsBehindTabBar`
+and give it that padding together.
+
 ## Build and validation
 
 Use the committed Gradle wrapper. The daemon toolchain is JDK 25 in

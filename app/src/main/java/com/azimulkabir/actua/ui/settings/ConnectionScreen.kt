@@ -80,6 +80,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.network.ActualServerClient
 import com.azimulkabir.actua.data.network.ActualServerException
@@ -1390,7 +1391,7 @@ fun ConnectionScreen(
     Column(modifier = modifier.fillMaxSize()) {
         ActuaScreenHeader(title = stringResource(R.string.connection_data_title), onBack = onBack)
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-            .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = Spacing.xl),
+            .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = floatingBarClearance() + Spacing.xl),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             ActuaGroupLabel(stringResource(R.string.try_actua))
             Text(

@@ -55,6 +55,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.notifications.ScheduleReminderPlanner
 import com.azimulkabir.actua.data.schedules.DayDate
@@ -180,7 +181,7 @@ fun SchedulesScreen(
                     TextButton(onClick = onAdd, enabled = canAdd) { Text(stringResource(R.string.fs_new_schedule)) }
                 }
             }
-            else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(top = Spacing.sm, bottom = Spacing.xl)) {
+            else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(top = Spacing.sm, bottom = floatingBarClearance() + Spacing.xl)) {
                 itemsIndexed(visible, key = { _, item -> item.schedule.id }) { index, item ->
                     ActuaGroupedItem(GroupPosition.of(index, visible.size), dividerInset = Spacing.lg) {
                         ScheduleRow(

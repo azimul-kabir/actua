@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.PayeeLocationSummary
 import com.azimulkabir.actua.ui.components.ActuaGroupedItem
@@ -72,7 +73,7 @@ fun PayeeLocationsScreen(
                 modifier = Modifier.padding(Spacing.screenHorizontal),
             )
         } else {
-            LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = Spacing.xl)) {
+            LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = floatingBarClearance() + Spacing.xl)) {
                 locations.groupBy { it.payeeId to it.payeeName }.forEach { (payee, entries) ->
                     item(key = "heading-" + payee.first) {
                         Row(

@@ -47,6 +47,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.rules.Rule
 import com.azimulkabir.actua.data.rules.RuleChoice
@@ -171,7 +172,8 @@ fun RulesScreen(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp))
         val names = editorData.names
         val filtered = rules.filter { ruleSummary(it, names).contains(search, true) }
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            .padding(start = 16.dp, end = 16.dp, bottom = floatingBarClearance()),
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
             filtered.forEach { rule ->
                 Surface(onClick = { editing = rule }, color = MaterialTheme.colorScheme.surfaceContainer,

@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.budget.model.ActualTag
 import com.azimulkabir.actua.ui.components.ActuaGroupedItem
@@ -86,7 +87,7 @@ fun ManageTagsScreen(
     Scaffold(modifier = modifier, topBar = {
         ActuaScreenHeader(title = stringResource(R.string.fs_manage_tags), onBack = onBack)
     }, floatingActionButton = {
-        FloatingActionButton(onClick = { creating = true }) { Icon(Icons.Outlined.Add, stringResource(R.string.fs_create_tag)) }
+        FloatingActionButton(onClick = { creating = true }, modifier = Modifier.padding(bottom = floatingBarClearance())) { Icon(Icons.Outlined.Add, stringResource(R.string.fs_create_tag)) }
     }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             OutlinedTextField(query, { query = it }, label = { Text(stringResource(R.string.fs_search_tags)) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm))
@@ -95,7 +96,7 @@ fun ManageTagsScreen(
                     stringResource(if (tags.isEmpty()) R.string.fs_no_managed_tags else R.string.fs_no_matching_tags),
                 )
             }
-            else LazyColumn(contentPadding = PaddingValues(top = Spacing.sm, bottom = 88.dp)) { itemsIndexed(filtered, key = { _, tag -> tag.id }) { index, tag ->
+            else LazyColumn(contentPadding = PaddingValues(top = Spacing.sm, bottom = floatingBarClearance() + 88.dp)) { itemsIndexed(filtered, key = { _, tag -> tag.id }) { index, tag ->
                 ActuaGroupedItem(GroupPosition.of(index, filtered.size), dividerInset = Spacing.lg + 18.dp + Spacing.md) {
                 ActuaListRow(
                     title = { Text("#${tag.tag}", style = MaterialTheme.typography.bodyLarge) },

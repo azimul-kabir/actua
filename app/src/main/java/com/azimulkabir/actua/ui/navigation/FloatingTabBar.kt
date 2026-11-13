@@ -67,8 +67,12 @@ fun floatingBarClearance(): Dp =
 internal fun FloatingNavigationBar(
     showLabels: Boolean,
     modifier: Modifier = Modifier,
+    /** The screen content behind the bar; when set (and the device can blur) the bar blurs it. */
+    backdrop: TabBarBackdrop? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
+    val blurring = backdrop != null && BackdropBlurSupported
+    val fill = MaterialTheme.colorScheme.surfaceContainer
     val height: Dp = if (showLabels) FloatingTabBarLabeledHeight else FloatingTabBarIconOnlyHeight
     // The pill has a fixed height, so its labels stop growing past 130% font scale; at 200% they
     // would overflow it. The labels remain the accessibility names regardless of size.
@@ -83,13 +87,17 @@ internal fun FloatingNavigationBar(
         Surface(
             modifier = Modifier.fillMaxWidth().height(height),
             shape = RoundedCornerShape(height / 2),
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            tonalElevation = 3.dp,
-            shadowElevation = 6.dp,
+            // Translucent so the screen shows through as it scrolls under the bar. The drop shadow would show
+            // through a see-through fill as a grey cast, so the border carries the edge instead.
+            color = if (blurring) Color.Transparent else fill.copy(alpha = FloatingTabBarFillAlpha),
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
             border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             Row(
-                Modifier.fillMaxWidth().fillMaxHeight().padding(horizontal = 4.dp).selectableGroup(),
+                Modifier.fillMaxWidth().fillMaxHeight()
+                    .then(if (blurring) Modifier.blurredBackdrop(backdrop!!, fill.copy(alpha = FloatingTabBarBlurredFillAlpha)) else Modifier)
+                    .padding(horizontal = 4.dp).selectableGroup(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
                 content = content,
@@ -140,3 +148,9 @@ internal fun RowScope.FloatingNavigationBarItem(
         }
     }
 }
+
+/** How opaque the bar's fill is; the rest lets the content behind it show. */
+private const val FloatingTabBarFillAlpha = 0.9f
+
+/** The fill's opacity over the blurred content; lower than [FloatingTabBarFillAlpha] because the blur already softens it. */
+private const val FloatingTabBarBlurredFillAlpha = 0.6f

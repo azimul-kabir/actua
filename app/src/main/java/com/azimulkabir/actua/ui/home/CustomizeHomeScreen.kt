@@ -40,6 +40,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.home.HomeLayout
 import com.azimulkabir.actua.data.home.HomeLayoutPlanner
@@ -182,7 +183,7 @@ fun CustomizeHomeScreen(
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(top = Spacing.sm, bottom = Spacing.xl),
+            contentPadding = PaddingValues(top = Spacing.sm, bottom = floatingBarClearance() + Spacing.xl),
         ) {
             itemsIndexed(localOrder, key = { _, section -> section.name }) { index, section ->
                 val isDragging = draggingSection == section

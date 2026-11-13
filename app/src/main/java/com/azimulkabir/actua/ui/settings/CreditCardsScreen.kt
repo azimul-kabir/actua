@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.ui.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,6 +49,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.model.Account
@@ -95,7 +97,8 @@ fun CreditCardsScreen(
                 Icon(Icons.Outlined.Add, stringResource(R.string.fs_add_credit_card))
             }
         }
-        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = floatingBarClearance()),
+            verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
                 ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm)) {
                     ActuaFormRow(
