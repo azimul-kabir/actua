@@ -34,12 +34,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.SubcomposeLayout
-import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.Constraints
 import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
 import com.azimulkabir.actua.model.BudgetScheduleFunding
@@ -333,13 +329,9 @@ private fun AccountRow(account: Account, hideDecimals: Boolean, showTypeIcon: Bo
 @Composable
 private fun FiveRowScroller(count: Int, tag: String, row: @Composable (Int) -> Unit) {
     val scroll = rememberScrollState()
-    // A list that scrolls keeps its drag and fling to itself: at its first or last row the leftover would
-    // otherwise carry on into the page. A list that doesn't scroll must leave the gesture to the page.
-    val keepScroll = remember { object : NestedScrollConnection {
-        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource) = available
-        override suspend fun onPostFling(consumed: Velocity, available: Velocity) = available
-    } }
-    SubcomposeLayout(Modifier.testTag(tag).then(if (count > VISIBLE_ROWS) Modifier.nestedScroll(keepScroll) else Modifier)) { constraints ->
+    // Who owns a drag over the card, the card or the page, is decided once per gesture.
+    val owner = remember(scroll) { ScrollOwnerConnection({ scroll.canScrollBackward }, { scroll.canScrollForward }) }
+    SubcomposeLayout(Modifier.testTag(tag).then(if (count > VISIBLE_ROWS) Modifier.nestedScroll(owner) else Modifier)) { constraints ->
         val rowConstraints = Constraints(maxWidth = constraints.maxWidth)
         val heights = (0 until count).map { index ->
             subcompose("measure-$index") { Column { row(index) } }.first().measure(rowConstraints).height
