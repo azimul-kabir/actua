@@ -1,6 +1,10 @@
 package com.azimulkabir.actua.widget
 
+import androidx.compose.ui.graphics.toArgb
 import com.azimulkabir.actua.ui.theme.AccentPalette
+import com.azimulkabir.actua.ui.theme.CatppuccinAccent
+import com.azimulkabir.actua.ui.theme.CatppuccinFlavor
+import com.azimulkabir.actua.ui.theme.CatppuccinTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -102,8 +106,8 @@ class WidgetStyleTest {
             assertTrue("$name $what is $ratio:1", ratio >= 3.0)
         }
         assertTrue("$name warning and danger differ", colors.warning != colors.danger)
-        assertTrue("$name warning differs from the usual bar", colors.warning != colors.primary)
-        assertTrue("$name danger differs from the usual bar", colors.danger != colors.primary)
+        assertTrue("$name warning differs from the usual bar", colors.warning != colors.accent)
+        assertTrue("$name danger differs from the usual bar", colors.danger != colors.accent)
     }
 
     @Test
@@ -128,6 +132,48 @@ class WidgetStyleTest {
                 assertStatusTonesAreClear("AccentTinted $accent night=$night", colors, backdrop = 0xFFFFFFFF.toInt())
             }
         }
+    }
+
+    @Test
+    fun accentTintedIsReadableAndItsProgressStatesAreClearForEveryCatppuccinFlavorAndAccent() {
+        for (flavor in CatppuccinFlavor.dark) for (accent in CatppuccinAccent.entries) {
+            val theme = CatppuccinTheme(flavor, accent)
+            for (night in listOf(false, true)) {
+                val scheme = theme.colorScheme(night)
+                val colors = WidgetStyle.AccentTinted.colors(night, scheme, theme.statusColors(night))!!
+                val name = "AccentTinted $flavor $accent night=$night"
+                assertReadable(name, colors, backdrop = 0xFFFFFFFF.toInt())
+                assertStatusTonesAreClear(name, colors, backdrop = 0xFFFFFFFF.toInt())
+                val background = colors.background or (0xFF shl 24)
+                assertTrue("$name progress bar is ${contrast(colors.accent, background)}:1", contrast(colors.accent, background) >= 3.0)
+                assertTrue("$name progress bar apart from warning", contrast(colors.accent, colors.warning) >= 1.15)
+                assertTrue("$name progress bar apart from overspent", contrast(colors.accent, colors.danger) >= 1.15)
+            }
+        }
+    }
+
+    @Test
+    fun accentTintedProgressBarsUseCatppuccinPeachAndRedWhereTheyAlreadyReadAndStayCloseToThemElsewhere() {
+        val theme = CatppuccinTheme(CatppuccinFlavor.Mocha, CatppuccinAccent.Mauve)
+        val scheme = theme.colorScheme(darkTheme = true)
+        val status = theme.statusColors(darkTheme = true)
+        val colors = WidgetStyle.AccentTinted.colors(night = true, accent = scheme, status = status)!!
+        // Mocha's Peach and Red read at 3:1 on the dark container, so they are used as they are.
+        assertEquals(status.warning.toArgb(), colors.warning)
+        assertEquals(status.danger.toArgb(), colors.danger)
+        // Without a Catppuccin theme the generic amber and red are unchanged.
+        val plain = WidgetStyle.AccentTinted.colors(night = true, accent = AccentPalette.Teal.colorScheme(true))!!
+        assertTrue(plain.warning != colors.warning)
+    }
+
+    @Test
+    fun accentTintedTakesItsBackgroundTextAndButtonFromTheCatppuccinScheme() {
+        val scheme = CatppuccinTheme(CatppuccinFlavor.Mocha, CatppuccinAccent.Green).colorScheme(darkTheme = true)
+        val colors = WidgetStyle.AccentTinted.colors(night = true, accent = scheme)!!
+        assertEquals(scheme.primaryContainer.toArgb(), colors.background)
+        assertEquals(scheme.onPrimaryContainer.toArgb(), colors.onBackground)
+        assertEquals(scheme.primary.toArgb(), colors.button)
+        assertEquals(scheme.onPrimary.toArgb(), colors.buttonText)
     }
 
     @Test

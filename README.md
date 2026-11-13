@@ -63,7 +63,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Automatic local backups and restore, with recovery options (try again, re-download, restore a backup or delete) for a budget that can't be opened, plus optional Google Drive backup and restore with client-side authenticated AES-256-GCM encryption
 - Optional encrypted WebDAV backup and restore for Nextcloud, ownCloud and other WebDAV servers, with the same client-side encryption (see [docs/WEBDAV_BACKUPS.md](docs/WEBDAV_BACKUPS.md))
 - Home-screen widgets (budget snapshot, favorite categories, account balances, upcoming schedules, quick transaction, spending trend, income and spending, a report card showing one of your dashboard cards as a single number, and small single-account and single-category widgets) and launcher shortcuts; supporters can restyle every widget as Translucent, Solid dark, Solid light or Accent-tinted
-- Optional Supporter extras in the Google Play version, all cosmetic and found under Settings → Supporter extras: app icons (Dark, Mono, Light), accent colors (Teal, Amber, Rose, Forest, Ocean, Mono), widget styles, confetti celebrations when Ready to budget reaches zero or you finish a reconciliation, and a friendly greeting with a few counts such as transactions to categorize and bills due this week (never amounts) on your start page, Home and the Support Actua page; budgeting itself always stays free
+- Optional Supporter extras in the Google Play version, all cosmetic and found under Settings → Supporter extras: app icons (Dark, Mono, Light), accent colors (Teal, Amber, Rose, Forest, Ocean, Mono), Catppuccin themes (Latte, Frappé, Macchiato and Mocha, with a choice of 14 accents; based on the Catppuccin palette), widget styles, confetti celebrations when Ready to budget reaches zero or you finish a reconciliation, and a friendly greeting with a few counts such as transactions to categorize and bills due this week (never amounts) on your start page, Home and the Support Actua page; budgeting itself always stays free
 - Currency (including the symbol before or after the amount), date and number formats that follow your budget's Actual settings or a device override, plus appearance options with an optional Material You dynamic-color mode (Android 12+)
 - Actual tag management, with colored `#tag` rendering, notes autocomplete, a Manage Tags screen, and tap-a-tag transaction filtering
 - Multiple downloaded budgets with a quick switcher in Manage
@@ -193,7 +193,7 @@ Screenshots use a demo budget and follow your GitHub light or dark theme.
 
 ### Supporter extras
 
-Optional and cosmetic, in the Google Play version: choose an app icon, an accent color and a widget style under Settings → Supporter extras (the accent color is also under Settings → Display). Budgeting always stays free, and Violet and Material You accents are free for everyone.
+Optional and cosmetic, in the Google Play version: choose an app icon, an accent color or a Catppuccin theme, and a widget style under Settings → Supporter extras (the accent color is also under Settings → Display). Budgeting always stays free, and Violet and Material You accents are free for everyone.
 
 <table>
   <tr>

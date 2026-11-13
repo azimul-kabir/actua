@@ -145,7 +145,10 @@ private fun WidgetPreview(style: WidgetStyle) {
     val accent = if (style.followsAccent) {
         remember(night) { WidgetStyles.accentScheme(context, DisplayPreferences(context), night) }
     } else null
-    val colors = style.colors(night, accent)
+    val status = if (style.followsAccent) {
+        remember(night) { WidgetStyles.accentStatus(context, DisplayPreferences(context), night) }
+    } else null
+    val colors = style.colors(night, accent, status)
     val background = colors?.let { Color(it.background) } ?: colorResource(R.color.widget_background)
     val onBackground = colors?.let { Color(it.onBackground) } ?: colorResource(R.color.widget_on_background)
     val primary = colors?.let { Color(it.primary) } ?: colorResource(R.color.widget_primary)

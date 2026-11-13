@@ -4,6 +4,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 
@@ -293,11 +294,19 @@ private val WarningAmberDark = Color(0xFFFFA726)
 private val DangerRedLight = Color(0xFFE0201A)
 private val DangerRedDark = Color(0xFFEF4444)
 
+/** The Catppuccin theme being drawn, or null. Status colors, charts and the like follow it when it is set. */
+val LocalCatppuccin = staticCompositionLocalOf<CatppuccinTheme?> { null }
+
+private fun ColorScheme.isLight(): Boolean = background.luminance() > 0.5f
+
 val ColorScheme.success: Color
-    @Composable get() = if (background.luminance() > 0.5f) SuccessGreenLight else SuccessGreenDark
+    @Composable get() = LocalCatppuccin.current?.statusColors(!isLight())?.success
+        ?: if (isLight()) SuccessGreenLight else SuccessGreenDark
 
 val ColorScheme.warning: Color
-    @Composable get() = if (background.luminance() > 0.5f) WarningAmberLight else WarningAmberDark
+    @Composable get() = LocalCatppuccin.current?.statusColors(!isLight())?.warning
+        ?: if (isLight()) WarningAmberLight else WarningAmberDark
 
 val ColorScheme.danger: Color
-    @Composable get() = if (background.luminance() > 0.5f) DangerRedLight else DangerRedDark
+    @Composable get() = LocalCatppuccin.current?.statusColors(!isLight())?.danger
+        ?: if (isLight()) DangerRedLight else DangerRedDark

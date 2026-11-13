@@ -11,7 +11,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.graphics.toArgb
+import android.graphics.drawable.ColorDrawable
 import androidx.compose.ui.platform.LocalContext
 
 @Composable
@@ -23,6 +26,9 @@ fun ActuaTheme(
     // A supporter's accent palette. Choosing one in Settings turns Material You off, so the flag
     // alone decides between them.
     accent: AccentPalette = AccentPalette.Violet,
+    // A supporter's Catppuccin theme (Play build). It replaces the accent palette's scheme, and choosing it in
+    // Settings turns Material You off like choosing an accent does.
+    catppuccin: CatppuccinTheme? = null,
     content: @Composable () -> Unit
 ) {
     val darkTheme = when (appearance) {
@@ -36,8 +42,10 @@ fun ActuaTheme(
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 
+        catppuccin != null -> catppuccin.colorScheme(darkTheme)
         else -> accent.colorScheme(darkTheme)
     }
+    val activeCatppuccin = catppuccin.takeUnless { dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S }
 
     // enableEdgeToEdge's default style reads dark mode from the system configuration, so an
     // explicit Light/Dark appearance would leave unreadable bar icons. Re-apply it whenever the
@@ -59,12 +67,20 @@ fun ActuaTheme(
         onDispose {}
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        shapes = ActuaShapes,
-        content = content
-    )
+    // The window shows behind the first frame, so it takes the theme's background (no flash of another color).
+    DisposableEffect(activity, colorScheme.background) {
+        activity?.window?.setBackgroundDrawable(ColorDrawable(colorScheme.background.toArgb()))
+        onDispose {}
+    }
+
+    CompositionLocalProvider(LocalCatppuccin provides activeCatppuccin) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            shapes = ActuaShapes,
+            content = content
+        )
+    }
 }
 
 // The scrims enableEdgeToEdge() uses by default for three-button navigation before Android 10.

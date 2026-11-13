@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added Catppuccin themes (Latte, Frappé, Macchiato and Mocha, with 14 accents) as a Supporter extra under Settings → Supporter extras → Accent color in the Google Play version ([#1643](https://github.com/azimul-kabir/actua/pull/1643))
 - Added collapsible Home sections that remember whether you collapsed them ([#1638](https://github.com/azimul-kabir/actua/pull/1638))
 - Added a greeting with a few counts about your budgeting for Actua Supporters, shown once a day on the start page, on Home and on Support Actua in the Google Play version ([#1636](https://github.com/azimul-kabir/actua/pull/1636))
 - Added more Actua Supporter prices and an optional monthly supporter subscription to Support Actua in the Google Play version ([#1538](https://github.com/azimul-kabir/actua/pull/1538))

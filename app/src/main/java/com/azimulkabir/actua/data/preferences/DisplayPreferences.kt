@@ -2,7 +2,11 @@ package com.azimulkabir.actua.data.preferences
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.compose.material3.ColorScheme
 import com.azimulkabir.actua.ui.theme.AccentPalette
+import com.azimulkabir.actua.ui.theme.CatppuccinAccent
+import com.azimulkabir.actua.ui.theme.CatppuccinFlavor
+import com.azimulkabir.actua.ui.theme.CatppuccinTheme
 import com.azimulkabir.actua.widget.WidgetStyle
 
 class DisplayPreferences(context: Context) {
@@ -172,6 +176,29 @@ class DisplayPreferences(context: Context) {
         get() = AccentPalette.fromName(preferences.getString(ACCENT, null))
         set(value) { preferences.edit().putString(ACCENT, value.name).apply() }
 
+    /** Whether a supporter has turned on a Catppuccin theme (Play build); off until they do. */
+    var catppuccinEnabled: Boolean
+        get() = preferences.getBoolean(CATPPUCCIN_ENABLED, false)
+        set(value) { preferences.edit().putBoolean(CATPPUCCIN_ENABLED, value).apply() }
+
+    /** The dark flavor a Catppuccin theme uses; Mocha until another is picked. Latte is always the light one. */
+    var catppuccinDarkFlavor: CatppuccinFlavor
+        get() = CatppuccinFlavor.darkFromName(preferences.getString(CATPPUCCIN_DARK_FLAVOR, null))
+        set(value) { preferences.edit().putString(CATPPUCCIN_DARK_FLAVOR, value.name).apply() }
+
+    /** The Catppuccin accent; Mauve until another is picked. Names are stored, never ordinals. */
+    var catppuccinAccent: CatppuccinAccent
+        get() = CatppuccinAccent.entries.firstOrNull { it.name == preferences.getString(CATPPUCCIN_ACCENT, null) }
+            ?: CatppuccinAccent.Mauve
+        set(value) { preferences.edit().putString(CATPPUCCIN_ACCENT, value.name).apply() }
+
+    /** The Catppuccin theme to draw, or null when it is off. */
+    fun catppuccinTheme(): CatppuccinTheme? =
+        if (catppuccinEnabled) CatppuccinTheme(catppuccinDarkFlavor, catppuccinAccent) else null
+
+    /** The scheme the app is drawn from for [night], before Material You: Catppuccin when on, else the accent palette. */
+    fun appColorScheme(night: Boolean): ColorScheme = catppuccinTheme()?.colorScheme(night) ?: accent.colorScheme(night)
+
     /** Calls [onChange] whenever [accent] changes, including from a supporter-status reset. Returns how to stop. */
     fun observeAccent(onChange: (AccentPalette) -> Unit): () -> Unit {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -182,13 +209,13 @@ class DisplayPreferences(context: Context) {
     }
 
     /**
-     * Calls [onChange] whenever what the app's accent is drawn from changes: the accent palette (including a
-     * supporter-status reset) or Material You. Returns how to stop. SharedPreferences holds listeners
+     * Calls [onChange] whenever what the app's accent is drawn from changes: the accent palette or Catppuccin
+     * theme (including a supporter-status reset) or Material You. Returns how to stop. SharedPreferences holds listeners
      * weakly, so keep the returned function for as long as the observer should live.
      */
     fun observeAccentSource(onChange: () -> Unit): () -> Unit {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == ACCENT || key == USE_DYNAMIC_COLOR) onChange()
+            if (key == ACCENT || key == USE_DYNAMIC_COLOR || key in CATPPUCCIN_KEYS) onChange()
         }
         preferences.registerOnSharedPreferenceChangeListener(listener)
         return { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
@@ -343,6 +370,10 @@ class DisplayPreferences(context: Context) {
         const val APPEARANCE = "appearance"
         const val USE_DYNAMIC_COLOR = "use_dynamic_color"
         const val ACCENT = "accent"
+        const val CATPPUCCIN_ENABLED = "catppuccin_enabled"
+        const val CATPPUCCIN_DARK_FLAVOR = "catppuccin_dark_flavor"
+        const val CATPPUCCIN_ACCENT = "catppuccin_accent"
+        val CATPPUCCIN_KEYS = setOf(CATPPUCCIN_ENABLED, CATPPUCCIN_DARK_FLAVOR, CATPPUCCIN_ACCENT)
         const val WIDGET_STYLE = "widget_style"
         const val CELEBRATIONS = "celebrations"
         const val GREETING_ENABLED = "greeting_enabled"

@@ -11,6 +11,21 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.Switch
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextDecoration
+import com.azimulkabir.actua.ui.components.ActuaGroupLabel
+import com.azimulkabir.actua.ui.theme.CatppuccinAccent
+import com.azimulkabir.actua.ui.theme.CatppuccinFlavor
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
@@ -62,7 +77,7 @@ private sealed interface AccentChoice {
 }
 
 /**
- * The Accent color page (Settings → Display → Supporter extras). Material You (Android 12+) and
+ * The Accent color page (Settings → Display, and Settings → Supporter extras). Material You (Android 12+) and
  * Violet, Actua's own colors, are free for everyone; the other palettes are Supporter extras, and
  * a non-supporter who taps one is sent to the Support page. Choosing a palette turns Material You
  * off, and a pick applies right away because the app theme follows these settings.
@@ -78,6 +93,7 @@ internal fun AccentSettings(
     val context = LocalContext.current
     val preferences = remember { DisplayPreferences(context) }
     var accent by remember { mutableStateOf(preferences.accent) }
+    var catppuccinOn by remember { mutableStateOf(preferences.catppuccinEnabled) }
     val materialYouAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val choices = buildList<AccentChoice> {
@@ -99,7 +115,7 @@ internal fun AccentSettings(
                     val locked = choice is AccentChoice.Palette && choice.accent != AccentPalette.Violet && !isSupporter
                     val selected = when (choice) {
                         AccentChoice.MaterialYou -> useDynamicColor
-                        is AccentChoice.Palette -> !useDynamicColor && choice.accent == accent
+                        is AccentChoice.Palette -> !useDynamicColor && !catppuccinOn && choice.accent == accent
                     }
                     AccentTile(
                         label = stringResource(
@@ -115,10 +131,17 @@ internal fun AccentSettings(
                         onClick = {
                             when {
                                 locked -> onOpenSupport()
-                                choice == AccentChoice.MaterialYou -> onUseDynamicColorChange(true)
+                                choice == AccentChoice.MaterialYou -> {
+                                    catppuccinOn = false
+                                    preferences.catppuccinEnabled = false
+                                    onUseDynamicColorChange(true)
+                                }
                                 choice is AccentChoice.Palette -> {
                                     accent = choice.accent
                                     preferences.accent = choice.accent
+                                    // Choosing one of Actua's palettes turns the Catppuccin theme and Material You off.
+                                    catppuccinOn = false
+                                    preferences.catppuccinEnabled = false
                                     if (useDynamicColor) onUseDynamicColorChange(false)
                                 }
                             }
@@ -133,6 +156,154 @@ internal fun AccentSettings(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = Spacing.xs),
         )
+        CatppuccinSection(
+            isSupporter = isSupporter,
+            enabled = catppuccinOn,
+            onEnabledChange = { on ->
+                catppuccinOn = on
+                preferences.catppuccinEnabled = on
+                // Choosing Catppuccin turns Material You off, as choosing an accent does.
+                if (on && useDynamicColor) onUseDynamicColorChange(false)
+            },
+            preferences = preferences,
+            onOpenSupport = onOpenSupport,
+        )
+    }
+}
+
+/**
+ * The Catppuccin group of the Accent color page: a switch, the dark flavor and one of the 14 accents, with a credit
+ * line. A non-supporter sees the group marked "Supporter" and is sent to the Support page when they tap it.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CatppuccinSection(
+    isSupporter: Boolean,
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+    preferences: DisplayPreferences,
+    onOpenSupport: () -> Unit,
+) {
+    var darkFlavor by remember { mutableStateOf(preferences.catppuccinDarkFlavor) }
+    var accent by remember { mutableStateOf(preferences.catppuccinAccent) }
+    val uriHandler = LocalUriHandler.current
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        ActuaGroupLabel(stringResource(R.string.settings_catppuccin))
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Row(
+                    Modifier.fillMaxWidth()
+                        .toggleable(
+                            value = enabled && isSupporter, role = Role.Switch,
+                            onValueChange = { if (isSupporter) onEnabledChange(it) else onOpenSupport() },
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.settings_catppuccin_use), style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            stringResource(R.string.settings_catppuccin_description),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Spacer(Modifier.width(Spacing.md))
+                    if (isSupporter) {
+                        Switch(checked = enabled, onCheckedChange = null)
+                    } else {
+                        Text(
+                            stringResource(R.string.settings_supporter_extras_marker),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+                if (isSupporter) {
+                    Text(stringResource(R.string.settings_catppuccin_dark_flavor), style = MaterialTheme.typography.labelLarge)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        CatppuccinFlavor.dark.forEach { flavor ->
+                            val colors = flavor.palette
+                            FlavorTile(
+                                label = flavor.displayName,
+                                swatches = listOf(colors.base, colors.surface1, colors.accents.getValue(accent)),
+                                selected = flavor == darkFlavor,
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                darkFlavor = flavor
+                                preferences.catppuccinDarkFlavor = flavor
+                            }
+                        }
+                    }
+                    Text(
+                        stringResource(R.string.settings_catppuccin_accent) + ": " + accent.displayName,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    val palette = (if (dark) darkFlavor else CatppuccinFlavor.Latte).palette
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        CatppuccinAccent.entries.forEach { option ->
+                            AccentDot(
+                                color = palette.accents.getValue(option),
+                                label = option.displayName,
+                                selected = option == accent,
+                            ) {
+                                accent = option
+                                preferences.catppuccinAccent = option
+                            }
+                        }
+                    }
+                }
+                Text(
+                    stringResource(R.string.settings_catppuccin_credit),
+                    style = MaterialTheme.typography.bodySmall.copy(textDecoration = TextDecoration.Underline),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                        .clickable(role = Role.Button) { uriHandler.openUri("https://github.com/catppuccin/catppuccin") }
+                        .padding(vertical = Spacing.xs),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FlavorTile(label: String, swatches: List<Color>, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Surface(
+        modifier = modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(vertical = Spacing.md),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                swatches.forEach { Box(Modifier.size(18.dp).clip(CircleShape).background(it).border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)) }
+            }
+            Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+        }
+    }
+}
+
+@Composable
+private fun AccentDot(color: Color, label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.size(40.dp).clip(CircleShape).background(color)
+            .then(if (selected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        if (selected) Icon(Icons.Outlined.Check, contentDescription = null, tint = Color.Black.takeIf { color.luminance() > 0.4f } ?: Color.White, modifier = Modifier.size(20.dp))
     }
 }
 

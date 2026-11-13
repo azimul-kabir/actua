@@ -1180,6 +1180,11 @@ fun SettingsScreen(
                             stringResource(R.string.settings_actual_budget),
                             stringResource(R.string.settings_actual_budget_description),
                         ) { uriHandler.openUri("https://actualbudget.org") }
+                        SettingsDivider()
+                        AboutRow(
+                            stringResource(R.string.settings_catppuccin),
+                            stringResource(R.string.settings_catppuccin_about_description),
+                        ) { uriHandler.openUri("https://github.com/catppuccin/catppuccin") }
                     }
                     SettingsGroup(stringResource(R.string.settings_section_compatibility)) {
                         AboutRow(
@@ -1468,8 +1473,11 @@ private fun AccentColorRow(useDynamicColor: Boolean, onOpen: () -> Unit) {
         icon = Icons.Outlined.Palette,
         label = stringResource(R.string.settings_accent_color),
         value = stringResource(
-            if (useDynamicColor && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) R.string.settings_accent_material_you
-            else accentLabelRes(DisplayPreferences(context).accent),
+            when {
+                useDynamicColor && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S -> R.string.settings_accent_material_you
+                DisplayPreferences(context).catppuccinEnabled -> R.string.settings_catppuccin
+                else -> accentLabelRes(DisplayPreferences(context).accent)
+            },
         ),
         onClick = onOpen,
     )

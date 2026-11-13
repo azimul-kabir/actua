@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.widget
 
+import com.azimulkabir.actua.ui.theme.CatppuccinStatusColors
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.toArgb
 
@@ -18,10 +19,16 @@ class WidgetStyleColors(
     val warning: Int,
     /** A category's progress bar once it is overspent, readable on [background]. */
     val danger: Int,
+    /**
+     * The color of the usual progress bar. It is [primary] for every style except [WidgetStyle.AccentTinted], which
+     * uses the accent here at the 3:1 that a graphic needs. Chart bars stay on [primary], because the earlier months'
+     * softer bars are blended from it and have to remain a clear shape.
+     */
+    val accent: Int = primary,
 ) {
     /** The color a category's progress bar is filled with for [status]. */
     internal fun progressFill(status: ProgressStatus): Int = when (status) {
-        ProgressStatus.Normal -> primary
+        ProgressStatus.Normal -> accent
         ProgressStatus.Warning -> warning
         ProgressStatus.Overspent -> danger
     }
@@ -47,9 +54,10 @@ enum class WidgetStyle {
 
     /**
      * The colors for this style, or null for [Default], which changes nothing. [night] is the device's
-     * dark mode, which [Translucent] follows; [accent] is only used by [AccentTinted].
+     * dark mode, which [Translucent] follows; [accent] and [status] are only used by [AccentTinted]. [status] is the
+     * Catppuccin theme's warning and overspent colors when one is on, so the progress bars match the app's Budget tab.
      */
-    fun colors(night: Boolean, accent: ColorScheme?): WidgetStyleColors? = when (this) {
+    fun colors(night: Boolean, accent: ColorScheme?, status: CatppuccinStatusColors? = null): WidgetStyleColors? = when (this) {
         Default -> null
         // A scrim in the device theme: light with dark text, or dark with light text. Either reads
         // on both light and dark wallpapers because the scrim is mostly opaque.
@@ -84,17 +92,38 @@ enum class WidgetStyle {
             val background = scheme.primaryContainer.toArgb()
             val onBackground = scheme.onPrimaryContainer.toArgb()
             val tile = blendArgb(onBackground, background, 0.08f)
+            // The accent for values, progress bars and chart bars. Where it does not read at 4.5:1 on both the
+            // background and the tiles (a pale accent on a light widget), it is moved towards the text color only as
+            // far as needed, so it keeps its hue. The buttons keep the exact accent.
+            val accentArgb = scheme.primary.toArgb()
+            val towardsText = (0..10).map { blendArgb(onBackground, accentArgb, it / 10f) }
+            val accentOrText = towardsText
+                .firstOrNull { contrast(it, background) >= ACCENT_MIN_CONTRAST && contrast(it, tile) >= ACCENT_MIN_CONTRAST }
+                ?: onBackground
+            val warningTone = status?.warning?.toArgb()?.let { statusTone(it, it, background) }
+                ?: statusTone(LIGHT_WARNING, DARK_WARNING, background)
+            val dangerTone = status?.danger?.toArgb()?.let { statusTone(it, it, background) }
+                ?: statusTone(LIGHT_DANGER, DARK_DANGER, background)
+            // The progress bar is a graphic, which needs 3:1 rather than the 4.5:1 of text, so the accent keeps more of
+            // its hue. It must also stay apart from the warning and overspent bars (a Peach or Red accent would not).
+            val readable = towardsText.filter { contrast(it, background) >= ACCENT_MIN_GRAPHIC_CONTRAST }
+            fun apartFromStatus(color: Int) = minOf(contrast(color, warningTone), contrast(color, dangerTone))
+            // The first tone apart from both status bars; failing that, the readable one furthest from them.
+            val accentGraphic = readable.firstOrNull { apartFromStatus(it) >= APART_FROM_STATUS }
+                ?: readable.maxByOrNull { apartFromStatus(it) } ?: onBackground
             WidgetStyleColors(
                 background = background,
                 onBackground = onBackground,
                 secondary = secondaryTone(onBackground, background, tile),
-                primary = onBackground,
+                primary = accentOrText,
+                accent = accentGraphic,
                 button = scheme.primary.toArgb(),
                 buttonText = scheme.onPrimary.toArgb(),
                 progressTrack = blendArgb(onBackground, background, 0.25f),
                 tile = tile,
-                warning = statusTone(LIGHT_WARNING, DARK_WARNING, background),
-                danger = statusTone(LIGHT_DANGER, DARK_DANGER, background),
+                // Catppuccin's Peach and Red, moved only as far as needed to stay 3:1 on this widget's background.
+                warning = warningTone,
+                danger = dangerTone,
             )
         }
     }
@@ -113,6 +142,15 @@ private const val DARK_DANGER = 0xFFFF8A80.toInt()
 
 /** The contrast a graphic needs against its background to stay a clear shape (WCAG's 3:1). */
 private const val MIN_STATUS_CONTRAST = 3.0
+
+/** How much contrast the accent needs on the widget to be used for values, which are text. */
+private const val ACCENT_MIN_CONTRAST = 4.5
+
+/** How much contrast the accent needs on the widget to be used for bars and progress, which are graphics. */
+private const val ACCENT_MIN_GRAPHIC_CONTRAST = 3.0
+
+/** How far (as a contrast ratio) the usual progress bar must sit from the warning and overspent bars. */
+private const val APART_FROM_STATUS = 1.15
 
 /**
  * The status color for a progress bar on [background]: whichever of [light] and [dark] stands out more, moved
