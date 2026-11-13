@@ -58,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.data.budget.AccountDragReorder
 import com.azimulkabir.actua.data.budget.AccountReorderPlanner
 import com.azimulkabir.actua.data.budget.AccountGroupReorderPlanner
@@ -153,6 +154,7 @@ fun ReorderAccountsScreen(
             onDeleteGroup = onDeleteGroup,
             showManageGroupsSheet = showManageGroupsSheet,
             onDismissManageGroupsSheet = { showManageGroupsSheet = false },
+            contentPadding = PaddingValues(bottom = floatingBarClearance() + Spacing.xl),
         )
     }
 }

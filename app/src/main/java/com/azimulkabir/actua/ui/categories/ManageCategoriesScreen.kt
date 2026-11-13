@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.data.budget.CategoryDeletePlan
 import com.azimulkabir.actua.data.budget.CategoryDragReorder
 import com.azimulkabir.actua.data.budget.CategoryReorderPlanner
@@ -173,7 +174,7 @@ fun ManageCategoriesScreen(
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = Spacing.xl),
+            contentPadding = PaddingValues(bottom = floatingBarClearance() + Spacing.xl),
         ) {
             items(rows.size, key = { index ->
                 when (val row = rows[index]) {

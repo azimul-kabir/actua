@@ -59,6 +59,7 @@ import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.PieChartOutline
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarResult
@@ -72,6 +73,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
@@ -105,6 +108,7 @@ import androidx.core.os.LocaleListCompat
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.util.suspendRunCatching
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
@@ -293,6 +297,21 @@ private fun TabItem.toMainDestination(): MainDestination? = when (this) {
     TabItem.MANAGE -> MainDestination.Manage
     TabItem.ADD -> null
 }
+
+/**
+ * Detail screens whose lists scroll under the floating tab bar (so the bar can blur them) and clear it with their
+ * own bottom padding. Every other detail screen still ends above the bar.
+ */
+private val DetailsBehindTabBar = setOf(
+    DetailDestination.Transactions, DetailDestination.Reports, DetailDestination.Connection,
+    DetailDestination.CreditCards, DetailDestination.CreditCardStatements, DetailDestination.Loans,
+    DetailDestination.Rules, DetailDestination.Schedules, DetailDestination.ManagePayees,
+    DetailDestination.PayeeLocations, DetailDestination.ManageCategories, DetailDestination.BankSync,
+    DetailDestination.ImportTransactions, DetailDestination.ReviewCaptured, DetailDestination.NewSchedule,
+    DetailDestination.EditSchedule, DetailDestination.FindSchedules, DetailDestination.ReorderGroups,
+    DetailDestination.ReorderAccounts, DetailDestination.BudgetAutomation, DetailDestination.CustomizeHome,
+    DetailDestination.CustomizeTabBar,
+)
 
 internal enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Loans, Rules, Schedules, ImportTransactions, ReviewCaptured, PayeeLocations, ManagePayees, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, ReorderAccounts, BudgetAutomation, CustomizeHome, CustomizeTabBar, BankSync }
 
@@ -1786,6 +1805,7 @@ fun AppNavigation(
             onMessage = { message -> coroutineScope.launch { snackbarHostState.showSnackbar(message) } },
         )
     }
+    val tabBarBackdrop = rememberTabBarBackdrop()
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         snackbarHost = { ActuaSnackbarHost(snackbarHostState) },
@@ -1824,8 +1844,16 @@ fun AppNavigation(
                     },
                     expanded = transactionFabExpanded,
                     shape = CircleShape,
-                    containerColor = MaterialTheme.colorScheme.primary,
+                    // On a device that can blur, the button is see-through glass over the blurred content; its
+                    // shadow is dropped because it would show through the fill.
+                    containerColor = if (BackdropBlurSupported) MaterialTheme.colorScheme.primary.copy(alpha = 0.78f)
+                    else MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
+                    elevation = if (BackdropBlurSupported) FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
+                    else FloatingActionButtonDefaults.elevation(),
+                    modifier = if (BackdropBlurSupported) {
+                        Modifier.clip(CircleShape).blurredBackdrop(tabBarBackdrop, Color.Transparent)
+                    } else Modifier,
                     icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.navigation_transaction)) },
                 )
@@ -1838,6 +1866,7 @@ fun AppNavigation(
                 exit = slideOutVertically { it } + shrinkVertically(),
             ) { FloatingNavigationBar(
                 showLabels = showBottomNavigationLabels,
+                backdrop = tabBarBackdrop,
             ) {
                 tabBarLayout.visibleTabs.forEach { tabItem ->
                     if (tabItem == TabItem.ADD) {
@@ -1962,10 +1991,10 @@ fun AppNavigation(
             } }
         },
     ) { innerPadding ->
+        Box(Modifier.fillMaxSize().recordsBackdrop(tabBarBackdrop)) {
         // Root list screens run behind the transparent area around the floating pill and clear it
         // with their own bottom padding; every other screen still ends above the bar.
-        val drawsBehindTabBar = (detail == DetailDestination.Main && destination != MainDestination.Manage && destination != MainDestination.Bills) ||
-            detail == DetailDestination.Transactions || detail == DetailDestination.Reports
+        val drawsBehindTabBar = detail == DetailDestination.Main || detail in DetailsBehindTabBar
         val contentModifier = (if (drawsBehindTabBar) Modifier.padding(top = innerPadding.calculateTopPadding()) else Modifier.padding(innerPadding))
             .nestedScroll(fabScrollConnection)
         val loadReportWidgets: suspend (ReportViewFilter) -> List<ReportWidget> = remember(repository, dataVersion, homeMonthStart) {
@@ -3678,6 +3707,7 @@ fun AppNavigation(
                     onSupportPageOpened = { openSupportPage = false },
                 ) }
             }
+        }
         }
         }
         }

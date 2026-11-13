@@ -49,6 +49,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.navigation.TabBarLayout
 import com.azimulkabir.actua.data.navigation.TabBarLayoutPlanner
@@ -206,7 +207,7 @@ fun CustomizeTabBarScreen(
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(top = Spacing.sm, bottom = Spacing.xl),
+            contentPadding = PaddingValues(top = Spacing.sm, bottom = floatingBarClearance() + Spacing.xl),
         ) {
             itemsIndexed(localOrder, key = { _, tabItem -> tabItem.name }) { index, tabItem ->
                 val isDragging = draggingTab == tabItem

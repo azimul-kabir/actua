@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.ui.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.Transaction
@@ -51,7 +53,7 @@ fun CreditCardStatementsScreen(
             Text(stringResource(R.string.fs_no_closed_statements), style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(20.dp))
         } else {
-            LazyColumn(Modifier.fillMaxSize()) {
+            LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = floatingBarClearance())) {
                 items(statements, key = { it.id }) { statement ->
                     StatementRow(statement, hideDecimalPlaces, onClick = { onSelectStatement(statement) })
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
@@ -125,7 +127,7 @@ fun CreditCardStatementDetailScreen(
             isLoading -> Box(Modifier.fillMaxWidth().padding(32.dp)) { CircularProgressIndicator(Modifier.padding(0.dp)) }
             transactions.isEmpty() -> Text(stringResource(R.string.fs_no_statement_transactions), style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(20.dp))
-            else -> LazyColumn(Modifier.fillMaxSize()) {
+            else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = floatingBarClearance())) {
                 items(transactions, key = { it.id }) { tx ->
                     TransactionRow(
                         transaction = tx, hideDecimalPlaces = hideDecimalPlaces,

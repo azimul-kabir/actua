@@ -45,6 +45,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.bank.BankSyncAccountSettings
 import com.azimulkabir.actua.data.bank.BankSyncFlag
@@ -152,7 +153,7 @@ fun BankSyncScreen(
 
     Column(modifier = modifier.fillMaxWidth()) {
         ActuaScreenHeader(title = stringResource(R.string.fs_bank_sync_title), onBack = onBack)
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.xl)) {
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = floatingBarClearance() + Spacing.xl)) {
             SectionLabel(stringResource(R.string.fs_bank_sync_providers))
             ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
                 ProviderRow(

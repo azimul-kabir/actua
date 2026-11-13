@@ -25,6 +25,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Changed the bottom tab bar and the + Transaction button to be translucent, with a blur on Android 12 and newer, and more screens to scroll under the bar ([#1640](https://github.com/azimul-kabir/actua/pull/1640))
 - Showed favorite categories as a flat list without group headers when the Budget tab's Favorites filter is on, and all favorite categories on Home instead of the first five ([#1629](https://github.com/azimul-kabir/actua/pull/1629))
 - Made a category that is spent exactly to its budget show the normal progress bar color on widgets instead of amber ([#1623](https://github.com/azimul-kabir/actua/pull/1623))
 - Made Budget, Accounts, Transactions and other screens load their data off the main thread, so edits and syncs no longer stall the screen ([#1619](https://github.com/azimul-kabir/actua/pull/1619))

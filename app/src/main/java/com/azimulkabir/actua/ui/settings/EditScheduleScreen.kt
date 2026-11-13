@@ -33,6 +33,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.schedules.*
 import com.azimulkabir.actua.model.Account
@@ -174,7 +175,7 @@ fun EditScheduleScreen(
 
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState())
-                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = Spacing.lg),
+                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = floatingBarClearance() + Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             if (unreadableDate) {
@@ -492,7 +493,7 @@ private fun RepeatEditorScreen(
         ActuaScreenHeader(title = stringResource(R.string.fs_repeat), onBack = onBack)
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = Spacing.xxl),
+                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = floatingBarClearance() + Spacing.xxl),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             ActuaFormCard {

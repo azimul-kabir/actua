@@ -49,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.model.BudgetAutomationDocument
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
@@ -168,7 +169,8 @@ fun BudgetAutomationScreen(
         )
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.sm,
+                    bottom = Spacing.sm + floatingBarClearance()),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             SectionHeader("Automations")
@@ -326,7 +328,8 @@ private fun EditorScaffold(
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.sm,
+                    bottom = Spacing.sm + floatingBarClearance()),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             content = content,
         )
