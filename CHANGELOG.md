@@ -35,6 +35,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Slimmed the Ready to Budget card in the Plan view to a single row ([#1562](https://github.com/azimul-kabir/actua/pull/1562))
 - Made the Favourite categories, Account balances and Upcoming schedules widgets place straight away without a setup screen on Android 12 and later, and refreshed their setup screens with search, the app's appearance and the app lock ([#1573](https://github.com/azimul-kabir/actua/pull/1573))
 - Added an update time with a refresh tap to the Budget snapshot widget at 4x4 and larger, and made widgets restyle when the device theme or language changes while Actua is running ([#1574](https://github.com/azimul-kabir/actua/pull/1574))
+- The demo budget now includes a second credit card that carries a balance, a car loan and a student loan with a year of payments, a Debt group, more accounts, categories, payees and schedules ([#1630](https://github.com/azimul-kabir/actua/issues/1630))
 
 ### Fixed
 

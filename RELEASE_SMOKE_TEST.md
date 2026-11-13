@@ -121,6 +121,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] On the amount keypad, calculate 12.50 × 3 and 100 ÷ 3 with `=` and verify the saved amounts are exact cents (37.50 and 33.33).
 - [ ] Set the currency symbol after the amount (with and without a space) in Actual or as a device override and verify amounts and entry follow it.
 - [ ] Reset the demo budget twice in a row and verify its year of transactions appears once, categorized, with a populated Reports dashboard.
+- [ ] In the demo budget, verify Settings > Loans lists the Car Loan and Student Loan with payoff progress, a next payment date and a working planner; record a payment from Everyday Checking and verify it lands in the Debt group's matching category; verify the Travel Rewards Card shows a balance, a fixed due day and interest charges alongside the Everyday Credit Card.
 - [ ] Payee search filters character-by-character across normal payees and transfer accounts.
 - [ ] Find nearby payees requests foreground permission only after explicit use and normal search remains available on denial/failure.
 - [ ] Indoors, Find nearby payees succeeds from a recent valid fix or an enabled network/fused source when GPS alone cannot obtain a fix.

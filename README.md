@@ -67,7 +67,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Currency (including the symbol before or after the amount), date and number formats that follow your budget's Actual settings or a device override, plus appearance options with an optional Material You dynamic-color mode (Android 12+)
 - Actual tag management, with colored `#tag` rendering, notes autocomplete, a Manage Tags screen, and tap-a-tag transaction filtering
 - Multiple downloaded budgets with a quick switcher in Manage
-- Built-in local demo budget
+- Built-in local demo budget with credit cards, loans, a Debt group, schedules, rules, reports and a year of activity to try
 - Privacy-safe Diagnostics report you can copy, save or email when reporting a problem
 
 See [BACKEND_PARITY.md](BACKEND_PARITY.md) for detailed compatibility and implementation status. Actua is reviewed against Actual Budget 26.11, as of 2.4.0 ([details](docs/ACTUAL_26_11_COMPATIBILITY.md)).

@@ -30,7 +30,6 @@
     <string name="demo_payee_fuel">Posto de Combustível</string>
     <string name="demo_payee_restaurant">Café da Esquina</string>
     <string name="demo_payee_streaming">StreamBox</string>
-    <string name="demo_payee_card_payment">Pagamento do Cartão de Crédito</string>
     <string name="demo_payee_corner_grocer">Mercearia do Bairro</string>
     <string name="demo_payee_big_box_store">Atacarejo</string>
     <string name="demo_payee_internet">Fibra Net</string>
@@ -52,7 +51,7 @@
     <string name="demo_schedule_card_payment">Pagamento do cartão de crédito</string>
 
     <string name="demo_report_overview">Visão geral</string>
-    <string name="demo_report_welcome">**Bem-vindo à demonstração do Actua** 👋\n\nEste orçamento fica armazenado somente neste dispositivo. Experimente metas, regras, agendamentos, reconciliação, cartões de crédito e relatórios.</string>
+    <string name="demo_report_welcome">**Bem-vindo à demonstração do Actua** 👋\n\nEste orçamento fica armazenado somente neste dispositivo. Experimente metas, regras, agendamentos, reconciliação, cartões de crédito, financiamentos com planejador de quitação e relatórios.</string>
     <string name="demo_report_this_month">Este mês</string>
     <string name="demo_report_spending_by_category">Gastos por categoria</string>
     <string name="demo_report_monthly_spending">Gastos mensais</string>
@@ -65,4 +64,38 @@
     <string name="demo_report_budget_analysis">Análise do Orçamento</string>
     <string name="demo_report_age_of_money">Idade do Dinheiro</string>
     <string name="demo_report_calendar">Calendário</string>
+
+    <!-- Loans, a second card, the Debt group and wider category coverage (#1630). -->
+    <string name="demo_account_cash">Dinheiro em espécie</string>
+    <string name="demo_account_rewards_card">Cartão de viagens com recompensas</string>
+    <string name="demo_account_car_loan">Financiamento do carro</string>
+    <string name="demo_account_student_loan">Financiamento estudantil</string>
+    <string name="demo_group_debt">Dívidas</string>
+    <string name="demo_category_freelance">Trabalhos freelancer</string>
+    <string name="demo_category_interest_income">Juros</string>
+    <string name="demo_category_health">Saúde</string>
+    <string name="demo_category_insurance">Seguros</string>
+    <string name="demo_category_shopping">Compras</string>
+    <string name="demo_category_subscriptions">Assinaturas</string>
+    <string name="demo_category_gifts">Presentes</string>
+    <string name="demo_category_car_loan">Financiamento do carro</string>
+    <string name="demo_category_student_loan">Financiamento estudantil</string>
+    <string name="demo_category_card_interest">Juros do cartão</string>
+    <string name="demo_payee_client">Cliente freelancer</string>
+    <string name="demo_payee_bank_interest">Juros da poupança</string>
+    <string name="demo_payee_pharmacy">Farmácia da esquina</string>
+    <string name="demo_payee_clinic">Clínica da família</string>
+    <string name="demo_payee_insurance">Seguradora Porto Seguro</string>
+    <string name="demo_payee_online_store">Loja online</string>
+    <string name="demo_payee_cloud_storage">NuvemSegura</string>
+    <string name="demo_payee_music">MúsicaStream</string>
+    <string name="demo_payee_gift_shop">Galeria de presentes</string>
+    <string name="demo_payee_market_stall">Barraca da feira</string>
+    <string name="demo_payee_rewards_bank">Banco Recompensas</string>
+    <string name="demo_note_car_loan">Vinculada à conta do financiamento do carro. Os pagamentos são transferências da conta corrente com esta categoria, então registrá-los na tela do financiamento os orça aqui.</string>
+    <string name="demo_note_rewards_card">Cartão de crédito de demonstração que mantém saldo. Tem dia de vencimento fixo, limite de crédito e juros mensais.</string>
+    <string name="demo_schedule_rewards_card_payment">Pagamento do cartão de viagens</string>
+    <string name="demo_schedule_car_loan">Pagamento do financiamento do carro</string>
+    <string name="demo_schedule_student_loan">Pagamento do financiamento estudantil</string>
+    <string name="demo_schedule_insurance">Seguro</string>
 </resources>
