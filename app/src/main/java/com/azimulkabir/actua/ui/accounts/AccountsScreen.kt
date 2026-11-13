@@ -389,7 +389,7 @@ fun AccountsScreen(
                 onDeleteGroup = onDeleteGroup,
                 showManageGroupsSheet = showManageGroupsSheet,
                 onDismissManageGroupsSheet = { showManageGroupsSheet = false },
-                contentPadding = PaddingValues(bottom = floatingBarClearance() + if (hasFab) 96.dp else Spacing.xl),
+                contentPadding = PaddingValues(bottom = floatingBarClearance() + if (hasFab) 96.dp else 0.dp),
             )
         } else {
             // Otherwise this is a linear scan repeated per visible row, per recomposition

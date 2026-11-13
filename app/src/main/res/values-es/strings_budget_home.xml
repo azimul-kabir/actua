@@ -333,14 +333,10 @@
     <string name="home_open_budget">Abrir presupuesto</string>
     <string name="home_available_to_assign">Disponible para asignar</string>
     <string name="home_open_current_budget">Abrir presupuesto actual</string>
-    <string name="home_view_budget">Ver presupuesto</string>
     <string name="home_amount_available">%1$s disponibles</string>
     <string name="home_goal_progress">%1$d%% financiado del objetivo</string>
     <string name="home_spending_progress">%1$s · %2$d%% gastado</string>
-    <string name="home_view_accounts">Ver cuentas</string>
     <string name="home_view_calendar">Ver calendario</string>
-    <string name="home_view_activity">Ver actividad</string>
-    <string name="home_view_all">Ver todo</string>
     <string name="home_explore_trends">Explorar tendencias de tu presupuesto</string>
     <string name="home_open_dashboard">Abrir panel</string>
     <string name="home_view_all_activity">Ver toda la actividad</string>
@@ -367,6 +363,8 @@
         <item quantity="one">%1$d transacción</item>
         <item quantity="other">%1$d transacciones</item>
     </plurals>
+    <string name="home_collapse_section">Contraer %1$s</string>
+    <string name="home_expand_section">Expandir %1$s</string>
     <string name="home_greeting">Saludo</string>
     <string name="home_greeting_morning">Buenos días</string>
     <string name="home_greeting_afternoon">Buenas tardes</string>
