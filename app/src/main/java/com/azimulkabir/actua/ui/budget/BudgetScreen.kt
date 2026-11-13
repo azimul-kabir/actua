@@ -2350,7 +2350,7 @@ private fun CategoryRow(
 }
 
 @Composable
-private fun CategoryProgressBar(
+internal fun CategoryProgressBar(
     category: BudgetCategory,
     scheduleFunding: List<BudgetScheduleFunding>,
     modifier: Modifier = Modifier,
@@ -2815,7 +2815,7 @@ private fun targetFundingDescription(funding: TargetFunding) = when (funding) {
 }
 
 /** Budget display option "Show balance pills": whether balances are drawn on a filled pill. */
-private val LocalShowBalancePills = compositionLocalOf { true }
+internal val LocalShowBalancePills = compositionLocalOf { true }
 
 /** Budget display option "Show goal icons": whether a balance pill leads with its target funding icon. */
 internal val LocalShowGoalIcons = compositionLocalOf { true }

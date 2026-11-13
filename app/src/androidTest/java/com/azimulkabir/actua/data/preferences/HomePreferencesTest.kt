@@ -108,4 +108,20 @@ class HomePreferencesTest {
         fresh.setHolidays("budget-a", emptyList())
         assertEquals(emptyList<Holiday>(), HomePreferences(context).holidays("budget-a"))
     }
+
+    @Test
+    fun collapsedSectionsArePersistedAndCanBeExpandedAgain() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.getSharedPreferences("home_preferences", Context.MODE_PRIVATE).edit().clear().commit()
+
+        val preferences = HomePreferences(context)
+        assertEquals(emptySet<HomeSection>(), preferences.collapsed())
+
+        preferences.setCollapsed(HomeSection.REPORTS, true)
+        preferences.setCollapsed(HomeSection.UPCOMING, true)
+        assertEquals(setOf(HomeSection.REPORTS, HomeSection.UPCOMING), HomePreferences(context).collapsed())
+
+        preferences.setCollapsed(HomeSection.REPORTS, false)
+        assertEquals(setOf(HomeSection.UPCOMING), HomePreferences(context).collapsed())
+    }
 }

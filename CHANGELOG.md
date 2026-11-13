@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added collapsible Home sections that remember whether you collapsed them ([#1638](https://github.com/azimul-kabir/actua/pull/1638))
 - Added more Actua Supporter prices and an optional monthly supporter subscription to Support Actua in the Google Play version ([#1538](https://github.com/azimul-kabir/actua/pull/1538))
 - Added a one-time invitation to support Actua after 30 days or 100 added transactions in the Google Play version ([#1540](https://github.com/azimul-kabir/actua/pull/1540))
 - Added a Supporter extras section to Settings → Display in the Google Play version, where Actua Supporters will find cosmetic extras ([#1548](https://github.com/azimul-kabir/actua/pull/1548))
@@ -24,6 +25,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Changed Home to show favorite accounts and categories as full rows that follow the Budget display settings, Recent Activity to show each transaction's cleared or reconciled state, and its section headers to drop the "View" links ([#1638](https://github.com/azimul-kabir/actua/pull/1638))
+- Removed the floating Transaction button from the Reports tab ([#1638](https://github.com/azimul-kabir/actua/pull/1638))
 - Showed favorite categories as a flat list without group headers when the Budget tab's Favorites filter is on, and all favorite categories on Home instead of the first five ([#1629](https://github.com/azimul-kabir/actua/pull/1629))
 - Made a category that is spent exactly to its budget show the normal progress bar color on widgets instead of amber ([#1623](https://github.com/azimul-kabir/actua/pull/1623))
 - Made Budget, Accounts, Transactions and other screens load their data off the main thread, so edits and syncs no longer stall the screen ([#1619](https://github.com/azimul-kabir/actua/pull/1619))

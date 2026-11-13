@@ -3,6 +3,7 @@ package com.azimulkabir.actua.data.preferences
 import android.content.Context
 import com.azimulkabir.actua.data.home.HomeLayout
 import com.azimulkabir.actua.data.home.HomeLayoutCodec
+import com.azimulkabir.actua.data.home.HomeSection
 import com.azimulkabir.actua.data.home.Holiday
 import com.azimulkabir.actua.data.home.HolidayCodec
 import com.azimulkabir.actua.data.home.HomeSummaryPeriod
@@ -18,6 +19,18 @@ class HomePreferences(context: Context) {
 
     fun save(layout: HomeLayout) {
         preferences.edit().putString(LAYOUT, HomeLayoutCodec.encode(layout)).apply()
+    }
+
+    /** The sections the user has collapsed down to their header; none until they collapse one. */
+    fun collapsed(): Set<HomeSection> =
+        preferences.getStringSet(COLLAPSED, emptySet()).orEmpty()
+            .mapNotNull { name -> HomeSection.entries.firstOrNull { it.name == name } }.toSet()
+
+    fun setCollapsed(section: HomeSection, collapsed: Boolean) {
+        val names = preferences.getStringSet(COLLAPSED, emptySet()).orEmpty().toMutableSet()
+        if (collapsed) names += section.name else names -= section.name
+        // getStringSet's result must not be modified in place, so a copy is stored.
+        preferences.edit().putStringSet(COLLAPSED, names.toSet()).apply()
     }
 
     fun restoreDefaults(): HomeLayout = HomeLayout.default().also { save(it) }
@@ -72,6 +85,7 @@ class HomePreferences(context: Context) {
 
     private companion object {
         const val LAYOUT = "layout"
+        const val COLLAPSED = "collapsed_sections"
         const val SUMMARY_START_DAY = "summary_start_day"
         const val START_DAY_ADJUSTMENT = "start_day_adjustment"
         const val WEEKEND_DAYS = "weekend_days"

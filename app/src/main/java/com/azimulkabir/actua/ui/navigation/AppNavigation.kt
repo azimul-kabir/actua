@@ -422,6 +422,7 @@ fun AppNavigation(
     val favoritePreferences = remember { FavoritePreferences(context) }
     val homePreferences = remember { HomePreferences(context) }
     var homeLayout by remember { mutableStateOf(homePreferences.layout()) }
+    var homeCollapsed by remember { mutableStateOf(homePreferences.collapsed()) }
 
     val tabBarPreferences = remember { TabBarPreferences(context) }
     var tabBarLayout by remember { mutableStateOf(tabBarPreferences.layout()) }
@@ -1726,7 +1727,9 @@ fun AppNavigation(
     // Transaction button entirely (see Slice 3, #481): no FAB on any screen, and the bottom
     // scroll padding each screen otherwise reserves to clear the FAB collapses to zero.
     val showAddTab = TabItem.ADD in tabBarLayout.visibleTabs
-    val hasFab = repository.isUsingActualBudget && !reconcileOpen && (onMainTab || inAccount) && !showAddTab
+    // Reports is for reading, so it has no floating Transaction button and reserves no space for one.
+    val hasFab = repository.isUsingActualBudget && !reconcileOpen &&
+        ((onMainTab && destination != MainDestination.Reports) || inAccount) && !showAddTab
 
     // A local budget that couldn't be opened is kept on disk; the banner offers recovery (#1509).
     val unopenedBudget = repository.unopenedBudgets.firstOrNull()
@@ -3087,6 +3090,14 @@ fun AppNavigation(
                             month = shownBudgetMonth,
                             monthStart = homeMonthStart,
                         )
+                    },
+                    budgetDisplay = budgetDisplay,
+                    showAccountTypeIcons = showAccountTypeIcons,
+                    scheduleFunding = budgetScheduleFunding,
+                    collapsedSections = homeCollapsed,
+                    onToggleCollapsed = { section ->
+                        homePreferences.setCollapsed(section, section !in homeCollapsed)
+                        homeCollapsed = homePreferences.collapsed()
                     },
                     sections = homeLayout.visibleSections,
                     hideDecimalPlaces = hideDecimalPlaces,
