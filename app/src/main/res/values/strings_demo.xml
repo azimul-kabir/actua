@@ -35,7 +35,6 @@
     <string name="demo_payee_fuel">Fuel Station</string>
     <string name="demo_payee_restaurant">Neighborhood Cafe</string>
     <string name="demo_payee_streaming">StreamBox</string>
-    <string name="demo_payee_card_payment">Credit Card Payment</string>
     <string name="demo_payee_corner_grocer">Corner Grocer</string>
     <string name="demo_payee_big_box_store">Big Box Store</string>
     <string name="demo_payee_internet">Fiber Net</string>
@@ -57,7 +56,7 @@
     <string name="demo_schedule_card_payment">Credit card payment</string>
 
     <string name="demo_report_overview">Overview</string>
-    <string name="demo_report_welcome">**Welcome to Actua Demo** 👋\n\nThis budget is stored only on this device. Try targets, rules, schedules, reconciliation, credit cards and reports.</string>
+    <string name="demo_report_welcome">**Welcome to Actua Demo** 👋\n\nThis budget is stored only on this device. Try targets, rules, schedules, reconciliation, credit cards, loans with a payoff planner and reports.</string>
     <string name="demo_report_this_month">This Month</string>
     <string name="demo_report_spending_by_category">Spending by category</string>
     <string name="demo_report_monthly_spending">Monthly spending</string>
@@ -70,4 +69,38 @@
     <string name="demo_report_budget_analysis">Budget Analysis</string>
     <string name="demo_report_age_of_money">Age of Money</string>
     <string name="demo_report_calendar">Calendar</string>
+
+    <!-- Loans, a second card, the Debt group and wider category coverage (#1630). -->
+    <string name="demo_account_cash">Cash Wallet</string>
+    <string name="demo_account_rewards_card">Travel Rewards Card</string>
+    <string name="demo_account_car_loan">Car Loan</string>
+    <string name="demo_account_student_loan">Student Loan</string>
+    <string name="demo_group_debt">Debt</string>
+    <string name="demo_category_freelance">Freelance</string>
+    <string name="demo_category_interest_income">Interest</string>
+    <string name="demo_category_health">Health</string>
+    <string name="demo_category_insurance">Insurance</string>
+    <string name="demo_category_shopping">Shopping</string>
+    <string name="demo_category_subscriptions">Subscriptions</string>
+    <string name="demo_category_gifts">Gifts</string>
+    <string name="demo_category_car_loan">Car Loan</string>
+    <string name="demo_category_student_loan">Student Loan</string>
+    <string name="demo_category_card_interest">Credit Card Interest</string>
+    <string name="demo_payee_client">Freelance Client</string>
+    <string name="demo_payee_bank_interest">Savings Interest</string>
+    <string name="demo_payee_pharmacy">Corner Pharmacy</string>
+    <string name="demo_payee_clinic">Family Clinic</string>
+    <string name="demo_payee_insurance">Safe Harbor Insurance</string>
+    <string name="demo_payee_online_store">Online Mart</string>
+    <string name="demo_payee_cloud_storage">CloudVault</string>
+    <string name="demo_payee_music">TuneStream</string>
+    <string name="demo_payee_gift_shop">Gift Gallery</string>
+    <string name="demo_payee_market_stall">Market Stall</string>
+    <string name="demo_payee_rewards_bank">Rewards Bank</string>
+    <string name="demo_note_car_loan">Paired with the Car Loan account. Loan payments are transfers from checking that use this category, so recording one on the loan screen budgets it here.</string>
+    <string name="demo_note_rewards_card">Demo credit card that carries a balance. It has a fixed due day, a credit limit and monthly interest charges.</string>
+    <string name="demo_schedule_rewards_card_payment">Travel Rewards Card payment</string>
+    <string name="demo_schedule_car_loan">Car loan payment</string>
+    <string name="demo_schedule_student_loan">Student loan payment</string>
+    <string name="demo_schedule_insurance">Insurance</string>
 </resources>
