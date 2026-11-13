@@ -202,9 +202,9 @@ private fun ReadyToBudgetHero(overview: BudgetOverview, hideDecimals: Boolean, o
     Column(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
         ActuaGroupLabel(stringResource(HomeSection.READY_TO_BUDGET.titleRes))
         Surface(
-            modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.extraLarge)
+            modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large)
                 .clickable(onClickLabel = stringResource(R.string.home_open_budget), onClick = onClick).testTag("readyToBudgetHero"),
-            shape = MaterialTheme.shapes.extraLarge,
+            shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         ) {
