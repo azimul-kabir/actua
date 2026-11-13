@@ -4,12 +4,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.MaterialTheme
+import org.junit.Assert.assertEquals
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.hasAnyDescendant
-import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -132,7 +137,7 @@ class HomeScreenTest {
         )
     }
 
-    @Test fun favoriteCategoriesRenderAsDashboardProgressCards() {
+    @Test fun favoriteCategoriesRenderAsBudgetStyleRows() {
         val projection = HomeDashboardProjection.empty().copy(
             favoriteCategories = listOf(
                 BudgetCategory("Groceries", 1_000, -400, id = "groceries"),
@@ -148,12 +153,12 @@ class HomeScreenTest {
             }
         }
 
-        compose.onAllNodesWithTag("favoriteCategoryCard").assertCountEquals(2)
+        compose.onAllNodesWithTag("favoriteCategoryRow").assertCountEquals(2)
         compose.onNodeWithText("Groceries").assertExists()
         compose.onNodeWithText("Transport").assertExists()
     }
 
-    @Test fun homeShowsEveryFavoriteCategoryNotJustTheFirstFive() {
+    @Test fun favoriteCategoriesShowFiveRowsAndScrollTheRest() {
         val favorites = (1..7).map { BudgetCategory("Category $it", 1_000, -100, id = "category-$it") }
         val projection = HomeDashboardProjection.empty().copy(favoriteCategories = favorites)
         compose.setContent {
@@ -165,14 +170,30 @@ class HomeScreenTest {
             }
         }
 
-        // The cards are a lazy row, so scroll it to the last favorite: the sixth and seventh are there too.
-        val cards = compose.onNode(
-            hasScrollToNodeAction() and hasAnyDescendant(hasTestTag("favoriteCategoryCard")) and !hasTestTag("homeList"),
-        )
-        cards.performScrollToNode(hasText("Category 6"))
+        compose.onNodeWithText("Category 5").assertIsDisplayed()
+        // Half of the sixth row peeks out as the cue that the list scrolls; the seventh is hidden.
         compose.onNodeWithText("Category 6").assertExists()
-        cards.performScrollToNode(hasText("Category 7"))
-        compose.onNodeWithText("Category 7").assertExists()
+        compose.onNodeWithText("Category 7").assertIsNotDisplayed()
+        compose.onNodeWithText("Category 7").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun favoriteAccountsShowFiveRowsAndScrollTheRest() {
+        val favorites = (1..7).map { Account("Account $it", 0, "checking", id = "account-$it") }
+        val projection = HomeDashboardProjection.empty().copy(favoriteAccounts = favorites)
+        compose.setContent {
+            MaterialTheme {
+                HomeScreen(
+                    sections = listOf(HomeSection.FAVORITE_ACCOUNTS),
+                    projection = projection,
+                )
+            }
+        }
+
+        compose.onNodeWithText("Account 5").assertIsDisplayed()
+        // Half of the sixth row peeks out as the cue that the list scrolls; the seventh is hidden.
+        compose.onNodeWithText("Account 6").assertExists()
+        compose.onNodeWithText("Account 7").assertIsNotDisplayed()
+        compose.onNodeWithText("Account 7").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun favoriteAccountRowRoutesToItsTransactions() {
@@ -377,5 +398,29 @@ class HomeScreenTest {
 
         compose.onNodeWithText("Last activity 5").assertExists()
         compose.onNodeWithTag("transactionFab").assertExists()
+    }
+
+    @Test fun tappingASectionTitleReportsTheToggleAndACollapsedSectionHidesItsRows() {
+        var toggled: HomeSection? = null
+        val transaction = Transaction("t1", "2026-09-20", "Coffee Shop", "Dining", "Checking", -500, false)
+        val projection = HomeDashboardProjection.empty().copy(recentTransactions = listOf(transaction))
+        var collapsed by mutableStateOf(emptySet<HomeSection>())
+        compose.setContent {
+            MaterialTheme {
+                HomeScreen(
+                    sections = listOf(HomeSection.RECENT_ACTIVITY),
+                    projection = projection,
+                    collapsedSections = collapsed,
+                    onToggleCollapsed = { toggled = it; collapsed = setOf(it) },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Coffee Shop").assertExists()
+        compose.onNodeWithText("Recent Activity").performClick()
+
+        assertEquals(HomeSection.RECENT_ACTIVITY, toggled)
+        compose.onNodeWithText("Coffee Shop").assertDoesNotExist()
+        compose.onNodeWithText("Recent Activity").assertExists()
     }
 }

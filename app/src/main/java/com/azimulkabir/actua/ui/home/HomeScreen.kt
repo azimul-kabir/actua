@@ -22,12 +22,36 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
+import com.azimulkabir.actua.model.BudgetScheduleFunding
+import com.azimulkabir.actua.ui.budget.BalancePill
+import com.azimulkabir.actua.ui.budget.CategoryProgressBar
+import com.azimulkabir.actua.ui.budget.LocalShowBalancePills
+import com.azimulkabir.actua.ui.budget.LocalShowGoalIcons
+import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,21 +61,26 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.home.HomeSection
@@ -95,6 +124,11 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     projection: HomeDashboardProjection = HomeDashboardProjection.empty(),
     sections: List<HomeSection> = HomeSection.entries,
+    collapsedSections: Set<HomeSection> = emptySet(),
+    onToggleCollapsed: (HomeSection) -> Unit = {},
+    budgetDisplay: BudgetDisplayOptions = BudgetDisplayOptions(),
+    showAccountTypeIcons: Boolean = true,
+    scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
     greetingFigures: List<GreetingFigure> = emptyList(),
     greetingNickname: String = "",
     hideDecimalPlaces: Boolean = false,
@@ -118,7 +152,7 @@ fun HomeScreen(
         modifier = modifier.fillMaxSize().testTag("homeList"),
         state = listState,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        contentPadding = PaddingValues(bottom = floatingBarClearance() + if (hasFab) 160.dp else 0.dp),
+        contentPadding = PaddingValues(bottom = floatingBarClearance() + if (hasFab) 96.dp else 0.dp),
     ) {
         item(key = "home-header") {
             ActuaScreenHeader(title = stringResource(R.string.home_title)) {
@@ -129,14 +163,18 @@ fun HomeScreen(
         }
         sections.forEach { section ->
             item(key = section.name) {
+                CompositionLocalProvider(
+                    LocalSectionCollapse provides SectionCollapse(section, section in collapsedSections, onToggleCollapsed),
+                ) {
                 when (section) {
                     HomeSection.GREETING -> GreetingCard(greetingFigures, greetingNickname)
                     HomeSection.READY_TO_BUDGET -> ReadyToBudgetHero(
                         projection.budgetOverview, hideDecimalPlaces, onBudgetClick)
                     HomeSection.FAVORITE_CATEGORIES -> FavoriteCategoriesSection(
-                        projection.favoriteCategories, hideDecimalPlaces, onBudgetClick, onCategoryClick)
+                        projection.favoriteCategories, hideDecimalPlaces, budgetDisplay, scheduleFunding,
+                        onBudgetClick, onCategoryClick)
                     HomeSection.FAVORITE_ACCOUNTS -> FavoriteAccountsSection(
-                        projection.favoriteAccounts, hideDecimalPlaces, onAccountsClick, onAccountClick)
+                        projection.favoriteAccounts, hideDecimalPlaces, showAccountTypeIcons, onAccountsClick, onAccountClick)
                     HomeSection.UPCOMING -> UpcomingSection(
                         projection.upcomingSchedules, hideDecimalPlaces, onSchedulesClick)
                     HomeSection.THIS_MONTH -> ThisMonthSection(
@@ -146,8 +184,11 @@ fun HomeScreen(
                     HomeSection.RECENT_ACTIVITY -> RecentActivitySection(
                         projection.recentTransactions, hideDecimalPlaces, onTransactionsClick)
                 }
+                }
             }
         }
+        // Budget and Accounts end with a 20dp spacer; the list's own 8dp gap makes this one match it.
+        item(key = "home-end") { Spacer(Modifier.height(Spacing.md)) }
     }
 }
 
@@ -157,9 +198,9 @@ private fun ReadyToBudgetHero(overview: BudgetOverview, hideDecimals: Boolean, o
     Column(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
         ActuaGroupLabel(stringResource(HomeSection.READY_TO_BUDGET.titleRes))
         Surface(
-            modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.extraLarge)
+            modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large)
                 .clickable(onClickLabel = stringResource(R.string.home_open_budget), onClick = onClick).testTag("readyToBudgetHero"),
-            shape = MaterialTheme.shapes.extraLarge,
+            shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         ) {
@@ -184,132 +225,142 @@ private fun ReadyToBudgetHero(overview: BudgetOverview, hideDecimals: Boolean, o
     }
 }
 
+/**
+ * Favorite categories as full rows, drawn like the Budget tab's category rows and following the same display
+ * settings: status dot, balance pill and progress bar. Shows five rows; more scroll inside the card.
+ */
 @Composable
 private fun FavoriteCategoriesSection(categories: List<BudgetCategory>, hideDecimals: Boolean,
+    display: BudgetDisplayOptions, scheduleFunding: List<BudgetScheduleFunding>,
     onViewBudgetClick: () -> Unit, onCategoryClick: (String) -> Unit) {
-    DashboardSectionHeader(stringResource(HomeSection.FAVORITE_CATEGORIES.titleRes),
-        stringResource(R.string.home_view_budget), onViewBudgetClick)
-    if (categories.isEmpty()) {
-        DashboardEmptyCard(stringResource(R.string.home_no_favorite_categories), onViewBudgetClick)
-        return
-    }
-    LazyRow(contentPadding = PaddingValues(horizontal = Spacing.screenHorizontal),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        items(categories, key = { it.id ?: it.name }) { category ->
-            CategoryProgressCard(category, hideDecimals) { onCategoryClick(category.categoryKey) }
+    DashboardSectionHeader(stringResource(HomeSection.FAVORITE_CATEGORIES.titleRes))
+    CollapsibleBody {
+        if (categories.isEmpty()) {
+            DashboardEmptyCard(stringResource(R.string.home_no_favorite_categories), onViewBudgetClick)
+            return@CollapsibleBody
+        }
+        CompositionLocalProvider(LocalShowBalancePills provides display.showBalancePills, LocalShowGoalIcons provides display.showGoalIcons) {
+            DashboardSurface {
+                FiveRowScroller(categories.size, "favoriteCategoriesList") { index, rowHeight ->
+                    val category = categories[index]
+                    FavoriteCategoryRow(category, hideDecimals, display, scheduleFunding, rowHeight) { onCategoryClick(category.categoryKey) }
+                    if (index != categories.lastIndex) DashboardDivider()
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun CategoryProgressCard(category: BudgetCategory, hideDecimals: Boolean, onClick: () -> Unit) {
-    val fraction = category.progressFraction()
-    val progressColor = categoryProgressColor(category)
-    val percent = round(fraction * 100).toInt()
-    // Resolved once: shown as text and reused as the progress bar's state description.
-    val progressLabel = categoryProgressLabel(category, percent)
-    val largeText = LocalDensity.current.fontScale >= 1.3f
-    Surface(
-        modifier = Modifier.width(if (largeText) 208.dp else 176.dp).clip(MaterialTheme.shapes.large)
-            .clickable(onClick = onClick).testTag("favoriteCategoryCard"),
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainer,
-    ) {
-        Column(Modifier.heightIn(min = if (largeText) 188.dp else 164.dp).padding(Spacing.lg),
-            verticalArrangement = Arrangement.SpaceBetween) {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CategoryStatusDot(category.statusState(), modifier = Modifier.padding(end = 6.dp))
-                    Text(category.name, style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                }
-                Spacer(Modifier.height(Spacing.xs))
-                Text(stringResource(R.string.home_amount_available, formatMoneyCents(category.balanceCents, hideDecimals)),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (category.balanceCents < 0) MaterialTheme.colorScheme.error
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
+private fun FavoriteCategoryRow(category: BudgetCategory, hideDecimals: Boolean, display: BudgetDisplayOptions,
+    scheduleFunding: List<BudgetScheduleFunding>, rowHeight: Dp, onClick: () -> Unit) {
+    val status = category.statusState(scheduleFunding)
+    Column(Modifier.fillMaxWidth().height(rowHeight).clickable(onClick = onClick)
+        .padding(horizontal = Spacing.lg, vertical = Spacing.md).testTag("favoriteCategoryRow"),
+        verticalArrangement = Arrangement.Center) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                CategoryStatusDot(status, modifier = Modifier.padding(end = 6.dp))
+                Text(category.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Column {
-                Text(progressLabel, style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
-                    overflow = TextOverflow.Ellipsis)
-                Spacer(Modifier.height(Spacing.sm))
-                LinearProgressIndicator(
-                    progress = { fraction },
-                    modifier = Modifier.fillMaxWidth().height(7.dp).clip(PillShape)
-                        .semantics { stateDescription = progressLabel },
-                    color = progressColor,
-                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    gapSize = 0.dp,
-                    drawStopIndicator = {},
-                )
-            }
+            Spacer(Modifier.width(Spacing.sm))
+            BalancePill(
+                category.balanceCents, hideDecimals, status = status,
+                colorByStatus = LocalCategoryStatusColors.current?.colorBudgetedAmounts == true,
+                textStyle = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold,
+                horizontalPadding = 8.dp, verticalPadding = 3.dp,
+                targetFunding = category.targetFunding(scheduleFunding),
+            )
+        }
+        if (display.showProgressBars && category.showsProgressBar) {
+            CategoryProgressBar(category, scheduleFunding, Modifier.fillMaxWidth().padding(top = 8.dp).height(4.dp))
         }
     }
 }
 
 @Composable
-private fun FavoriteAccountsSection(accounts: List<Account>, hideDecimals: Boolean, onViewAccountsClick: () -> Unit,
+private fun FavoriteAccountsSection(accounts: List<Account>, hideDecimals: Boolean, showTypeIcon: Boolean,
+    onViewAccountsClick: () -> Unit,
     onAccountClick: (String) -> Unit) {
-    DashboardSectionHeader(stringResource(HomeSection.FAVORITE_ACCOUNTS.titleRes),
-        stringResource(R.string.home_view_accounts), onViewAccountsClick)
-    if (accounts.isEmpty()) {
-        DashboardEmptyCard(stringResource(R.string.home_no_favorite_accounts), onViewAccountsClick)
-        return
-    }
-    val singleColumn = LocalConfiguration.current.screenWidthDp < 360 || LocalDensity.current.fontScale >= 1.3f
-    Column(Modifier.padding(horizontal = Spacing.screenHorizontal),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        accounts.take(5).chunked(if (singleColumn) 1 else 2).forEach { pair ->
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                pair.forEach { account ->
-                    AccountCard(account, hideDecimals, { onAccountClick(account.name) }, Modifier.weight(1f))
-                }
-                if (!singleColumn && pair.size == 1) Spacer(Modifier.weight(1f))
+    DashboardSectionHeader(stringResource(HomeSection.FAVORITE_ACCOUNTS.titleRes))
+    CollapsibleBody {
+        if (accounts.isEmpty()) {
+            DashboardEmptyCard(stringResource(R.string.home_no_favorite_accounts), onViewAccountsClick)
+            return@CollapsibleBody
+        }
+        DashboardSurface {
+            FiveRowScroller(accounts.size, "favoriteAccountsList") { index, rowHeight ->
+                val account = accounts[index]
+                AccountRow(account, hideDecimals, showTypeIcon, rowHeight) { onAccountClick(account.name) }
+                if (index != accounts.lastIndex) DashboardDivider()
             }
         }
     }
 }
 
 @Composable
-private fun AccountCard(account: Account, hideDecimals: Boolean, onClick: () -> Unit,
-    modifier: Modifier = Modifier) {
-    Surface(modifier = modifier.clip(MaterialTheme.shapes.large).clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
-        Column(Modifier.fillMaxWidth().padding(Spacing.lg)) {
+private fun AccountRow(account: Account, hideDecimals: Boolean, showTypeIcon: Boolean, rowHeight: Dp, onClick: () -> Unit) {
+    DashboardRow(onClick, Modifier.height(rowHeight)) {
+        if (showTypeIcon) {
             Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer) {
-                Icon(accountTypeIcon(account.type, isCreditCard = false), null,
-                    Modifier.padding(Spacing.sm).size(20.dp))
+                Icon(accountTypeIcon(account.type, isCreditCard = false), null, Modifier.padding(Spacing.sm).size(20.dp))
             }
-            Spacer(Modifier.height(Spacing.md))
-            Text(account.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
-                maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(accountTypeLabel(account.type), style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Spacer(Modifier.height(Spacing.sm))
-            Text(formatMoneyCents(account.balanceCents, hideDecimals),
-                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
-                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.width(Spacing.md))
         }
+        Column(Modifier.weight(1f)) {
+            Text(account.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(accountTypeLabel(account.type), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        Spacer(Modifier.width(Spacing.sm))
+        Text(formatMoneyCents(account.balanceCents, hideDecimals), style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
+
+/**
+ * A column of [count] equal-height rows that shows [VISIBLE_ROWS] of them and scrolls the rest, with half of the
+ * sixth showing as a cue. The row height follows the font scale (it is in sp), so the rows stay a fixed, known
+ * size and the viewport needs no measuring pass: each row is composed exactly once. A list of five or fewer
+ * simply wraps its rows and doesn't scroll.
+ */
+@Composable
+private fun FiveRowScroller(count: Int, tag: String, row: @Composable (Int, Dp) -> Unit) {
+    val scroll = rememberScrollState()
+    // Who owns a drag over the card, the card or the page, is decided once per gesture.
+    val owner = remember(scroll) { ScrollOwnerConnection({ scroll.canScrollBackward }, { scroll.canScrollForward }) }
+    val rowHeight = with(LocalDensity.current) { ROW_HEIGHT_SP.sp.toDp() }
+    val scrolls = count > VISIBLE_ROWS
+    // The dividers between rows are 1dp each.
+    val viewport = rowHeight * VISIBLE_ROWS + rowHeight / 2 + VISIBLE_ROWS.dp
+    Column(Modifier.testTag(tag)
+        .then(if (scrolls) Modifier.heightIn(max = viewport).nestedScroll(owner).verticalScroll(scroll) else Modifier)) {
+        (0 until count).forEach { row(it, rowHeight) }
+    }
+}
+
+private const val ROW_HEIGHT_SP = 64
+private const val VISIBLE_ROWS = 5
 
 @Composable
 private fun UpcomingSection(schedules: List<ScheduleListItem>, hideDecimals: Boolean, onClick: () -> Unit) {
     val visible = schedules.filter { it.status !in setOf(ScheduleStatus.COMPLETED, ScheduleStatus.PAID) }.take(5)
-    DashboardSectionHeader(stringResource(HomeSection.UPCOMING.titleRes), stringResource(R.string.home_view_calendar), onClick)
-    if (visible.isEmpty()) {
-        DashboardEmptyCard(stringResource(R.string.home_no_upcoming), onClick)
-        return
-    }
-    DashboardSurface {
-        visible.forEachIndexed { index, item ->
-            UpcomingRow(item, hideDecimals, onClick)
-            if (index != visible.lastIndex) DashboardDivider()
+    DashboardSectionHeader(stringResource(HomeSection.UPCOMING.titleRes))
+    CollapsibleBody {
+        if (visible.isEmpty()) {
+            DashboardEmptyCard(stringResource(R.string.home_no_upcoming), onClick)
+            return@CollapsibleBody
         }
-        DashboardFooter(stringResource(R.string.home_view_calendar), Icons.Outlined.CalendarMonth, onClick)
+        DashboardSurface {
+            visible.forEachIndexed { index, item ->
+                UpcomingRow(item, hideDecimals, onClick)
+                if (index != visible.lastIndex) DashboardDivider()
+            }
+            DashboardFooter(stringResource(R.string.home_view_calendar), Icons.Outlined.CalendarMonth, onClick)
+        }
     }
 }
 
@@ -340,38 +391,40 @@ private fun ThisMonthSection(transactions: List<Transaction>, hideDecimals: Bool
     val spending = summary.expenseCents
     val net = income - spending
     val scale = maxOf(income, spending, 1L).toFloat()
-    DashboardSectionHeader(stringResource(HomeSection.THIS_MONTH.titleRes), stringResource(R.string.home_view_activity), onClick)
-    Surface(modifier = Modifier.padding(horizontal = Spacing.screenHorizontal).fillMaxWidth()
-        .clip(MaterialTheme.shapes.large).clickable(onClick = onClick), shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainer) {
-        Column(Modifier.padding(Spacing.lg)) {
-            if (period != null) {
-                Text("${formatDate(period.start)} – ${formatDate(period.endInclusive)}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = Spacing.sm).testTag("homeSummaryPeriod"))
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                MonthMetric(stringResource(R.string.home_income), income, hideDecimals, MaterialTheme.colorScheme.success, Modifier.weight(1f))
-                MonthMetric(stringResource(R.string.home_spent), spending, hideDecimals, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
-                MonthMetric(stringResource(R.string.home_net), net, hideDecimals,
-                    if (net < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
-                    Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(Spacing.lg))
-            MonthBar(stringResource(R.string.home_income), income / scale, MaterialTheme.colorScheme.success)
-            Spacer(Modifier.height(Spacing.sm))
-            MonthBar(stringResource(R.string.home_spending), spending / scale, MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(Spacing.lg))
-            Surface(shape = PillShape, color = MaterialTheme.colorScheme.surfaceContainerHighest) {
-                Row(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
-                    Text(stringResource(R.string.home_activity), style = MaterialTheme.typography.labelLarge)
-                    Spacer(Modifier.width(Spacing.xs))
-                    Text(
-                        "· " + pluralStringResource(R.plurals.home_transactions_count, transactions.size, transactions.size),
-                        style = MaterialTheme.typography.labelLarge,
+    DashboardSectionHeader(stringResource(HomeSection.THIS_MONTH.titleRes))
+    CollapsibleBody {
+        Surface(modifier = Modifier.padding(horizontal = Spacing.screenHorizontal).fillMaxWidth()
+            .clip(MaterialTheme.shapes.large).clickable(onClick = onClick), shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceContainer) {
+            Column(Modifier.padding(Spacing.lg)) {
+                if (period != null) {
+                    Text("${formatDate(period.start)} – ${formatDate(period.endInclusive)}",
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                        modifier = Modifier.padding(bottom = Spacing.sm).testTag("homeSummaryPeriod"))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    MonthMetric(stringResource(R.string.home_income), income, hideDecimals, MaterialTheme.colorScheme.success, Modifier.weight(1f))
+                    MonthMetric(stringResource(R.string.home_spent), spending, hideDecimals, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                    MonthMetric(stringResource(R.string.home_net), net, hideDecimals,
+                        if (net < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
+                        Modifier.weight(1f))
+                }
+                Spacer(Modifier.height(Spacing.lg))
+                MonthBar(stringResource(R.string.home_income), income / scale, MaterialTheme.colorScheme.success)
+                Spacer(Modifier.height(Spacing.sm))
+                MonthBar(stringResource(R.string.home_spending), spending / scale, MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(Spacing.lg))
+                Surface(shape = PillShape, color = MaterialTheme.colorScheme.surfaceContainerHighest) {
+                    Row(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
+                        Text(stringResource(R.string.home_activity), style = MaterialTheme.typography.labelLarge)
+                        Spacer(Modifier.width(Spacing.xs))
+                        Text(
+                            "· " + pluralStringResource(R.plurals.home_transactions_count, transactions.size, transactions.size),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }
@@ -407,16 +460,18 @@ private fun MonthBar(label: String, fraction: Float, color: Color) {
 @Composable
 private fun ReportsSection(reports: List<ReportDashboardPage>, onReportClick: (String) -> Unit,
     onViewAllClick: () -> Unit) {
-    DashboardSectionHeader(stringResource(HomeSection.REPORTS.titleRes), stringResource(R.string.home_view_all), onViewAllClick)
-    DashboardSurface {
-        if (reports.isEmpty()) {
-            InsightRow(stringResource(R.string.home_dashboards), stringResource(R.string.home_explore_trends), onViewAllClick)
-        } else {
-            reports.take(5).forEachIndexed { index, report ->
-                InsightRow(report.name, stringResource(R.string.home_open_dashboard)) { onReportClick(report.id) }
-                if (index != reports.take(5).lastIndex) DashboardDivider()
+    DashboardSectionHeader(stringResource(HomeSection.REPORTS.titleRes))
+    CollapsibleBody {
+        DashboardSurface {
+            if (reports.isEmpty()) {
+                InsightRow(stringResource(R.string.home_dashboards), stringResource(R.string.home_explore_trends), onViewAllClick)
+            } else {
+                reports.take(5).forEachIndexed { index, report ->
+                    InsightRow(report.name, stringResource(R.string.home_open_dashboard)) { onReportClick(report.id) }
+                    if (index != reports.take(5).lastIndex) DashboardDivider()
+                }
+                DashboardFooter(stringResource(R.string.home_view_all_reports), Icons.Outlined.BarChart, onViewAllClick)
             }
-            DashboardFooter(stringResource(R.string.home_view_all_reports), Icons.Outlined.BarChart, onViewAllClick)
         }
     }
 }
@@ -429,28 +484,26 @@ private fun InsightRow(title: String, subtitle: String, onClick: () -> Unit) {
 @Composable
 private fun RecentActivitySection(transactions: List<Transaction>, hideDecimals: Boolean,
     onClick: () -> Unit) {
-    DashboardSectionHeader(stringResource(HomeSection.RECENT_ACTIVITY.titleRes), stringResource(R.string.home_view_all), onClick)
-    if (transactions.isEmpty()) {
-        DashboardEmptyCard(stringResource(R.string.home_no_recent_activity), onClick)
-        return
-    }
-    DashboardSurface {
-        transactions.take(5).forEachIndexed { index, transaction ->
-            ActivityRow(transaction, hideDecimals, onClick)
-            if (index != transactions.take(5).lastIndex) DashboardDivider()
+    DashboardSectionHeader(stringResource(HomeSection.RECENT_ACTIVITY.titleRes))
+    CollapsibleBody {
+        if (transactions.isEmpty()) {
+            DashboardEmptyCard(stringResource(R.string.home_no_recent_activity), onClick)
+            return@CollapsibleBody
         }
-        DashboardFooter(stringResource(R.string.home_view_all_activity), Icons.AutoMirrored.Outlined.ReceiptLong, onClick)
+        DashboardSurface {
+            transactions.take(5).forEachIndexed { index, transaction ->
+                ActivityRow(transaction, hideDecimals, onClick)
+                if (index != transactions.take(5).lastIndex) DashboardDivider()
+            }
+            DashboardFooter(stringResource(R.string.home_view_all_activity), Icons.AutoMirrored.Outlined.ReceiptLong, onClick)
+        }
     }
 }
 
 @Composable
 private fun ActivityRow(transaction: Transaction, hideDecimals: Boolean, onClick: () -> Unit) {
     DashboardRow(onClick) {
-        Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
-            contentAlignment = Alignment.Center) {
-            Text(transaction.payee.ifBlank { "T" }.take(1).uppercase(),
-                color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.Bold)
-        }
+        ClearedMark(transaction)
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
             Text(transaction.payee.ifBlank { stringResource(R.string.home_transaction) }, style = MaterialTheme.typography.bodyLarge,
@@ -464,16 +517,42 @@ private fun ActivityRow(transaction: Transaction, hideDecimals: Boolean, onClick
     }
 }
 
-/** A group label, as on Add transaction, with the section's shortcut on the right. */
+/** Which Home section is being drawn and whether it is collapsed to its header. */
+private class SectionCollapse(val section: HomeSection?, val collapsed: Boolean, val onToggle: (HomeSection) -> Unit)
+
+private val LocalSectionCollapse = compositionLocalOf { SectionCollapse(null, false) {} }
+
+/**
+ * A group label, as on Add transaction, with a collapse arrow at the right end. The whole row, arrow included,
+ * is one tap target with the cards' corner radius that collapses or expands the section.
+ */
 @Composable
-private fun DashboardSectionHeader(title: String, action: String, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
-        verticalAlignment = Alignment.Bottom) {
-        ActuaGroupLabel(title, Modifier.weight(1f))
-        Text(action, modifier = Modifier.clip(PillShape).clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+private fun DashboardSectionHeader(title: String) {
+    val collapse = LocalSectionCollapse.current
+    val toggle = collapse.section?.let { section -> { collapse.onToggle(section) } }
+    val label = stringResource(if (collapse.collapsed) R.string.home_expand_section else R.string.home_collapse_section, title)
+    Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm).padding(top = Spacing.md)
+        .clip(MaterialTheme.shapes.large)
+        .then(if (toggle != null) Modifier.clickable(role = Role.Button, onClickLabel = label, onClick = toggle) else Modifier)
+        .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically) {
+        Text(title, Modifier.weight(1f), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        if (toggle != null) {
+            val rotation by animateFloatAsState(if (collapse.collapsed) 0f else 180f, tween(250), label = "chevron")
+            Icon(Icons.Outlined.ExpandMore, contentDescription = null, Modifier.size(22.dp).rotate(rotation),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
+}
+
+/** A section's body: it grows and shrinks with a fade as the section is expanded or collapsed. */
+@Composable
+private fun CollapsibleBody(content: @Composable ColumnScope.() -> Unit) {
+    AnimatedVisibility(
+        visible = !LocalSectionCollapse.current.collapsed,
+        enter = expandVertically(tween(250)) + fadeIn(tween(250)),
+        exit = shrinkVertically(tween(220)) + fadeOut(tween(150)),
+    ) { Column(content = content) }
 }
 
 /** The shared form-card surface, inset to the screen gutter. */
@@ -484,8 +563,8 @@ private fun DashboardSurface(content: @Composable ColumnScope.() -> Unit) {
 
 /** A tappable list row inside a [DashboardSurface], at the compact row height. */
 @Composable
-private fun DashboardRow(onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = Sizes.compactRowMinHeight).clickable(onClick = onClick)
+private fun DashboardRow(onClick: () -> Unit, modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
+    Row(Modifier.fillMaxWidth().heightIn(min = Sizes.compactRowMinHeight).then(modifier).clickable(onClick = onClick)
         .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         verticalAlignment = Alignment.CenterVertically, content = content)
 }
@@ -537,6 +616,18 @@ private fun accountTypeLabel(type: String): String = when (type) {
     "mortgage" -> stringResource(R.string.home_account_mortgage)
     "debt" -> stringResource(R.string.home_account_debt)
     else -> type.replaceFirstChar { it.uppercase() }
+}
+
+/** The row's clearing state: a lock when reconciled, a check when cleared, an empty circle when not yet. */
+@Composable
+private fun ClearedMark(transaction: Transaction) {
+    val (icon, label, tint) = when {
+        transaction.reconciled -> Triple(Icons.Outlined.Lock, R.string.transactions_filter_reconciled, MaterialTheme.colorScheme.primary)
+        transaction.cleared -> Triple(Icons.Outlined.CheckCircle, R.string.transactions_filter_cleared, MaterialTheme.colorScheme.primary)
+        else -> Triple(Icons.Outlined.RadioButtonUnchecked, R.string.transactions_filter_uncleared,
+            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+    }
+    Icon(icon, contentDescription = stringResource(label), tint = tint, modifier = Modifier.size(20.dp))
 }
 
 @Composable
