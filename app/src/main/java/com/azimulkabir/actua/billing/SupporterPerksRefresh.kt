@@ -26,11 +26,14 @@ fun registerSupporterExtras(context: Context) {
     // confirmation (a new device, a restore) are redrawn once Play confirms.
     SupporterPerks.onGained(WIDGET_STYLE_RESET_ID) { WidgetUpdater.requestAllAsync(appContext) }
     SupporterPerks.register(CELEBRATIONS_RESET_ID) { DisplayPreferences(appContext).celebrationsEnabled = false }
+    // The nickname is kept, so a returning supporter doesn't retype it.
+    SupporterPerks.register(GREETING_RESET_ID) { DisplayPreferences(appContext).greetingEnabled = true }
     SupporterPerks.register(AccentPalette.RESET_ID) { DisplayPreferences(appContext).accent = AccentPalette.Violet }
 }
 
 private const val WIDGET_STYLE_RESET_ID = "widget_style"
 private const val CELEBRATIONS_RESET_ID = "celebrations"
+private const val GREETING_RESET_ID = "greeting"
 private const val PLAY_ANSWER_TIMEOUT_MILLIS = 30_000L
 
 /**

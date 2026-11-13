@@ -241,7 +241,8 @@ yet, how many transactions you've added (so the Google Play version can ask once
 whether you'd like to support Actua, and whether it has already asked you to rate
 Actua on Google Play), whether Google Play last reported you as
 an Actua Supporter and when it was last checked (so the Google Play version can
-show cosmetic Supporter extras), and similar display state on your device.
+show cosmetic Supporter extras), the optional nickname you can give the Supporter
+greeting and the date it last appeared, and similar display state on your device.
 None of it is sent anywhere.
 Support Actua purchases and subscriptions are paid and managed by Google Play;
 Actua never sees your payment details.

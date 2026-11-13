@@ -11,6 +11,8 @@ import org.json.JSONObject
  */
 enum class HomeSection(val title: String, @StringRes val titleRes: Int) {
     READY_TO_BUDGET("Ready to Budget", R.string.home_ready_to_budget),
+    /** The supporter greeting; offered to supporters on the Play build only (see [HomeLayoutPlanner.offered]). */
+    GREETING("Greeting", R.string.home_greeting),
     FAVORITE_CATEGORIES("Favorite Categories", R.string.home_favorite_categories),
     FAVORITE_ACCOUNTS("Favorite Accounts", R.string.home_favorite_accounts),
     UPCOMING("Upcoming", R.string.home_upcoming),
@@ -51,10 +53,33 @@ object HomeLayoutPlanner {
         val known = HomeSection.entries
         val existing = layout.order.filter { it in known }.distinct()
         val missing = known.filterNot { it in existing }
-        val reorderable = (existing + missing).filterNot { it == PINNED }
+        // A layout saved before the greeting existed gets it at the top, not appended at the bottom.
+        val newGreeting = missing.filter { it == HomeSection.GREETING }
+        val reorderable = (newGreeting + existing + (missing - newGreeting.toSet())).filterNot { it == PINNED }
         val order = listOf(PINNED) + reorderable
         val hidden = layout.hidden.filterNot { it == PINNED }.toSet()
         return HomeLayout(order, hidden)
+    }
+
+    /** The sections that exist for this user: everything, minus the supporter-only ones for a non-supporter. */
+    fun offered(supporter: Boolean): Set<HomeSection> =
+        if (supporter) HomeSection.entries.toSet() else HomeSection.entries.toSet() - HomeSection.GREETING
+
+    /** [layout] without the sections that aren't [offered], for screens that list only what the user has. */
+    fun restrict(layout: HomeLayout, offered: Set<HomeSection>): HomeLayout =
+        HomeLayout(layout.order.filter { it in offered }, layout.hidden.filter { it in offered }.toSet())
+
+    /**
+     * Folds a layout edited through [restrict] back into [previous]: sections that weren't offered keep
+     * their place and visibility, so a lapsed supporter who returns finds the greeting where they left it.
+     */
+    fun restore(previous: HomeLayout, edited: HomeLayout, offered: Set<HomeSection>): HomeLayout {
+        val order = edited.order.filter { it in offered }.toMutableList()
+        previous.order.forEachIndexed { index, section ->
+            if (section !in offered) order.add(index.coerceAtMost(order.size), section)
+        }
+        val hidden = edited.hidden.filter { it in offered }.toSet() + previous.hidden.filter { it !in offered }
+        return sanitize(HomeLayout(order, hidden))
     }
 
     /** Moves [sectionId] to just before [targetId] (end of the reorderable sections when null). */

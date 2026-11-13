@@ -133,6 +133,8 @@ fun HomeScreen(
     budgetDisplay: BudgetDisplayOptions = BudgetDisplayOptions(),
     showAccountTypeIcons: Boolean = true,
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
+    greetingFigures: List<GreetingFigure> = emptyList(),
+    greetingNickname: String = "",
     hideDecimalPlaces: Boolean = false,
     onBudgetClick: () -> Unit = {},
     onCategoryClick: (String) -> Unit = {},
@@ -169,6 +171,7 @@ fun HomeScreen(
                     LocalSectionCollapse provides SectionCollapse(section, section in collapsedSections, onToggleCollapsed),
                 ) {
                 when (section) {
+                    HomeSection.GREETING -> GreetingCard(greetingFigures, greetingNickname)
                     HomeSection.READY_TO_BUDGET -> ReadyToBudgetHero(
                         projection.budgetOverview, hideDecimalPlaces, onBudgetClick)
                     HomeSection.FAVORITE_CATEGORIES -> FavoriteCategoriesSection(
