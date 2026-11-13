@@ -328,7 +328,6 @@ fun SettingsScreen(
     }
 
     var page by rememberSaveable { mutableStateOf(SettingsPage.Manage) }
-    var accentOpenedFromExtras by rememberSaveable { mutableStateOf(false) }
     // The post-purchase thank-you is shown once, on the Support page only.
     LaunchedEffect(page) { if (page != SettingsPage.Support) supportBillingManager.dismissThanks() }
     val scrollState = rememberScrollState()
@@ -338,9 +337,7 @@ fun SettingsScreen(
         SettingsPage.Support, SettingsPage.SupporterExtras, SettingsPage.About,
         -> SettingsPage.General
         SettingsPage.CategoryColors, SettingsPage.Holidays -> SettingsPage.Budget
-        SettingsPage.AppIconPicker, SettingsPage.WidgetStylePicker -> SettingsPage.SupporterExtras
-        // The accent picker is opened from both Display (it has free choices) and Supporter extras.
-        SettingsPage.AccentPicker -> if (accentOpenedFromExtras) SettingsPage.SupporterExtras else SettingsPage.Display
+        SettingsPage.AppIconPicker, SettingsPage.AccentPicker, SettingsPage.WidgetStylePicker -> SettingsPage.SupporterExtras
         SettingsPage.Diagnostics -> SettingsPage.About
         SettingsPage.General -> SettingsPage.Manage
         SettingsPage.Manage -> SettingsPage.Manage
@@ -878,14 +875,6 @@ fun SettingsScreen(
                                 onUseDynamicColorChange,
                             )
                         }
-                        if (supporterPerksAvailable()) {
-                            // Violet and Material You are free for everyone, so the accent picker lives here too.
-                            SettingsDivider()
-                            AccentColorRow(useDynamicColor) {
-                                accentOpenedFromExtras = false
-                                page = SettingsPage.AccentPicker
-                            }
-                        }
                     }
                     SettingsGroup {
                         SettingsChoice(
@@ -946,10 +935,7 @@ fun SettingsScreen(
                         onOpenSupport = { page = SettingsPage.Support },
                         onOpenAppIcon = { page = SettingsPage.AppIconPicker },
                         useDynamicColor = useDynamicColor,
-                        onOpenAccent = {
-                            accentOpenedFromExtras = true
-                            page = SettingsPage.AccentPicker
-                        },
+                        onOpenAccent = { page = SettingsPage.AccentPicker },
                         onOpenWidgetStyle = { page = SettingsPage.WidgetStylePicker },
                     )
                 }

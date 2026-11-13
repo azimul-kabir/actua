@@ -193,7 +193,7 @@ Screenshots use a demo budget and follow your GitHub light or dark theme.
 
 ### Supporter extras
 
-Optional and cosmetic, in the Google Play version: choose an app icon, an accent color or a Catppuccin theme, and a widget style under Settings → Supporter extras (the accent color is also under Settings → Display). Budgeting always stays free, and Violet and Material You accents are free for everyone.
+Optional and cosmetic, in the Google Play version: choose an app icon, an accent color or a Catppuccin theme, and a widget style under Settings → Supporter extras. Budgeting always stays free, and Violet and Material You accents are free for everyone.
 
 <table>
   <tr>
