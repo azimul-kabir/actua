@@ -3361,6 +3361,13 @@ fun AppNavigation(
                         displayPreferences.groupTransactionsByDate = it
                         groupTransactionsByDate = it
                     },
+                    hideReconciledTransactions =
+                        com.azimulkabir.actua.data.budget.ActualBudgetDatabase.ALL_ACCOUNTS_VIEW_ID in hideReconciledAccountIds,
+                    onHideReconciledTransactionsChange = { hide ->
+                        mutate(R.string.navigation_updating_account_view) {
+                            repository.setHideReconciled(com.azimulkabir.actua.data.budget.ActualBudgetDatabase.ALL_ACCOUNTS_VIEW_ID, hide)
+                        }
+                    },
                     onSetCleared = { transaction, cleared ->
                         mutate(R.string.navigation_updating_transaction) { repository.setTransactionCleared(transaction.id, cleared) }
                     },
