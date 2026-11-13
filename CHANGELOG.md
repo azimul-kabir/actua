@@ -26,6 +26,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Moved the Supporter extras from Settings → Display to their own page under the Supporters group, keeping the accent color choice in Display ([#1642](https://github.com/azimul-kabir/actua/pull/1642))
 - Changed the bottom tab bar and the + Transaction button to be translucent, with a blur on Android 12 and newer, and more screens to scroll under the bar ([#1640](https://github.com/azimul-kabir/actua/pull/1640))
 - Changed Home to show favorite accounts and categories as full rows that follow the Budget display settings, Recent Activity to show each transaction's cleared or reconciled state, and its section headers to drop the "View" links ([#1638](https://github.com/azimul-kabir/actua/pull/1638))
 - Removed the floating Transaction button from the Reports tab ([#1638](https://github.com/azimul-kabir/actua/pull/1638))

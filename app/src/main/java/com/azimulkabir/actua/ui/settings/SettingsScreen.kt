@@ -126,6 +126,7 @@ internal enum class SettingsPage(@StringRes val titleRes: Int, val depth: Int) {
     CategoryColors(R.string.settings_page_category_colors, 3),
     Holidays(R.string.settings_page_holidays, 3),
     Support(R.string.settings_page_support, 2),
+    SupporterExtras(R.string.settings_supporter_extras_section, 2),
     AppIconPicker(R.string.settings_app_icon, 3),
     AccentPicker(R.string.settings_accent_color, 3),
     WidgetStylePicker(R.string.settings_widget_style, 3),
@@ -327,16 +328,19 @@ fun SettingsScreen(
     }
 
     var page by rememberSaveable { mutableStateOf(SettingsPage.Manage) }
+    var accentOpenedFromExtras by rememberSaveable { mutableStateOf(false) }
     // The post-purchase thank-you is shown once, on the Support page only.
     LaunchedEffect(page) { if (page != SettingsPage.Support) supportBillingManager.dismissThanks() }
     val scrollState = rememberScrollState()
     fun parentPage(current: SettingsPage): SettingsPage = when (current) {
         SettingsPage.Tags -> SettingsPage.Manage
         SettingsPage.Transactions, SettingsPage.Display, SettingsPage.Privacy, SettingsPage.Budget,
-        SettingsPage.Support, SettingsPage.About,
+        SettingsPage.Support, SettingsPage.SupporterExtras, SettingsPage.About,
         -> SettingsPage.General
         SettingsPage.CategoryColors, SettingsPage.Holidays -> SettingsPage.Budget
-        SettingsPage.AppIconPicker, SettingsPage.AccentPicker, SettingsPage.WidgetStylePicker -> SettingsPage.Display
+        SettingsPage.AppIconPicker, SettingsPage.WidgetStylePicker -> SettingsPage.SupporterExtras
+        // The accent picker is opened from both Display (it has free choices) and Supporter extras.
+        SettingsPage.AccentPicker -> if (accentOpenedFromExtras) SettingsPage.SupporterExtras else SettingsPage.Display
         SettingsPage.Diagnostics -> SettingsPage.About
         SettingsPage.General -> SettingsPage.Manage
         SettingsPage.Manage -> SettingsPage.Manage
@@ -578,8 +582,9 @@ fun SettingsScreen(
                             page = SettingsPage.Budget
                         }
                     }
-                    if (supportPurchaseState.isAvailable) SettingsGroup(stringResource(R.string.settings_section_support)) {
-                        SettingsRow(
+                    // The extras stay reachable when Play can't be reached, for a supporter already confirmed.
+                    if (supportPurchaseState.isAvailable || supporterPerksAvailable()) SettingsGroup(stringResource(R.string.settings_section_support)) {
+                        if (supportPurchaseState.isAvailable) SettingsRow(
                             stringResource(R.string.settings_support_actua),
                             if (supportPurchaseState.isSupporter) stringResource(R.string.settings_support_thank_you)
                             else stringResource(R.string.settings_support_description),
@@ -587,6 +592,15 @@ fun SettingsScreen(
                             Icons.Outlined.FavoriteBorder,
                         ) {
                             page = SettingsPage.Support
+                        }
+                        if (supportPurchaseState.isAvailable && supporterPerksAvailable()) SettingsDivider()
+                        if (supporterPerksAvailable()) SettingsRow(
+                            stringResource(R.string.settings_supporter_extras_section),
+                            stringResource(R.string.settings_supporter_extras_description),
+                            true,
+                            Icons.Outlined.AutoAwesome,
+                        ) {
+                            page = SettingsPage.SupporterExtras
                         }
                     }
                     SettingsGroup(stringResource(R.string.settings_section_about)) {
@@ -864,6 +878,14 @@ fun SettingsScreen(
                                 onUseDynamicColorChange,
                             )
                         }
+                        if (supporterPerksAvailable()) {
+                            // Violet and Material You are free for everyone, so the accent picker lives here too.
+                            SettingsDivider()
+                            AccentColorRow(useDynamicColor) {
+                                accentOpenedFromExtras = false
+                                page = SettingsPage.AccentPicker
+                            }
+                        }
                     }
                     SettingsGroup {
                         SettingsChoice(
@@ -914,19 +936,22 @@ fun SettingsScreen(
                             onShowNotesChange,
                         )
                     }
-                    if (supporterPerksAvailable()) {
-                        // Trust Play once it has answered; until then use the last confirmed status.
-                        val isSupporter =
-                            if (supportPurchaseState.purchasesRestored) supportPurchaseState.isSupporter else supporterPerks.isSupporter
-                        SupporterExtras(
-                            isSupporter = isSupporter,
-                            onOpenSupport = { page = SettingsPage.Support },
-                            onOpenAppIcon = { page = SettingsPage.AppIconPicker },
-                            useDynamicColor = useDynamicColor,
-                            onOpenAccent = { page = SettingsPage.AccentPicker },
-                            onOpenWidgetStyle = { page = SettingsPage.WidgetStylePicker },
-                        )
-                    }
+                }
+                SettingsPage.SupporterExtras -> {
+                    // Trust Play once it has answered; until then use the last confirmed status.
+                    val isSupporter =
+                        if (supportPurchaseState.purchasesRestored) supportPurchaseState.isSupporter else supporterPerks.isSupporter
+                    SupporterExtras(
+                        isSupporter = isSupporter,
+                        onOpenSupport = { page = SettingsPage.Support },
+                        onOpenAppIcon = { page = SettingsPage.AppIconPicker },
+                        useDynamicColor = useDynamicColor,
+                        onOpenAccent = {
+                            accentOpenedFromExtras = true
+                            page = SettingsPage.AccentPicker
+                        },
+                        onOpenWidgetStyle = { page = SettingsPage.WidgetStylePicker },
+                    )
                 }
                 SettingsPage.Privacy -> {
                     SettingsGroup {
@@ -1360,8 +1385,8 @@ private fun SupportSettings(
 }
 
 /**
- * The "Supporter extras" group on the Display page (Play build only). A non-supporter sees each
- * extra marked "Supporter" and is sent to the Support page when they tap it.
+ * The Supporter extras page (Play build only). A non-supporter sees each extra marked "Supporter" and is
+ * sent to the Support page when they tap it.
  */
 @Composable
 private fun SupporterExtras(
@@ -1373,7 +1398,7 @@ private fun SupporterExtras(
     onOpenWidgetStyle: () -> Unit,
 ) {
     val context = LocalContext.current
-    SettingsGroup(stringResource(R.string.settings_supporter_extras_section)) {
+    SettingsGroup {
         SupporterExtraRow(
             icon = Icons.Outlined.FavoriteBorder,
             label = stringResource(R.string.settings_app_icon),
@@ -1382,15 +1407,7 @@ private fun SupporterExtras(
         )
         SettingsDivider()
         // Material You and Violet are free for everyone, so this row opens the page for non-supporters too.
-        ActuaFormRow(
-            icon = Icons.Outlined.Palette,
-            label = stringResource(R.string.settings_accent_color),
-            value = stringResource(
-                if (useDynamicColor && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) R.string.settings_accent_material_you
-                else accentLabelRes(DisplayPreferences(context).accent),
-            ),
-            onClick = onOpenAccent,
-        )
+        AccentColorRow(useDynamicColor, onOpenAccent)
         SettingsDivider()
         SupporterExtraRow(
             icon = Icons.Outlined.Widgets,
@@ -1441,6 +1458,21 @@ private fun SupporterExtras(
             )
         }
     }
+}
+
+/** The accent color row: the current palette, or Material You when it is on. Opens the accent picker. */
+@Composable
+private fun AccentColorRow(useDynamicColor: Boolean, onOpen: () -> Unit) {
+    val context = LocalContext.current
+    ActuaFormRow(
+        icon = Icons.Outlined.Palette,
+        label = stringResource(R.string.settings_accent_color),
+        value = stringResource(
+            if (useDynamicColor && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) R.string.settings_accent_material_you
+            else accentLabelRes(DisplayPreferences(context).accent),
+        ),
+        onClick = onOpen,
+    )
 }
 
 /** One supporter extra: its current choice for a supporter, or the "Supporter" marker that leads to the Support page. */

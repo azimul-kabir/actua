@@ -12,6 +12,8 @@ class SettingsNavigationMotionTest {
         assertTrue(isForwardSettingsNavigation(SettingsPage.General, SettingsPage.Display))
         assertTrue(isForwardSettingsNavigation(SettingsPage.General, SettingsPage.Privacy))
         assertTrue(isForwardSettingsNavigation(SettingsPage.General, SettingsPage.About))
+        assertTrue(isForwardSettingsNavigation(SettingsPage.General, SettingsPage.SupporterExtras))
+        assertTrue(isForwardSettingsNavigation(SettingsPage.SupporterExtras, SettingsPage.AppIconPicker))
         assertTrue(isForwardSettingsNavigation(SettingsPage.General, SettingsPage.Budget))
         assertTrue(isForwardSettingsNavigation(SettingsPage.Budget, SettingsPage.CategoryColors))
         assertTrue(isForwardSettingsNavigation(SettingsPage.Budget, SettingsPage.Holidays))
@@ -21,6 +23,7 @@ class SettingsNavigationMotionTest {
     fun parentDestinationsUseReverseMotion() {
         assertFalse(isForwardSettingsNavigation(SettingsPage.Transactions, SettingsPage.General))
         assertFalse(isForwardSettingsNavigation(SettingsPage.Display, SettingsPage.General))
+        assertFalse(isForwardSettingsNavigation(SettingsPage.SupporterExtras, SettingsPage.General))
         assertFalse(isForwardSettingsNavigation(SettingsPage.Privacy, SettingsPage.General))
         assertFalse(isForwardSettingsNavigation(SettingsPage.About, SettingsPage.General))
         assertFalse(isForwardSettingsNavigation(SettingsPage.General, SettingsPage.Manage))
