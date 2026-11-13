@@ -58,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.schedules.BillCalendarItem
 import com.azimulkabir.actua.data.schedules.BillFilter
@@ -123,7 +124,7 @@ fun BillsCalendarScreen(
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(start = 16.dp, end = 16.dp, bottom = 32.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = floatingBarClearance() + 32.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {

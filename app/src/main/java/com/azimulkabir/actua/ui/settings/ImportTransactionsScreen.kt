@@ -13,6 +13,7 @@ import android.provider.OpenableColumns
 import android.content.pm.PackageManager
 import android.provider.Settings
 import androidx.core.content.ContextCompat
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.data.notifications.CapturedTransactionNotifications
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -382,7 +383,8 @@ fun ImportTransactionsScreen(
             ),
             onBack = onBack,
         )
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = Spacing.screenHorizontal)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())
+            .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = floatingBarClearance())) {
             if (!capturedReviewOnly) {
                 Text(stringResource(R.string.import_transactions_privacy),
                     color = MaterialTheme.colorScheme.onSurfaceVariant)

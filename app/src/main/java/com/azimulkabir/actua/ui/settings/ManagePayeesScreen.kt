@@ -47,6 +47,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.budget.model.ActualManagedPayee
 import com.azimulkabir.actua.ui.components.ActuaGroupedItem
@@ -127,7 +128,7 @@ fun ManagePayeesScreen(
             singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
         )
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = Spacing.xl)) {
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = floatingBarClearance() + Spacing.xl)) {
             item(key = "learning") {
                 ActuaGroupedItem(GroupPosition.of(0, 1)) {
                     val categoryLearning = stringResource(R.string.fs_payee_category_learning)

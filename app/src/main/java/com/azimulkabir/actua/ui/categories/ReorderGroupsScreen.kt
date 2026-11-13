@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.data.budget.CategoryReorderPlanner
 import com.azimulkabir.actua.data.budget.GroupDragReorder
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
@@ -137,7 +138,7 @@ fun ReorderGroupsScreen(
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(top = Spacing.sm, bottom = Spacing.xl),
+            contentPadding = PaddingValues(top = Spacing.sm, bottom = floatingBarClearance() + Spacing.xl),
         ) {
             items(localGroups.size, key = { index -> "group:${localGroups[index].id}" }) { index ->
                 val group = localGroups[index]

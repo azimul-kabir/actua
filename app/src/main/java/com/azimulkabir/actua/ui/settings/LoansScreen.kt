@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.ui.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,6 +50,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.model.Account
@@ -101,7 +103,8 @@ fun LoansScreen(
                 Icon(Icons.Outlined.Add, stringResource(R.string.loans_add))
             }
         }
-        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = floatingBarClearance()),
+            verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (loans.isEmpty()) item {
                 Text(stringResource(R.string.loans_empty),
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
