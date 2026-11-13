@@ -7,6 +7,7 @@ import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.preferences.FavoritePreferences
+import com.azimulkabir.actua.model.categoryKey
 
 /** The Single category widget: one chosen category with its available amount and progress. */
 internal object SingleCategoryWidget {
@@ -44,7 +45,7 @@ internal object SingleCategoryWidget {
                 when (val choice = resolveSingle(categories, selected) { it.id.orEmpty() }) {
                     is SingleChoice.Found -> progressStatus = showSingleItem(
                         context, views, categoryRowOf(context, choice.item),
-                        open(context, WidgetActions.CATEGORY, widgetId, choice.item.name),
+                        open(context, WidgetActions.CATEGORY, widgetId, choice.item.categoryKey),
                     )
                     SingleChoice.NotFound -> showSingleMessage(
                         views, context.getString(R.string.widget_single_category_missing),

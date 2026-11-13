@@ -16,6 +16,7 @@ import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.withAppLanguage
 import com.azimulkabir.actua.model.BudgetCategory
+import com.azimulkabir.actua.model.categoryKey
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.applyDisplayFormats
 import com.azimulkabir.actua.ui.components.formatMoneyCents
@@ -88,7 +89,7 @@ internal fun bindItemList(context: Context, views: RemoteViews, widgetId: Int, k
     views.setPendingIntentTemplate(R.id.widget_item_list, openTemplate(context, action, -widgetId))
 }
 
-/** One row of the Favourite categories or Account balances list. [target] is what a tap opens. */
+/** One row of the Favourite categories or Account balances list. [target] is what a tap opens (a category's key). */
 internal data class WidgetRow(
     val name: String,
     val amount: String,
@@ -106,7 +107,7 @@ internal fun categoryRowOf(context: Context, row: BudgetCategory): WidgetRow {
     val denominator = row.assignedCents.coerceAtLeast(1)
     val percent = ((spent * 100 / denominator).coerceIn(0, 100)).toInt()
     return WidgetRow(
-        row.name, money(context, row.balanceCents), percent, row.name,
+        row.name, money(context, row.balanceCents), percent, row.categoryKey,
         ProgressStatus.of(percent, overspent = row.balanceCents < 0), showProgress = true,
         spokenAmount = spoken(context, row.balanceCents),
     )

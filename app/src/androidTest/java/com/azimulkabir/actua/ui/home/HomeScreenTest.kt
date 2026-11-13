@@ -126,8 +126,9 @@ class HomeScreenTest {
         compose.onNodeWithText("Groceries").performClick()
 
         assertTrue(
-            "Tapping a favorite category should open that category, not the generic Budget overview",
-            clickedCategory == "Groceries" && !budgetClicked,
+            "Tapping a favorite category should open that category (by its id, since names repeat across groups), " +
+                "not the generic Budget overview",
+            clickedCategory == "groceries" && !budgetClicked,
         )
     }
 

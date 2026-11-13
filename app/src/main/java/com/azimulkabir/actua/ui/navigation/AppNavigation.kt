@@ -158,6 +158,9 @@ import com.azimulkabir.actua.ui.search.GlobalSearchScreen
 import com.azimulkabir.actua.ui.home.HomeScreen
 import com.azimulkabir.actua.ui.home.HomeDashboardProjection
 import com.azimulkabir.actua.model.Account
+import com.azimulkabir.actua.model.categoryKey
+import com.azimulkabir.actua.model.findCategory
+import com.azimulkabir.actua.model.sameCategory
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.model.PickerChoices
 import com.azimulkabir.actua.model.Transaction
@@ -676,6 +679,9 @@ fun AppNavigation(
     var transactionPrefill by remember { mutableStateOf<com.azimulkabir.actua.ui.transactions.TransactionPrefill?>(null) }
     var editorReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
     var editorReturnsToCategory by rememberSaveable { mutableStateOf(false) }
+    // The key of the category whose details the editor was opened from, so closing it reopens that category
+    // even when its name repeats in another group (transactionCategory is only its name, for the transaction list).
+    var editorReturnCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var editorReturnsToReports by rememberSaveable { mutableStateOf(false) }
     var editorReturnsToReportsDetail by rememberSaveable { mutableStateOf<DetailDestination?>(null) }
     var activeDrillDown by remember { mutableStateOf<Pair<ReportCategory, String>?>(null) }
@@ -1426,7 +1432,8 @@ fun AppNavigation(
     }
 
     fun openAddTransactionForCategory() {
-        transactionCategory = activeBudgetCategory
+        editorReturnCategory = activeBudgetCategory
+        transactionCategory = activeBudgetCategory?.let { findCategory(budgetGroups, it)?.second?.name } ?: activeBudgetCategory
         editingTransaction = null
         newTransactionType = com.azimulkabir.actua.model.Type.EXPENSE
         editorReturnsToTransactions = false
@@ -1642,7 +1649,8 @@ fun AppNavigation(
     BackHandler(enabled = detail != DetailDestination.Main || destination != backGestureHomeDestination) {
         when {
             detail == DetailDestination.EditTransaction && editorReturnsToCategory -> {
-                reopenBudgetCategory = transactionCategory
+                reopenBudgetCategory = editorReturnCategory ?: transactionCategory
+                editorReturnCategory = null
                 detail = DetailDestination.Main
                 destination = MainDestination.Budget
                 editingTransaction = null
@@ -2423,7 +2431,8 @@ fun AppNavigation(
                 onBack = {
                     transactionPrefill = null
                     if (editorReturnsToCategory) {
-                        reopenBudgetCategory = transactionCategory
+                        reopenBudgetCategory = editorReturnCategory ?: transactionCategory
+                        editorReturnCategory = null
                         destination = MainDestination.Budget
                     }
                     if (editorReturnsToReports) {
@@ -2504,7 +2513,8 @@ fun AppNavigation(
                             editingTransaction = null
                             transactionPrefill = null
                             if (editorReturnsToCategory) {
-                                reopenBudgetCategory = transactionCategory
+                                reopenBudgetCategory = editorReturnCategory ?: transactionCategory
+                                editorReturnCategory = null
                                 destination = MainDestination.Budget
                                 detail = DetailDestination.Main
                                 editorReturnsToCategory = false
@@ -2969,9 +2979,7 @@ fun AppNavigation(
                 },
                 modifier = contentModifier,
             )
-            DetailDestination.BudgetAutomation -> budgetGroups.firstNotNullOfOrNull { g ->
-                g.categories.firstOrNull { it.name == editingAutomationCategory }?.let { g to it }
-            }?.let { (group, category) ->
+            DetailDestination.BudgetAutomation -> editingAutomationCategory?.let { findCategory(budgetGroups, it) }?.let { (group, category) ->
                 BudgetAutomationScreen(
                     group = group,
                     category = category,
@@ -3160,9 +3168,9 @@ fun AppNavigation(
                     },
                     onShowCategoryTransactions = { category, thisMonth, returnToDetails ->
                         activeBudgetCategory = null
-                        transactionsReturnCategory = category.takeIf { returnToDetails }
+                        transactionsReturnCategory = category.categoryKey.takeIf { returnToDetails }
                         transactionAccount = null
-                        transactionCategory = category
+                        transactionCategory = category.name
                         transactionMonth = if (thisMonth) shownBudgetMonth else null
                         transactionSearch = ""
                         detail = DetailDestination.Transactions
@@ -3221,7 +3229,7 @@ fun AppNavigation(
                         mutate(R.string.navigation_updating_automatic_holds) { repository.resetIncomeHold(shownBudgetMonth) }
                     },
                     onEditAutomations = { _, category ->
-                        editingAutomationCategory = category.name
+                        editingAutomationCategory = category.categoryKey
                         detail = DetailDestination.BudgetAutomation
                     },
                     onApplyBudgetTemplate = { preview ->
@@ -3275,7 +3283,8 @@ fun AppNavigation(
                     requestedCategoryDetails = reopenBudgetCategory,
                     onCategoryDetailsChange = { category ->
                         activeBudgetCategory = category
-                        if (category == reopenBudgetCategory) reopenBudgetCategory = null
+                        // The request may be a name saved before keys while the screen reports an id: the same category.
+                        if (sameCategory(budgetGroups, category, reopenBudgetCategory)) reopenBudgetCategory = null
                     },
                     returnToRootRequest = rootRequests[MainDestination.Budget] ?: 0,
                     showNotes = showNotes,
