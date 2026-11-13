@@ -146,7 +146,7 @@ class HomeDashboardProjectionTest {
     // default a fresh install (or a restored layout) starts from.
     @Test fun keeps_the_agreed_default_home_section_order() {
         assertEquals(
-            listOf("Ready to Budget", "Favorite Categories", "Favorite Accounts", "Upcoming", "This Month", "Reports", "Recent Activity"),
+            listOf("Ready to Budget", "Greeting", "Favorite Categories", "Favorite Accounts", "Upcoming", "This Month", "Reports", "Recent Activity"),
             HomeSection.entries.map { it.title },
         )
         assertTrue(HomeSection.entries.map { it.name }.toSet().size == HomeSection.entries.size)

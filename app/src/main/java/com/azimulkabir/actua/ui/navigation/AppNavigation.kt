@@ -155,6 +155,7 @@ import com.azimulkabir.actua.ui.reports.ReportDataTable
 import com.azimulkabir.actua.ui.transactions.OneTimeScheduleInfo
 import com.azimulkabir.actua.ui.reports.ReportsScreen
 import com.azimulkabir.actua.ui.search.GlobalSearchScreen
+import com.azimulkabir.actua.ui.home.GreetingStrip
 import com.azimulkabir.actua.ui.home.HomeScreen
 import com.azimulkabir.actua.ui.home.HomeDashboardProjection
 import com.azimulkabir.actua.model.Account
@@ -185,6 +186,8 @@ import com.azimulkabir.actua.data.sync.SyncSignals
 import com.azimulkabir.actua.data.sync.SyncStatus
 import com.azimulkabir.actua.data.sync.SyncStatusStore
 import com.azimulkabir.actua.data.home.HomeLayout
+import com.azimulkabir.actua.data.home.HomeLayoutPlanner
+import com.azimulkabir.actua.data.home.HomeSection
 import com.azimulkabir.actua.data.home.Holiday
 import com.azimulkabir.actua.data.home.HolidayCodec
 import com.azimulkabir.actua.data.home.MonthStartRule
@@ -542,6 +545,16 @@ fun AppNavigation(
         RootListData.load(repository)
     }
     val accounts = rootLists.accounts
+    var greetingEnabled by remember { mutableStateOf(displayPreferences.greetingEnabled) }
+    var greetingNickname by remember { mutableStateOf(displayPreferences.greetingNickname) }
+    DisposableEffect(displayPreferences) {
+        onDispose(displayPreferences.observeGreeting {
+            greetingEnabled = displayPreferences.greetingEnabled
+            greetingNickname = displayPreferences.greetingNickname
+        })
+    }
+    // Bumped on every user scroll so the start-page greeting strip can go away when the page scrolls.
+    var greetingScrollCount by remember { mutableIntStateOf(0) }
     // Transactions bank sync added that haven't been looked at yet, by account id (#1066).
     val newBankTransactionStore = remember { NewBankTransactions(context) }
     var newBankTransactions by remember(activeBudgetId) {
@@ -605,6 +618,7 @@ fun AppNavigation(
         delay(1_000)
         withContext(Dispatchers.IO) { ScheduleReminderScheduler.refresh(appContext) }
     }
+    val greeting = rememberGreetingState(repository, dataVersion, budgetGroups, schedules)
     val upcomingTransactions = remember(schedules, homeMonthStart.nonWorkingDays) {
         upcomingTransactionsFrom(
             schedules,
@@ -1445,6 +1459,7 @@ fun AppNavigation(
     val fabScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (kotlin.math.abs(available.y) > 2f) greetingScrollCount += 1
                 if (available.y < -2f) transactionFabExpanded = false
                 if (available.y > 2f) transactionFabExpanded = true
                 tabBarScroll.onScroll(available.y)
@@ -1784,6 +1799,19 @@ fun AppNavigation(
                 )
             } else if (shouldShowSyncBanner(syncStatus) && repository.isUsingActualBudget) {
                 SyncStatusBanner()
+            } else {
+                // Supporter extra: a slim once-a-day hello on the start page, part of the content, never an overlay.
+                val greetingStart = backGestureHomeDestination ?: visibleMainDestinations.firstOrNull()
+                GreetingStrip(
+                    eligible = greeting.show && greetingEnabled && repository.isUsingActualBudget &&
+                        detail == DetailDestination.Main && destination == greetingStart &&
+                        destination != MainDestination.Home && unopenedBudgetDialog == null && !budgetReplacementInProgress,
+                    figures = greeting.figures,
+                    nickname = greetingNickname,
+                    budgetId = activeBudgetId,
+                    scrollCount = greetingScrollCount,
+                    onOpenHome = { destination = MainDestination.Home },
+                )
             }
         },
         floatingActionButton = {
@@ -2962,9 +2990,10 @@ fun AppNavigation(
                 onMutateSync = { labelRes, action -> mutateSync(labelRes, action) },
             )
             DetailDestination.CustomizeHome -> CustomizeHomeScreen(
-                layout = homeLayout,
+                layout = HomeLayoutPlanner.restrict(homeLayout, HomeLayoutPlanner.offered(greeting.supporter)),
                 onBack = { detail = DetailDestination.Main },
-                onLayoutChange = { updated ->
+                onLayoutChange = { edited ->
+                    val updated = HomeLayoutPlanner.restore(homeLayout, edited, HomeLayoutPlanner.offered(greeting.supporter))
                     homePreferences.save(updated)
                     homeLayout = updated
                 },
@@ -3088,7 +3117,11 @@ fun AppNavigation(
                             monthStart = homeMonthStart,
                         )
                     },
-                    sections = homeLayout.visibleSections,
+                    sections = homeLayout.visibleSections.filter {
+                        it != HomeSection.GREETING || (greeting.show && greetingEnabled)
+                    },
+                    greetingFigures = greeting.figures,
+                    greetingNickname = greetingNickname,
                     hideDecimalPlaces = hideDecimalPlaces,
                     onBudgetClick = { destination = MainDestination.Budget },
                     onCategoryClick = { category ->
@@ -3565,6 +3598,9 @@ fun AppNavigation(
                     onMonthStartChange = onMonthStartChange,
                     holidays = homeHolidays,
                     onHolidaysChange = onHolidaysChange,
+                    greetingFigures = greeting.figures,
+                    greetingVisible = greeting.show,
+                    greetingNickname = greetingNickname,
                     onConnectionClick = { detail = DetailDestination.Connection },
                     decimalPlacesMode = decimalPlacesMode,
                     onDecimalPlacesModeChange = settingsDecimalPlacesModeChange,

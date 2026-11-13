@@ -204,6 +204,30 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(CELEBRATIONS, true)
         set(value) { preferences.edit().putBoolean(CELEBRATIONS, value).apply() }
 
+    /** Whether a supporter wants the greeting strip and Home card (Play build); on until they turn it off. */
+    var greetingEnabled: Boolean
+        get() = preferences.getBoolean(GREETING_ENABLED, true)
+        set(value) { preferences.edit().putBoolean(GREETING_ENABLED, value).apply() }
+
+    /** The optional name in the greeting, device-local; at most 24 characters, trimmed. Empty means no name. */
+    var greetingNickname: String
+        get() = (preferences.getString(GREETING_NICKNAME, null) ?: "").trim()
+        set(value) { preferences.edit().putString(GREETING_NICKNAME, value.take(GREETING_NICKNAME_MAX)).apply() }
+
+    /** The device-local date (yyyy-MM-dd) the start-page greeting strip last appeared, or null. */
+    var greetingStripLastShown: String?
+        get() = preferences.getString(GREETING_STRIP_LAST_SHOWN, null)
+        set(value) { preferences.edit().putString(GREETING_STRIP_LAST_SHOWN, value).apply() }
+
+    /** Calls [onChange] whenever the greeting toggle or nickname changes. Returns how to stop. */
+    fun observeGreeting(onChange: () -> Unit): () -> Unit {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == GREETING_ENABLED || key == GREETING_NICKNAME) onChange()
+        }
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        return { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
     var startPage: String
         get() {
             val stored = preferences.getString(START_PAGE, "Budget") ?: "Budget"
@@ -321,6 +345,10 @@ class DisplayPreferences(context: Context) {
         const val ACCENT = "accent"
         const val WIDGET_STYLE = "widget_style"
         const val CELEBRATIONS = "celebrations"
+        const val GREETING_ENABLED = "greeting_enabled"
+        const val GREETING_NICKNAME = "greeting_nickname"
+        const val GREETING_STRIP_LAST_SHOWN = "greeting_strip_last_shown"
+        const val GREETING_NICKNAME_MAX = 24
         const val START_PAGE = "start_page"
         const val LEGACY_MORE_PAGE = "More"
         const val LEGACY_REPORTS_PAGE = "Reports"

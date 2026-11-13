@@ -377,4 +377,8 @@
     <string name="diagnostics_clipboard_label">Actua diagnostics</string>
     <string name="diagnostics_email_subject">Actua diagnostics report</string>
     <string name="diagnostics_email_chooser">Email diagnostics</string>
+    <string name="settings_greeting">Greeting</string>
+    <string name="settings_greeting_description">A friendly hello with a few counts about your budgeting, once a day on your start page and on Home. Never shows amounts.</string>
+    <string name="settings_greeting_nickname">Nickname</string>
+    <string name="settings_greeting_nickname_description">Optional. Used in the greeting and kept on this device.</string>
 </resources>

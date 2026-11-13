@@ -361,4 +361,8 @@
 <string name="diagnostics_email_chooser">Enviar diagnósticos por correo</string>
     <string name="settings_keep_last_transaction_date">Mantener la fecha de la última transacción</string>
     <string name="settings_keep_last_transaction_date_description">Las transacciones nuevas empiezan con la fecha de la última que añadiste, hasta que cierres la aplicación</string>
+    <string name="settings_greeting">Saludo</string>
+    <string name="settings_greeting_description">Un saludo amable con algunos recuentos de tu presupuesto, una vez al día en tu página de inicio y en Inicio. Nunca muestra importes.</string>
+    <string name="settings_greeting_nickname">Apodo</string>
+    <string name="settings_greeting_nickname_description">Opcional. Se usa en el saludo y se guarda en este dispositivo.</string>
 </resources>

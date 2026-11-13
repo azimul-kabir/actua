@@ -367,4 +367,29 @@
         <item quantity="one">%1$d transaction</item>
         <item quantity="other">%1$d transactions</item>
     </plurals>
+    <string name="home_greeting">Greeting</string>
+    <string name="home_greeting_morning">Good morning</string>
+    <string name="home_greeting_afternoon">Good afternoon</string>
+    <string name="home_greeting_evening">Good evening</string>
+    <string name="home_greeting_morning_named">Good morning, %1$s</string>
+    <string name="home_greeting_afternoon_named">Good afternoon, %1$s</string>
+    <string name="home_greeting_evening_named">Good evening, %1$s</string>
+    <plurals name="home_greeting_categories">
+        <item quantity="one">%1$d of %2$d category on budget</item>
+        <item quantity="other">%1$d of %2$d categories on budget</item>
+    </plurals>
+    <plurals name="home_greeting_uncategorized">
+        <item quantity="one">%d transaction to categorize</item>
+        <item quantity="other">%d transactions to categorize</item>
+    </plurals>
+    <plurals name="home_greeting_bills_due">
+        <item quantity="one">%d bill due this week</item>
+        <item quantity="other">%d bills due this week</item>
+    </plurals>
+    <plurals name="home_greeting_added">
+        <item quantity="one">%d transaction added this week</item>
+        <item quantity="other">%d transactions added this week</item>
+    </plurals>
+    <string name="home_greeting_open_home">Open Home</string>
+    <string name="home_greeting_dismiss">Dismiss greeting</string>
 </resources>

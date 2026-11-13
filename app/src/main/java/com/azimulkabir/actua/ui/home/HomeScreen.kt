@@ -95,6 +95,8 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     projection: HomeDashboardProjection = HomeDashboardProjection.empty(),
     sections: List<HomeSection> = HomeSection.entries,
+    greetingFigures: List<GreetingFigure> = emptyList(),
+    greetingNickname: String = "",
     hideDecimalPlaces: Boolean = false,
     onBudgetClick: () -> Unit = {},
     onCategoryClick: (String) -> Unit = {},
@@ -128,6 +130,7 @@ fun HomeScreen(
         sections.forEach { section ->
             item(key = section.name) {
                 when (section) {
+                    HomeSection.GREETING -> GreetingCard(greetingFigures, greetingNickname)
                     HomeSection.READY_TO_BUDGET -> ReadyToBudgetHero(
                         projection.budgetOverview, hideDecimalPlaces, onBudgetClick)
                     HomeSection.FAVORITE_CATEGORIES -> FavoriteCategoriesSection(

@@ -140,6 +140,31 @@ class ActualBudgetDatabase private constructor(
         return result
     }
 
+    /**
+     * The counts behind the supporter greeting, from one aggregate so no transaction is loaded. [count] is what
+     * the transaction list shows (live rows, a split once, a transfer once per side), to tell an empty budget.
+     * [uncategorized] is live, non-transfer rows without a category in open on-budget accounts. [added] counts
+     * the rows dated from [fromDay] to [toDay], both Actual yyyyMMdd day integers.
+     */
+    @Synchronized
+    fun fetchGreetingStats(fromDay: Int, toDay: Int): GreetingStats = database.rawQuery(
+        """
+            SELECT
+              SUM(CASE WHEN t.isChild = 0 OR t.isChild IS NULL THEN 1 ELSE 0 END),
+              SUM(CASE WHEN t.category IS NULL AND (t.isParent = 0 OR t.isParent IS NULL)
+                        AND t.transferred_id IS NULL AND a.offbudget = 0 AND a.closed = 0 THEN 1 ELSE 0 END),
+              SUM(CASE WHEN (t.isChild = 0 OR t.isChild IS NULL) AND t.date BETWEEN ? AND ? THEN 1 ELSE 0 END)
+            FROM transactions t
+            JOIN accounts a ON a.id = t.acct AND (a.tombstone = 0 OR a.tombstone IS NULL)
+            WHERE t.date IS NOT NULL AND (t.tombstone = 0 OR t.tombstone IS NULL)
+        """.trimIndent(), arrayOf(fromDay.toString(), toDay.toString()),
+    ).use { cursor ->
+        if (cursor.moveToFirst()) GreetingStats(cursor.getInt(0), cursor.getInt(1), cursor.getInt(2))
+        else GreetingStats(0, 0, 0)
+    }
+
+    data class GreetingStats(val count: Int, val uncategorized: Int, val added: Int)
+
     /** Actual's experimental `account_groups`: user-defined account containers, present only when the feature is enabled server-side. */
     @Synchronized
     fun fetchAccountGroups(): List<ActualAccountGroup> {
