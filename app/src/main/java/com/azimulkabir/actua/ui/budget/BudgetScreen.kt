@@ -157,6 +157,8 @@ import com.azimulkabir.actua.model.BudgetCategoryView
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.model.BudgetTarget
+import com.azimulkabir.actua.model.categoryKey
+import com.azimulkabir.actua.model.findCategory
 import com.azimulkabir.actua.model.BudgetTemplatePlanner
 import com.azimulkabir.actua.model.BudgetTemplatePreview
 import com.azimulkabir.actua.model.BudgetScheduleFunding
@@ -256,7 +258,7 @@ fun BudgetScreen(
     onSetGroupHidden: (String, Boolean, onChanged: () -> Unit) -> Unit = { _, _, _ -> },
     onRenameCategory: (String, String, String) -> Unit = { _, _, _ -> },
     onRenameGroup: (String, String) -> Unit = { _, _ -> },
-    onShowCategoryTransactions: (String, Boolean, Boolean) -> Unit = { _, _, _ -> },
+    onShowCategoryTransactions: (BudgetCategory, Boolean, Boolean) -> Unit = { _, _, _ -> },
     onTransferBudget: (String?, String?, String?, String?, Long) -> Unit = { _, _, _, _, _ -> },
     /**
      * The To Budget sheet's move: funding [category] from To Budget, or (when [covering]) covering a
@@ -374,15 +376,15 @@ fun BudgetScreen(
         }
     }
 
+    // The requested category is a key (its id, or a name from a state saved before keys), so a name that repeats
+    // across groups opens the category that was asked for, not the first one with that name.
     LaunchedEffect(requestedCategoryDetails, groups) {
         requestedCategoryDetails?.let { requested ->
-            groups.firstNotNullOfOrNull { group ->
-                group.categories.firstOrNull { it.name == requested }?.let { group to it }
-            }?.let { categoryDetails = it }
+            findCategory(groups, requested)?.let { categoryDetails = it }
         }
     }
-    LaunchedEffect(categoryDetails?.second?.name) {
-        onCategoryDetailsChange(categoryDetails?.second?.name)
+    LaunchedEffect(categoryDetails?.second?.categoryKey) {
+        onCategoryDetailsChange(categoryDetails?.second?.categoryKey)
     }
 
     val overspentCategories = remember(groups) {
@@ -602,7 +604,7 @@ fun BudgetScreen(
                                     category = category,
                                     position = GroupPosition.of(index, visibleCategories.size),
                                     hideDecimalPlaces = hideDecimalPlaces,
-                                    onClick = { onShowCategoryTransactions(category.name, true, false) },
+                                    onClick = { onShowCategoryTransactions(category, true, false) },
                                     onLongClick = { selectedCategory = category },
                                 )
                             } else if (budgetView == "Plan") {
@@ -646,8 +648,8 @@ fun BudgetScreen(
             onEditBudget = { selectedCategory = null; editingBudget = parent to category },
             onSetTarget = { selectedCategory = null; onEditAutomations(parent, category) },
             onDetails = { selectedCategory = null; categoryDetails = parent to category },
-            onTransactionsThisMonth = { selectedCategory = null; onShowCategoryTransactions(category.name, true, false) },
-            onAllTransactions = { selectedCategory = null; onShowCategoryTransactions(category.name, false, false) },
+            onTransactionsThisMonth = { selectedCategory = null; onShowCategoryTransactions(category, true, false) },
+            onAllTransactions = { selectedCategory = null; onShowCategoryTransactions(category, false, false) },
             onMoveMoney = { selectedCategory = null; movingBudget = parent to category },
             // Envelope budgets only: Actual 26.11's "Fund goal from To Budget".
             fundGoalCents = if (category.isIncome) null else overview.toBudgetCents?.let(category::goalFundAmountCents),
@@ -893,10 +895,10 @@ fun BudgetScreen(
             transactions = recentCategoryTransactions,
             onRename = { categoryDetails = null; renamingCategory = group to category },
             onTransactionsThisMonth = {
-                categoryDetails = null; onShowCategoryTransactions(category.name, true, true)
+                categoryDetails = null; onShowCategoryTransactions(category, true, true)
             },
             onAllTransactions = {
-                categoryDetails = null; onShowCategoryTransactions(category.name, false, true)
+                categoryDetails = null; onShowCategoryTransactions(category, false, true)
             },
             hidden = category.hidden,
             favorite = category.id in favoriteCategoryIds,
