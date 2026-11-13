@@ -1433,17 +1433,15 @@ private fun SupportOptionRow(option: SupportOption, isProcessing: Boolean, enabl
         SupportProduct.SupporterTier4,
         -> Triple(Icons.Outlined.FavoriteBorder, R.string.settings_supporter_badge, null)
     }
-    val price = if (option.product.kind == SupportProductKind.Subscription) {
-        stringResource(R.string.settings_support_monthly_price, option.priceLabel)
-    } else {
-        option.priceLabel
-    }
+    // A subscription price ("BDT 125.00 / month") is too long to sit beside the title without
+    // squeezing the description, so it gets its own line under the title instead.
+    val isSubscription = option.product.kind == SupportProductKind.Subscription
     ActuaFormRow(
         icon = icon,
         label = stringResource(labelRes),
-        value = null,
+        value = if (isSubscription) stringResource(R.string.settings_support_monthly_price, option.priceLabel) else null,
         caption = captionRes?.let { stringResource(it) },
-        supportingValue = price,
+        supportingValue = if (isSubscription) null else option.priceLabel,
         enabled = enabled,
         trailing = if (isProcessing) {
             { CircularProgressIndicator(Modifier.padding(start = Spacing.sm).size(18.dp), strokeWidth = 2.dp) }
