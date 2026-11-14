@@ -345,6 +345,8 @@
     <string name="settings_contact_url" translatable="false">actua@azimulkabir.com</string>
     <string name="settings_privacy_policy">Política de Privacidade</string>
     <string name="settings_privacy_policy_description">Quais dados o Actua armazena, sincroniza e nunca coleta</string>
+    <string name="settings_terms_of_service">Termos de Serviço</string>
+    <string name="settings_terms_of_service_description">Termos de uso do Actua e das compras de Apoiar o Actua</string>
     <string name="settings_diagnostics">Diagnóstico</string>
     <string name="settings_diagnostics_description">Copie, salve ou envie por e-mail um relatório da atividade recente do app para resolver problemas</string>
     <string name="settings_section_credits">Créditos</string>
