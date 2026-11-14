@@ -3352,6 +3352,7 @@ fun AppNavigation(
                     showNotes = showNotes,
                     hideIncomeGroup = hideIncomeGroupInBudget,
                     hasFab = hasFab,
+                    conventionalAmountEntry = conventionalAmountEntry,
                 ) }
                 MainDestination.Accounts -> NavigationAccountsScreen(
                     repository = repository,
