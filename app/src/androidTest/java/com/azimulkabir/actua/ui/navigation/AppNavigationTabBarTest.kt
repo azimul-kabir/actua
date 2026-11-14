@@ -141,6 +141,8 @@ class AppNavigationTabBarTest {
         composeRule.onNodeWithContentDescription("Accounts", useUnmergedTree = true).performClick()
         // The demo seeds localized account names; resolve the expected label from resources.
         val checkingName = context.getString(R.string.demo_account_checking)
+        // The account list loads off the main thread, which the test rule does not wait for.
+        composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText(checkingName).fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithText(checkingName).performClick()
         composeRule.onNodeWithContentDescription("Add", useUnmergedTree = true).performClick()
 
