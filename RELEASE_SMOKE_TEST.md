@@ -418,3 +418,4 @@ Use this checklist for release candidates before promoting a beta or stable buil
 Record the release candidate, commit SHA, device/Android version, Actual server version, tester, date, failures found, and whether each failure blocks release.
 
 A release should not be promoted to stable while any safety/data-integrity item is unresolved. Beta releases may carry known non-critical UI issues only when they are documented and do not risk budget data.
+- [ ] With Conventional amount entry on, the Budget screen's assign, move money, To Budget move and hold keypads enter whole units (typing 12 gives 12.00); with it off they shift digits into cents (typing 12 gives 0.12). Changing the setting applies without restarting the app.
