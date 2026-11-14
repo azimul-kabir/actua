@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.settings
 
+import com.azimulkabir.actua.ui.navigation.RootRequestEffect
 import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -330,7 +331,9 @@ fun SettingsScreen(
     var page by rememberSaveable { mutableStateOf(SettingsPage.Manage) }
     // The post-purchase thank-you is shown once, on the Support page only.
     LaunchedEffect(page) { if (page != SettingsPage.Support) supportBillingManager.dismissThanks() }
-    val scrollState = rememberScrollState()
+    // One state per page, so a parent page comes back where the user left it and the two pages in a
+    // transition don't drive the same scroll offset.
+    val scrollStates = SettingsPage.entries.associateWith { rememberScrollState() }
     fun parentPage(current: SettingsPage): SettingsPage = when (current) {
         SettingsPage.Tags -> SettingsPage.Manage
         SettingsPage.Transactions, SettingsPage.Display, SettingsPage.Privacy, SettingsPage.Budget,
@@ -351,10 +354,8 @@ fun SettingsScreen(
             onSupportPageOpened()
         }
     }
-    LaunchedEffect(returnToRootRequest) {
-        if (returnToRootRequest > 0) {
-            if (page != SettingsPage.Manage) page = SettingsPage.Manage else scrollState.animateScrollTo(0)
-        }
+    RootRequestEffect(returnToRootRequest) {
+        if (page != SettingsPage.Manage) page = SettingsPage.Manage else scrollStates.getValue(page).animateScrollTo(0)
     }
     BackHandler(enabled = page != SettingsPage.Manage, onBack = ::navigateBack)
     fun openFullScreen(action: () -> Unit) {
@@ -399,7 +400,7 @@ fun SettingsScreen(
                 },
                 modifier = Modifier.fillMaxSize(),
             )
-        } else Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
+        } else Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollStates.getValue(shownPage))) {
             ActuaScreenHeader(
                 title = stringResource(shownPage.titleRes),
                 onBack = if (shownPage != SettingsPage.Manage) ::navigateBack else null,
@@ -669,7 +670,7 @@ fun SettingsScreen(
                             true,
                             Icons.Outlined.CreditCard,
                         ) {
-                            openFullScreen(onCreditCardsClick)
+                            onCreditCardsClick()
                         }
                         ActuaCardDivider()
                         SettingsRow(
@@ -678,7 +679,7 @@ fun SettingsScreen(
                             true,
                             Icons.Outlined.AccountBalance,
                         ) {
-                            openFullScreen(onLoansClick)
+                            onLoansClick()
                         }
                     }
                 }
@@ -1022,7 +1023,7 @@ fun SettingsScreen(
                             stringResource(R.string.settings_payee_locations),
                             stringResource(R.string.settings_payee_locations_description),
                             true,
-                        ) { openFullScreen(onPayeeLocationsClick) }
+                        ) { onPayeeLocationsClick() }
                     }
                     SettingsNote(
                         if (locationPermissionGranted) {

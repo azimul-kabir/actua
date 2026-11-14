@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.transactions
 
+import com.azimulkabir.actua.ui.navigation.RootRequestEffect
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -263,13 +264,11 @@ fun TransactionsScreen(
     DisposableEffect(Unit) {
         onDispose { onReconcileVisibilityChange(false) }
     }
-    LaunchedEffect(returnToRootRequest) {
-        if (returnToRootRequest > 0) {
-            when {
-                viewed != null -> viewed = null
-                showSearch -> showSearch = false
-                else -> listState.animateScrollToItem(0)
-            }
+    RootRequestEffect(returnToRootRequest) {
+        when {
+            viewed != null -> viewed = null
+            showSearch -> showSearch = false
+            else -> listState.animateScrollToItem(0)
         }
     }
     var accountNote by remember(account) { mutableStateOf(account?.note.orEmpty()) }

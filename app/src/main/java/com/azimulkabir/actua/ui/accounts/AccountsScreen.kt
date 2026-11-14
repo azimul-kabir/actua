@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.accounts
 
+import com.azimulkabir.actua.ui.navigation.RootRequestEffect
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -212,9 +213,7 @@ fun AccountsScreen(
     initialEditMode: Boolean = false,
 ) {
     val listState = rememberLazyListState()
-    LaunchedEffect(scrollToTopRequest) {
-        if (scrollToTopRequest > 0) listState.animateScrollToItem(0)
-    }
+    RootRequestEffect(scrollToTopRequest) { listState.animateScrollToItem(0) }
     val context = LocalContext.current
     val accountsUiPreferences = remember(context) {
         context.applicationContext.getSharedPreferences("budget_ui_preferences", android.content.Context.MODE_PRIVATE)
