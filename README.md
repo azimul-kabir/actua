@@ -263,6 +263,10 @@ Found a bug or have an idea? [Open an issue](https://github.com/azimul-kabir/act
 
 Want to discuss Actua, test beta builds, or help with development? [Join the Discord server](https://discord.gg/FhedEyP97f).
 
+## Privacy and terms
+
+See the [Privacy Policy](PRIVACY.md) and the [Terms of Service](TERMS.md), which also cover the optional Support Actua purchases in the Google Play version. Both are published on the [website](https://actua.azimulkabir.com/).
+
 ## License
 
 Actua is free software licensed under the [GNU General Public License v3.0](LICENSE).
