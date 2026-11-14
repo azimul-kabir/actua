@@ -169,6 +169,8 @@
 <string name="settings_start_page">Página de inicio</string>
 <string name="settings_hide_tab_bar_on_scroll">Ocultar barra de pestañas al desplazarse</string>
 <string name="settings_hide_tab_bar_on_scroll_description">La barra de pestañas desaparece al desplazarte hacia abajo y vuelve a aparecer al subir</string>
+<string name="settings_blur_tab_bar">Desenfocar detrás de la barra de pestañas</string>
+<string name="settings_blur_tab_bar_description">Un efecto de vidrio esmerilado detrás de la barra de pestañas y el botón Transacción. Puede hacer que el desplazamiento sea menos fluido en algunos teléfonos</string>
 <string name="settings_bottom_navigation_labels">Etiquetas de navegación inferior</string>
 <string name="settings_navigation_icons_names">Iconos y nombres</string>
 <string name="settings_navigation_icons_only">Solo iconos</string>

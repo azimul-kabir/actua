@@ -24,6 +24,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added a Report card home-screen widget showing one of your Reports dashboard cards as a single number ([#1584](https://github.com/azimul-kabir/actua/pull/1584))
 - Added an Account type icons switch to the Accounts tab's display options to show or hide the icon beside each account ([#1586](https://github.com/azimul-kabir/actua/pull/1586))
 - Added a one-time request to rate Actua on Google Play, after 14 days and 50 added transactions, in the Google Play version ([#1588](https://github.com/azimul-kabir/actua/pull/1588))
+- Added a Blur behind the tab bar switch in Settings → Display; with it off, and below Android 12, the tab bar and Transaction button are opaque ([#1646](https://github.com/azimul-kabir/actua/pull/1646))
 
 ### Changed
 
@@ -47,6 +48,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Fixed
 
 - Fixed the budget keypads ignoring the Conventional amount entry setting ([#1656](https://github.com/azimul-kabir/actua/pull/1656))
+- Fixed Settings and other tabs losing your place when you go back or switch tabs ([#1655](https://github.com/azimul-kabir/actua/pull/1655))
 - Fixed the Transactions tab's "Hide reconciled transactions" switch doing nothing ([#1633](https://github.com/azimul-kabir/actua/pull/1633))
 - Fixed a favorite category opening the first category with the same name instead of the one in its own group ([#1628](https://github.com/azimul-kabir/actua/pull/1628))
 - Made the spending bars in the Income and spending widget a softer tone instead of near-black on light widget styles ([#1621](https://github.com/azimul-kabir/actua/pull/1621))

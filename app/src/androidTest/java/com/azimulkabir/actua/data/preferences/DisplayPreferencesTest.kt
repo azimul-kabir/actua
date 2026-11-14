@@ -188,4 +188,13 @@ class DisplayPreferencesTest {
 
         assertTrue(DisplayPreferences(context).keepLastTransactionDate)
     }
+
+    @Test fun tabBarBlurIsOnByDefaultAndPersistsWhenDisabled() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        assertTrue(DisplayPreferences(context).blurTabBar)
+
+        DisplayPreferences(context).blurTabBar = false
+
+        assertFalse(DisplayPreferences(context).blurTabBar)
+    }
 }

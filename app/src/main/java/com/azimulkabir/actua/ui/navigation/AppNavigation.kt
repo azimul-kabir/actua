@@ -1681,16 +1681,39 @@ fun AppNavigation(
         ?: visibleMainDestinations.firstOrNull()
         ?: MainDestination.Accounts
 
+    // The on-screen arrow and the back gesture both leave these screens through here, so they can't disagree.
+    val leaveEditor: () -> Unit = {
+        transactionPrefill = null
+        if (editorReturnsToCategory) {
+            reopenBudgetCategory = editorReturnCategory ?: transactionCategory
+            editorReturnCategory = null
+            destination = MainDestination.Budget
+        }
+        if (editorReturnsToReports) {
+            destination = MainDestination.Reports
+        }
+        detail = when {
+            editorReturnsToStatementDetail -> DetailDestination.CreditCardStatementDetail
+            editorReturnsToTransactions -> DetailDestination.Transactions
+            editorReturnsToReports -> editorReturnsToReportsDetail ?: DetailDestination.Main
+            else -> DetailDestination.Main
+        }
+        editingTransaction = null
+        if (!editorReturnsToTransactions && !editorReturnsToCategory && !editorReturnsToStatementDetail && !editorReturnsToReports) destination = addOrigin
+        editorReturnsToCategory = false
+        editorReturnsToStatementDetail = false
+        editorReturnsToReports = false
+        editorReturnsToReportsDetail = null
+    }
+    val leaveCreditCards: () -> Unit = {
+        detail = if (creditCardsReturnToBills && destination != MainDestination.Bills) DetailDestination.BillsCalendar else DetailDestination.Main
+        creditCardsReturnToBills = false
+    }
+
     BackHandler(enabled = detail != DetailDestination.Main || destination != backGestureHomeDestination) {
         when {
-            detail == DetailDestination.EditTransaction && editorReturnsToCategory -> {
-                reopenBudgetCategory = editorReturnCategory ?: transactionCategory
-                editorReturnCategory = null
-                detail = DetailDestination.Main
-                destination = MainDestination.Budget
-                editingTransaction = null
-                editorReturnsToCategory = false
-            }
+            detail == DetailDestination.EditTransaction -> leaveEditor()
+            detail == DetailDestination.CreditCards -> leaveCreditCards()
             detail == DetailDestination.Rules && scheduleRuleId != null -> returnFromScheduleRule()
             detail == DetailDestination.BillsCalendar && billsCalendarReturnsToSchedules -> {
                 billsCalendarReturnsToSchedules = false
@@ -1702,17 +1725,6 @@ fun AppNavigation(
             detail == DetailDestination.CreditCardStatements -> {
                 detail = if (statementsReturnToTransactions) DetailDestination.Transactions else DetailDestination.CreditCards
                 statementsReturnToTransactions = false
-            }
-            detail == DetailDestination.EditTransaction && editorReturnsToReports -> {
-                destination = MainDestination.Reports
-                detail = editorReturnsToReportsDetail ?: DetailDestination.Main
-                editingTransaction = null
-                editorReturnsToReports = false
-                editorReturnsToReportsDetail = null
-            }
-            detail == DetailDestination.EditTransaction && editorReturnsToTransactions -> {
-                detail = DetailDestination.Transactions
-                editingTransaction = null
             }
             detail == DetailDestination.ReorderGroups -> {
                 detail = DetailDestination.ManageCategories
@@ -1809,6 +1821,8 @@ fun AppNavigation(
         )
     }
     val tabBarBackdrop = rememberTabBarBackdrop()
+    // A setting (on by default): with the blur off nothing records the content for it, so it costs nothing per frame.
+    val blurTabBar = tabBarScroll.blur && BackdropBlurSupported
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         snackbarHost = { ActuaSnackbarHost(snackbarHostState) },
@@ -1847,14 +1861,14 @@ fun AppNavigation(
                     },
                     expanded = transactionFabExpanded,
                     shape = CircleShape,
-                    // On a device that can blur, the button is see-through glass over the blurred content; its
-                    // shadow is dropped because it would show through the fill.
-                    containerColor = if (BackdropBlurSupported) MaterialTheme.colorScheme.primary.copy(alpha = 0.78f)
+                    // With the blur on, the button is see-through glass over the blurred content; its shadow is
+                    // dropped because it would show through the fill.
+                    containerColor = if (blurTabBar) MaterialTheme.colorScheme.primary.copy(alpha = 0.78f)
                     else MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
-                    elevation = if (BackdropBlurSupported) FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
+                    elevation = if (blurTabBar) FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
                     else FloatingActionButtonDefaults.elevation(),
-                    modifier = if (BackdropBlurSupported) {
+                    modifier = if (blurTabBar) {
                         Modifier.clip(CircleShape).blurredBackdrop(tabBarBackdrop, Color.Transparent)
                     } else Modifier,
                     icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
@@ -1869,7 +1883,7 @@ fun AppNavigation(
                 exit = slideOutVertically { it } + shrinkVertically(),
             ) { FloatingNavigationBar(
                 showLabels = showBottomNavigationLabels,
-                backdrop = tabBarBackdrop,
+                backdrop = tabBarBackdrop.takeIf { blurTabBar },
             ) {
                 tabBarLayout.visibleTabs.forEach { tabItem ->
                     if (tabItem == TabItem.ADD) {
@@ -1994,7 +2008,7 @@ fun AppNavigation(
             } }
         },
     ) { innerPadding ->
-        Box(Modifier.fillMaxSize().recordsBackdrop(tabBarBackdrop)) {
+        Box(Modifier.fillMaxSize().then(if (blurTabBar) Modifier.recordsBackdrop(tabBarBackdrop) else Modifier)) {
         // Root list screens run behind the transparent area around the floating pill and clear it
         // with their own bottom padding; every other screen still ends above the bar.
         val drawsBehindTabBar = detail == DetailDestination.Main || detail in DetailsBehindTabBar
@@ -2488,29 +2502,7 @@ fun AppNavigation(
                 editing = editingTransaction,
                 prefill = transactionPrefill,
                 defaultType = newTransactionType,
-                onBack = {
-                    transactionPrefill = null
-                    if (editorReturnsToCategory) {
-                        reopenBudgetCategory = editorReturnCategory ?: transactionCategory
-                        editorReturnCategory = null
-                        destination = MainDestination.Budget
-                    }
-                    if (editorReturnsToReports) {
-                        destination = MainDestination.Reports
-                    }
-                    detail = when {
-                        editorReturnsToStatementDetail -> DetailDestination.CreditCardStatementDetail
-                        editorReturnsToTransactions -> DetailDestination.Transactions
-                        editorReturnsToReports -> editorReturnsToReportsDetail ?: DetailDestination.Main
-                        else -> DetailDestination.Main
-                    }
-                    editingTransaction = null
-                    if (!editorReturnsToTransactions && !editorReturnsToCategory && !editorReturnsToStatementDetail && !editorReturnsToReports) destination = addOrigin
-                    editorReturnsToCategory = false
-                    editorReturnsToStatementDetail = false
-                    editorReturnsToReports = false
-                    editorReturnsToReportsDetail = null
-                },
+                onBack = leaveEditor,
                 onSave = { savedTransaction ->
                     val wasEditing = editingTransaction != null
                     val wasPlainNewEntry = transactionPrefill == null
@@ -2843,10 +2835,7 @@ fun AppNavigation(
                 cards = creditCards,
                 accounts = accounts,
                 hideDecimalPlaces = hideDecimalPlaces,
-                onBack = {
-                    detail = if (creditCardsReturnToBills && destination != MainDestination.Bills) DetailDestination.BillsCalendar else DetailDestination.Main
-                    creditCardsReturnToBills = false
-                },
+                onBack = leaveCreditCards,
                 onSave = { accountId, day, paymentDue, limit ->
                     mutate(
                         R.string.navigation_saving_credit_card,
