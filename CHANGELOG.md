@@ -4,55 +4,53 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [2.7.0] - 2026-11-14
+
 ### Added
 
-- Added Catppuccin themes (Latte, Frappé, Macchiato and Mocha, with 14 accents) as a Supporter extra under Settings → Supporter extras → Accent color in the Google Play version ([#1643](https://github.com/azimul-kabir/actua/pull/1643))
-- Added collapsible Home sections that remember whether you collapsed them ([#1638](https://github.com/azimul-kabir/actua/pull/1638))
-- Added a greeting with a few counts about your budgeting for Actua Supporters, shown once a day on the start page, on Home and on Support Actua in the Google Play version ([#1636](https://github.com/azimul-kabir/actua/pull/1636))
-- Added more Actua Supporter prices and an optional monthly supporter subscription to Support Actua in the Google Play version ([#1538](https://github.com/azimul-kabir/actua/pull/1538))
-- Added a one-time invitation to support Actua after 30 days or 100 added transactions in the Google Play version ([#1540](https://github.com/azimul-kabir/actua/pull/1540))
-- Added a Supporter extras section to Settings → Display in the Google Play version, where Actua Supporters will find cosmetic extras ([#1548](https://github.com/azimul-kabir/actua/pull/1548))
-- Added a choice of app icon for Actua Supporters under Settings → Display in the Google Play version ([#1549](https://github.com/azimul-kabir/actua/pull/1549))
-- Added a choice of accent color for Actua Supporters under Settings → Display in the Google Play version ([#1550](https://github.com/azimul-kabir/actua/pull/1550))
-- Added a choice of home-screen widget style for Actua Supporters under Settings → Display in the Google Play version ([#1551](https://github.com/azimul-kabir/actua/pull/1551))
-- Added optional confetti celebrations for Actua Supporters when Ready to budget reaches zero or a reconciliation is finished, under Settings → Display in the Google Play version ([#1560](https://github.com/azimul-kabir/actua/pull/1560))
-- Added a last-updated time with a refresh tap to the Favourite categories, Account balances and Upcoming schedules widgets, and clearer messages when no budget or favorites are set ([#1571](https://github.com/azimul-kabir/actua/pull/1571))
-- Added sample previews and one-line descriptions for the widgets in the launcher's widget picker ([#1572](https://github.com/azimul-kabir/actua/pull/1572))
 - Added Single account and Single category home-screen widgets that fit a 1x1 or 2x1 spot ([#1575](https://github.com/azimul-kabir/actua/pull/1575))
-- Added an Income and spending home-screen widget showing this month's income, spending, what is left and the savings rate, with the last six months as paired bars ([#1577](https://github.com/azimul-kabir/actua/pull/1583))
-- Added a Spending trend home-screen widget showing the last six months of spending as bars ([#1576](https://github.com/azimul-kabir/actua/pull/1576))
-- Added a Report card home-screen widget showing one of your Reports dashboard cards as a single number ([#1584](https://github.com/azimul-kabir/actua/pull/1584))
-- Added an Account type icons switch to the Accounts tab's display options to show or hide the icon beside each account ([#1586](https://github.com/azimul-kabir/actua/pull/1586))
-- Added a one-time request to rate Actua on Google Play, after 14 days and 50 added transactions, in the Google Play version ([#1588](https://github.com/azimul-kabir/actua/pull/1588))
+- Added a Spending trend home-screen widget with the last six months of spending ([#1576](https://github.com/azimul-kabir/actua/pull/1576))
+- Added an Income and spending home-screen widget with this month's income, spending and savings rate, and the last six months ([#1583](https://github.com/azimul-kabir/actua/pull/1583))
+- Added a Report card home-screen widget showing one of your dashboard cards as a single number ([#1584](https://github.com/azimul-kabir/actua/pull/1584))
+- Added a last-updated time and a refresh tap to the Favourite categories, Account balances and Upcoming schedules widgets ([#1571](https://github.com/azimul-kabir/actua/pull/1571))
+- Added previews and descriptions for the widgets in the launcher's widget picker ([#1572](https://github.com/azimul-kabir/actua/pull/1572))
+- Added collapsible Home sections that remember whether you collapsed them ([#1638](https://github.com/azimul-kabir/actua/pull/1638))
+- Added an Account type icons switch to the Accounts tab's display options ([#1586](https://github.com/azimul-kabir/actua/pull/1586))
 - Added a Blur behind the tab bar switch in Settings → Display; with it off, and below Android 12, the tab bar and Transaction button are opaque ([#1646](https://github.com/azimul-kabir/actua/pull/1646))
+- Added more Supporter prices and an optional monthly supporter subscription to Support Actua in the Google Play version ([#1538](https://github.com/azimul-kabir/actua/pull/1538))
+- Added a one-time invitation to support Actua after 30 days or 100 added transactions in the Google Play version ([#1540](https://github.com/azimul-kabir/actua/pull/1540))
+- Added Supporter extras for Actua Supporters under Settings → Supporter extras in the Google Play version ([#1548](https://github.com/azimul-kabir/actua/pull/1548))
+- Added a choice of app icon as a Supporter extra ([#1549](https://github.com/azimul-kabir/actua/pull/1549))
+- Added accent colors as a Supporter extra ([#1550](https://github.com/azimul-kabir/actua/pull/1550))
+- Added Catppuccin themes (Latte, Frappé, Macchiato and Mocha, with 14 accents) as a Supporter extra ([#1643](https://github.com/azimul-kabir/actua/pull/1643))
+- Added home-screen widget styles (Translucent, Solid dark, Solid light and Accent-tinted) as a Supporter extra ([#1551](https://github.com/azimul-kabir/actua/pull/1551))
+- Added optional confetti when Ready to budget reaches zero or a reconciliation is finished, as a Supporter extra ([#1560](https://github.com/azimul-kabir/actua/pull/1560))
+- Added a once-a-day greeting with a few counts about your budgeting as a Supporter extra, on the start page, Home and Support Actua ([#1636](https://github.com/azimul-kabir/actua/pull/1636))
+- Added a one-time request to rate Actua on Google Play after 14 days and 50 added transactions ([#1588](https://github.com/azimul-kabir/actua/pull/1588))
 
 ### Changed
 
-- Moved the Supporter extras from Settings → Display to their own page under the Supporters group ([#1642](https://github.com/azimul-kabir/actua/pull/1642))
-- Changed the bottom tab bar and the + Transaction button to be translucent, with a blur on Android 12 and newer, and more screens to scroll under the bar ([#1640](https://github.com/azimul-kabir/actua/pull/1640))
-- Changed Home to show favorite accounts and categories as full rows that follow the Budget display settings, Recent Activity to show each transaction's cleared or reconciled state, and its section headers to drop the "View" links ([#1638](https://github.com/azimul-kabir/actua/pull/1638))
+- Changed the bottom tab bar and the Transaction button to be translucent, with a blur on Android 12 and newer, and more screens to scroll under the bar ([#1640](https://github.com/azimul-kabir/actua/pull/1640))
+- Changed Home's favorite categories and accounts to full rows that follow the Budget display settings, and Recent Activity to show cleared and reconciled marks ([#1638](https://github.com/azimul-kabir/actua/pull/1638))
 - Removed the floating Transaction button from the Reports tab ([#1638](https://github.com/azimul-kabir/actua/pull/1638))
-- Showed favorite categories as a flat list without group headers when the Budget tab's Favorites filter is on, and all favorite categories on Home instead of the first five ([#1629](https://github.com/azimul-kabir/actua/pull/1629))
-- Made a category that is spent exactly to its budget show the normal progress bar color on widgets instead of amber ([#1623](https://github.com/azimul-kabir/actua/pull/1623))
-- Made Budget, Accounts, Transactions and other screens load their data off the main thread, so edits and syncs no longer stall the screen ([#1619](https://github.com/azimul-kabir/actua/pull/1619))
-- Made labels and dates on Accent-tinted widgets a softer tone than titles and amounts ([#1610](https://github.com/azimul-kabir/actua/pull/1610))
-- Kept the amber and red category progress bars on widgets in every widget style, not only Default ([#1607](https://github.com/azimul-kabir/actua/pull/1607))
-- Refreshed the look of the home-screen widgets with tonal tiles and pills, a larger budget figure and bar colors that show how spent a category is ([#1566](https://github.com/azimul-kabir/actua/pull/1566))
-- Made the home-screen widgets use the space they are given, with new one-row and single-figure sizes, and up to eight scrolling rows in Favourite categories and Account balances ([#1569](https://github.com/azimul-kabir/actua/pull/1569))
-- Improved home-screen widget accessibility with TalkBack descriptions, larger tap targets and amounts that fit at large font sizes ([#1570](https://github.com/azimul-kabir/actua/pull/1570))
+- Showed favorite categories as one flat list with the Budget tab's Favorites filter, and all of them on Home instead of the first five ([#1629](https://github.com/azimul-kabir/actua/pull/1629))
+- Refreshed the home-screen widgets with tonal tiles and pills, a larger budget figure and bars colored by how spent a category is ([#1566](https://github.com/azimul-kabir/actua/pull/1566))
+- Made the home-screen widgets use the space they are given, with one-row and single-figure sizes and up to eight scrolling rows ([#1569](https://github.com/azimul-kabir/actua/pull/1569))
+- Improved widget accessibility with TalkBack descriptions, larger tap targets and amounts that fit at large font sizes ([#1570](https://github.com/azimul-kabir/actua/pull/1570))
+- Made list widgets place without a setup screen on Android 12 and later, and refreshed their setup screens ([#1573](https://github.com/azimul-kabir/actua/pull/1573))
+- Showed an update time on the Budget snapshot widget at 4x4 and larger, and restyled widgets when the theme or language changes ([#1574](https://github.com/azimul-kabir/actua/pull/1574))
+- Made a category spent exactly to its budget show the normal bar color on widgets instead of amber ([#1623](https://github.com/azimul-kabir/actua/pull/1623))
 - Slimmed the Ready to Budget card in the Plan view to a single row ([#1562](https://github.com/azimul-kabir/actua/pull/1562))
-- Made the Favourite categories, Account balances and Upcoming schedules widgets place straight away without a setup screen on Android 12 and later, and refreshed their setup screens with search, the app's appearance and the app lock ([#1573](https://github.com/azimul-kabir/actua/pull/1573))
-- Added an update time with a refresh tap to the Budget snapshot widget at 4x4 and larger, and made widgets restyle when the device theme or language changes while Actua is running ([#1574](https://github.com/azimul-kabir/actua/pull/1574))
-- The demo budget now includes a second credit card that carries a balance, a car loan and a student loan with a year of payments, a Debt group, more accounts, categories, payees and schedules ([#1631](https://github.com/azimul-kabir/actua/pull/1631))
+- Made Budget, Accounts, Transactions and other screens load their data in the background, so edits and syncs no longer stall them ([#1619](https://github.com/azimul-kabir/actua/pull/1619))
+- Expanded the demo budget with a second credit card, a car loan and a student loan, a Debt group and more accounts, payees and schedules ([#1631](https://github.com/azimul-kabir/actua/pull/1631))
 
 ### Fixed
 
 - Fixed the budget keypads ignoring the Conventional amount entry setting ([#1656](https://github.com/azimul-kabir/actua/pull/1656))
 - Fixed Settings and other tabs losing your place when you go back or switch tabs ([#1655](https://github.com/azimul-kabir/actua/pull/1655))
-- Fixed the Transactions tab's "Hide reconciled transactions" switch doing nothing ([#1633](https://github.com/azimul-kabir/actua/pull/1633))
-- Fixed a favorite category opening the first category with the same name instead of the one in its own group ([#1628](https://github.com/azimul-kabir/actua/pull/1628))
-- Made the spending bars in the Income and spending widget a softer tone instead of near-black on light widget styles ([#1621](https://github.com/azimul-kabir/actua/pull/1621))
-- Fixed dates in schedules, bank sync and monthly summaries being written in native digits on Arabic, Persian, Bengali and similar device languages ([#1612](https://github.com/azimul-kabir/actua/pull/1612))
+- Fixed the Transactions tab's Hide reconciled transactions switch doing nothing ([#1633](https://github.com/azimul-kabir/actua/pull/1633))
+- Fixed a favorite category opening a same-named category in another group ([#1628](https://github.com/azimul-kabir/actua/pull/1628))
+- Fixed dates being written in native digits on Arabic, Persian, Bengali and similar device languages ([#1612](https://github.com/azimul-kabir/actua/pull/1612))
 
 ## [2.6.0] - 2026-11-10
 
@@ -63,9 +61,6 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
-- Fixed the Widget style previews showing English text in other languages, and made TalkBack announce each style by name and whether it is selected ([#1606](https://github.com/azimul-kabir/actua/pull/1606))
-- Fixed the Accent-tinted tile on the Widget style page showing different colors from the widget when Appearance differs from the device theme ([#1605](https://github.com/azimul-kabir/actua/pull/1605))
-- Fixed Accent-tinted widgets keeping the old color after changing the accent color or Material You ([#1604](https://github.com/azimul-kabir/actua/pull/1604))
 - Fixed dashboard cards and reports that exclude a category by name leaving out transactions without a category ([#1533](https://github.com/azimul-kabir/actua/pull/1533))
 - Fixed the year-to-date dashboard cards leaving out transactions whose payee is an account but that aren’t linked transfers ([#1531](https://github.com/azimul-kabir/actua/pull/1531))
 - Fixed a failed budget download or import being able to delete the budget it replaced, or lose its latest changes ([#1530](https://github.com/azimul-kabir/actua/pull/1530))

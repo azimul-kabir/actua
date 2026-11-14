@@ -252,14 +252,15 @@ lists what was ported, what was only checked by reading, and what is not ported.
   calendar, due-date projection, paid-transaction matching, status totals, filters and safe schedule actions
 - **Manage** bottom-tab hub for Automation, transaction/data tools and financial setup, with
   general preferences behind a Settings gear and automatic migration of legacy More start-page values
-- **Home** first-class root destination (`Home | Budget | Transactions | Accounts | Manage` by default)
-  replacing Reports' former fixed bottom-tab slot; a financial command center with Ready to Budget,
+- **Home** first-class root destination, shown as a bottom tab when enabled in Settings → Tab Bar (the default
+  bar is `Budget | Accounts | Add | Reports | Manage`, with Home, Transactions and Bills available to add); a financial command center with Ready to Budget,
   Favorite Categories, Favorite Accounts, Upcoming, This Month, Reports and Recent Activity sections,
   each routing into the existing authoritative screen/calculation rather than duplicating it. Favorite
   category cards open their category details directly, and This Month shares Accounts' category-aware
   cash-flow calculation so on-budget transfers and uncategorized rows are excluded. Reports remains
   reachable from Home and Manage, and can additionally be shown as its own bottom tab
-- The bottom tab bar is a floating pill that can slide away while scrolling (device-local; Settings → Display).
+- The bottom tab bar is a floating pill that can slide away while scrolling and, on Android 12 and newer, blurs what
+  scrolls under it unless "Blur behind the tab bar" is off (both device-local; Settings → Display).
 - Customizable bottom tab bar (Settings → Tab Bar), mirroring the Home dashboard customization
   pattern: drag or up/down-arrow reorder, per-tab show/hide with Manage pinned and required and a
   3-5 visible-tab range enforced instead of silently no-oping, an optional "+ Add" pseudo-tab that

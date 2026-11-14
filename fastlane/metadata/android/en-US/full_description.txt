@@ -2,6 +2,7 @@ Actua is an unofficial, open-source native Android client for Actual Budget. It 
 
 WHAT YOU CAN DO
 • View budgets and track category progress
+• See Ready to Budget, favorites, upcoming bills and recent activity at a glance on a customizable Home
 • Add, edit, search, and filter transactions, scan a receipt to fill them in, and keep the receipt photo on your phone
 • Split transactions, make transfers, and reconcile accounts
 • Group and reorder accounts, and manage categories, targets, and budget templates
@@ -16,8 +17,8 @@ WHAT YOU CAN DO
 • Create local backups and restore your budget data, or back up to your own Google Drive or WebDAV server (Nextcloud, ownCloud, NAS) with encryption
 • Budget on your device without a server, or import an Actual Budget archive
 • Lock Actua with biometrics or your device PIN, and hide it in the recents screen
-• Use home-screen widgets and launcher shortcuts
-• Use Actua in English or Brazilian Portuguese
+• Add home-screen widgets for your budget, favorite categories, account balances, upcoming bills, spending trend and report cards, plus launcher shortcuts
+• Use Actua in English, Brazilian Portuguese or Spanish
 
 MADE FOR ANDROID
 Actua is built as a native Android app, not a website wrapped in an app. Its Material 3 interface is designed for Android phones and supports features such as offline budgets, customizable navigation, and flexible appearance settings.
@@ -28,7 +29,7 @@ Actua connects directly to your own Actual Budget server and keeps a local copy 
 New to Actua? You can explore the built-in local demo budget or create a budget on your device without connecting a server.
 
 FREE AND OPEN SOURCE
-Actua is free and open source, and budgeting always stays free. In the Google Play version you can optionally support its development; supporters also get cosmetic extras such as app icons and accent themes, as they arrive. You can review the source code, report bugs, suggest improvements, or contribute to the project:
+Actua is free and open source, and budgeting always stays free. In the Google Play version you can optionally support its development; supporters also get cosmetic extras such as app icons, accent colors, Catppuccin themes and widget styles. You can review the source code, report bugs, suggest improvements, or contribute to the project:
 https://github.com/azimul-kabir/actua
 
 UNOFFICIAL PROJECT

@@ -1,0 +1,8 @@
+• New widgets: trend, report card and more
+• Refreshed look for all widgets
+• Collapsible Home sections
+• Translucent tab bar with optional blur
+• Back and tab switches keep your place
+• Faster, smoother screens
+• Google Play: monthly supporter option
+• Google Play: Supporter extras for supporters
