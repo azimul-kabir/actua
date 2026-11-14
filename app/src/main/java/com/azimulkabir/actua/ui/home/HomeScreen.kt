@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.home
 
+import com.azimulkabir.actua.ui.navigation.RootRequestEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -145,9 +146,7 @@ fun HomeScreen(
     hasFab: Boolean = true,
 ) {
     val listState = rememberLazyListState()
-    LaunchedEffect(returnToRootRequest) {
-        if (returnToRootRequest > 0) listState.animateScrollToItem(0)
-    }
+    RootRequestEffect(returnToRootRequest) { listState.animateScrollToItem(0) }
     LazyColumn(
         modifier = modifier.fillMaxSize().testTag("homeList"),
         state = listState,

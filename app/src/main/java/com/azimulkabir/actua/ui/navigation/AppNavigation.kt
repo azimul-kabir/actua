@@ -1681,16 +1681,39 @@ fun AppNavigation(
         ?: visibleMainDestinations.firstOrNull()
         ?: MainDestination.Accounts
 
+    // The on-screen arrow and the back gesture both leave these screens through here, so they can't disagree.
+    val leaveEditor: () -> Unit = {
+        transactionPrefill = null
+        if (editorReturnsToCategory) {
+            reopenBudgetCategory = editorReturnCategory ?: transactionCategory
+            editorReturnCategory = null
+            destination = MainDestination.Budget
+        }
+        if (editorReturnsToReports) {
+            destination = MainDestination.Reports
+        }
+        detail = when {
+            editorReturnsToStatementDetail -> DetailDestination.CreditCardStatementDetail
+            editorReturnsToTransactions -> DetailDestination.Transactions
+            editorReturnsToReports -> editorReturnsToReportsDetail ?: DetailDestination.Main
+            else -> DetailDestination.Main
+        }
+        editingTransaction = null
+        if (!editorReturnsToTransactions && !editorReturnsToCategory && !editorReturnsToStatementDetail && !editorReturnsToReports) destination = addOrigin
+        editorReturnsToCategory = false
+        editorReturnsToStatementDetail = false
+        editorReturnsToReports = false
+        editorReturnsToReportsDetail = null
+    }
+    val leaveCreditCards: () -> Unit = {
+        detail = if (creditCardsReturnToBills && destination != MainDestination.Bills) DetailDestination.BillsCalendar else DetailDestination.Main
+        creditCardsReturnToBills = false
+    }
+
     BackHandler(enabled = detail != DetailDestination.Main || destination != backGestureHomeDestination) {
         when {
-            detail == DetailDestination.EditTransaction && editorReturnsToCategory -> {
-                reopenBudgetCategory = editorReturnCategory ?: transactionCategory
-                editorReturnCategory = null
-                detail = DetailDestination.Main
-                destination = MainDestination.Budget
-                editingTransaction = null
-                editorReturnsToCategory = false
-            }
+            detail == DetailDestination.EditTransaction -> leaveEditor()
+            detail == DetailDestination.CreditCards -> leaveCreditCards()
             detail == DetailDestination.Rules && scheduleRuleId != null -> returnFromScheduleRule()
             detail == DetailDestination.BillsCalendar && billsCalendarReturnsToSchedules -> {
                 billsCalendarReturnsToSchedules = false
@@ -1702,17 +1725,6 @@ fun AppNavigation(
             detail == DetailDestination.CreditCardStatements -> {
                 detail = if (statementsReturnToTransactions) DetailDestination.Transactions else DetailDestination.CreditCards
                 statementsReturnToTransactions = false
-            }
-            detail == DetailDestination.EditTransaction && editorReturnsToReports -> {
-                destination = MainDestination.Reports
-                detail = editorReturnsToReportsDetail ?: DetailDestination.Main
-                editingTransaction = null
-                editorReturnsToReports = false
-                editorReturnsToReportsDetail = null
-            }
-            detail == DetailDestination.EditTransaction && editorReturnsToTransactions -> {
-                detail = DetailDestination.Transactions
-                editingTransaction = null
             }
             detail == DetailDestination.ReorderGroups -> {
                 detail = DetailDestination.ManageCategories
@@ -2488,29 +2500,7 @@ fun AppNavigation(
                 editing = editingTransaction,
                 prefill = transactionPrefill,
                 defaultType = newTransactionType,
-                onBack = {
-                    transactionPrefill = null
-                    if (editorReturnsToCategory) {
-                        reopenBudgetCategory = editorReturnCategory ?: transactionCategory
-                        editorReturnCategory = null
-                        destination = MainDestination.Budget
-                    }
-                    if (editorReturnsToReports) {
-                        destination = MainDestination.Reports
-                    }
-                    detail = when {
-                        editorReturnsToStatementDetail -> DetailDestination.CreditCardStatementDetail
-                        editorReturnsToTransactions -> DetailDestination.Transactions
-                        editorReturnsToReports -> editorReturnsToReportsDetail ?: DetailDestination.Main
-                        else -> DetailDestination.Main
-                    }
-                    editingTransaction = null
-                    if (!editorReturnsToTransactions && !editorReturnsToCategory && !editorReturnsToStatementDetail && !editorReturnsToReports) destination = addOrigin
-                    editorReturnsToCategory = false
-                    editorReturnsToStatementDetail = false
-                    editorReturnsToReports = false
-                    editorReturnsToReportsDetail = null
-                },
+                onBack = leaveEditor,
                 onSave = { savedTransaction ->
                     val wasEditing = editingTransaction != null
                     val wasPlainNewEntry = transactionPrefill == null
@@ -2843,10 +2833,7 @@ fun AppNavigation(
                 cards = creditCards,
                 accounts = accounts,
                 hideDecimalPlaces = hideDecimalPlaces,
-                onBack = {
-                    detail = if (creditCardsReturnToBills && destination != MainDestination.Bills) DetailDestination.BillsCalendar else DetailDestination.Main
-                    creditCardsReturnToBills = false
-                },
+                onBack = leaveCreditCards,
                 onSave = { accountId, day, paymentDue, limit ->
                     mutate(
                         R.string.navigation_saving_credit_card,

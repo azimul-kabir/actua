@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.reports
 
+import com.azimulkabir.actua.ui.navigation.RootRequestEffect
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -237,9 +238,7 @@ fun ReportsScreen(
     LaunchedEffect(initialPageRequest) {
         if (initialPageRequest > 0) selectedPageId = initialPageId
     }
-    LaunchedEffect(scrollToTopRequest) {
-        if (scrollToTopRequest > 0) listState.animateScrollToItem(0)
-    }
+    RootRequestEffect(scrollToTopRequest) { listState.animateScrollToItem(0) }
 
     var expandedWidgetId by rememberSaveable { mutableStateOf<String?>(null) }
     var expandedRange by rememberSaveable { mutableStateOf<String?>(null) }

@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.budget
 
+import com.azimulkabir.actua.ui.navigation.RootRequestEffect
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -369,11 +370,9 @@ fun BudgetScreen(
     var copyToYearEnd by remember { mutableStateOf<BudgetCategory?>(null) }
     val listState = rememberLazyListState()
 
-    LaunchedEffect(returnToRootRequest) {
-        if (returnToRootRequest > 0) {
-            if (categoryDetails != null) categoryDetails = null
-            else listState.animateScrollToItem(0)
-        }
+    RootRequestEffect(returnToRootRequest) {
+        if (categoryDetails != null) categoryDetails = null
+        else listState.animateScrollToItem(0)
     }
 
     // The requested category is a key (its id, or a name from a state saved before keys), so a name that repeats
