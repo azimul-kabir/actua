@@ -4,3 +4,7 @@
 -keep class * implements com.google.firebase.components.ComponentRegistrar {
     <init>();
 }
+
+# Play In-App Review (Play Store flavor) refers to this Play services annotation, which is not on the classpath and
+# is not needed at run time. Without this, R8 stops the release build on the missing class.
+-dontwarn com.google.android.gms.common.annotation.NoNullnessRewrite
