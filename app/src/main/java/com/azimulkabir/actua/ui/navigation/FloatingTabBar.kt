@@ -87,11 +87,12 @@ internal fun FloatingNavigationBar(
         Surface(
             modifier = Modifier.fillMaxWidth().height(height),
             shape = RoundedCornerShape(height / 2),
-            // Translucent so the screen shows through as it scrolls under the bar. The drop shadow would show
-            // through a see-through fill as a grey cast, so the border carries the edge instead.
-            color = if (blurring) Color.Transparent else fill.copy(alpha = FloatingTabBarFillAlpha),
+            // With the blur the fill is see-through glass over the blurred screen, and the drop shadow is dropped
+            // because it would show through as a grey cast; the border carries the edge. Without it the bar is opaque,
+            // so text scrolling under it never ghosts through, and keeps its shadow.
+            color = if (blurring) Color.Transparent else fill,
             tonalElevation = 0.dp,
-            shadowElevation = 0.dp,
+            shadowElevation = if (blurring) 0.dp else 6.dp,
             border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             Row(
@@ -149,8 +150,5 @@ internal fun RowScope.FloatingNavigationBarItem(
     }
 }
 
-/** How opaque the bar's fill is; the rest lets the content behind it show. */
-private const val FloatingTabBarFillAlpha = 0.9f
-
-/** The fill's opacity over the blurred content; lower than [FloatingTabBarFillAlpha] because the blur already softens it. */
+/** The fill's opacity over the blurred content, which the blur already softens. */
 private const val FloatingTabBarBlurredFillAlpha = 0.6f

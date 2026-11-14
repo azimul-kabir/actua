@@ -1809,6 +1809,8 @@ fun AppNavigation(
         )
     }
     val tabBarBackdrop = rememberTabBarBackdrop()
+    // A setting (on by default): with the blur off nothing records the content for it, so it costs nothing per frame.
+    val blurTabBar = tabBarScroll.blur && BackdropBlurSupported
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         snackbarHost = { ActuaSnackbarHost(snackbarHostState) },
@@ -1847,14 +1849,14 @@ fun AppNavigation(
                     },
                     expanded = transactionFabExpanded,
                     shape = CircleShape,
-                    // On a device that can blur, the button is see-through glass over the blurred content; its
-                    // shadow is dropped because it would show through the fill.
-                    containerColor = if (BackdropBlurSupported) MaterialTheme.colorScheme.primary.copy(alpha = 0.78f)
+                    // With the blur on, the button is see-through glass over the blurred content; its shadow is
+                    // dropped because it would show through the fill.
+                    containerColor = if (blurTabBar) MaterialTheme.colorScheme.primary.copy(alpha = 0.78f)
                     else MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
-                    elevation = if (BackdropBlurSupported) FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
+                    elevation = if (blurTabBar) FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
                     else FloatingActionButtonDefaults.elevation(),
-                    modifier = if (BackdropBlurSupported) {
+                    modifier = if (blurTabBar) {
                         Modifier.clip(CircleShape).blurredBackdrop(tabBarBackdrop, Color.Transparent)
                     } else Modifier,
                     icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
@@ -1869,7 +1871,7 @@ fun AppNavigation(
                 exit = slideOutVertically { it } + shrinkVertically(),
             ) { FloatingNavigationBar(
                 showLabels = showBottomNavigationLabels,
-                backdrop = tabBarBackdrop,
+                backdrop = tabBarBackdrop.takeIf { blurTabBar },
             ) {
                 tabBarLayout.visibleTabs.forEach { tabItem ->
                     if (tabItem == TabItem.ADD) {
@@ -1994,7 +1996,7 @@ fun AppNavigation(
             } }
         },
     ) { innerPadding ->
-        Box(Modifier.fillMaxSize().recordsBackdrop(tabBarBackdrop)) {
+        Box(Modifier.fillMaxSize().then(if (blurTabBar) Modifier.recordsBackdrop(tabBarBackdrop) else Modifier)) {
         // Root list screens run behind the transparent area around the floating pill and clear it
         // with their own bottom padding; every other screen still ends above the bar.
         val drawsBehindTabBar = detail == DetailDestination.Main || detail in DetailsBehindTabBar

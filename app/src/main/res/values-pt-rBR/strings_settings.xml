@@ -175,6 +175,8 @@
     <string name="settings_start_page">Página inicial</string>
     <string name="settings_hide_tab_bar_on_scroll">Ocultar a barra de abas ao rolar</string>
     <string name="settings_hide_tab_bar_on_scroll_description">A barra de abas some ao rolar para baixo e volta ao rolar para cima</string>
+    <string name="settings_blur_tab_bar">Desfocar atrás da barra de abas</string>
+    <string name="settings_blur_tab_bar_description">Um efeito de vidro fosco atrás da barra de abas e do botão Transação. Pode deixar a rolagem menos fluida em alguns celulares</string>
     <string name="settings_bottom_navigation_labels">Rótulos da navegação inferior</string>
     <string name="settings_navigation_icons_names">Ícones e nomes</string>
     <string name="settings_navigation_icons_only">Somente ícones</string>
