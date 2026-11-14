@@ -64,8 +64,11 @@ check small screens, keyboard/insets and font scaling for UI changes.
 Keep changes focused; avoid unrelated refactors, generated files, local IDE
 settings, signing material or versionCode/versionName changes unless requested.
 
-The floating tab bar (`ui/navigation/FloatingTabBar.kt`) is translucent and blurs
-what scrolls under it. `drawsBehindTabBar` in `AppNavigation.kt` decides which
+The floating tab bar (`ui/navigation/FloatingTabBar.kt`) blurs what scrolls under
+it on Android 12 and newer. "Blur behind the tab bar" in Settings → Display (on by
+default) turns that off and makes the bar and Transaction button opaque; with it off,
+nothing records the screen for the blur, so keep that path free of per-frame work.
+`drawsBehindTabBar` in `AppNavigation.kt` decides which
 screens run behind it: the main tabs, plus the detail screens listed in
 `DetailsBehindTabBar`; any other detail screen still ends above the bar and needs
 no extra padding. A screen that runs behind the bar clears it itself, because

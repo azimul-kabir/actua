@@ -311,6 +311,14 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(HIDE_TAB_BAR_ON_SCROLL, true)
         set(value) { preferences.edit().putBoolean(HIDE_TAB_BAR_ON_SCROLL, value).apply() }
 
+    /**
+     * Whether the floating tab bar and Transaction button blur what scrolls under them (Android 12 and newer); on by
+     * default. Off, both are opaque and nothing redraws the blur on each scroll frame.
+     */
+    var blurTabBar: Boolean
+        get() = preferences.getBoolean(BLUR_TAB_BAR, true)
+        set(value) { preferences.edit().putBoolean(BLUR_TAB_BAR, value).apply() }
+
     var showBottomNavigationLabels: Boolean
         get() = preferences.getBoolean(SHOW_BOTTOM_NAVIGATION_LABELS, true)
         set(value) { preferences.edit().putBoolean(SHOW_BOTTOM_NAVIGATION_LABELS, value).apply() }
@@ -393,6 +401,7 @@ class DisplayPreferences(context: Context) {
         const val KEEP_LAST_TRANSACTION_DATE = "keep_last_transaction_date"
         const val SHOW_BOTTOM_NAVIGATION_LABELS = "show_bottom_navigation_labels"
         const val HIDE_TAB_BAR_ON_SCROLL = "hide_tab_bar_on_scroll"
+        const val BLUR_TAB_BAR = "blur_tab_bar"
         const val SHOW_CURRENT_BALANCE_SUMMARY = "show_current_balance_summary"
         const val SHOW_RUNNING_BALANCE = "show_running_balance"
         const val SHOW_NOTES = "show_notes"

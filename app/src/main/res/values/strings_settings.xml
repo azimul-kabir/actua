@@ -175,6 +175,8 @@
     <string name="settings_start_page">Start page</string>
     <string name="settings_hide_tab_bar_on_scroll">Hide tab bar while scrolling</string>
     <string name="settings_hide_tab_bar_on_scroll_description">The tab bar slides away as you scroll down and returns when you scroll up</string>
+    <string name="settings_blur_tab_bar">Blur behind the tab bar</string>
+    <string name="settings_blur_tab_bar_description">A frosted-glass effect behind the tab bar and Transaction button. It can make scrolling less smooth on some phones</string>
     <string name="settings_bottom_navigation_labels">Bottom navigation labels</string>
     <string name="settings_navigation_icons_names">Icons and names</string>
     <string name="settings_navigation_icons_only">Icons only</string>

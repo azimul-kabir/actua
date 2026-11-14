@@ -40,7 +40,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Native Material You Android interface
 - English, Brazilian Portuguese (pt-BR) and Spanish (es) with in-app language selection
 - Home dashboard with an at-a-glance financial overview (ready to budget, favorite categories and accounts as full-row lists that follow the Budget display settings, upcoming bills, this month, reports and recent activity with cleared and reconciled marks), customizable via show/hide and drag-to-reorder, with sections you can collapse (Actua remembers which), and an optional start day for the This Month summary to match mid-month pay cycles
-- Customizable floating bottom tab bar, translucent and blurring what scrolls under it on Android 12 and newer: show/hide and reorder tabs (Reports and Bills can be added as their own tabs), plus an optional "Add" quick-add tab, and optional hiding while you scroll
+- Customizable floating bottom tab bar, blurring what scrolls under it on Android 12 and newer (or opaque, with the blur switched off): show/hide and reorder tabs (Reports and Bills can be added as their own tabs), plus an optional "Add" quick-add tab, and optional hiding while you scroll
 - App-wide favorites for categories, accounts and reports, shared by Home, the Budget favorites filter and the home-screen widget
 - Password and OpenID/OIDC login
 - Standalone on-device budgets: full envelope budgeting without needing a server, with automated schedule posting, local backups, and export/import compatibility with Actual Budget archives (see [docs/STANDALONE_BUDGETS.md](docs/STANDALONE_BUDGETS.md))

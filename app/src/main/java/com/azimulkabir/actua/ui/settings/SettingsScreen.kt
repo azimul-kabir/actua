@@ -907,6 +907,15 @@ fun SettingsScreen(
                             tabBarDisplay?.hideOnScroll != false,
                             { tabBarDisplay?.updateHideOnScroll(it) },
                         )
+                        if (com.azimulkabir.actua.ui.navigation.BackdropBlurSupported) {
+                            SettingsDivider()
+                            SettingsToggle(
+                                stringResource(R.string.settings_blur_tab_bar),
+                                stringResource(R.string.settings_blur_tab_bar_description),
+                                tabBarDisplay?.blur == true,
+                                { tabBarDisplay?.updateBlur(it) },
+                            )
+                        }
                         SettingsDivider()
                         SettingsRow(
                             stringResource(R.string.settings_tab_bar),

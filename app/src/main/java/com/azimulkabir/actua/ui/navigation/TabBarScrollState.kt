@@ -32,6 +32,15 @@ class TabBarScrollState(private val preferences: DisplayPreferences) {
 
     fun show() { visible = true }
 
+    /** Whether the bar and the Transaction button blur what scrolls under them; see [BackdropBlurSupported]. */
+    var blur by mutableStateOf(preferences.blurTabBar)
+        private set
+
+    fun updateBlur(enabled: Boolean) {
+        preferences.blurTabBar = enabled
+        blur = enabled
+    }
+
     fun updateHideOnScroll(enabled: Boolean) {
         preferences.hideTabBarOnScroll = enabled
         hideOnScroll = enabled
