@@ -471,4 +471,42 @@ class CalculatorAmountStateTest {
 
         assertEquals(300, state.finish())
     }
+
+    // The budget keypads (assign, move money, To Budget move, hold) build their state like this.
+    @Test fun budgetAssignKeypadEntersWholeUnitsInConventionalMode() {
+        val state = CalculatorAmountState(0L, allowsNegative = true, conventionalAmountEntry = true)
+        state.digit(5); state.digit(0)
+        state.operator(CalculatorAmountState.Operator.ADD)
+        state.digit(2); state.decimalPoint(); state.digit(5)
+        assertEquals(5_250, state.finish())
+    }
+
+    @Test fun budgetAssignKeypadShiftsDigitsIntoCentsInStockMode() {
+        val state = CalculatorAmountState(0L, allowsNegative = true, conventionalAmountEntry = false)
+        state.digit(5); state.digit(0)
+        state.operator(CalculatorAmountState.Operator.ADD)
+        state.digit(2); state.digit(5)
+        assertEquals(75, state.finish())
+    }
+
+    @Test fun budgetMoveAndHoldKeypadsFollowTheModeAndStayNonNegative() {
+        val conventional = CalculatorAmountState(0L, allowsNegative = false, conventionalAmountEntry = true)
+        conventional.digit(1); conventional.digit(2)
+        assertEquals(1_200, conventional.finish())
+        val stock = CalculatorAmountState(0L, allowsNegative = false, conventionalAmountEntry = false)
+        stock.digit(1); stock.digit(2)
+        assertEquals(12, stock.finish())
+    }
+
+    @Test fun budgetKeypadsKeepIntegerMinorUnitsForZeroAndThreeDecimalCurrencies() {
+        val yen = CalculatorAmountState(0L, allowsNegative = true, conventionalAmountEntry = true, decimalPlaces = 0)
+        yen.digit(1); yen.digit(5)
+        assertEquals(15, yen.finish())
+        val dinar = CalculatorAmountState(0L, allowsNegative = true, conventionalAmountEntry = true, decimalPlaces = 3)
+        dinar.digit(2); dinar.decimalPoint(); dinar.digit(5)
+        assertEquals(2_500, dinar.finish())
+        val dinarStock = CalculatorAmountState(0L, allowsNegative = true, conventionalAmountEntry = false, decimalPlaces = 3)
+        dinarStock.digit(2); dinarStock.digit(5)
+        assertEquals(25, dinarStock.finish())
+    }
 }

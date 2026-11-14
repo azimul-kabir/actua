@@ -314,6 +314,7 @@ fun BudgetScreen(
     showNotes: Boolean = true,
     hideIncomeGroup: Boolean = false,
     hasFab: Boolean = true,
+    conventionalAmountEntry: Boolean = false,
 ) {
     // A supporter extra: confetti when Ready to budget reaches exactly zero from a non-zero amount in
     // the same month. The first value seen after this screen opens only sets the baseline.
@@ -842,6 +843,7 @@ fun BudgetScreen(
     }
     editingBudget?.let { (group, category) ->
         EditBudgetAmountSheet(
+            conventionalAmountEntry = conventionalAmountEntry,
             sourceGroup = group,
             category = category,
             month = month,
@@ -885,6 +887,7 @@ fun BudgetScreen(
     }
     if (budgetSummaryOpen) {
         BudgetSummarySheet(
+            conventionalAmountEntry = conventionalAmountEntry,
             toBudgetCents = overview.toBudgetCents ?: 0L,
             bufferedCents = overview.bufferedCents,
             groups = groups,
@@ -948,6 +951,7 @@ fun BudgetScreen(
     }
     movingBudget?.let { (group, category) ->
         EditBudgetAmountSheet(
+            conventionalAmountEntry = conventionalAmountEntry,
             sourceGroup = group,
             category = category,
             month = month,
@@ -982,6 +986,7 @@ fun BudgetScreen(
     }
     autoAssignBudget?.let { (group, category) ->
         EditBudgetAmountSheet(
+            conventionalAmountEntry = conventionalAmountEntry,
             sourceGroup = group,
             category = category,
             month = month,
@@ -2382,6 +2387,7 @@ private enum class EditBudgetMode { NONE, AUTO_ASSIGN, MOVE }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditBudgetAmountSheet(
+    conventionalAmountEntry: Boolean,
     sourceGroup: BudgetGroup,
     category: BudgetCategory,
     month: String,
@@ -2423,9 +2429,9 @@ private fun EditBudgetAmountSheet(
     var to by remember(anchor) {
         mutableStateOf(if (category.balanceCents < 0) anchor else options.first())
     }
-    val calculator = remember(category, moveMode) {
-        if (moveMode) CalculatorAmountState(0L, allowsNegative = false, conventionalAmountEntry = true)
-        else CalculatorAmountState(category.assignedCents, allowsNegative = true)
+    val calculator = remember(category, moveMode, conventionalAmountEntry) {
+        if (moveMode) CalculatorAmountState(0L, allowsNegative = false, conventionalAmountEntry = conventionalAmountEntry)
+        else CalculatorAmountState(category.assignedCents, allowsNegative = true, conventionalAmountEntry = conventionalAmountEntry)
     }
     var enteredAmount by remember(category, moveMode) {
         mutableStateOf(if (moveMode) 0L else category.assignedCents)
@@ -2605,7 +2611,7 @@ private fun EditBudgetAmountSheet(
             }
             CompactCalculatorPad(
                 calculator = calculator,
-                conventionalAmountEntry = moveMode,
+                conventionalAmountEntry = conventionalAmountEntry,
                 allowSign = !moveMode,
                 moveMoneyMode = moveMode,
                 showDisplay = false,
@@ -2855,6 +2861,7 @@ internal fun budgetSummaryMoveAmount(enteredCents: Long, toBudgetCents: Long, so
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BudgetSummarySheet(
+    conventionalAmountEntry: Boolean,
     toBudgetCents: Long,
     bufferedCents: Long,
     groups: List<BudgetGroup>,
@@ -2884,14 +2891,14 @@ private fun BudgetSummarySheet(
         }
     }
     val moveLimit = if (covering) (selectedBalance ?: 0L).coerceAtLeast(0L) else toBudgetCents.coerceAtLeast(0L)
-    val moveCalculator = remember(toBudgetCents) {
-        CalculatorAmountState(kotlin.math.abs(toBudgetCents), allowsNegative = false)
+    val moveCalculator = remember(toBudgetCents, conventionalAmountEntry) {
+        CalculatorAmountState(kotlin.math.abs(toBudgetCents), allowsNegative = false, conventionalAmountEntry = conventionalAmountEntry)
     }
     var moveAmount by remember(toBudgetCents) { mutableStateOf(kotlin.math.abs(toBudgetCents)) }
 
     val maxHoldable = remember(toBudgetCents, bufferedCents) { maxOf(0L, toBudgetCents + bufferedCents) }
-    val holdCalculator = remember(maxHoldable, bufferedCents) {
-        CalculatorAmountState(bufferedCents.coerceIn(0L, maxHoldable), allowsNegative = false)
+    val holdCalculator = remember(maxHoldable, bufferedCents, conventionalAmountEntry) {
+        CalculatorAmountState(bufferedCents.coerceIn(0L, maxHoldable), allowsNegative = false, conventionalAmountEntry = conventionalAmountEntry)
     }
     var holdAmount by remember(maxHoldable, bufferedCents) {
         mutableStateOf(bufferedCents.coerceIn(0L, maxHoldable))
@@ -2983,6 +2990,7 @@ private fun BudgetSummarySheet(
                         )
                         CompactCalculatorPad(
                             calculator = moveCalculator,
+                            conventionalAmountEntry = conventionalAmountEntry,
                             horizontalPadding = 0.dp,
                             showDisplay = false,
                             onValueChange = { moveAmount = it },
@@ -3007,6 +3015,7 @@ private fun BudgetSummarySheet(
                         InlineCalculatorAmount(stringResource(R.string.budget_amount), holdAmount)
                         CompactCalculatorPad(
                             calculator = holdCalculator,
+                            conventionalAmountEntry = conventionalAmountEntry,
                             horizontalPadding = 0.dp,
                             showDisplay = false,
                             onValueChange = { holdAmount = it },
