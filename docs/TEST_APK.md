@@ -10,9 +10,15 @@ Actua has a manual **Build Test APK** GitHub Actions workflow for device testing
 4. In **Branch, tag, or commit to build**, enter the branch you want to test, for example `fix/widget-polish-34`. Leave it blank to build the workflow's selected branch.
 5. Start the workflow and wait for **Build signed test APK** to finish.
 6. Open the completed workflow run and download the `Actua-Test-...` artifact from the **Artifacts** section.
-7. Extract the ZIP and install the APK on the Android device.
+7. Extract the ZIP and install the APK on the Android device. The ZIP also holds the build's `mapping.txt` (see [Release build](#release-build)).
 
 The artifact is retained for 7 days. The workflow does **not** create a tag, GitHub release, changelog entry, Obtainium update, or Discord notification.
+
+## Release build
+
+The workflow builds the **release** build type, the same as the published app: minified by R8, not debuggable, and with the baseline profile. Scrolling and animation in Actua Test therefore match what users get. Do not judge smoothness on a debug build (for example one installed from Android Studio): Compose runs several times slower in debug builds.
+
+R8 renames classes, so a crash stack trace from Actua Test shows obfuscated names. Decode it with the `mapping.txt` from the same artifact, for example `retrace mapping.txt stacktrace.txt` (the `retrace` tool ships with the Android SDK command-line tools).
 
 ## Separate test app
 
@@ -31,7 +37,7 @@ Launcher shortcut target packages are rewritten during the test build so Expense
 
 The test APK is signed with Actua's persistent signing key, but because it has a different application ID it cannot replace the production Actua package.
 
-The requested branch is built before signing secrets are made available. Signing is performed in a separate fixed workflow step with Android's `apksigner` rather than passing release signing secrets into the checked-out Gradle build. The signing key itself is never uploaded as an artifact.
+The requested branch is built before signing secrets are made available, and Gradle signs it with a throwaway debug key. Signing with the persistent key is performed in a separate fixed workflow step with Android's `apksigner` rather than passing release signing secrets into the checked-out Gradle build. The signing key itself is never uploaded as an artifact.
 
 ## Safety
 

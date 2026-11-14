@@ -65,6 +65,16 @@ jobs:
           text = text.replace("Open Actua to", "Open Actua Test to")
           strings.write_text(text, encoding="utf-8")
 
+          # Build the release build type (R8, not debuggable, with the baseline profile) so Actua Test performs like
+          # the published app; a debug build is several times slower. Gradle signs it with the throwaway debug key,
+          # since no signing secrets are available here, and it is re-signed with the persistent key below.
+          old = 'signingConfig = signingConfigs.getByName("release")'
+          new = 'signingConfig = signingConfigs.getByName("debug")'
+          text = gradle.read_text(encoding="utf-8")
+          if text.count(old) != 1:
+              raise SystemExit("Expected the release build type's signing config was not found")
+          gradle.write_text(text.replace(old, new), encoding="utf-8")
+
           shortcuts = Path("app/src/main/res/xml/shortcuts.xml")
           if shortcuts.exists():
               text = shortcuts.read_text(encoding="utf-8")
@@ -85,12 +95,12 @@ jobs:
           # with Play Billing. Anything else is refused rather than guessed at.
           case "${FLAVOR:-fdroid}" in
             fdroid)
-              echo "task=assembleFdroidDebug" >> "$GITHUB_OUTPUT"
+              echo "task=assembleFdroidRelease" >> "$GITHUB_OUTPUT"
               echo "dir=fdroid" >> "$GITHUB_OUTPUT"
               echo "label=" >> "$GITHUB_OUTPUT"
               ;;
             playstore)
-              echo "task=assemblePlaystoreDebug" >> "$GITHUB_OUTPUT"
+              echo "task=assemblePlaystoreRelease" >> "$GITHUB_OUTPUT"
               echo "dir=playstore" >> "$GITHUB_OUTPUT"
               echo "label=Play-" >> "$GITHUB_OUTPUT"
               ;;
@@ -133,7 +143,9 @@ jobs:
           # The F-Droid name is unchanged; the Play build is "Actua-Test-Play-...".
           ARTIFACT="Actua-Test-${LABEL}${SAFE_REF}-${SHORT_SHA}-run${GITHUB_RUN_NUMBER}"
           echo "name=$ARTIFACT" >> "$GITHUB_OUTPUT"
-          cp "app/build/outputs/apk/${FLAVOR_DIR}/debug/app-${FLAVOR_DIR}-debug.apk" "$RUNNER_TEMP/$ARTIFACT.apk"
+          cp "app/build/outputs/apk/${FLAVOR_DIR}/release/app-${FLAVOR_DIR}-release.apk" "$RUNNER_TEMP/$ARTIFACT.apk"
+          # R8 renames classes in the release build; this file turns a tester's crash stack trace back into source names.
+          cp "app/build/outputs/mapping/${FLAVOR_DIR}Release/mapping.txt" "$ARTIFACT-mapping.txt"
 
       - name: Re-sign test APK with persistent Actua key
         env:
@@ -161,6 +173,8 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.artifact.outputs.name }}
-          path: ${{ steps.artifact.outputs.name }}.apk
+          path: |
+            ${{ steps.artifact.outputs.name }}.apk
+            ${{ steps.artifact.outputs.name }}-mapping.txt
           if-no-files-found: error
           retention-days: 7
