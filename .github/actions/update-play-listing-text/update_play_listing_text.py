@@ -33,6 +33,11 @@ def read_wanted():
     return wanted
 
 
+def normalized(text):
+    """The live text with Windows or old Mac line endings turned into the files' plain newlines."""
+    return (text or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+
+
 def summary(line):
     path = os.environ.get("GITHUB_STEP_SUMMARY")
     if path:
@@ -58,12 +63,13 @@ def main():
     committed = False
     try:
         live = edits.listings().get(packageName=PACKAGE, editId=edit_id, language=LANGUAGE).execute()
-        changed = [field for field in wanted if (live.get(field) or "").strip() != wanted[field]]
+        # Compared with normalized line endings, so text that only differs in them is not re-sent every release.
+        changed = [field for field in wanted if normalized(live.get(field)) != wanted[field]]
         if not changed:
             print("Google Play listing text already matches the files; nothing to do")
             summary("Google Play listing text already matches the files.")
         for field in changed:
-            current = (live.get(field) or "").strip()
+            current = normalized(live.get(field))
             print(f"--- {field}: {len(current)} -> {len(wanted[field])} characters")
             for line in difflib.unified_diff(
                 current.splitlines(), wanted[field].splitlines(), "live", "files", lineterm="", n=0
@@ -81,9 +87,17 @@ def main():
             summary("Google Play listing text updated: " + ", ".join(changed))
         elif changed:
             print("Dry run: nothing was changed. Run the workflow again with apply turned on to publish.")
-    finally:
+            summary("Dry run: Google Play listing text differs in " + ", ".join(changed) + "; nothing was changed.")
+    except Exception:
         if not committed:
-            edits.delete(packageName=PACKAGE, editId=edit_id).execute()
+            # Keep the original error: a failure to delete the edit is only reported, never raised over it.
+            try:
+                edits.delete(packageName=PACKAGE, editId=edit_id).execute()
+            except Exception as error:
+                print(f"Could not delete Google Play edit {edit_id}: {error}")
+        raise
+    if not committed:
+        edits.delete(packageName=PACKAGE, editId=edit_id).execute()
 
 
 if __name__ == "__main__":
