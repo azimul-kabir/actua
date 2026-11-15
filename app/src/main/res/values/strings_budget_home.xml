@@ -381,8 +381,8 @@
         <item quantity="other">%1$d of %2$d categories on budget</item>
     </plurals>
     <plurals name="home_greeting_uncategorized">
-        <item quantity="one">%d transaction to categorize</item>
-        <item quantity="other">%d transactions to categorize</item>
+        <item quantity="one">%d transaction to categorize this month</item>
+        <item quantity="other">%d transactions to categorize this month</item>
     </plurals>
     <plurals name="home_greeting_bills_due">
         <item quantity="one">%d bill due this week</item>
