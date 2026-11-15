@@ -639,7 +639,7 @@ fun AppNavigation(
         delay(1_000)
         withContext(Dispatchers.IO) { ScheduleReminderScheduler.refresh(appContext) }
     }
-    val greeting = rememberGreetingState(repository, dataVersion, budgetGroups, schedules)
+    val greeting = rememberGreetingState(repository, dataVersion, budgetGroups, schedules, transactions)
     val upcomingTransactions = remember(schedules, homeMonthStart.nonWorkingDays) {
         upcomingTransactionsFrom(
             schedules,
