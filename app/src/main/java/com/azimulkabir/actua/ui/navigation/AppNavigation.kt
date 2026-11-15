@@ -497,13 +497,14 @@ fun AppNavigation(
     }
     val repository = remember(repositoryVersion) { ActuaRepository(context) }
     var dataVersion by remember { mutableStateOf(0) }
-    var sharedImportText by remember { mutableStateOf<String?>(null) }
-    var sharedImportFile by remember { mutableStateOf<Uri?>(null) }
+    val importNavigationState = rememberImportNavigationState()
+    var sharedImportText by importNavigationState.sharedImportText
+    var sharedImportFile by importNavigationState.sharedImportFile
     // Each request reloads the capture queue, even when Review captured is already open.
-    var capturedReviewRequest by remember { mutableIntStateOf(0) }
-    var capturedReviewReturnsToImport by remember { mutableStateOf(false) }
+    var capturedReviewRequest by importNavigationState.capturedReviewRequest
+    var capturedReviewReturnsToImport by importNavigationState.capturedReviewReturnsToImport
     val captureQueue = remember { NotificationImportPreferences(context) }
-    var pendingCaptureCount by remember { mutableIntStateOf(0) }
+    var pendingCaptureCount by importNavigationState.pendingCaptureCount
     DisposableEffect(captureQueue) {
         pendingCaptureCount = captureQueue.queued().size
         onDispose(captureQueue.observeQueue { pendingCaptureCount = captureQueue.queued().size })
@@ -556,8 +557,9 @@ fun AppNavigation(
         RootListData.load(repository)
     }
     val accounts = rootLists.accounts
-    var greetingEnabled by remember { mutableStateOf(displayPreferences.greetingEnabled) }
-    var greetingNickname by remember { mutableStateOf(displayPreferences.greetingNickname) }
+    val settingsPreferenceState = rememberSettingsPreferenceState(displayPreferences)
+    var greetingEnabled by settingsPreferenceState.greetingEnabled
+    var greetingNickname by settingsPreferenceState.greetingNickname
     DisposableEffect(displayPreferences) {
         onDispose(displayPreferences.observeGreeting {
             greetingEnabled = displayPreferences.greetingEnabled
@@ -579,9 +581,7 @@ fun AppNavigation(
     val newBankTransactionCounts = remember(newBankTransactions) { newBankTransactions.mapValues { it.value.size } }
     // Actual's synced per-account `hide-reconciled-<accountId>` preference, shared with the PWA.
     val hideReconciledAccountIds = rootLists.hideReconciledAccountIds
-    var showUpcomingTransactions by remember {
-        mutableStateOf(displayPreferences.showUpcomingTransactions)
-    }
+    var showUpcomingTransactions by settingsPreferenceState.showUpcomingTransactions
     var transactionStatusFilter by rememberSaveable { mutableStateOf(TransactionStatusFilter.ALL) }
     // The full history is loaded off the main thread, once per data change; the filtered list
     // below reuses it unless a status filter narrows it.
@@ -660,15 +660,12 @@ fun AppNavigation(
     var tabSwitchJob by remember { mutableStateOf<Job?>(null) }
     var detail by rememberSaveable { mutableStateOf(DetailDestination.Main) }
     // Set by the support prompt's "See options"; Settings opens its Support page and clears it.
-    var openSupportPage by rememberSaveable { mutableStateOf(false) }
+    var openSupportPage by settingsPreferenceState.openSupportPage
     fun openCapturedReview(fromImport: Boolean = false) {
-        capturedReviewRequest += 1
-        capturedReviewReturnsToImport = fromImport
-        detail = DetailDestination.ReviewCaptured
+        importNavigationState.openReview(fromImport) { detail = it }
     }
     fun returnFromCapturedReview() {
-        detail = if (capturedReviewReturnsToImport) DetailDestination.ImportTransactions else DetailDestination.Main
-        capturedReviewReturnsToImport = false
+        importNavigationState.returnFromReview { detail = it }
     }
     // Diagnostics: which tab or detail screen the user was on before a problem (#225).
     LaunchedEffect(selectedTab, detail) {
@@ -725,18 +722,19 @@ fun AppNavigation(
     var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
     var transactionsRefreshing by transactionNavigationState.transactionsRefreshing
     var accountsRefreshing by transactionNavigationState.accountsRefreshing
-    var simpleFinConfigured by remember { mutableStateOf(false) }
-    var goCardlessConfigured by remember { mutableStateOf(false) }
-    var simpleFinDiscovery by remember { mutableStateOf<com.azimulkabir.actua.ui.banksync.DiscoveryState>(com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle) }
-    var goCardlessDiscovery by remember { mutableStateOf<com.azimulkabir.actua.ui.banksync.DiscoveryState>(com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle) }
-    var goCardlessInstitutions by remember { mutableStateOf<List<com.azimulkabir.actua.ui.banksync.GoCardlessInstitutionUi>>(emptyList()) }
-    var goCardlessInstitutionsLoading by remember { mutableStateOf(false) }
-    var goCardlessRequisitionId by remember { mutableStateOf<String?>(null) }
-    var enableBankingConfigured by remember { mutableStateOf(false) }
-    var pluggyAiConfigured by remember { mutableStateOf(false) }
-    var akahuConfigured by remember { mutableStateOf(false) }
-    var pluggyAiDiscovery by remember { mutableStateOf<com.azimulkabir.actua.ui.banksync.DiscoveryState>(com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle) }
-    var akahuDiscovery by remember { mutableStateOf<com.azimulkabir.actua.ui.banksync.DiscoveryState>(com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle) }
+    val bankSyncProviderState = rememberBankSyncProviderState()
+    var simpleFinConfigured by bankSyncProviderState.simpleFinConfigured
+    var goCardlessConfigured by bankSyncProviderState.goCardlessConfigured
+    var simpleFinDiscovery by bankSyncProviderState.simpleFinDiscovery
+    var goCardlessDiscovery by bankSyncProviderState.goCardlessDiscovery
+    var goCardlessInstitutions by bankSyncProviderState.goCardlessInstitutions
+    var goCardlessInstitutionsLoading by bankSyncProviderState.goCardlessInstitutionsLoading
+    var goCardlessRequisitionId by bankSyncProviderState.goCardlessRequisitionId
+    var enableBankingConfigured by bankSyncProviderState.enableBankingConfigured
+    var pluggyAiConfigured by bankSyncProviderState.pluggyAiConfigured
+    var akahuConfigured by bankSyncProviderState.akahuConfigured
+    var pluggyAiDiscovery by bankSyncProviderState.pluggyAiDiscovery
+    var akahuDiscovery by bankSyncProviderState.akahuDiscovery
     var reconcileOpen by transactionNavigationState.reconcileOpen
     var scheduleReturnsToBills by scheduleNavigationState.scheduleReturnsToBills
     var scheduleReturnsToTransactions by scheduleNavigationState.scheduleReturnsToTransactions
@@ -750,35 +748,35 @@ fun AppNavigation(
     var statementsReturnToTransactions by accountDetailNavigationState.statementsReturnToTransactions
     var selectedStatement by accountDetailNavigationState.selectedStatement
     var editorReturnsToStatementDetail by transactionNavigationState.editorReturnsToStatementDetail
-    var decimalPlacesMode by remember { mutableStateOf(displayPreferences.decimalPlacesMode) }
-    var currencyCode by remember { mutableStateOf(displayPreferences.currencyCode) }
-    var currencySymbolOnly by remember { mutableStateOf(displayPreferences.currencySymbolOnly) }
-    var currencySymbolPosition by remember { mutableStateOf(displayPreferences.currencySymbolPosition) }
-    var currencySymbolSpacing by remember { mutableStateOf(displayPreferences.currencySymbolSpacing) }
-    var dateFormat by remember { mutableStateOf(displayPreferences.dateFormat) }
-    var numberFormat by remember { mutableStateOf(displayPreferences.numberFormat) }
-    var budgetView by remember { mutableStateOf(displayPreferences.budgetView) }
-    var budgetDisplay by remember { mutableStateOf(displayPreferences.budgetDisplayOptions) }
+    var decimalPlacesMode by settingsPreferenceState.decimalPlacesMode
+    var currencyCode by settingsPreferenceState.currencyCode
+    var currencySymbolOnly by settingsPreferenceState.currencySymbolOnly
+    var currencySymbolPosition by settingsPreferenceState.currencySymbolPosition
+    var currencySymbolSpacing by settingsPreferenceState.currencySymbolSpacing
+    var dateFormat by settingsPreferenceState.dateFormat
+    var numberFormat by settingsPreferenceState.numberFormat
+    var budgetView by settingsPreferenceState.budgetView
+    var budgetDisplay by settingsPreferenceState.budgetDisplay
     val onBudgetDisplayChange: (BudgetDisplayOptions) -> Unit = {
         displayPreferences.budgetDisplayOptions = it
         budgetDisplay = it
     }
-    var budgetCategoryView by remember { mutableStateOf(displayPreferences.budgetCategoryView) }
-    var favoritesOnly by remember { mutableStateOf(displayPreferences.favoritesOnly) }
+    var budgetCategoryView by settingsPreferenceState.budgetCategoryView
+    var favoritesOnly by settingsPreferenceState.favoritesOnly
     var favoriteCategoryIds by homeBudgetPreferencesState.favoriteCategoryIds
     var favoriteAccountIds by homeBudgetPreferencesState.favoriteAccountIds
     var favoriteReportIds by homeBudgetPreferencesState.favoriteReportIds
     var requestedReportPageId by remember { mutableStateOf<String?>(null) }
     var requestedReportPageRequest by remember { mutableStateOf(0) }
-    var privacyMode by remember { mutableStateOf(displayPreferences.privacyMode) }
-    var appearance by remember { mutableStateOf(displayPreferences.appearance) }
-    var useDynamicColor by remember { mutableStateOf(displayPreferences.useDynamicColor) }
-    var startPage by remember { mutableStateOf(displayPreferences.startPage) }
-    var defaultAccount by remember { mutableStateOf(displayPreferences.defaultAccount) }
-    var groupTransactionsByDate by remember { mutableStateOf(displayPreferences.groupTransactionsByDate) }
-    var showAccountsMonthlySummary by remember { mutableStateOf(displayPreferences.showAccountsMonthlySummary) }
-    var showAccountTypeIcons by remember { mutableStateOf(displayPreferences.showAccountTypeIcons) }
-    var conventionalAmountEntry by remember { mutableStateOf(displayPreferences.conventionalAmountEntry) }
+    var privacyMode by settingsPreferenceState.privacyMode
+    var appearance by settingsPreferenceState.appearance
+    var useDynamicColor by settingsPreferenceState.useDynamicColor
+    var startPage by settingsPreferenceState.startPage
+    var defaultAccount by settingsPreferenceState.defaultAccount
+    var groupTransactionsByDate by settingsPreferenceState.groupTransactionsByDate
+    var showAccountsMonthlySummary by settingsPreferenceState.showAccountsMonthlySummary
+    var showAccountTypeIcons by settingsPreferenceState.showAccountTypeIcons
+    var conventionalAmountEntry by settingsPreferenceState.conventionalAmountEntry
     val receiptScanner = remember { createReceiptScanner(context) }
     // The scanned receipt photo the user chose to keep with the transaction being added. It stays a cache
     // file until the transaction is saved, then moves into this device's receipt photo folder.
@@ -789,14 +787,14 @@ fun AppNavigation(
     val selectedFolderLabel = stringResource(R.string.selected_folder)
     val receiptFolderUnavailableNotice = stringResource(R.string.receipt_photo_folder_unavailable_kept_private)
     val receiptNotKeptNotice = stringResource(R.string.receipt_photo_not_kept)
-    var keepLastTransactionDate by remember { mutableStateOf(displayPreferences.keepLastTransactionDate) }
+    var keepLastTransactionDate by settingsPreferenceState.keepLastTransactionDate
     val tabBarScroll = remember { TabBarScrollState(displayPreferences) }
     val showBottomNavigationLabels = tabBarScroll.showLabels
-    var showCurrentBalanceSummary by remember { mutableStateOf(displayPreferences.showCurrentBalanceSummary) }
-    var showRunningBalance by remember { mutableStateOf(displayPreferences.showRunningBalance) }
-    var showNotes by remember { mutableStateOf(displayPreferences.showNotes) }
-    var hideIncomeGroupInBudget by remember { mutableStateOf(displayPreferences.hideIncomeGroupInBudget) }
-    var showReportSummary by remember { mutableStateOf(displayPreferences.showReportSummary) }
+    var showCurrentBalanceSummary by settingsPreferenceState.showCurrentBalanceSummary
+    var showRunningBalance by settingsPreferenceState.showRunningBalance
+    var showNotes by settingsPreferenceState.showNotes
+    var hideIncomeGroupInBudget by settingsPreferenceState.hideIncomeGroupInBudget
+    var showReportSummary by settingsPreferenceState.showReportSummary
     val budgetDisplayFormats = rememberLoaded(repository, dataVersion, initial = BudgetDisplayFormats()) {
         repository.budgetDisplayFormats()
     }
@@ -999,305 +997,27 @@ fun AppNavigation(
         }
     }
 
-    fun loadBankSyncProviderStatus() {
-        coroutineScope.launch {
-            simpleFinConfigured = withContext(Dispatchers.IO) {
-                runCatching { repository.bankSyncProviderConfigured("simpleFin") }.getOrDefault(false)
-            }
-            goCardlessConfigured = withContext(Dispatchers.IO) {
-                runCatching { repository.bankSyncProviderConfigured("goCardless") }.getOrDefault(false)
-            }
-            enableBankingConfigured = withContext(Dispatchers.IO) {
-                runCatching { repository.bankSyncProviderConfigured("enableBanking") }.getOrDefault(false)
-            }
-            pluggyAiConfigured = withContext(Dispatchers.IO) {
-                runCatching { repository.bankSyncProviderConfigured("pluggyai") }.getOrDefault(false)
-            }
-            akahuConfigured = withContext(Dispatchers.IO) {
-                runCatching { repository.bankSyncProviderConfigured("akahu") }.getOrDefault(false)
-            }
-        }
-    }
-
-    val enableBankingMessages = com.azimulkabir.actua.ui.banksync.EnableBankingMessages(
-        starting = stringResource(R.string.fs_eb_starting),
-        wait = stringResource(R.string.fs_eb_wait),
-        loadFailed = stringResource(R.string.fs_eb_load_failed),
-        authorizeFailed = stringResource(R.string.fs_eb_authorize_failed),
+    val bankSyncActions = bankSyncNavigationActions(
+        context, repository, coroutineScope, bankSyncProviderState, mutationFeedback,
+        snackbarHostState, navStrings,
+        onMutate = { label, onChanged, action -> mutate(label, onChanged, action) },
     )
-    val enableBankingFlow = remember(repository, enableBankingMessages) {
-        com.azimulkabir.actua.ui.banksync.EnableBankingFlow(
-            scope = coroutineScope,
-            io = Dispatchers.IO,
-            loadBanks = repository::discoverEnableBankingBanks,
-            startAuthorization = repository::startEnableBankingAuthorization,
-            awaitAuthorization = repository::awaitEnableBankingAuthorization,
-            openUrl = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
-            onError = { message -> errorMessage = message },
-            messages = enableBankingMessages,
-        )
-    }
-
-    fun saveEnableBankingCredentials(applicationId: String, secretKey: String) {
-        coroutineScope.launch {
-            suspendRunCatching { withContext(Dispatchers.IO) { repository.setEnableBankingCredentials(applicationId, secretKey) } }
-                .onSuccess {
-                    loadBankSyncProviderStatus()
-                    snackbarHostState.showSnackbar(navStrings.enableBankingSaved)
-                }
-                .onFailure {
-                    errorMessage = it.message?.takeIf(String::isNotBlank)
-                        ?: navStrings.enableBankingSaveFailed
-                }
-        }
-    }
-
-    val pluggyAiSavedMessage = stringResource(R.string.navigation_pluggyai_credentials_saved)
-    val pluggyAiSaveFailedMessage = stringResource(R.string.navigation_pluggyai_credentials_save_failed)
-    val akahuSavedMessage = stringResource(R.string.navigation_akahu_credentials_saved)
-    val akahuSaveFailedMessage = stringResource(R.string.navigation_akahu_credentials_save_failed)
-    val pluggyAiLoadFailedMessage = stringResource(R.string.navigation_pluggyai_accounts_load_failed)
-    val akahuLoadFailedMessage = stringResource(R.string.navigation_akahu_accounts_load_failed)
-
-    fun savePluggyAiCredentials(clientId: String, clientSecret: String, itemIds: String, perBudget: Boolean) {
-        coroutineScope.launch {
-            suspendRunCatching { withContext(Dispatchers.IO) { repository.setPluggyAiCredentials(clientId, clientSecret, itemIds, perBudget) } }
-                .onSuccess {
-                    loadBankSyncProviderStatus()
-                    snackbarHostState.showSnackbar(pluggyAiSavedMessage)
-                }
-                .onFailure { errorMessage = it.message?.takeIf(String::isNotBlank) ?: pluggyAiSaveFailedMessage }
-        }
-    }
-
-    fun saveAkahuCredentials(userToken: String, appToken: String) {
-        coroutineScope.launch {
-            suspendRunCatching { withContext(Dispatchers.IO) { repository.setAkahuCredentials(userToken, appToken) } }
-                .onSuccess {
-                    loadBankSyncProviderStatus()
-                    snackbarHostState.showSnackbar(akahuSavedMessage)
-                }
-                .onFailure { errorMessage = it.message?.takeIf(String::isNotBlank) ?: akahuSaveFailedMessage }
-        }
-    }
-
-    fun providerDiscovery(
-        result: com.azimulkabir.actua.data.network.ProviderAccountsResult,
-    ): com.azimulkabir.actua.ui.banksync.DiscoveryState = when (result) {
-        is com.azimulkabir.actua.data.network.ProviderAccountsResult.Available -> com.azimulkabir.actua.ui.banksync.DiscoveryState.Available(
-            result.accounts.map {
-                com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount(
-                    it.id, it.name, it.institution, bankId = it.bankId, bankName = it.institution,
-                )
-            },
-        )
-        is com.azimulkabir.actua.data.network.ProviderAccountsResult.Error -> com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(result.reason)
-    }
-
-    fun discoverPluggyAiAccounts() {
-        pluggyAiDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Loading
-        coroutineScope.launch {
-            pluggyAiDiscovery = suspendRunCatching { withContext(Dispatchers.IO) { repository.discoverPluggyAiAccounts() } }.fold(
-                onSuccess = ::providerDiscovery,
-                onFailure = { error ->
-                    DiagnosticsLog.actionFailed("Loading Pluggy.ai accounts", error)
-                    com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(error.message ?: pluggyAiLoadFailedMessage)
-                },
-            )
-        }
-    }
-
-    fun discoverAkahuAccounts() {
-        akahuDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Loading
-        coroutineScope.launch {
-            akahuDiscovery = suspendRunCatching { withContext(Dispatchers.IO) { repository.discoverAkahuAccounts() } }.fold(
-                onSuccess = ::providerDiscovery,
-                onFailure = { error ->
-                    DiagnosticsLog.actionFailed("Loading Akahu accounts", error)
-                    com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(error.message ?: akahuLoadFailedMessage)
-                },
-            )
-        }
-    }
-
-    fun saveSimpleFinToken(token: String) {
-        coroutineScope.launch {
-            suspendRunCatching { withContext(Dispatchers.IO) { repository.setSimpleFinToken(token) } }
-                .onSuccess {
-                    loadBankSyncProviderStatus()
-                    snackbarHostState.showSnackbar(navStrings.simplefinSaved)
-                }
-                .onFailure {
-                    errorMessage = it.message?.takeIf(String::isNotBlank)
-                        ?: navStrings.simplefinSaveFailed
-                }
-        }
-    }
-
-    fun saveGoCardlessCredentials(secretId: String, secretKey: String) {
-        coroutineScope.launch {
-            suspendRunCatching { withContext(Dispatchers.IO) { repository.setGoCardlessCredentials(secretId, secretKey) } }
-                .onSuccess {
-                    loadBankSyncProviderStatus()
-                    snackbarHostState.showSnackbar(navStrings.gocardlessSaved)
-                }
-                .onFailure {
-                    errorMessage = it.message?.takeIf(String::isNotBlank)
-                        ?: navStrings.gocardlessSaveFailed
-                }
-        }
-    }
-
-    fun discoverSimpleFinAccounts() {
-        simpleFinDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Loading
-        coroutineScope.launch {
-            simpleFinDiscovery = suspendRunCatching { withContext(Dispatchers.IO) { repository.discoverSimpleFinAccounts() } }.fold(
-                onSuccess = { result ->
-                    when (result) {
-                        is com.azimulkabir.actua.data.network.SimpleFinAccountsResult.Available -> com.azimulkabir.actua.ui.banksync.DiscoveryState.Available(
-                            result.accounts.map {
-                                com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount(
-                                    it.id, it.name, it.orgName, bankId = it.orgDomain ?: it.orgId, bankName = it.orgName,
-                                )
-                            },
-                        )
-                        is com.azimulkabir.actua.data.network.SimpleFinAccountsResult.Error ->
-                            com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(result.reason)
-                    }
-                },
-                onFailure = { error ->
-                    DiagnosticsLog.actionFailed("Loading SimpleFIN accounts", error)
-                    com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(
-                        error.message ?: navStrings.simplefinAccountsLoadFailed,
-                    )
-                },
-            )
-        }
-    }
-
-    fun loadGoCardlessInstitutions(country: String) {
-        goCardlessInstitutionsLoading = true
-        coroutineScope.launch {
-            goCardlessInstitutions = suspendRunCatching { withContext(Dispatchers.IO) { repository.discoverGoCardlessInstitutions(country) } }
-                .getOrElse { error ->
-                    errorMessage = error.message?.takeIf(String::isNotBlank)
-                        ?: navStrings.banksLoadFailedFormat.format(country)
-                    emptyList()
-                }.map { com.azimulkabir.actua.ui.banksync.GoCardlessInstitutionUi(it.id, it.name) }
-            goCardlessInstitutionsLoading = false
-        }
-    }
-
-    fun startGoCardlessAuthorization(institutionId: String) {
-        coroutineScope.launch {
-            suspendRunCatching { withContext(Dispatchers.IO) { repository.startGoCardlessAuthorization(institutionId) } }
-                .onSuccess { webToken ->
-                    goCardlessRequisitionId = webToken.requisitionId
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(webToken.link)))
-                }
-                .onFailure {
-                    errorMessage = it.message?.takeIf(String::isNotBlank)
-                        ?: navStrings.gocardlessAuthorizationStartFailed
-                }
-        }
-    }
-
-    fun checkGoCardlessAccounts() {
-        val requisitionId = goCardlessRequisitionId
-        if (requisitionId == null) {
-            goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(
-                navStrings.chooseBankFirst,
-            )
-            return
-        }
-        goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Loading
-        coroutineScope.launch {
-            goCardlessDiscovery = suspendRunCatching { withContext(Dispatchers.IO) { repository.goCardlessAccountsForRequisition(requisitionId) } }.fold(
-                onSuccess = { result ->
-                    when (result) {
-                        is com.azimulkabir.actua.data.network.GoCardlessAccountsResult.Available -> com.azimulkabir.actua.ui.banksync.DiscoveryState.Available(
-                            result.accounts.map {
-                                com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount(
-                                    "$requisitionId::${it.id}", it.name ?: it.iban ?: it.id, it.iban,
-                                    bankName = it.institutionName,
-                                )
-                            },
-                        )
-                        is com.azimulkabir.actua.data.network.GoCardlessAccountsResult.Pending ->
-                            com.azimulkabir.actua.ui.banksync.DiscoveryState.Pending(
-                                navStrings.gocardlessAuthorizationPendingFormat.format(result.status),
-                            )
-                        is com.azimulkabir.actua.data.network.GoCardlessAccountsResult.Error ->
-                            com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(result.reason)
-                    }
-                },
-                onFailure = { error ->
-                    DiagnosticsLog.actionFailed("Checking GoCardless accounts", error)
-                    com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(
-                        error.message ?: navStrings.gocardlessAccountsCheckFailed,
-                    )
-                },
-            )
-        }
-    }
-
-    /** GoCardless ids are packed as "requisitionId::accountId" by [checkGoCardlessAccounts]; other providers use the bare id. */
-    fun splitGoCardlessId(discoveredId: String): Pair<String?, String> {
-        val parts = discoveredId.split("::", limit = 2)
-        return if (parts.size == 2) parts[0] to parts[1] else null to discoveredId
-    }
-
-    fun linkBankAccount(discovered: com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount, account: Account, source: String) {
-        val (requisitionId, externalId) = when (source) {
-            "goCardless" -> splitGoCardlessId(discovered.id)
-            // Enable Banking keeps one `banks` row per account, keyed by the account id itself.
-            "enableBanking" -> discovered.id to discovered.id
-            // SimpleFIN's `banks` row is keyed on the org domain, or its id (#1004).
-            "simpleFin" -> discovered.bankId to discovered.id
-            // Actual's `findOrCreateBank(institution, orgDomain ?? orgId)` for Pluggy.ai and Akahu.
-            "pluggyai", "akahu" -> discovered.bankId to discovered.id
-            else -> null to discovered.id
-        }
-        val bankName = if (source == "enableBanking") enableBankingFlow.institutionFor(discovered.id) else discovered.bankName
-        mutate(
-            R.string.navigation_linking_account,
-            onChanged = {
-                goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
-                simpleFinDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
-                pluggyAiDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
-                akahuDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
-                enableBankingFlow.reset()
-            },
-        ) { repository.linkBankAccount(account.id, externalId, source, requisitionId, bankName) }
-    }
-
-    fun createAndLinkBankAccount(
-        discovered: com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount, name: String, offBudget: Boolean, source: String,
-    ) {
-        val (requisitionId, externalId) = when (source) {
-            "goCardless" -> splitGoCardlessId(discovered.id)
-            "enableBanking" -> discovered.id to discovered.id
-            "simpleFin" -> discovered.bankId to discovered.id
-            // Actual's `findOrCreateBank(institution, orgDomain ?? orgId)` for Pluggy.ai and Akahu.
-            "pluggyai", "akahu" -> discovered.bankId to discovered.id
-            else -> null to discovered.id
-        }
-        val bankName = if (source == "enableBanking") enableBankingFlow.institutionFor(discovered.id) else discovered.bankName
-        mutate(
-            R.string.navigation_creating_account,
-            onChanged = {
-                goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
-                simpleFinDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
-                pluggyAiDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
-                akahuDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
-                enableBankingFlow.reset()
-            },
-        ) { repository.createLinkedAccount(name, offBudget, externalId, source, requisitionId, bankName) }
-    }
-
-    fun unlinkBankAccount(account: Account) {
-        mutate(R.string.navigation_unlinking_account) { repository.unlinkBankAccount(account.id) }
-    }
+    val enableBankingFlow = bankSyncActions.enableBankingFlow
+    fun loadBankSyncProviderStatus() { bankSyncActions.loadBankSyncProviderStatus() }
+    fun saveEnableBankingCredentials(applicationId: String, secretKey: String) { bankSyncActions.saveEnableBankingCredentials(applicationId, secretKey) }
+    fun savePluggyAiCredentials(clientId: String, clientSecret: String, itemIds: String, perBudget: Boolean) { bankSyncActions.savePluggyAiCredentials(clientId, clientSecret, itemIds, perBudget) }
+    fun saveAkahuCredentials(userToken: String, appToken: String) { bankSyncActions.saveAkahuCredentials(userToken, appToken) }
+    fun discoverPluggyAiAccounts() { bankSyncActions.discoverPluggyAiAccounts() }
+    fun discoverAkahuAccounts() { bankSyncActions.discoverAkahuAccounts() }
+    fun saveSimpleFinToken(token: String) { bankSyncActions.saveSimpleFinToken(token) }
+    fun saveGoCardlessCredentials(secretId: String, secretKey: String) { bankSyncActions.saveGoCardlessCredentials(secretId, secretKey) }
+    fun discoverSimpleFinAccounts() { bankSyncActions.discoverSimpleFinAccounts() }
+    fun loadGoCardlessInstitutions(country: String) { bankSyncActions.loadGoCardlessInstitutions(country) }
+    fun startGoCardlessAuthorization(institutionId: String) { bankSyncActions.startGoCardlessAuthorization(institutionId) }
+    fun checkGoCardlessAccounts() { bankSyncActions.checkGoCardlessAccounts() }
+    fun linkBankAccount(discovered: com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount, account: Account, source: String) { bankSyncActions.linkBankAccount(discovered, account, source) }
+    fun createAndLinkBankAccount(discovered: com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount, name: String, offBudget: Boolean, source: String) { bankSyncActions.createAndLinkBankAccount(discovered, name, offBudget, source) }
+    fun unlinkBankAccount(account: Account) { bankSyncActions.unlinkBankAccount(account) }
 
     // Same contract as [mutate], but the (disk I/O) mutation runs off the main thread and
     // [onChanged] fires afterwards on the main thread once the local write has durably
@@ -3743,7 +3463,7 @@ private fun NavigationReportsScreen(
 /** Launch actions that open the add-transaction screen: the Quick Settings tile, widget buttons and shortcuts. */
 internal val AddTransactionActions = setOf(WidgetActions.ADD_EXPENSE, WidgetActions.ADD_INCOME, WidgetActions.ADD_TRANSFER)
 
-private data class NavigationStrings(
+internal data class NavigationStrings(
     val mutationIncompleteFormat: String,
     val mutationFailedFormat: String,
     val unlockBudgetBeforeSync: String,
@@ -3848,189 +3568,3 @@ private fun transactionEditorStrings(): TransactionEditorStrings = TransactionEd
  * method-size limit while strings localize — mirroring [NavigationAccountsScreen] and
  * [NavigationManageCategoriesScreen].
  */
-@Composable
-private fun NavigationManageCategoriesScreen(
-    repository: ActuaRepository,
-    dataVersion: Int,
-    contentModifier: Modifier,
-    onBack: () -> Unit,
-    onReorderGroupsClick: () -> Unit,
-    onMutate: (labelRes: Int, action: () -> Boolean) -> Unit,
-    onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
-) {
-    val groups = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.categoryGroupsForReorder() }
-    ManageCategoriesScreen(
-        groups = groups,
-        onBack = onBack,
-        onReorderGroupsClick = onReorderGroupsClick,
-        onCreateGroup = { name -> onMutate(R.string.navigation_creating_group) { repository.createCategoryGroup(name) } },
-        onRenameGroup = { group, name -> onMutate(R.string.navigation_renaming_group) { repository.renameCategoryGroup(group, name) } },
-        onSetGroupHidden = { group, hidden ->
-            onMutate(if (hidden) R.string.navigation_hiding_group else R.string.navigation_showing_group) { repository.setCategoryGroupHidden(group, hidden) }
-        },
-        onCreateCategory = { group, name -> onMutate(R.string.navigation_creating_category) { repository.createCategory(group, name) } },
-        onRenameCategory = { group, category, name ->
-            onMutate(R.string.navigation_renaming_category) { repository.renameCategory(group, category, name) }
-        },
-        onSetCategoryHidden = { group, category, hidden ->
-            onMutate(if (hidden) R.string.navigation_hiding_category else R.string.navigation_showing_category) {
-                repository.setCategoryHidden(group, category, hidden)
-            }
-        },
-        onDeleteCategory = { group, category, transferToId ->
-            onMutate(R.string.navigation_deleting_category) { repository.deleteCategory(group, category, transferToId) }
-        },
-        loadCategoryDeletePlan = { group, category ->
-            withContext(Dispatchers.IO) { runCatching { repository.categoryDeletePlan(group, category) }.getOrNull() }
-        },
-        onDeleteGroup = { group, targetGroupId ->
-            onMutate(R.string.navigation_deleting_group) { repository.deleteCategoryGroup(group.id, targetGroupId) }
-        },
-        onMoveCategory = { move -> onMutateSync(R.string.navigation_reordering_category) { repository.moveCategory(move) } },
-        onMoveCategoryToGroup = { move -> onMutate(R.string.navigation_reordering_category) { repository.moveCategory(move) } },
-        modifier = contentModifier,
-    )
-}
-
-@Composable
-private fun NavigationReorderGroupsScreen(
-    repository: ActuaRepository,
-    dataVersion: Int,
-    contentModifier: Modifier,
-    onBack: () -> Unit,
-    onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
-) {
-    val groups = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.categoryGroupsForReorder() }
-    ReorderGroupsScreen(
-        groups = groups,
-        onBack = onBack,
-        onMoveGroup = { move -> onMutateSync(R.string.navigation_reordering_category_group) { repository.moveCategoryGroup(move) } },
-        modifier = contentModifier,
-    )
-}
-
-@Composable
-private fun NavigationReorderAccountsScreen(
-    repository: ActuaRepository,
-    dataVersion: Int,
-    contentModifier: Modifier,
-    onBack: () -> Unit,
-    onMutate: (labelRes: Int, action: () -> Boolean) -> Unit,
-    onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
-) {
-    val accounts = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.accountsForReorder() }
-    val groups = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.accountGroupsForReorder() }
-    ReorderAccountsScreen(
-        accounts = accounts,
-        groups = groups,
-        onBack = onBack,
-        onMoveAccount = { move -> onMutateSync(R.string.navigation_reordering_account) { repository.moveAccount(move) } },
-        onMoveGroup = { move -> onMutateSync(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
-        onMoveGroupFromSheet = { move -> onMutate(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
-        onCreateGroup = { name -> onMutate(R.string.navigation_creating_account_group) { repository.createAccountGroup(name) } },
-        onRenameGroup = { id, name -> onMutate(R.string.navigation_renaming_account_group) { repository.renameAccountGroup(id, name) } },
-        onDeleteGroup = { id -> onMutate(R.string.navigation_deleting_account_group) { repository.deleteAccountGroup(id) } },
-        modifier = contentModifier,
-    )
-}
-
-@Composable
-private fun NavigationAccountsScreen(
-    repository: ActuaRepository,
-    dataVersion: Int,
-    contentModifier: Modifier,
-    accounts: List<Account>,
-    transactions: List<Transaction>,
-    hideDecimalPlaces: Boolean,
-    showMonthlySummary: Boolean,
-    onShowMonthlySummaryChange: (Boolean) -> Unit,
-    showAccountTypeIcons: Boolean,
-    onShowAccountTypeIconsChange: (Boolean) -> Unit,
-    creditCards: List<CreditCardStatus>,
-    onAccountClick: (String) -> Unit,
-    onAllAccountsClick: () -> Unit,
-    onMutate: (labelRes: Int, action: () -> Boolean) -> Unit,
-    onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
-    pendingCaptureCount: Int,
-    onReviewCaptures: () -> Unit,
-    newTransactionCounts: Map<String, Int>,
-    onSearch: () -> Unit,
-    onSetUpBankSync: () -> Unit,
-    isRefreshing: Boolean,
-    onRefresh: () -> Unit,
-    favoriteAccountIds: Set<String>,
-    onFavoriteAccountChange: (String, Boolean) -> Unit,
-    onFavoriteFeedback: (String, Boolean) -> Unit,
-    scrollToTopRequest: Int,
-    hasFab: Boolean,
-    monthStart: MonthStartRule,
-) {
-    val accountGroups = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.accountGroupsForReorder() }
-    val accountsForReorder = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.accountsForReorder() }
-    AccountsScreen(
-        modifier = contentModifier,
-        accounts = accounts,
-        transactions = transactions,
-        hideDecimalPlaces = hideDecimalPlaces,
-        showMonthlySummary = showMonthlySummary,
-        onShowMonthlySummaryChange = onShowMonthlySummaryChange,
-        showAccountTypeIcons = showAccountTypeIcons,
-        onShowAccountTypeIconsChange = onShowAccountTypeIconsChange,
-        creditCards = creditCards,
-        onAccountClick = onAccountClick,
-        onAllAccountsClick = onAllAccountsClick,
-        loadCloseOptions = { account ->
-            withContext(Dispatchers.IO) {
-                CloseAccountOptions(
-                    hasTransactions = repository.accountHasTransactions(account.id),
-                    categoryGroups = repository.categoryGroupsForReorder().map { group ->
-                        CloseCategoryGroup(group.name, group.categories.map { it.id to it.name })
-                    },
-                )
-            }
-        },
-        onCloseAccount = { account, transferAccountId, categoryId, forced ->
-            onMutate(if (forced) R.string.navigation_force_closing_account else R.string.navigation_closing_account) {
-                repository.closeAccount(account.id, transferAccountId, categoryId, forced)
-            }
-        },
-        onReopenAccount = { account ->
-            onMutate(R.string.navigation_reopening_account) { repository.reopenAccount(account.id) }
-        },
-        onRenameAccount = { account, name ->
-            onMutate(R.string.navigation_renaming_account) { repository.renameAccount(account.id, name) }
-        },
-        onChangeAccountType = { account, type ->
-            onMutate(R.string.navigation_changing_account_type) { repository.setAccountType(account.id, type) }
-        },
-        onCreateAccount = { name, offBudget, balance, type, groupId ->
-            onMutate(R.string.navigation_creating_account) { repository.createAccount(name, offBudget, balance, type, groupId) }
-        },
-        accountGroups = accountGroups,
-        onSetAccountGroup = { account, groupId ->
-            onMutate(R.string.navigation_updating_account_group) { repository.setAccountGroup(account.id, groupId) }
-        },
-        accountsForReorder = accountsForReorder,
-        onMoveAccount = { move -> onMutateSync(R.string.navigation_reordering_account) { repository.moveAccount(move) } },
-        onMoveGroup = { move -> onMutateSync(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
-        onMoveGroupFromSheet = { move -> onMutate(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
-        onCreateGroup = { name -> onMutate(R.string.navigation_creating_account_group) { repository.createAccountGroup(name) } },
-        onRenameGroup = { id, name -> onMutate(R.string.navigation_renaming_account_group) { repository.renameAccountGroup(id, name) } },
-        onDeleteGroup = { id -> onMutate(R.string.navigation_deleting_account_group) { repository.deleteAccountGroup(id) } },
-        pendingCaptureCount = pendingCaptureCount,
-        onReviewCaptures = onReviewCaptures,
-        newTransactionCounts = newTransactionCounts,
-        onSearch = onSearch,
-        onSetUpBankSync = onSetUpBankSync,
-        isRefreshing = isRefreshing,
-        onRefresh = onRefresh,
-        favoriteAccountIds = favoriteAccountIds,
-        onFavoriteAccountChange = onFavoriteAccountChange,
-        onFavoriteFeedback = onFavoriteFeedback,
-        scrollToTopRequest = scrollToTopRequest,
-        hasFab = hasFab,
-        monthStart = monthStart,
-    )
-}
-
-
