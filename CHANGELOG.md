@@ -9,7 +9,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added a Terms of Service link to Settings → About ([#1664](https://github.com/azimul-kabir/actua/pull/1664))
 - Added a confirmation message when you add or remove a budget category or an account from favorites ([#1666](https://github.com/azimul-kabir/actua/pull/1666))
 - Added a Row style choice to the Favourite categories and Account balances widget setup: Highlighted (the amount in a pill) or Simple, which keeps names readable on narrow widgets ([#1669](https://github.com/azimul-kabir/actua/pull/1669))
-- Added an Add transaction tile for Quick Settings ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
+- Added an Add transaction tile for Quick Settings ([#1671](https://github.com/azimul-kabir/actua/pull/1671))
 
 ### Changed
 
