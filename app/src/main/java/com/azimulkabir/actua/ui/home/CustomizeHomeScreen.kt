@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
@@ -42,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.R
+import com.azimulkabir.actua.billing.supporterPerksAvailable
 import com.azimulkabir.actua.data.home.HomeLayout
 import com.azimulkabir.actua.data.home.HomeLayoutPlanner
 import com.azimulkabir.actua.data.home.HomeSection
@@ -70,8 +72,12 @@ fun CustomizeHomeScreen(
     onBack: () -> Unit,
     onLayoutChange: (HomeLayout) -> Unit,
     modifier: Modifier = Modifier,
+    isSupporter: Boolean = false,
+    showSupporterExtras: Boolean = supporterPerksAvailable(),
 ) {
-    val sanitized = remember(layout) { HomeLayoutPlanner.sanitize(layout) }
+    val sanitized = remember(layout, showSupporterExtras) {
+        HomeLayoutPlanner.restrict(HomeLayoutPlanner.sanitize(layout), HomeLayoutPlanner.offered(showSupporterExtras))
+    }
     var localOrder by remember(sanitized) { mutableStateOf(sanitized.order) }
     var localHidden by remember(sanitized) { mutableStateOf(sanitized.hidden) }
     var draggingSection by remember { mutableStateOf<HomeSection?>(null) }
@@ -161,12 +167,13 @@ fun CustomizeHomeScreen(
         onLayoutChange(HomeLayout(localOrder, localHidden))
     }
 
+    val visibleOrder = localOrder.filter { it != HomeSection.GREETING || showSupporterExtras }
     val reorderable = remember(localOrder) { localOrder.filterNot { it == HomeSection.READY_TO_BUDGET } }
 
     Column(modifier.fillMaxSize()) {
         ActuaScreenHeader(title = stringResource(R.string.home_customize), onBack = onBack) {
             IconButton(onClick = {
-                val defaults = HomeLayout.default()
+                val defaults = HomeLayoutPlanner.restrict(HomeLayout.default(), HomeLayoutPlanner.offered(showSupporterExtras))
                 localOrder = defaults.order
                 localHidden = defaults.hidden
                 onLayoutChange(defaults)
@@ -185,17 +192,18 @@ fun CustomizeHomeScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(top = Spacing.sm, bottom = floatingBarClearance() + Spacing.xl),
         ) {
-            itemsIndexed(localOrder, key = { _, section -> section.name }) { index, section ->
+            itemsIndexed(visibleOrder, key = { _, section -> section.name }) { index, section ->
                 val isDragging = draggingSection == section
                 val reorderIndex = reorderable.indexOf(section)
                 ActuaGroupedItem(
-                    position = GroupPosition.of(index, localOrder.size),
+                    position = GroupPosition.of(index, visibleOrder.size),
                     modifier = Modifier
                         .graphicsLayer { translationY = if (isDragging) dragOffsetPx else 0f }
                         .alpha(if (isDragging) 0.85f else 1f),
                 ) {
                     HomeSectionRow(
                         section = section,
+                        locked = section == HomeSection.GREETING && !isSupporter,
                         hidden = section in localHidden,
                         modifier = Modifier.fillMaxWidth().height(ROW_HEIGHT_DP.dp),
                         onDragStart = { onDragStart(section) },
@@ -216,6 +224,7 @@ fun CustomizeHomeScreen(
 @Composable
 private fun HomeSectionRow(
     section: HomeSection,
+    locked: Boolean,
     hidden: Boolean,
     modifier: Modifier = Modifier,
     onDragStart: () -> Unit,
@@ -235,7 +244,7 @@ private fun HomeSectionRow(
     val moveDownLabel = stringResource(R.string.home_move_down, sectionTitle)
     val showSectionLabel = stringResource(R.string.home_show_section, sectionTitle)
     Row(modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        if (!pinned) {
+        if (!pinned && !locked) {
             Icon(
                 Icons.Outlined.DragHandle,
                 contentDescription = dragLabel,
@@ -259,7 +268,7 @@ private fun HomeSectionRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f).padding(start = 8.dp),
         )
-        if (!pinned) {
+        if (!pinned && !locked) {
             IconButton(
                 onClick = onMoveUp,
                 enabled = canMoveUp,
@@ -274,6 +283,14 @@ private fun HomeSectionRow(
                 checked = !hidden,
                 onCheckedChange = { checked -> onHiddenChange(!checked) },
                 modifier = Modifier.semantics { contentDescription = showSectionLabel },
+            )
+        } else if (locked) {
+            Icon(Icons.Outlined.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(
+                stringResource(R.string.settings_supporter_extras_marker),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 8.dp),
             )
         } else {
             Text(stringResource(R.string.home_required), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
