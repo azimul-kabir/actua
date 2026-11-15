@@ -34,9 +34,9 @@ internal object WidgetStyles {
     )
     internal val buttonIds = intArrayOf(R.id.widget_expense, R.id.widget_income, R.id.widget_transfer)
 
-    /** Tonal surfaces that are not buttons: the amount pills and the budget snapshot's tiles. */
+    /** Tonal surfaces that are not buttons: the schedule amount pills and the budget snapshot's tiles. */
     internal val tileIds = intArrayOf(
-        R.id.widget_item_amount, R.id.widget_schedule_amount, R.id.widget_tile_ready, R.id.widget_tile_budgeted, R.id.widget_tile_balance,
+        R.id.widget_schedule_amount, R.id.widget_tile_ready, R.id.widget_tile_budgeted, R.id.widget_tile_balance,
     )
     internal val progressIds = intArrayOf(R.id.widget_item_progress, R.id.widget_single_progress)
 

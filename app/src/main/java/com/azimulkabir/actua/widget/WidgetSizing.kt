@@ -67,12 +67,12 @@ internal enum class ListLayout { Mini, Titled, Full }
 
 /**
  * The list widgets (categories, accounts, schedules): the list alone while short, with a title from 2x2,
- * and from 2x3 also when the widget last updated and a refresh button, which need room for a 48dp header.
+ * and from 2x4 also the 48dp "Updated" line that refreshes it. At 2x3 that line would cost a whole row.
  */
 internal val ListVariants = listOf(
     WidgetVariant(40, 40, ListLayout.Mini),
     WidgetVariant(40, 100, ListLayout.Titled),
-    WidgetVariant(40, 150, ListLayout.Full),
+    WidgetVariant(40, 220, ListLayout.Full),
 )
 
 internal enum class ReportCardLayout { Small, Tall }

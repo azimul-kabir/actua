@@ -44,8 +44,10 @@ class WidgetSizingTest {
         assertEquals(ListLayout.Mini, pick(ListVariants, 4, 1))
         assertEquals(ListLayout.Titled, pick(ListVariants, 2, 2))
         assertEquals(ListLayout.Titled, pick(ListVariants, 4, 2))
-        assertEquals(ListLayout.Full, pick(ListVariants, 2, 3))
-        assertEquals(ListLayout.Full, pick(ListVariants, 4, 3))
+        assertEquals("no room for the Updated line at 2x3 (#1662)", ListLayout.Titled, pick(ListVariants, 2, 3))
+        assertEquals(ListLayout.Titled, pick(ListVariants, 4, 3))
+        assertEquals(ListLayout.Full, pick(ListVariants, 2, 4))
+        assertEquals(ListLayout.Full, pick(ListVariants, 4, 4))
     }
 
     @Test
