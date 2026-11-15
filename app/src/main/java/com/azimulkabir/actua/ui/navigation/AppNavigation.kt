@@ -823,8 +823,9 @@ fun AppNavigation(
     BalanceVisibility.hidden = hideBalances
     applyDisplayFormats(displayFormats)
     val snackbarHostState = remember { SnackbarHostState() }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var transactionImpactCues by remember { mutableStateOf<List<TransactionImpactCue>>(emptyList()) }
+    val mutationFeedback = remember { NavigationMutationFeedback() }
+    var errorMessage by mutationFeedback.error
+    var transactionImpactCues by mutationFeedback.impactCues
 
     fun budgetCategoriesOf(transaction: Transaction): Set<String> {
         if (transaction.type == com.azimulkabir.actua.model.Type.TRANSFER) return emptySet()
@@ -851,13 +852,6 @@ fun AppNavigation(
             .associate { it.name to it.balanceCents }
     }
 
-    fun impactCues(before: Map<String, Long>, after: Map<String, Long>): List<TransactionImpactCue> =
-        (before.keys + after.keys).distinct().mapNotNull { name ->
-            val balanceBefore = before[name] ?: return@mapNotNull null
-            val balanceAfter = after[name] ?: return@mapNotNull null
-            if (balanceBefore == balanceAfter) null
-            else TransactionImpactCue(name, balanceBeforeCents = balanceBefore, balanceAfterCents = balanceAfter)
-        }
 
     // All strings used by the mutation/refresh helpers below, resolved once at composition
     // (configuration-aware) and bundled into a single holder so the content switch below
@@ -865,34 +859,22 @@ fun AppNavigation(
     val navStrings = navigationStrings()
     val openBudgetToAddMessage = stringResource(R.string.navigation_open_budget_to_add)
     val resources = LocalResources.current
+    val mutations = NavigationMutationRunner(
+        scope = coroutineScope,
+        feedback = mutationFeedback,
+        labelFor = context::getString,
+        incompleteFormat = navStrings.mutationIncompleteFormat,
+        failedFormat = navStrings.mutationFailedFormat,
+        onInvalidated = { dataVersion += 1 },
+        categoryAvailableCents = ::categoryAvailableCents,
+    )
 
     // The (disk I/O) mutation runs off the main thread; [onChanged] fires afterwards on the
     // main thread once the local write has durably completed, so callers that need to react to
     // success (closing a dialog, navigating away) do so there instead of on a return value.
     // labelRes is a runtime @StringRes parameter, so only Context.getString can resolve it here.
     @SuppressLint("LocalContextGetResourceValueCall")
-    fun mutate(@StringRes labelRes: Int, onChanged: () -> Unit = {}, action: () -> Boolean) {
-        val label = context.getString(labelRes)
-        coroutineScope.launch {
-            val result = withContext(Dispatchers.IO) { runCatching(action) }
-            result.fold(
-                onSuccess = { changed ->
-                    if (changed) {
-                        dataVersion += 1
-                        onChanged()
-                    } else {
-                        DiagnosticsLog.actionRejected(label)
-                        errorMessage = navStrings.mutationIncompleteFormat.format(label)
-                    }
-                },
-                onFailure = { error ->
-                    DiagnosticsLog.actionFailed(label, error)
-                    errorMessage = error.message?.takeIf(String::isNotBlank)
-                        ?: navStrings.mutationFailedFormat.format(label)
-                },
-            )
-        }
-    }
+    fun mutate(@StringRes labelRes: Int, onChanged: () -> Unit = {}, action: () -> Boolean) { mutations.mutate(labelRes, onChanged, action) }
 
     // Writes a CSV to the document the user picked, off the main thread. A failed export removes
     // the empty or truncated file it created at that location.
@@ -929,24 +911,7 @@ fun AppNavigation(
     // such as the Move to group dialog and the account-group sheet arrows, use [mutate] instead.
     // labelRes is a runtime @StringRes parameter (see [mutate]).
     @SuppressLint("LocalContextGetResourceValueCall")
-    fun mutateSync(@StringRes labelRes: Int, action: () -> Boolean): Boolean {
-        val label = context.getString(labelRes)
-        return runCatching(action).fold(
-            onSuccess = { changed ->
-                if (changed) dataVersion += 1 else {
-                    DiagnosticsLog.actionRejected(label)
-                    errorMessage = navStrings.mutationIncompleteFormat.format(label)
-                }
-                changed
-            },
-            onFailure = { error ->
-                DiagnosticsLog.actionFailed(label, error)
-                errorMessage = error.message?.takeIf(String::isNotBlank)
-                    ?: navStrings.mutationFailedFormat.format(label)
-                false
-            },
-        )
-    }
+    fun mutateSync(@StringRes labelRes: Int, action: () -> Boolean): Boolean = mutations.mutateSync(labelRes, action)
 
     /** Like [mutate], but also shows [transactionImpactCues] for every budget category [categories] touches. */
     fun onUpcomingAction(transaction: Transaction, action: UpcomingTransactionAction) {
@@ -969,31 +934,7 @@ fun AppNavigation(
 
     // labelRes is a runtime @StringRes parameter (see [mutate]).
     @SuppressLint("LocalContextGetResourceValueCall")
-    fun mutateWithImpactCue(@StringRes labelRes: Int, categories: Set<String>, onChanged: () -> Unit = {}, action: () -> Boolean) {
-        val label = context.getString(labelRes)
-        coroutineScope.launch {
-            val before = withContext(Dispatchers.IO) { categoryAvailableCents(categories) }
-            val result = withContext(Dispatchers.IO) { runCatching(action) }
-            result.fold(
-                onSuccess = { changed ->
-                    if (changed) {
-                        dataVersion += 1
-                        val after = withContext(Dispatchers.IO) { categoryAvailableCents(categories) }
-                        transactionImpactCues = impactCues(before, after)
-                        onChanged()
-                    } else {
-                        DiagnosticsLog.actionRejected(label)
-                        errorMessage = navStrings.mutationIncompleteFormat.format(label)
-                    }
-                },
-                onFailure = { error ->
-                    DiagnosticsLog.actionFailed(label, error)
-                    errorMessage = error.message?.takeIf(String::isNotBlank)
-                        ?: navStrings.mutationFailedFormat.format(label)
-                },
-            )
-        }
-    }
+    fun mutateWithImpactCue(@StringRes labelRes: Int, categories: Set<String>, onChanged: () -> Unit = {}, action: () -> Boolean) { mutations.mutateWithImpactCue(labelRes, categories, onChanged, action) }
 
     fun refreshTransactions() {
         if (transactionsRefreshing) return
@@ -1377,57 +1318,12 @@ fun AppNavigation(
     // editor) so local DB work never blocks the UI thread. labelRes is a runtime @StringRes
     // parameter (see [mutate]).
     @SuppressLint("LocalContextGetResourceValueCall")
-    fun mutateAsync(@StringRes labelRes: Int, action: () -> Boolean, onChanged: () -> Unit) {
-        val label = context.getString(labelRes)
-        coroutineScope.launch {
-            val result = withContext(Dispatchers.IO) { runCatching(action) }
-            result.fold(
-                onSuccess = { changed ->
-                    if (changed) {
-                        dataVersion += 1
-                        onChanged()
-                    } else {
-                        DiagnosticsLog.actionRejected(label)
-                        errorMessage = navStrings.mutationIncompleteFormat.format(label)
-                    }
-                },
-                onFailure = { error ->
-                    DiagnosticsLog.actionFailed(label, error)
-                    errorMessage = error.message?.takeIf(String::isNotBlank)
-                        ?: navStrings.mutationFailedFormat.format(label)
-                },
-            )
-        }
-    }
+    fun mutateAsync(@StringRes labelRes: Int, action: () -> Boolean, onChanged: () -> Unit) { mutations.mutateAsync(labelRes, action, onChanged) }
 
     /** Like [mutateAsync], but also shows [transactionImpactCues] for every budget category [categories] touches. */
     // labelRes is a runtime @StringRes parameter (see [mutate]).
     @SuppressLint("LocalContextGetResourceValueCall")
-    fun mutateAsyncWithImpactCue(@StringRes labelRes: Int, categories: Set<String>, action: () -> Boolean, onChanged: () -> Unit) {
-        val label = context.getString(labelRes)
-        coroutineScope.launch {
-            val before = withContext(Dispatchers.IO) { categoryAvailableCents(categories) }
-            val result = withContext(Dispatchers.IO) { runCatching(action) }
-            result.fold(
-                onSuccess = { changed ->
-                    if (changed) {
-                        dataVersion += 1
-                        val after = withContext(Dispatchers.IO) { categoryAvailableCents(categories) }
-                        transactionImpactCues = impactCues(before, after)
-                        onChanged()
-                    } else {
-                        DiagnosticsLog.actionRejected(label)
-                        errorMessage = navStrings.mutationIncompleteFormat.format(label)
-                    }
-                },
-                onFailure = { error ->
-                    DiagnosticsLog.actionFailed(label, error)
-                    errorMessage = error.message?.takeIf(String::isNotBlank)
-                        ?: navStrings.mutationFailedFormat.format(label)
-                },
-            )
-        }
-    }
+    fun mutateAsyncWithImpactCue(@StringRes labelRes: Int, categories: Set<String>, action: () -> Boolean, onChanged: () -> Unit) { mutations.mutateAsyncWithImpactCue(labelRes, categories, action, onChanged) }
 
     fun returnFromScheduleRule() {
         scheduleRuleId = null
@@ -2530,7 +2426,7 @@ fun AppNavigation(
                             dataVersion += 1
                             if (impactCategories.isNotEmpty()) {
                                 val categoryBalancesAfter = withContext(Dispatchers.IO) { categoryAvailableCents(impactCategories) }
-                                transactionImpactCues = impactCues(categoryBalancesBefore, categoryBalancesAfter)
+                                transactionImpactCues = mutations.impactCues(categoryBalancesBefore, categoryBalancesAfter)
                             }
                             WidgetUpdater.requestAll(context)
                             keptReceiptPhoto?.let { photo ->
