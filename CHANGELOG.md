@@ -8,12 +8,12 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Added a Terms of Service link to Settings → About ([#1664](https://github.com/azimul-kabir/actua/pull/1664))
 - Added a confirmation message when you add or remove a budget category or an account from favorites ([#1666](https://github.com/azimul-kabir/actua/pull/1666))
-- Added a Row style choice to the Favourite categories and Account balances widget setup: Simple, or Highlighted with the amount in a pill ([#1669](https://github.com/azimul-kabir/actua/pull/1669))
+- Added a Row style choice to the Favourite categories and Account balances widget setup: Highlighted (the amount in a pill) or Simple, which keeps names readable on narrow widgets ([#1669](https://github.com/azimul-kabir/actua/pull/1669))
 
 ### Fixed
 
 - Fixed the greeting's count of transactions to categorize not matching the Budget screen; it now counts this month only ([#1668](https://github.com/azimul-kabir/actua/pull/1668))
-- Fixed category and account names being cut short on narrow Favourite categories and Account balances widgets, and the Updated line on list widgets taking a row at 2x3; it now shows from 2x4 ([#1669](https://github.com/azimul-kabir/actua/pull/1669))
+- Fixed the Updated line on list widgets taking a row at 2x3; it now shows from 2x4 ([#1669](https://github.com/azimul-kabir/actua/pull/1669))
 - Fixed merging two transactions losing the receipt photo kept with the one that is removed ([#1667](https://github.com/azimul-kabir/actua/pull/1667))
 
 ## [2.7.0] - 2026-11-14

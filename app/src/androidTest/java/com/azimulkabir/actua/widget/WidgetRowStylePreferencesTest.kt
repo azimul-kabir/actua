@@ -19,28 +19,28 @@ class WidgetRowStylePreferencesTest {
     }
 
     @Test
-    fun aWidgetIsSimpleUntilAnotherStyleIsChosen() {
-        assertEquals(WidgetRowStyle.Simple, WidgetPreferences(context).rowStyle(WidgetKind.Categories, 3))
+    fun aWidgetIsHighlightedUntilAnotherStyleIsChosen() {
+        assertEquals(WidgetRowStyle.Highlighted, WidgetPreferences(context).rowStyle(WidgetKind.Categories, 3))
     }
 
     @Test
     fun theStyleIsKeptPerWidgetAndKindAndApartFromTheSelection() {
         val preferences = WidgetPreferences(context)
         preferences.save(WidgetKind.Categories, 3, setOf("groceries"))
-        preferences.saveRowStyle(WidgetKind.Categories, 3, WidgetRowStyle.Highlighted)
+        preferences.saveRowStyle(WidgetKind.Categories, 3, WidgetRowStyle.Simple)
 
         val reloaded = WidgetPreferences(context)
-        assertEquals(WidgetRowStyle.Highlighted, reloaded.rowStyle(WidgetKind.Categories, 3))
-        assertEquals(WidgetRowStyle.Simple, reloaded.rowStyle(WidgetKind.Categories, 4))
-        assertEquals(WidgetRowStyle.Simple, reloaded.rowStyle(WidgetKind.Accounts, 3))
+        assertEquals(WidgetRowStyle.Simple, reloaded.rowStyle(WidgetKind.Categories, 3))
+        assertEquals(WidgetRowStyle.Highlighted, reloaded.rowStyle(WidgetKind.Categories, 4))
+        assertEquals(WidgetRowStyle.Highlighted, reloaded.rowStyle(WidgetKind.Accounts, 3))
         assertEquals(setOf("groceries"), reloaded.selected(WidgetKind.Categories, 3))
     }
 
     @Test
     fun removingTheWidgetForgetsItsStyle() {
         val preferences = WidgetPreferences(context)
-        preferences.saveRowStyle(WidgetKind.Accounts, 8, WidgetRowStyle.Highlighted)
+        preferences.saveRowStyle(WidgetKind.Accounts, 8, WidgetRowStyle.Simple)
         preferences.remove(WidgetKind.Accounts, intArrayOf(8))
-        assertEquals(WidgetRowStyle.Simple, WidgetPreferences(context).rowStyle(WidgetKind.Accounts, 8))
+        assertEquals(WidgetRowStyle.Highlighted, WidgetPreferences(context).rowStyle(WidgetKind.Accounts, 8))
     }
 }

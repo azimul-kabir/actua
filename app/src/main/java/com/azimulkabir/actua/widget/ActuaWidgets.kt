@@ -38,8 +38,8 @@ internal val WidgetKind.isSingle: Boolean
     get() = this == WidgetKind.SingleCategory || this == WidgetKind.SingleAccount || this == WidgetKind.ReportCard
 
 /**
- * How a list widget's rows look. [Simple] keeps the name readable on a narrow widget (13sp, plain amount);
- * [Highlighted] is 2.7.0's look (14sp, the amount in a pill), for wider widgets.
+ * How a list widget's rows look. [Highlighted] is the default, 2.7.0's look (14sp, the amount in a pill);
+ * [Simple] keeps the name readable on a narrow widget (13sp, plain amount).
  */
 enum class WidgetRowStyle { Simple, Highlighted }
 
@@ -55,7 +55,7 @@ internal class WidgetPreferences(context: Context) {
 
     fun rowStyle(kind: WidgetKind, widgetId: Int): WidgetRowStyle =
         WidgetRowStyle.entries.firstOrNull { it.name == values.getString(rowStyleKey(kind, widgetId), null) }
-            ?: WidgetRowStyle.Simple
+            ?: WidgetRowStyle.Highlighted
 
     fun saveRowStyle(kind: WidgetKind, widgetId: Int, style: WidgetRowStyle) {
         values.edit().putString(rowStyleKey(kind, widgetId), style.name).apply()

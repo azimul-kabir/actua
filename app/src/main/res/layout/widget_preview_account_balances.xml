@@ -22,22 +22,22 @@
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
             android:gravity="center_vertical" android:orientation="vertical" android:paddingVertical="4dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
-                <TextView style="@style/WidgetListRowName" android:layout_width="0dp" android:layout_weight="1" android:text="@string/widget_sample_account_1" />
-                <TextView style="@style/WidgetListRowAmount" android:text="@string/widget_sample_amount_7" />
+                <TextView style="@style/WidgetRowName" android:layout_width="0dp" android:layout_weight="1" android:text="@string/widget_sample_account_1" />
+                <TextView style="@style/WidgetRowAmount" android:text="@string/widget_sample_amount_7" />
             </LinearLayout>
         </LinearLayout>
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
             android:gravity="center_vertical" android:orientation="vertical" android:paddingVertical="4dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
-                <TextView style="@style/WidgetListRowName" android:layout_width="0dp" android:layout_weight="1" android:text="@string/widget_sample_account_2" />
-                <TextView style="@style/WidgetListRowAmount" android:text="@string/widget_sample_amount_8" />
+                <TextView style="@style/WidgetRowName" android:layout_width="0dp" android:layout_weight="1" android:text="@string/widget_sample_account_2" />
+                <TextView style="@style/WidgetRowAmount" android:text="@string/widget_sample_amount_8" />
             </LinearLayout>
         </LinearLayout>
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
             android:gravity="center_vertical" android:orientation="vertical" android:paddingVertical="4dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
-                <TextView style="@style/WidgetListRowName" android:layout_width="0dp" android:layout_weight="1" android:text="@string/widget_sample_account_3" />
-                <TextView style="@style/WidgetListRowAmount" android:text="@string/widget_sample_amount_9" />
+                <TextView style="@style/WidgetRowName" android:layout_width="0dp" android:layout_weight="1" android:text="@string/widget_sample_account_3" />
+                <TextView style="@style/WidgetRowAmount" android:text="@string/widget_sample_amount_9" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

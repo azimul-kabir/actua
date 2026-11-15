@@ -25,7 +25,7 @@ internal class WidgetListRows(
     private val kind: WidgetKind,
 ) : RemoteViewsService.RemoteViewsFactory {
     private var rows: List<WidgetRow> = emptyList()
-    private var style = WidgetRowStyle.Simple
+    private var style = WidgetRowStyle.Highlighted
 
     override fun onCreate() = Unit
 

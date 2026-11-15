@@ -162,7 +162,7 @@ internal fun showSingleMessage(views: RemoteViews, text: String, tap: PendingInt
     views.setOnClickPendingIntent(R.id.widget_root, tap)
 }
 
-internal fun listRow(context: Context, row: WidgetRow, style: WidgetRowStyle = WidgetRowStyle.Simple): RemoteViews {
+internal fun listRow(context: Context, row: WidgetRow, style: WidgetRowStyle = WidgetRowStyle.Highlighted): RemoteViews {
     // Rows bind from the RemoteViewsService's application context, which does not follow
     // the app locale on API 28-32; resolve strings through the app-language context.
     val localized = context.withAppLanguage()
