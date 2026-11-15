@@ -863,6 +863,7 @@ fun AppNavigation(
     // (configuration-aware) and bundled into a single holder so the content switch below
     // captures one object instead of one parameter per string.
     val navStrings = navigationStrings()
+    val openBudgetToAddMessage = stringResource(R.string.navigation_open_budget_to_add)
     val resources = LocalResources.current
 
     // The (disk I/O) mutation runs off the main thread; [onChanged] fires afterwards on the
@@ -1588,6 +1589,8 @@ fun AppNavigation(
         if (!repository.isUsingActualBudget) {
             destination = MainDestination.Manage
             detail = DetailDestination.Connection
+            // The Quick Settings tile, widget and shortcut land here with no budget open: say why (#1362).
+            if (request.action in AddTransactionActions) errorMessage = openBudgetToAddMessage
             onLaunchRequestConsumed()
             return@LaunchedEffect
         }
@@ -3866,6 +3869,9 @@ private fun NavigationReportsScreen(
  * resolved once at composition. Bundled in one class so the (size-critical) AnimatedContent
  * content lambda captures a single object rather than one parameter per string.
  */
+/** Launch actions that open the add-transaction screen: the Quick Settings tile, widget buttons and shortcuts. */
+internal val AddTransactionActions = setOf(WidgetActions.ADD_EXPENSE, WidgetActions.ADD_INCOME, WidgetActions.ADD_TRANSFER)
+
 private data class NavigationStrings(
     val mutationIncompleteFormat: String,
     val mutationFailedFormat: String,

@@ -22,6 +22,9 @@ pattern or password before Actua shows any budget data. **Settings â†’ Privacy â
   offers a shortcut to the security settings, rather than opening for whoever holds the phone.
 - Background work (sync, scheduled posting, reminders, bank-sync and capture jobs) is not affected: it
   never displays budget data.
+- The Quick Settings **Add transaction** tile, the Quick transaction widget and the launcher shortcuts
+  all open `MainActivity`, so they ask to unlock first like any other launch. From the lock screen the
+  tile also asks for the device unlock before Actua opens.
 
 ## What it does not cover yet
 

@@ -229,4 +229,5 @@
         <item quantity="one">This budget has %d change that hasn’t synced to the server.</item>
         <item quantity="other">This budget has %d changes that haven’t synced to the server.</item>
     </plurals>
+    <string name="navigation_open_budget_to_add">Open or create a budget first, then add the transaction.</string>
 </resources>
