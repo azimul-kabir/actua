@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.TransactionStatusFilter
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +31,15 @@ internal fun <T> rememberLoaded(
 ): T {
     var value by remember(budgetKey) { mutableStateOf(initial) }
     LaunchedEffect(budgetKey, enabled, *reloadKeys) {
-        if (enabled) value = withContext(Dispatchers.IO) { load() }
+        if (enabled) {
+            val repository = budgetKey as? ActuaRepository
+            repository?.retainBackgroundRead()
+            try {
+                value = withContext(Dispatchers.IO) { load() }
+            } finally {
+                repository?.releaseBackgroundRead()
+            }
+        }
     }
     return value
 }

@@ -158,6 +158,7 @@ class NavigationKeepsPlaceTest {
                 MaterialTheme { AppNavigation() }
             }
         }
+        composeRule.waitForNavigation()
         tab("Manage").performClick()
         openSettingsPage(R.string.settings_budget)
         val holidaysRow = settingsRow(R.string.settings_holidays_row_title)
@@ -198,6 +199,7 @@ class NavigationKeepsPlaceTest {
         // Scrolling down would otherwise slide the tab bar away before the tab switch.
         displayPreferences.hideTabBarOnScroll = false
         composeRule.setContent { MaterialTheme { AppNavigation() } }
+        composeRule.waitForNavigation()
         tab("Home").performClick()
         tab("Home").performClick() // re-tap while on Home
         val recent = text(R.string.home_recent_activity)
@@ -225,12 +227,14 @@ class NavigationKeepsPlaceTest {
     @Test fun retappingStillWorksAfterRecreation() {
         val restoration = StateRestorationTester(composeRule)
         restoration.setContent { MaterialTheme { AppNavigation() } }
+        composeRule.waitForNavigation()
         tab("Manage").performClick()
         tab("Manage").performClick()
         tab("Manage").performClick() // two re-taps on the Manage root
         openSettingsPage(R.string.settings_page_display)
 
         restoration.emulateSavedInstanceStateRestore()
+        composeRule.waitForNavigation()
         assertOnPage(R.string.settings_number_format)
         tab("Manage").performClick()
 
@@ -239,6 +243,7 @@ class NavigationKeepsPlaceTest {
 
     private fun start() {
         composeRule.setContent { MaterialTheme { AppNavigation() } }
+        composeRule.waitForNavigation()
         tab("Manage").performClick()
     }
 

@@ -4,6 +4,9 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -14,6 +17,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetFileManager
+import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.TabBarPreferences
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -30,6 +34,10 @@ class BudgetRepositoryNavigationTest {
         val previous = active.budgetId
         val tabs = TabBarPreferences(context)
         val previousTabs = tabs.layout()
+        val display = DisplayPreferences(context)
+        val previousOptions = display.budgetDisplayOptions
+        val previousFavoritesOnly = display.favoritesOnly
+        val previousView = display.budgetCategoryView
         val first = files.createBudget("First ${UUID.randomUUID()}")
         val second = files.createBudget("Second ${UUID.randomUUID()}")
         val showing = mutableStateOf(true)
@@ -41,6 +49,9 @@ class BudgetRepositoryNavigationTest {
             }
             active.budgetId = first.id
             tabs.restoreDefaults()
+            display.hideFullySpentCategories = false
+            display.favoritesOnly = false
+            display.budgetCategoryView = "All"
             compose.setContent { if (showing.value) MaterialTheme { AppNavigation() } }
             compose.waitUntil(15_000) {
                 compose.onAllNodesWithText(context.getString(R.string.navigation_loading_budget)).fetchSemanticsNodes().isEmpty() &&
@@ -64,6 +75,9 @@ class BudgetRepositoryNavigationTest {
             compose.runOnIdle { showing.value = false }
             compose.waitForIdle()
             tabs.save(previousTabs)
+            display.budgetDisplayOptions = previousOptions
+            display.favoritesOnly = previousFavoritesOnly
+            display.budgetCategoryView = previousView
             active.budgetId = previous
             files.deleteBudget(first.id)
             files.deleteBudget(second.id)
@@ -71,6 +85,10 @@ class BudgetRepositoryNavigationTest {
     }
 
     private fun waitForText(text: String) {
-        compose.waitUntil(15_000) { compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
+        // The category can be below the overview on the smaller CI emulator screens.
+        compose.waitUntil(15_000) {
+            runCatching { compose.onNode(hasScrollAction()).performScrollToNode(hasText(text)) }.isSuccess &&
+                compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 }

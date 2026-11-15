@@ -61,6 +61,7 @@ class AppNavigationTabBarTest {
     @Test fun defaultLayoutRendersTodaysFixedFiveTabBottomBarUnchanged() {
         tabBarPreferences.restoreDefaults()
         composeRule.setContent { MaterialTheme { AppNavigation() } }
+        composeRule.waitForNavigation()
 
         // NavigationBarItem merges its icon/label/selection-state semantics into one node, so the
         // icon's contentDescription is only visible in the unmerged tree.
@@ -86,6 +87,7 @@ class AppNavigationTabBarTest {
             ),
         )
         composeRule.setContent { MaterialTheme { AppNavigation() } }
+        composeRule.waitForNavigation()
 
         // Reports is now a visible tab; Transactions was hidden by the layout above. (See
         // defaultLayoutRendersTodaysFixedFiveTabBottomBarUnchanged for why useUnmergedTree is needed.)
@@ -106,6 +108,7 @@ class AppNavigationTabBarTest {
         // The default tab bar (#570) now includes Add as a visible tab, so the FAB is replaced.
         tabBarPreferences.restoreDefaults()
         composeRule.setContent { MaterialTheme { AppNavigation() } }
+        composeRule.waitForNavigation()
 
         composeRule.onNodeWithText("Transaction", useUnmergedTree = true).assertDoesNotExist() // the FAB's label
         composeRule.onNodeWithContentDescription("Add", useUnmergedTree = true).assertExists()
@@ -123,6 +126,7 @@ class AppNavigationTabBarTest {
             ),
         )
         composeRule.setContent { MaterialTheme { AppNavigation() } }
+        composeRule.waitForNavigation()
 
         composeRule.onNodeWithText("Transaction", useUnmergedTree = true).assertDoesNotExist() // FAB is gone
         composeRule.onNodeWithContentDescription("Add", useUnmergedTree = true).assertExists()
@@ -137,6 +141,7 @@ class AppNavigationTabBarTest {
     @Test fun addTabFromAccountDetailPreselectsThatAccount() {
         tabBarPreferences.restoreDefaults()
         composeRule.setContent { MaterialTheme { AppNavigation() } }
+        composeRule.waitForNavigation()
 
         composeRule.onNodeWithContentDescription("Accounts", useUnmergedTree = true).performClick()
         // The demo seeds localized account names; resolve the expected label from resources.
@@ -155,6 +160,7 @@ class AppNavigationTabBarTest {
         // construct directly via TabBarPreferences.
         tabBarPreferences.restoreDefaults()
         composeRule.setContent { MaterialTheme { AppNavigation() } }
+        composeRule.waitForNavigation()
 
         composeRule.onNodeWithContentDescription("Manage", useUnmergedTree = true).performClick()
         composeRule.onNodeWithContentDescription(strings.getString(R.string.settings_open_settings), useUnmergedTree = true).performClick()

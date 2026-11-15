@@ -15,12 +15,67 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 class RepositoryStateTest {
     @get:Rule val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+    @Test fun disposingRepositoryWaitsForCancelledProjectionToFinishReading() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val files = BudgetFileManager(context)
+        val active = ActiveBudgetStore(context)
+        val previous = active.budgetId
+        val budget = files.createBudget("Reader ${UUID.randomUUID()}")
+        val entered = CountDownLatch(1)
+        val resume = CountDownLatch(1)
+        val finished = CountDownLatch(1)
+        val failure = AtomicReference<Throwable?>()
+        val latest = AtomicReference<RepositoryState?>()
+        val showing = mutableStateOf(true)
+        try {
+            active.budgetId = budget.id
+            composeRule.setContent {
+                if (showing.value) {
+                    val state = rememberRepository(context, 0)
+                    latest.set(state)
+                    if (state != null) rememberLoaded(state.repository, initial = 0) {
+                        entered.countDown()
+                        try {
+                            check(resume.await(15, TimeUnit.SECONDS))
+                            state.repository.accounts().size
+                        } catch (error: Throwable) {
+                            failure.set(error)
+                            throw error
+                        } finally {
+                            finished.countDown()
+                        }
+                    }
+                }
+            }
+            composeRule.waitUntil(15_000) { entered.count == 0L }
+            val repository = requireNotNull(latest.get()).repository
+            composeRule.runOnIdle { showing.value = false }
+            composeRule.waitForIdle()
+            // Disposal has requested close, but the IO block has not returned yet.
+            repository.accounts()
+            resume.countDown()
+            composeRule.waitUntil(15_000) { finished.count == 0L }
+            composeRule.waitForIdle()
+            assertEquals(null, failure.get())
+            composeRule.waitUntil(15_000) { runCatching { repository.accounts() }.isFailure }
+            assertThrows(IllegalStateException::class.java) { repository.accounts() }
+        } finally {
+            resume.countDown()
+            composeRule.runOnIdle { showing.value = false }
+            composeRule.waitForIdle()
+            active.budgetId = previous
+            files.deleteBudget(budget.id)
+        }
+    }
 
     @Test fun launchAndBudgetSwitchOpenOffMainAndCloseThePreviousRepository() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext

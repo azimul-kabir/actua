@@ -195,8 +195,28 @@ class ActuaRepository(context: Context) {
     val isUsingActualBudget: Boolean get() = actualDatabase != null
     val isServerBacked: Boolean get() = activeMetadata?.isServerBacked == true
 
+    private var backgroundReaders = 0
+    private var closeRequested = false
+
+    /** Keep the connection alive until a cancelled IO projection has actually returned. */
+    @Synchronized
+    internal fun retainBackgroundRead() {
+        check(!closeRequested) { "Repository is closed" }
+        backgroundReaders++
+    }
+
+    @Synchronized
+    internal fun releaseBackgroundRead() {
+        check(backgroundReaders > 0)
+        backgroundReaders--
+        if (closeRequested && backgroundReaders == 0) actualDatabase?.close()
+    }
+
+    @Synchronized
     fun close() {
-        actualDatabase?.close()
+        if (closeRequested) return
+        closeRequested = true
+        if (backgroundReaders == 0) actualDatabase?.close()
     }
 
     private fun openBudget(files: BudgetFileManager, metadata: BudgetMetadata): ActualBudgetDatabase? {
