@@ -643,7 +643,8 @@ fun AppNavigation(
             com.azimulkabir.actua.ui.transactions.ScheduleOption(it.schedule.id, it.title)
         }
     }
-    var editingScheduleId by rememberSaveable { mutableStateOf<String?>(null) }
+    val scheduleNavigationState = rememberScheduleNavigationState()
+    var editingScheduleId by scheduleNavigationState.editingScheduleId
     var editingAutomationCategory by budgetSelectionState.editingAutomationCategory
     var destination by rememberSaveable {
         mutableStateOf(
@@ -737,16 +738,17 @@ fun AppNavigation(
     var pluggyAiDiscovery by remember { mutableStateOf<com.azimulkabir.actua.ui.banksync.DiscoveryState>(com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle) }
     var akahuDiscovery by remember { mutableStateOf<com.azimulkabir.actua.ui.banksync.DiscoveryState>(com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle) }
     var reconcileOpen by transactionNavigationState.reconcileOpen
-    var scheduleReturnsToBills by rememberSaveable { mutableStateOf(false) }
-    var scheduleReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
-    var scheduleReturnsToTransactionsTab by rememberSaveable { mutableStateOf(false) }
-    var billsCalendarReturnsToSchedules by rememberSaveable { mutableStateOf(false) }
+    var scheduleReturnsToBills by scheduleNavigationState.scheduleReturnsToBills
+    var scheduleReturnsToTransactions by scheduleNavigationState.scheduleReturnsToTransactions
+    var scheduleReturnsToTransactionsTab by scheduleNavigationState.scheduleReturnsToTransactionsTab
+    var billsCalendarReturnsToSchedules by scheduleNavigationState.billsCalendarReturnsToSchedules
     // Set while Rules is open on a schedule's own rule via "Edit as rule"; closing it returns to the schedule.
-    var scheduleRuleId by rememberSaveable { mutableStateOf<String?>(null) }
-    var creditCardsReturnToBills by rememberSaveable { mutableStateOf(false) }
-    var statementsAccountId by rememberSaveable { mutableStateOf<String?>(null) }
-    var statementsReturnToTransactions by rememberSaveable { mutableStateOf(false) }
-    var selectedStatement by remember { mutableStateOf<com.azimulkabir.actua.model.CreditCardCycle.StatementRecord?>(null) }
+    var scheduleRuleId by scheduleNavigationState.scheduleRuleId
+    val accountDetailNavigationState = rememberAccountDetailNavigationState()
+    var creditCardsReturnToBills by accountDetailNavigationState.creditCardsReturnToBills
+    var statementsAccountId by accountDetailNavigationState.statementsAccountId
+    var statementsReturnToTransactions by accountDetailNavigationState.statementsReturnToTransactions
+    var selectedStatement by accountDetailNavigationState.selectedStatement
     var editorReturnsToStatementDetail by transactionNavigationState.editorReturnsToStatementDetail
     var decimalPlacesMode by remember { mutableStateOf(displayPreferences.decimalPlacesMode) }
     var currencyCode by remember { mutableStateOf(displayPreferences.currencyCode) }
@@ -1311,24 +1313,11 @@ fun AppNavigation(
     fun mutateAsyncWithImpactCue(@StringRes labelRes: Int, categories: Set<String>, action: () -> Boolean, onChanged: () -> Unit) { mutations.mutateAsyncWithImpactCue(labelRes, categories, action, onChanged) }
 
     fun returnFromScheduleRule() {
-        scheduleRuleId = null
-        detail = DetailDestination.EditSchedule
+        scheduleNavigationState.returnFromRule { detail = it }
     }
 
     fun returnFromEditSchedule() {
-        when {
-            scheduleReturnsToTransactionsTab -> {
-                destination = MainDestination.Transactions
-                detail = DetailDestination.Main
-            }
-            scheduleReturnsToTransactions -> detail = DetailDestination.Transactions
-            scheduleReturnsToBills -> detail =
-                if (destination == MainDestination.Bills) DetailDestination.Main else DetailDestination.BillsCalendar
-            else -> detail = DetailDestination.Schedules
-        }
-        scheduleReturnsToBills = false
-        scheduleReturnsToTransactions = false
-        scheduleReturnsToTransactionsTab = false
+        scheduleNavigationState.returnFromEditor(destination, { destination = it }, { detail = it })
     }
 
     fun openAddTransaction() {
@@ -3859,298 +3848,6 @@ private fun transactionEditorStrings(): TransactionEditorStrings = TransactionEd
  * method-size limit while strings localize — mirroring [NavigationAccountsScreen] and
  * [NavigationManageCategoriesScreen].
  */
-@Composable
-private fun NavigationScheduleScreens(
-    repository: ActuaRepository,
-    dataVersion: Int,
-    schedules: List<ScheduleListItem>,
-    nonWorkingDays: com.azimulkabir.actua.data.home.NonWorkingDays,
-    accounts: List<Account>,
-    payeeNames: List<String>,
-    hideDecimalPlaces: Boolean,
-    conventionalAmountEntry: Boolean,
-    context: Context,
-    scheduleReminderSettings: ScheduleReminderSettings,
-    scheduleReminderPermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
-    contentModifier: Modifier,
-    onMutate: (labelRes: Int, onChanged: () -> Unit, action: () -> Boolean) -> Unit,
-    detail: DetailDestination,
-    onDetailChange: (DetailDestination) -> Unit,
-    editingScheduleId: String?,
-    onEditingScheduleIdChange: (String?) -> Unit,
-    scheduleReturnsToBills: Boolean,
-    onScheduleReturnsToBillsChange: (Boolean) -> Unit,
-    scheduleReturnsToTransactions: Boolean,
-    onScheduleReturnsToTransactionsChange: (Boolean) -> Unit,
-    scheduleReturnsToTransactionsTab: Boolean,
-    onScheduleReturnsToTransactionsTabChange: (Boolean) -> Unit,
-    billsCalendarReturnsToSchedules: Boolean,
-    onBillsCalendarReturnsToSchedulesChange: (Boolean) -> Unit,
-    creditCardsReturnToBills: Boolean,
-    onCreditCardsReturnToBillsChange: (Boolean) -> Unit,
-    scheduleRuleId: String?,
-    onScheduleRuleIdChange: (String?) -> Unit,
-    sharedImportText: String?,
-    onSharedTextConsumed: () -> Unit,
-    sharedImportFile: Uri?,
-    onSharedFileConsumed: () -> Unit,
-    capturedReviewRequest: Int,
-    onReturnFromCapturedReview: () -> Unit,
-    onOpenCapturedReview: (Boolean) -> Unit,
-    onReturnFromEditSchedule: () -> Unit,
-    billsReturnDetail: DetailDestination,
-    scheduleRemindersEnabled: Boolean,
-    onScheduleRemindersEnabledChange: (Boolean) -> Unit,
-    scheduleReminderLeadDays: Int,
-    onScheduleReminderLeadDaysChange: (Int) -> Unit,
-) {
-    when (detail) {
-        DetailDestination.Schedules -> SchedulesScreen(
-            schedules = schedules,
-            hideDecimalPlaces = hideDecimalPlaces,
-            canAdd = accounts.any { !it.closed },
-            onBack = { onDetailChange(DetailDestination.Main) },
-            onAdd = {
-                onScheduleReturnsToBillsChange(false)
-                onDetailChange(DetailDestination.NewSchedule)
-            },
-            onFind = { onDetailChange(DetailDestination.FindSchedules) },
-            onCalendar = {
-                onBillsCalendarReturnsToSchedulesChange(true)
-                onDetailChange(DetailDestination.BillsCalendar)
-            },
-            onEdit = { id ->
-                onEditingScheduleIdChange(id)
-                onScheduleReturnsToBillsChange(false)
-                onScheduleReturnsToTransactionsChange(false)
-                onScheduleReturnsToTransactionsTabChange(false)
-                onDetailChange(DetailDestination.EditSchedule)
-            },
-            onPost = { id, today ->
-                onMutate(if (today) R.string.navigation_posting_schedule_today else R.string.navigation_posting_schedule, {}) {
-                    repository.postScheduleTransaction(id, today, nonWorkingDays)
-                }
-            },
-            onSkip = { id ->
-                onMutate(R.string.navigation_skipping_next_date, {}) { repository.skipScheduleNextDate(id) }
-            },
-            onSetCompleted = { id, completed ->
-                onMutate(if (completed) R.string.navigation_completing_schedule else R.string.navigation_restarting_schedule, {}) {
-                    repository.setScheduleCompleted(id, completed)
-                }
-            },
-            onDelete = { id ->
-                onMutate(R.string.navigation_deleting_schedule, {}) { repository.deleteSchedule(id) }
-            },
-            remindersEnabled = scheduleRemindersEnabled,
-            onRemindersEnabledChange = { enabled ->
-                if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
-                    PackageManager.PERMISSION_GRANTED) {
-                    scheduleReminderPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                } else {
-                    scheduleReminderSettings.isEnabled = enabled
-                    onScheduleRemindersEnabledChange(enabled)
-                }
-            },
-            reminderLeadDays = scheduleReminderLeadDays,
-            onReminderLeadDaysChange = { days ->
-                scheduleReminderSettings.leadDays = days
-                onScheduleReminderLeadDaysChange(days)
-            },
-            modifier = contentModifier,
-        )
-        DetailDestination.PayeeLocations -> {
-        val locations = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.payeeLocations() }
-        PayeeLocationsScreen(
-            locations = locations,
-            writesSupported = repository.payeeLocationWritesSupported(),
-            onBack = { onDetailChange(DetailDestination.Main) },
-            onDelete = { id ->
-                onMutate(R.string.navigation_deleting_payee_location, {}) { repository.deletePayeeLocation(id) }
-            },
-            onClearPayee = { payeeId ->
-                onMutate(R.string.navigation_clearing_payee_locations, {}) { repository.clearPayeeLocations(payeeId) > 0 }
-            },
-            modifier = contentModifier,
-        )
-        }
-        DetailDestination.ManagePayees -> {
-        val managedPayees = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.managedPayees() }
-        val learnCategoriesEnabled = rememberLoaded(repository, dataVersion, initial = false) { repository.learnCategoriesEnabled() }
-        ManagePayeesScreen(
-            payees = managedPayees,
-            learnCategoriesEnabled = learnCategoriesEnabled,
-            onBack = { onDetailChange(DetailDestination.Main) },
-            onSetLearnCategoriesEnabled = { enabled ->
-                onMutate(R.string.navigation_changing_category_learning, {}) { repository.setLearnCategoriesEnabled(enabled) }
-            },
-            onRename = { payee, name -> onMutate(R.string.navigation_renaming_payee, {}) { repository.renamePayee(payee.id, name) } },
-            onSetFavorite = { payee, favorite ->
-                onMutate(R.string.navigation_updating_favorite, {}) { repository.setPayeeFavorite(payee.id, favorite) }
-            },
-            onSetLearnCategories = { payee, learn ->
-                onMutate(R.string.navigation_changing_category_learning, {}) { repository.setPayeeLearnCategories(payee.id, learn) }
-            },
-            onDelete = { targets -> onMutate(R.string.navigation_deleting_payees, {}) { repository.deletePayees(targets.map { it.id }) } },
-            onMerge = { target, merged ->
-                onMutate(R.string.navigation_merging_payees, {}) { repository.mergePayees(target.id, merged.map { it.id }) }
-            },
-            modifier = contentModifier,
-        )
-        }
-        DetailDestination.ImportTransactions -> ImportTransactionsScreen(
-            accounts = accounts.filterNot { it.closed },
-            findMatches = repository::importMatches,
-            onImport = { groups, cleared, onImported ->
-                onMutate(R.string.navigation_importing_transactions, onImported) {
-                    repository.importTransactions(groups, cleared) == groups.sumOf { it.candidates.size }
-                }
-            },
-            onBack = { onDetailChange(DetailDestination.Main) },
-            modifier = contentModifier,
-            initialSharedText = sharedImportText,
-            onSharedTextConsumed = onSharedTextConsumed,
-            initialSharedFile = sharedImportFile,
-            onSharedFileConsumed = onSharedFileConsumed,
-            onOpenCapturedReview = { onOpenCapturedReview(true) },
-        )
-        DetailDestination.ReviewCaptured -> key(capturedReviewRequest) {
-            ImportTransactionsScreen(
-                accounts = accounts.filterNot { it.closed },
-                findMatches = repository::importMatches,
-                onImport = { groups, cleared, onImported ->
-                    onMutate(R.string.navigation_importing_transactions, onImported) {
-                        repository.importTransactions(groups, cleared) == groups.sumOf { it.candidates.size }
-                    }
-                },
-                onBack = onReturnFromCapturedReview,
-                modifier = contentModifier,
-                capturedReviewOnly = true,
-            )
-        }
-        DetailDestination.BillsCalendar -> BillsCalendarScreen(
-            loadItems = { year, month, cardBills ->
-                repository.billCalendarItems(year, month, cardBills, nonWorkingDays)
-            },
-            refreshKey = dataVersion,
-            hideDecimalPlaces = hideDecimalPlaces,
-            onBack = {
-                onDetailChange(
-                    if (billsCalendarReturnsToSchedules) {
-                        onBillsCalendarReturnsToSchedulesChange(false)
-                        DetailDestination.Schedules
-                    } else {
-                        DetailDestination.Main
-                    },
-                )
-            },
-            onAddSchedule = {
-                onScheduleReturnsToBillsChange(true)
-                onDetailChange(DetailDestination.NewSchedule)
-            },
-            onConfigureCards = {
-                onCreditCardsReturnToBillsChange(true)
-                onDetailChange(DetailDestination.CreditCards)
-            },
-            onEditSchedule = { id ->
-                onEditingScheduleIdChange(id)
-                onScheduleReturnsToBillsChange(true)
-                onScheduleReturnsToTransactionsChange(false)
-                onScheduleReturnsToTransactionsTabChange(false)
-                onDetailChange(DetailDestination.EditSchedule)
-            },
-            onPost = { id, today ->
-                onMutate(if (today) R.string.navigation_posting_schedule_today else R.string.navigation_posting_schedule, {}) {
-                    repository.postScheduleTransaction(id, today, nonWorkingDays)
-                }
-            },
-            onSkip = { id -> onMutate(R.string.navigation_skipping_occurrence, {}) { repository.skipScheduleNextDate(id) } },
-            onDelete = { id -> onMutate(R.string.navigation_deleting_schedule, {}) { repository.deleteSchedule(id) } },
-            modifier = contentModifier,
-        )
-        DetailDestination.FindSchedules -> {
-            val proposals by produceState<List<com.azimulkabir.actua.data.schedules.ScheduleDiscovery.DisplayProposal>?>(
-                initialValue = null,
-                key1 = dataVersion,
-            ) {
-                value = withContext(Dispatchers.IO) { repository.discoverSchedules() }
-            }
-            FindSchedulesScreen(
-                proposals = proposals,
-                hideDecimalPlaces = hideDecimalPlaces,
-                onBack = { onDetailChange(DetailDestination.Schedules) },
-                onCreate = { selected ->
-                    onMutate(
-                        R.string.navigation_creating_schedules,
-                        { onDetailChange(DetailDestination.Schedules) },
-                    ) { repository.createDiscoveredSchedules(selected) }
-                },
-                modifier = contentModifier,
-            )
-        }
-        DetailDestination.NewSchedule -> com.azimulkabir.actua.ui.settings.EditScheduleScreen(
-            item = null,
-            accounts = accounts,
-            payeeOptions = payeeNames,
-            hideDecimalPlaces = hideDecimalPlaces,
-            conventionalAmountEntry = conventionalAmountEntry,
-            onBack = {
-                onDetailChange(if (scheduleReturnsToBills) billsReturnDetail else DetailDestination.Schedules)
-                onScheduleReturnsToBillsChange(false)
-            },
-            onSave = { fields, payeeName ->
-                onMutate(
-                    R.string.navigation_creating_schedule,
-                    {
-                        onDetailChange(if (scheduleReturnsToBills) billsReturnDetail else DetailDestination.Schedules)
-                        onScheduleReturnsToBillsChange(false)
-                    },
-                ) { repository.createSchedule(fields, payeeName) }
-            },
-            modifier = contentModifier,
-        )
-        DetailDestination.EditSchedule -> schedules.firstOrNull {
-            it.schedule.id == editingScheduleId
-        }?.let { item ->
-            com.azimulkabir.actua.ui.settings.EditScheduleScreen(
-                item = item,
-                accounts = accounts,
-                payeeOptions = payeeNames,
-                hideDecimalPlaces = hideDecimalPlaces,
-                conventionalAmountEntry = conventionalAmountEntry,
-                linkedTransactions = remember(dataVersion, item.schedule.id) {
-                    repository.scheduleTransactions(item.schedule.id)
-                },
-                onBack = onReturnFromEditSchedule,
-                onSave = { fields, payeeName ->
-                    onMutate(
-                        R.string.navigation_saving_schedule,
-                        onReturnFromEditSchedule,
-                    ) { repository.updateSchedule(item.schedule.id, fields, payeeName) }
-                },
-                onDelete = {
-                    onMutate(
-                        R.string.navigation_deleting_schedule,
-                        onReturnFromEditSchedule,
-                    ) { repository.deleteSchedule(item.schedule.id) }
-                },
-                onUnlinkTransaction = { transactionId ->
-                    onMutate(R.string.navigation_unlinking_transaction, {}) {
-                        repository.unlinkScheduleTransaction(item.schedule.id, transactionId)
-                    }
-                },
-                onEditAsRule = { ruleId ->
-                    onScheduleRuleIdChange(ruleId)
-                    onDetailChange(DetailDestination.Rules)
-                },
-                modifier = contentModifier,
-            )
-        } ?: run { onDetailChange(DetailDestination.Schedules) }
-        else -> Unit
-    }
-}
-
 @Composable
 private fun NavigationManageCategoriesScreen(
     repository: ActuaRepository,
