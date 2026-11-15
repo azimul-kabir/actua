@@ -90,8 +90,6 @@ import androidx.compose.material.icons.outlined.UnfoldMore
 import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -1087,9 +1085,7 @@ private fun BudgetToolbar(
                         Icon(Icons.Outlined.AutoAwesome, contentDescription = stringResource(R.string.budget_add_to_budget))
                     }
                     IconButton(onClick = { onOptionsChange(true) }) {
-                        BadgedBox(badge = { if (!monthNote.isNullOrBlank()) Badge() }) {
-                            Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.budget_display_options))
-                        }
+                        Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.budget_display_options))
                     }
                 }
             }
