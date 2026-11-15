@@ -61,6 +61,36 @@ class ReceiptPhotoStoreTest {
         assertNotNull(store.photoFile(budget, "b"))
     }
 
+    @Test fun movingAPhotoGivesItToTheOtherTransaction() {
+        val budget = budgetId()
+        store.keep(budget, "manual", pending("receipt"))
+
+        assertTrue(store.move(budget, "manual", "imported"))
+
+        assertNull(store.photo(budget, "manual"))
+        assertEquals("receipt", store.photo(budget, "imported")?.open(context)?.use { it.readBytes().decodeToString() })
+    }
+
+    @Test fun movingOntoATransactionWithAPhotoKeepsItsPhotoAndDeletesTheOther() {
+        val budget = budgetId()
+        store.keep(budget, "manual", pending("dropped"))
+        store.keep(budget, "imported", pending("kept"))
+
+        assertFalse(store.move(budget, "manual", "imported"))
+
+        assertNull(store.photo(budget, "manual"))
+        assertEquals("kept", store.photo(budget, "imported")?.open(context)?.use { it.readBytes().decodeToString() })
+    }
+
+    @Test fun movingWithoutAPhotoChangesNothing() {
+        val budget = budgetId()
+        store.keep(budget, "imported", pending("kept"))
+
+        assertFalse(store.move(budget, "manual", "imported"))
+
+        assertEquals("kept", store.photo(budget, "imported")?.open(context)?.use { it.readBytes().decodeToString() })
+    }
+
     @Test fun aPhotoNeverShowsInAnotherBudget() {
         val first = budgetId()
         val second = budgetId()

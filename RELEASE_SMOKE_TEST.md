@@ -113,6 +113,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] From the overflow menu, use "Duplicate" and verify an unlinked copy is created immediately without opening the editor.
 - [ ] Duplicate a cleared transaction, a split and a transfer (single and bulk) and verify every copy, including split lines and both transfer legs, is uncleared and unreconciled and the account's cleared balance is unchanged.
 - [ ] Select two transactions with the same account and amount (for example a bank import and the same purchase entered by hand), merge them, and verify one transaction remains: the bank import is kept and its empty payee, category and notes are filled from the other, in the same sync batch; verify Merge is only enabled for a valid pair and asks to confirm when a row is reconciled.
+- [ ] Keep a receipt photo with a hand-entered transaction, merge it with the matching bank import, and verify the remaining transaction shows the receipt photo.
 - [ ] Add a transaction by hand in Actua and sync to Actual: verify its Imported payee column is empty there, and that an imported-payee rule does not match it but still matches a bank-synced one.
 - [ ] From the overflow menu, open "View schedule" on a linked transaction, then back/save/delete on the schedule and verify you return to Transactions rather than Schedules or Bills calendar.
 - [ ] Transactions screen status filter chips (Uncategorized, Uncleared, Cleared, Reconciled) each narrow the list correctly and can be combined/cleared.
