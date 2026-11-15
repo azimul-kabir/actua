@@ -93,6 +93,30 @@ class ActualTagWriter(
         persist(fields(id, mapOf("tombstone" to 1)))
     }
 
+    /**
+     * Actual's `tags-delete-all`: every tag in [ids] tombstoned in one batch, like `delete` for each. Note text
+     * is left intact.
+     */
+    @Synchronized
+    fun deleteAll(ids: Collection<String>) {
+        val targets = distinctIds(ids)
+        persist(targets.flatMap { fields(it, mapOf("tombstone" to 1)) })
+    }
+
+    /**
+     * Actual's `tags-hide-all` ([hidden] true) and `tags-unhide-all` ([hidden] false): `hidden` written for every
+     * tag in [ids], already hidden or shown ones included, in one batch.
+     */
+    @Synchronized
+    fun setHiddenAll(ids: Collection<String>, hidden: Boolean) {
+        val targets = distinctIds(ids)
+        persist(targets.flatMap { fields(it, mapOf("hidden" to if (hidden) 1 else 0)) })
+    }
+
+    private fun distinctIds(ids: Collection<String>): List<String> = ids.distinct().also { targets ->
+        require(targets.isNotEmpty() && targets.none(String::isBlank)) { "No tags to change" }
+    }
+
     private fun fields(id: String, values: Map<String, Any?>): List<CrdtMessage> =
         values.map { (column, value) ->
             CrdtMessage(clock.send(), "tags", id, column, CrdtValue.serialize(value))

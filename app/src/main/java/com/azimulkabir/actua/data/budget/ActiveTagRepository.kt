@@ -59,6 +59,28 @@ class ActiveTagRepository(context: Context) {
         true
     } ?: false
 
+    /** Deletes every tag in [tags] in one batch (Actual's `tags-delete-all`). */
+    @Synchronized
+    fun deleteAll(tags: Collection<ActualTag>): Boolean {
+        if (tags.isEmpty()) return false
+        return withDatabase { database ->
+            tagWriter(database).deleteAll(tags.map(ActualTag::id))
+            invalidate()
+            true
+        } ?: false
+    }
+
+    /** Hides or shows every tag in [tags] in one batch (Actual's `tags-hide-all` / `tags-unhide-all`). */
+    @Synchronized
+    fun setHidden(tags: Collection<ActualTag>, hidden: Boolean): Boolean {
+        if (tags.isEmpty()) return false
+        return withDatabase { database ->
+            tagWriter(database).setHiddenAll(tags.map(ActualTag::id), hidden)
+            invalidate()
+            true
+        } ?: false
+    }
+
     private fun tagWriter(database: ActualBudgetDatabase) = ActualTagWriter(database, onWrite = ::scheduleMutation)
 
     private fun scheduleMutation() {
