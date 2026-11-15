@@ -261,7 +261,7 @@ internal fun TabItem.labelRes(): Int = when (this) {
  * The bottom destinations. [label] is the persisted start-page value (compared against
  * `DisplayPreferences.startPage`), so it stays English; [labelRes] localizes what is shown.
  */
-private enum class MainDestination(
+internal enum class MainDestination(
     val label: String,
     @StringRes val labelRes: Int,
     val icon: ImageVector,
@@ -685,22 +685,23 @@ fun AppNavigation(
     }
     // Re-read after sync status changes (a sync can expire the session) and after leaving Connection.
     val sessionExpired = remember(syncStatusGeneration, detail) { CredentialStore(context).sessionExpired }
-    var transactionAccount by rememberSaveable { mutableStateOf<String?>(null) }
+    val transactionNavigationState = rememberTransactionNavigationState()
+    var transactionAccount by transactionNavigationState.transactionAccount
     // Editing one of the register's transactions doesn't leave the account.
     val openAccountId = if (detail == DetailDestination.Transactions || detail == DetailDestination.EditTransaction) {
         accounts.firstOrNull { it.name == transactionAccount }?.id
     } else null
     // Leaving an account's register marks its new transactions seen, as Actual's `markAccountRead`.
-    var lastOpenAccountId by rememberSaveable { mutableStateOf<String?>(null) }
+    var lastOpenAccountId by transactionNavigationState.lastOpenAccountId
     LaunchedEffect(openAccountId) {
         val left = lastOpenAccountId
         if (left != null && left != openAccountId) activeBudgetId?.let { newBankTransactionStore.clear(it, left) }
         lastOpenAccountId = openAccountId
     }
-    var transactionCategory by rememberSaveable { mutableStateOf<String?>(null) }
-    var transactionMonth by rememberSaveable { mutableStateOf<String?>(null) }
-    var transactionSearch by rememberSaveable { mutableStateOf("") }
-    var searchReturnsToReports by rememberSaveable { mutableStateOf(false) }
+    var transactionCategory by transactionNavigationState.transactionCategory
+    var transactionMonth by transactionNavigationState.transactionMonth
+    var transactionSearch by transactionNavigationState.transactionSearch
+    var searchReturnsToReports by transactionNavigationState.searchReturnsToReports
     // Search may be entered from Reports, but a tab switch must not leave that return target
     // behind for a later search started elsewhere.
     LaunchedEffect(selectedTab, destination, detail) {
@@ -708,17 +709,17 @@ fun AppNavigation(
             searchReturnsToReports = false
         }
     }
-    var editingTransaction by remember { mutableStateOf<Transaction?>(null) }
-    var newTransactionType by remember { mutableStateOf(com.azimulkabir.actua.model.Type.EXPENSE) }
+    var editingTransaction by transactionNavigationState.editingTransaction
+    var newTransactionType by transactionNavigationState.newTransactionType
     // Starting values for a new transfer opened from "Pay statement"; cleared whenever the editor closes.
-    var transactionPrefill by remember { mutableStateOf<com.azimulkabir.actua.ui.transactions.TransactionPrefill?>(null) }
-    var editorReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
-    var editorReturnsToCategory by rememberSaveable { mutableStateOf(false) }
+    var transactionPrefill by transactionNavigationState.transactionPrefill
+    var editorReturnsToTransactions by transactionNavigationState.editorReturnsToTransactions
+    var editorReturnsToCategory by transactionNavigationState.editorReturnsToCategory
     // The key of the category whose details the editor was opened from, so closing it reopens that category
     // even when its name repeats in another group (transactionCategory is only its name, for the transaction list).
-    var editorReturnCategory by rememberSaveable { mutableStateOf<String?>(null) }
-    var editorReturnsToReports by rememberSaveable { mutableStateOf(false) }
-    var editorReturnsToReportsDetail by rememberSaveable { mutableStateOf<DetailDestination?>(null) }
+    var editorReturnCategory by transactionNavigationState.editorReturnCategory
+    var editorReturnsToReports by transactionNavigationState.editorReturnsToReports
+    var editorReturnsToReportsDetail by transactionNavigationState.editorReturnsToReportsDetail
     var activeDrillDown by remember { mutableStateOf<Pair<ReportCategory, String>?>(null) }
     var activeBudgetCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var reopenBudgetCategory by rememberSaveable { mutableStateOf<String?>(null) }
@@ -729,10 +730,10 @@ fun AppNavigation(
     var reportSnapshot by remember(repository) { mutableStateOf<ReportSnapshot?>(null) }
     var reportSnapshotVersion by remember(repository) { mutableStateOf(-1) }
     var reportSnapshotMonthStart by remember(repository) { mutableStateOf<MonthStartRule?>(null) }
-    var addOrigin by rememberSaveable { mutableStateOf(MainDestination.Accounts) }
+    var addOrigin by transactionNavigationState.addOrigin
     var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
-    var transactionsRefreshing by remember { mutableStateOf(false) }
-    var accountsRefreshing by remember { mutableStateOf(false) }
+    var transactionsRefreshing by transactionNavigationState.transactionsRefreshing
+    var accountsRefreshing by transactionNavigationState.accountsRefreshing
     var simpleFinConfigured by remember { mutableStateOf(false) }
     var goCardlessConfigured by remember { mutableStateOf(false) }
     var simpleFinDiscovery by remember { mutableStateOf<com.azimulkabir.actua.ui.banksync.DiscoveryState>(com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle) }
@@ -745,7 +746,7 @@ fun AppNavigation(
     var akahuConfigured by remember { mutableStateOf(false) }
     var pluggyAiDiscovery by remember { mutableStateOf<com.azimulkabir.actua.ui.banksync.DiscoveryState>(com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle) }
     var akahuDiscovery by remember { mutableStateOf<com.azimulkabir.actua.ui.banksync.DiscoveryState>(com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle) }
-    var reconcileOpen by remember { mutableStateOf(false) }
+    var reconcileOpen by transactionNavigationState.reconcileOpen
     var scheduleReturnsToBills by rememberSaveable { mutableStateOf(false) }
     var scheduleReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
     var scheduleReturnsToTransactionsTab by rememberSaveable { mutableStateOf(false) }
@@ -756,7 +757,7 @@ fun AppNavigation(
     var statementsAccountId by rememberSaveable { mutableStateOf<String?>(null) }
     var statementsReturnToTransactions by rememberSaveable { mutableStateOf(false) }
     var selectedStatement by remember { mutableStateOf<com.azimulkabir.actua.model.CreditCardCycle.StatementRecord?>(null) }
-    var editorReturnsToStatementDetail by rememberSaveable { mutableStateOf(false) }
+    var editorReturnsToStatementDetail by transactionNavigationState.editorReturnsToStatementDetail
     var decimalPlacesMode by remember { mutableStateOf(displayPreferences.decimalPlacesMode) }
     var currencyCode by remember { mutableStateOf(displayPreferences.currencyCode) }
     var currencySymbolOnly by remember { mutableStateOf(displayPreferences.currencySymbolOnly) }
@@ -795,8 +796,8 @@ fun AppNavigation(
     val receiptScanner = remember { createReceiptScanner(context) }
     // The scanned receipt photo the user chose to keep with the transaction being added. It stays a cache
     // file until the transaction is saved, then moves into this device's receipt photo folder.
-    var keptReceiptPhoto by remember { mutableStateOf<java.io.File?>(null) }
-    var receiptPhotoVersion by remember { mutableIntStateOf(0) }
+    var keptReceiptPhoto by transactionNavigationState.keptReceiptPhoto
+    var receiptPhotoVersion by transactionNavigationState.receiptPhotoVersion
     var receiptPhotoFolderVersion by remember { mutableIntStateOf(0) }
     val receiptPhotoFolder = remember(receiptPhotoFolderVersion) { ReceiptPhotoFolder(context).state() }
     val selectedFolderLabel = stringResource(R.string.selected_folder)
