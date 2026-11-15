@@ -228,4 +228,5 @@
         <item quantity="one">Este orçamento tem %d alteração não sincronizada com o servidor.</item>
         <item quantity="other">Este orçamento tem %d alterações não sincronizadas com o servidor.</item>
     </plurals>
+    <string name="navigation_open_budget_to_add">Abra ou crie um orçamento primeiro e depois adicione a transação.</string>
 </resources>

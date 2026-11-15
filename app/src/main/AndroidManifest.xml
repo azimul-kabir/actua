@@ -177,6 +177,19 @@
             </intent-filter>
         </activity>
 
+        <!-- Quick Settings "Add transaction" tile (#1362). Only System UI can bind it. -->
+        <service
+            android:name=".tile.AddTransactionTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_add_transaction"
+            android:label="@string/tile_add_transaction"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data android:name="android.service.quicksettings.TOGGLEABLE_TILE" android:value="false" />
+        </service>
+
         <receiver android:name=".widget.BudgetSnapshotWidgetProvider" android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
