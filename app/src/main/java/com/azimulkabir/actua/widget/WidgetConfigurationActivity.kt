@@ -32,6 +32,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -85,7 +88,7 @@ class WidgetConfigurationActivity : WidgetConfigurationBaseActivity() {
                     kind = kind,
                     widgetId = widgetId,
                     onCancel = ::finish,
-                    onSave = { selected -> save(kind, selected) },
+                    onSave = { selected, style -> save(kind, selected, style) },
                     loadChoices = { loadChoices(kind) },
                 )
             }
@@ -128,12 +131,13 @@ class WidgetConfigurationActivity : WidgetConfigurationBaseActivity() {
         }
     }
 
-    private fun save(kind: WidgetKind, selected: Set<String>) {
+    private fun save(kind: WidgetKind, selected: Set<String>, style: WidgetRowStyle) {
         if (kind == WidgetKind.Categories) {
             val budgetId = ActiveBudgetStore(this).budgetId ?: "no-budget"
             FavoritePreferences(this).replace(budgetId, FavoritePreferences.Type.CATEGORY, selected)
         }
         WidgetPreferences(this).save(kind, widgetId, selected)
+        if (kind.hasRowStyle) WidgetPreferences(this).saveRowStyle(kind, widgetId, style)
         lifecycleScope.launch(Dispatchers.IO) {
             val manager = AppWidgetManager.getInstance(this@WidgetConfigurationActivity)
             val provider = when (kind) {
@@ -152,6 +156,10 @@ class WidgetConfigurationActivity : WidgetConfigurationBaseActivity() {
     }
 }
 
+/** The list widgets, whose rows can be Simple or Highlighted. */
+internal val WidgetKind.hasRowStyle: Boolean
+    get() = this == WidgetKind.Categories || this == WidgetKind.Accounts
+
 /** A list this long is worth searching. */
 internal const val WIDGET_SEARCH_THRESHOLD = 8
 
@@ -168,7 +176,7 @@ private fun WidgetConfigurationScreen(
     kind: WidgetKind,
     widgetId: Int,
     onCancel: () -> Unit,
-    onSave: (Set<String>) -> Unit,
+    onSave: (Set<String>, WidgetRowStyle) -> Unit,
     loadChoices: suspend () -> List<WidgetChoice>,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -183,6 +191,7 @@ private fun WidgetConfigurationScreen(
         }
         mutableStateOf(existing)
     }
+    var rowStyle by remember(kind, widgetId) { mutableStateOf(WidgetPreferences(context).rowStyle(kind, widgetId)) }
     LaunchedEffect(kind) { choices = loadChoices() }
 
     Scaffold(
@@ -208,7 +217,7 @@ private fun WidgetConfigurationScreen(
         },
         bottomBar = {
             Button(
-                onClick = { onSave(selected) },
+                onClick = { onSave(selected, rowStyle) },
                 enabled = selected.isNotEmpty(),
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
             ) { Text(stringResource(R.string.widget_add)) }
@@ -241,6 +250,9 @@ private fun WidgetConfigurationScreen(
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                     style = MaterialTheme.typography.bodyMedium,
                 )
+                if (kind.hasRowStyle) {
+                    RowStyleChoice(rowStyle, onChange = { rowStyle = it })
+                }
                 if (loaded.size >= WIDGET_SEARCH_THRESHOLD) {
                     OutlinedTextField(
                         value = query,
@@ -304,6 +316,34 @@ private fun WidgetConfigurationScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+/** Simple (plain amounts, for narrow widgets) or Highlighted (amounts in a pill, for wider ones). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RowStyleChoice(style: WidgetRowStyle, onChange: (WidgetRowStyle) -> Unit) {
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+        Text(
+            stringResource(R.string.widget_row_style),
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            WidgetRowStyle.entries.forEachIndexed { index, option ->
+                SegmentedButton(
+                    selected = option == style,
+                    onClick = { onChange(option) },
+                    shape = SegmentedButtonDefaults.itemShape(index, WidgetRowStyle.entries.size),
+                ) {
+                    Text(stringResource(when (option) {
+                        WidgetRowStyle.Simple -> R.string.widget_row_style_simple
+                        WidgetRowStyle.Highlighted -> R.string.widget_row_style_highlighted
+                    }))
                 }
             }
         }

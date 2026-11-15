@@ -37,6 +37,12 @@ enum class WidgetKind { Categories, Accounts, SingleCategory, SingleAccount, Rep
 internal val WidgetKind.isSingle: Boolean
     get() = this == WidgetKind.SingleCategory || this == WidgetKind.SingleAccount || this == WidgetKind.ReportCard
 
+/**
+ * How a list widget's rows look. [Highlighted] is the default, 2.7.0's look (14sp, the amount in a pill);
+ * [Simple] keeps the name readable on a narrow widget (13sp, plain amount).
+ */
+enum class WidgetRowStyle { Simple, Highlighted }
+
 internal class WidgetPreferences(context: Context) {
     private val values = context.applicationContext.getSharedPreferences(NAME, Context.MODE_PRIVATE)
 
@@ -47,13 +53,25 @@ internal class WidgetPreferences(context: Context) {
         values.edit().putStringSet(key(kind, widgetId), ids).apply()
     }
 
+    fun rowStyle(kind: WidgetKind, widgetId: Int): WidgetRowStyle =
+        WidgetRowStyle.entries.firstOrNull { it.name == values.getString(rowStyleKey(kind, widgetId), null) }
+            ?: WidgetRowStyle.Highlighted
+
+    fun saveRowStyle(kind: WidgetKind, widgetId: Int, style: WidgetRowStyle) {
+        values.edit().putString(rowStyleKey(kind, widgetId), style.name).apply()
+    }
+
     fun remove(kind: WidgetKind, widgetIds: IntArray) {
         values.edit().apply {
-            widgetIds.forEach { remove(key(kind, it)) }
+            widgetIds.forEach {
+                remove(key(kind, it))
+                remove(rowStyleKey(kind, it))
+            }
         }.apply()
     }
 
     private fun key(kind: WidgetKind, widgetId: Int) = "${kind.name.lowercase()}_$widgetId"
+    private fun rowStyleKey(kind: WidgetKind, widgetId: Int) = "${kind.name.lowercase()}_row_style_$widgetId"
 
     private companion object { const val NAME = "home_widget_preferences" }
 }

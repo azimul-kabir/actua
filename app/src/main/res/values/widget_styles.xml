@@ -58,6 +58,15 @@
         <item name="android:paddingHorizontal">10dp</item><item name="android:paddingVertical">3dp</item>
         <item name="android:textColor">@color/widget_primary</item><item name="android:textSize">14sp</item><item name="android:textStyle">bold</item>
     </style>
+    <!-- List rows (Favourite categories, Account balances): plain text, no pill, so a narrow widget keeps room for the name. -->
+    <style name="WidgetListRowName" parent="WidgetRowName">
+        <item name="android:textSize">13sp</item>
+    </style>
+    <style name="WidgetListRowAmount">
+        <item name="android:layout_width">wrap_content</item><item name="android:layout_height">wrap_content</item><item name="android:layout_marginStart">8dp</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textColor">@color/widget_primary</item><item name="android:textSize">13sp</item><item name="android:textStyle">bold</item>
+    </style>
     <style name="WidgetRowProgress" parent="@android:style/Widget.ProgressBar.Horizontal">
         <item name="android:layout_width">match_parent</item><item name="android:layout_height">@dimen/widget_row_progress_height</item><item name="android:layout_marginTop">6dp</item>
         <item name="android:progressDrawable">@drawable/widget_progress</item>

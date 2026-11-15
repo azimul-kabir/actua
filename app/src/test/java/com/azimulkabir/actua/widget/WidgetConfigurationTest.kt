@@ -37,6 +37,20 @@ class WidgetConfigurationTest {
     private fun features(info: String): String? =
         Regex("""android:widgetFeatures="([^"]*)"""").find(File("src/main/res/xml/$info.xml").readText())?.groupValues?.get(1)
 
+    private fun attribute(info: String, name: String): String? =
+        Regex("android:$name=\"([^\"]*)\"").find(File("src/main/res/xml/$info.xml").readText())?.groupValues?.get(1)
+
+    @Test
+    fun theCategoryAndAccountListsArePlacedFourWideAndThreeTall() {
+        // Two columns crowd the name next to the amount pill (#1662); they can still be resized down.
+        for (info in listOf("widget_favourite_categories_info", "widget_account_balances_info")) {
+            assertEquals("$info cells wide", "4", attribute(info, "targetCellWidth"))
+            assertEquals("$info cells tall", "3", attribute(info, "targetCellHeight"))
+            assertEquals("$info width before Android 12", "250dp", attribute(info, "minWidth"))
+            assertEquals("$info still shrinks", "40dp", attribute(info, "minResizeWidth"))
+        }
+    }
+
     @Test
     fun widgetsWithADefaultCanBePlacedWithoutTheSetupScreen() {
         for (info in listOf(
