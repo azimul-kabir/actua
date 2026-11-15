@@ -111,3 +111,21 @@ and after; record commits, median/p90 and janky frames with interpretation. Do n
 claim improvement from fewer lines or emulator timings. If physical hardware is
 unavailable, explicitly record that limitation; the installed API 28 and API 37
 emulators can validate behavior but cannot supply the requested physical baseline.
+
+## Implementation review stack
+
+The five planned slices have implementation PRs, in dependency order:
+
+| Slice | Pull request |
+| --- | --- |
+| Mutation runner and feedback | [#1682](https://github.com/azimul-kabir/actua/pull/1682) |
+| Transaction register/editor state | [#1683](https://github.com/azimul-kabir/actua/pull/1683) |
+| Budget selection and Home preferences | [#1684](https://github.com/azimul-kabir/actua/pull/1684) |
+| Schedule/account-detail flows | [#1686](https://github.com/azimul-kabir/actua/pull/1686) |
+| Settings/provider/import owners | [#1687](https://github.com/azimul-kabir/actua/pull/1687) |
+
+The current extraction deliberately keeps cross-flow routing and shared read
+models in the root. Moving state ownership alone does not establish smaller
+recomposition scopes or justify narrowing invalidation. Review each slice and
+its recorded validation/measurement limitations before merging; the parent issue
+remains open until its acceptance criteria are satisfied.
