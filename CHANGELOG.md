@@ -10,6 +10,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added a confirmation message when you add or remove a budget category or an account from favorites ([#1666](https://github.com/azimul-kabir/actua/pull/1666))
 - Added a Row style choice to the Favourite categories and Account balances widget setup: Highlighted (the amount in a pill) or Simple, which keeps names readable on narrow widgets ([#1669](https://github.com/azimul-kabir/actua/pull/1669))
 
+### Changed
+
+- Changed the Favourite categories and Account balances widgets to be placed at 4x3 instead of 2x3 ([#1669](https://github.com/azimul-kabir/actua/pull/1669))
+
 ### Fixed
 
 - Fixed the greeting's count of transactions to categorize not matching the Budget screen; it now counts this month only ([#1668](https://github.com/azimul-kabir/actua/pull/1668))
