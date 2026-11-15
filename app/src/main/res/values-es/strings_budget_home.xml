@@ -120,6 +120,8 @@
     <string name="budget_remove_favorite">Quitar de favoritos</string>
     <string name="budget_favorite_added">%1$s añadida a favoritos</string>
     <string name="budget_favorite_removed">%1$s quitada de favoritos</string>
+    <string name="accounts_favorite_added">%1$s añadida a favoritos</string>
+    <string name="accounts_favorite_removed">%1$s quitada de favoritos</string>
     <string name="budget_transactions_month">Transacciones de este mes</string>
     <string name="budget_rename_category">Cambiar nombre de categoría</string>
     <string name="budget_rename_group">Cambiar nombre de grupo</string>

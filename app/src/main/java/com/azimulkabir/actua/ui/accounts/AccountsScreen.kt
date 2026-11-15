@@ -191,6 +191,7 @@ fun AccountsScreen(
     onRefresh: () -> Unit = {},
     favoriteAccountIds: Set<String> = emptySet(),
     onFavoriteAccountChange: (String, Boolean) -> Unit = { _, _ -> },
+    onFavoriteFeedback: (accountName: String, favorite: Boolean) -> Unit = { _, _ -> },
     scrollToTopRequest: Int = 0,
     hasFab: Boolean = true,
     pendingCaptureCount: Int = 0,
@@ -493,7 +494,10 @@ fun AccountsScreen(
                 if (account.closed) onReopenAccount(account) else closingAccount = account
             },
             favorite = account.id in favoriteAccountIds,
-            onFavoriteChange = { onFavoriteAccountChange(account.id, it) },
+            onFavoriteChange = {
+                onFavoriteAccountChange(account.id, it)
+                onFavoriteFeedback(account.name, it)
+            },
         )
     }
     closingAccount?.let { account ->

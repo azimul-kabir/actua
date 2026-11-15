@@ -3409,6 +3409,17 @@ fun AppNavigation(
                         favoritePreferences.set(favoriteBudgetId, FavoritePreferences.Type.ACCOUNT, id, favorite)
                         favoriteAccountIds = favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.ACCOUNT)
                     },
+                    onFavoriteFeedback = { name, favorite ->
+                        coroutineScope.launch {
+                            snackbarHostState.currentSnackbarData?.dismiss()
+                            snackbarHostState.showSnackbar(
+                                context.getString(
+                                    if (favorite) R.string.accounts_favorite_added else R.string.accounts_favorite_removed,
+                                    name,
+                                ),
+                            )
+                        }
+                    },
                     scrollToTopRequest = rootRequests[MainDestination.Accounts] ?: 0,
                     hasFab = hasFab,
                     monthStart = homeMonthStart,
@@ -4362,6 +4373,7 @@ private fun NavigationAccountsScreen(
     onRefresh: () -> Unit,
     favoriteAccountIds: Set<String>,
     onFavoriteAccountChange: (String, Boolean) -> Unit,
+    onFavoriteFeedback: (String, Boolean) -> Unit,
     scrollToTopRequest: Int,
     hasFab: Boolean,
     monthStart: MonthStartRule,
@@ -4427,6 +4439,7 @@ private fun NavigationAccountsScreen(
         onRefresh = onRefresh,
         favoriteAccountIds = favoriteAccountIds,
         onFavoriteAccountChange = onFavoriteAccountChange,
+        onFavoriteFeedback = onFavoriteFeedback,
         scrollToTopRequest = scrollToTopRequest,
         hasFab = hasFab,
         monthStart = monthStart,
