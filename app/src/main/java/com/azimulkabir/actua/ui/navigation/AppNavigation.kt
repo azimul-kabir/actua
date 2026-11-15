@@ -98,6 +98,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -862,6 +863,7 @@ fun AppNavigation(
     // (configuration-aware) and bundled into a single holder so the content switch below
     // captures one object instead of one parameter per string.
     val navStrings = navigationStrings()
+    val resources = LocalResources.current
 
     // The (disk I/O) mutation runs off the main thread; [onChanged] fires afterwards on the
     // main thread once the local write has durably completed, so callers that need to react to
@@ -3216,7 +3218,7 @@ fun AppNavigation(
                         coroutineScope.launch {
                             snackbarHostState.currentSnackbarData?.dismiss()
                             snackbarHostState.showSnackbar(
-                                context.getString(
+                                resources.getString(
                                     if (favorite) R.string.budget_favorite_added else R.string.budget_favorite_removed,
                                     name,
                                 ),
@@ -3413,7 +3415,7 @@ fun AppNavigation(
                         coroutineScope.launch {
                             snackbarHostState.currentSnackbarData?.dismiss()
                             snackbarHostState.showSnackbar(
-                                context.getString(
+                                resources.getString(
                                     if (favorite) R.string.accounts_favorite_added else R.string.accounts_favorite_removed,
                                     name,
                                 ),
