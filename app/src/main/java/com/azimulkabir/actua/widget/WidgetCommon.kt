@@ -162,13 +162,17 @@ internal fun showSingleMessage(views: RemoteViews, text: String, tap: PendingInt
     views.setOnClickPendingIntent(R.id.widget_root, tap)
 }
 
-internal fun listRow(context: Context, row: WidgetRow): RemoteViews {
+internal fun listRow(context: Context, row: WidgetRow, style: WidgetRowStyle = WidgetRowStyle.Simple): RemoteViews {
     // Rows bind from the RemoteViewsService's application context, which does not follow
     // the app locale on API 28-32; resolve strings through the app-language context.
     val localized = context.withAppLanguage()
-    return RemoteViews(localized.packageName, R.layout.widget_list_item).apply {
+    val (layout, amountId) = when (style) {
+        WidgetRowStyle.Simple -> R.layout.widget_list_item to R.id.widget_item_amount
+        WidgetRowStyle.Highlighted -> R.layout.widget_list_item_highlighted to R.id.widget_item_amount_pill
+    }
+    return RemoteViews(localized.packageName, layout).apply {
         setTextViewText(R.id.widget_item_name, row.name)
-        setTextViewText(R.id.widget_item_amount, row.amount)
+        setTextViewText(amountId, row.amount)
         setViewVisibility(R.id.widget_item_progress, if (row.showProgress) View.VISIBLE else View.GONE)
         if (row.showProgress) {
             setProgressBar(R.id.widget_item_progress, 100, row.progress, false)

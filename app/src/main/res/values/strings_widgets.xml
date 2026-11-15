@@ -127,4 +127,7 @@
     <string name="widget_cd_is_month">%1$s income %2$s, spending %3$s</string>
     <string name="widget_cd_is_left">This month, %1$s left.</string>
     <string name="widget_cd_is_rate">Savings rate %1$d percent.</string>
+    <string name="widget_row_style">Row style</string>
+    <string name="widget_row_style_simple">Simple</string>
+    <string name="widget_row_style_highlighted">Highlighted</string>
 </resources>

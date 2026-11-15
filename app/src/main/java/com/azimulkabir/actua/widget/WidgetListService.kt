@@ -25,11 +25,13 @@ internal class WidgetListRows(
     private val kind: WidgetKind,
 ) : RemoteViewsService.RemoteViewsFactory {
     private var rows: List<WidgetRow> = emptyList()
+    private var style = WidgetRowStyle.Simple
 
     override fun onCreate() = Unit
 
     // Called on a binder thread, so reading the budget here doesn't block the main thread.
     override fun onDataSetChanged() {
+        style = WidgetPreferences(context).rowStyle(kind, widgetId)
         rows = when (kind) {
             WidgetKind.Categories -> FavouriteCategoriesWidget.categoryRows(context)
             WidgetKind.Accounts -> AccountBalancesWidget.accountRows(context, widgetId)
@@ -45,11 +47,11 @@ internal class WidgetListRows(
     override fun getCount(): Int = rows.size
 
     override fun getViewAt(position: Int): RemoteViews? =
-        rows.getOrNull(position)?.let { listRow(context, it) }
+        rows.getOrNull(position)?.let { listRow(context, it, style) }
 
     override fun getLoadingView(): RemoteViews? = null
 
-    override fun getViewTypeCount(): Int = 1
+    override fun getViewTypeCount(): Int = WidgetRowStyle.entries.size
 
     override fun getItemId(position: Int): Long = position.toLong()
 
