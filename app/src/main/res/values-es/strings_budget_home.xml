@@ -381,8 +381,8 @@
         <item quantity="other">%1$d de %2$d categorías en el presupuesto</item>
     </plurals>
     <plurals name="home_greeting_uncategorized">
-        <item quantity="one">%d transacción por categorizar</item>
-        <item quantity="other">%d transacciones por categorizar</item>
+        <item quantity="one">%d transacción por categorizar este mes</item>
+        <item quantity="other">%d transacciones por categorizar este mes</item>
     </plurals>
     <plurals name="home_greeting_bills_due">
         <item quantity="one">%d factura por vencer esta semana</item>
