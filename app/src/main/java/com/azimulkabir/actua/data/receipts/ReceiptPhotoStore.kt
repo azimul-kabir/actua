@@ -58,6 +58,7 @@ enum class ReceiptKeepResult {
  * and then private storage, and deletes remove a photo from both.
  */
 class ReceiptPhotoStore(context: Context) {
+    private val appContext = context.applicationContext
     private val root = File(context.applicationContext.filesDir, DIRECTORY)
     private val folder = ReceiptPhotoFolder(context)
 
@@ -119,6 +120,37 @@ class ReceiptPhotoStore(context: Context) {
         if (isSafeName(budgetId) && isSafeName(transactionId)) {
             folder.usableTree()?.let { folder.delete(it, budgetId, transactionId) }
         }
+    }
+
+    /**
+     * Gives the photo of [fromId] to [toId], for when [fromId] is merged into [toId] and deleted. When [toId]
+     * already has a photo it is kept and the photo of [fromId] is deleted, so no photo is left without its
+     * transaction. The moved photo goes where [keepPreferred] puts new photos. Returns true when [toId] gained
+     * a photo. Blocking: call it off the main thread.
+     */
+    fun move(budgetId: String, fromId: String, toId: String): Boolean {
+        if (!isSafeName(budgetId) || !isSafeName(fromId) || !isSafeName(toId) || fromId == toId) return false
+        val source = photo(budgetId, fromId) ?: return false
+        if (photo(budgetId, toId) != null) {
+            delete(budgetId, fromId)
+            return false
+        }
+        val directory = File(appContext.cacheDir, PENDING_DIRECTORY).apply { mkdirs() }
+        val pending = File(directory, "${UUID.randomUUID()}.jpg")
+        val copied = try {
+            source.open(appContext)?.use { input -> pending.outputStream().use { input.copyTo(it) } } != null
+        } catch (_: IOException) {
+            false
+        }
+        if (!copied) {
+            pending.delete()
+            return false
+        }
+        val moved = keepPreferred(budgetId, toId, pending) != ReceiptKeepResult.FAILED
+        pending.delete()
+        // The photo stays with the deleted id when it could not be moved, so a later attempt can still find it.
+        if (moved) delete(budgetId, fromId)
+        return moved
     }
 
     fun delete(budgetId: String, transactionIds: Collection<String>) {

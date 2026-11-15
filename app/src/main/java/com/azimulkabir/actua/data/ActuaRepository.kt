@@ -2707,10 +2707,15 @@ class ActuaRepository(context: Context) {
         activeMetadata?.id?.let { receiptPhotos.delete(it, transactionIds) }
     }
 
-    /** Merge two transactions, in selection order, into one (Actual's `transactions-merge`). */
+    /**
+     * Merge two transactions, in selection order, into one (Actual's `transactions-merge`). A receipt photo
+     * kept with the dropped transaction moves to the kept one, unless that already has its own.
+     */
     fun mergeTransactions(firstId: String, secondId: String): Boolean {
         val writer = actualWriter ?: return false
-        writer.mergeTransactions(firstId, secondId)
+        val keptId = writer.mergeTransactions(firstId, secondId)
+        val droppedId = if (keptId == firstId) secondId else firstId
+        activeMetadata?.id?.let { budgetId -> runCatching { receiptPhotos.move(budgetId, droppedId, keptId) } }
         return true
     }
 
