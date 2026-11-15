@@ -255,6 +255,7 @@ fun BudgetScreen(
     onFavoritesOnlyChange: (Boolean) -> Unit = {},
     favoriteCategoryIds: Set<String> = emptySet(),
     onFavoriteCategoryChange: (String, Boolean) -> Unit = { _, _ -> },
+    onFavoriteFeedback: (categoryName: String, favorite: Boolean) -> Unit = { _, _ -> },
     onSetCategoryHidden: (String, String, Boolean, onChanged: () -> Unit) -> Unit = { _, _, _, _ -> },
     onSetGroupHidden: (String, Boolean, onChanged: () -> Unit) -> Unit = { _, _, _ -> },
     onRenameCategory: (String, String, String) -> Unit = { _, _, _ -> },
@@ -702,7 +703,10 @@ fun BudgetScreen(
             },
             favorite = category.id in favoriteCategoryIds,
             onFavoriteChange = { favorite ->
-                category.id?.let { onFavoriteCategoryChange(it, favorite) }
+                category.id?.let {
+                    onFavoriteCategoryChange(it, favorite)
+                    onFavoriteFeedback(category.name, favorite)
+                }
                 selectedCategory = null
             },
             hidden = category.hidden,
@@ -934,7 +938,12 @@ fun BudgetScreen(
             },
             hidden = category.hidden,
             favorite = category.id in favoriteCategoryIds,
-            onFavoriteChange = { favorite -> category.id?.let { onFavoriteCategoryChange(it, favorite) } },
+            onFavoriteChange = { favorite ->
+                category.id?.let {
+                    onFavoriteCategoryChange(it, favorite)
+                    onFavoriteFeedback(category.name, favorite)
+                }
+            },
             onSetHidden = { hidden ->
                 onSetCategoryHidden(group.name, category.name, hidden) { categoryDetails = null }
             },

@@ -3212,6 +3212,17 @@ fun AppNavigation(
                         favoriteCategoryIds = favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.CATEGORY)
                         WidgetUpdater.requestAll(context)
                     },
+                    onFavoriteFeedback = { name, favorite ->
+                        coroutineScope.launch {
+                            snackbarHostState.currentSnackbarData?.dismiss()
+                            snackbarHostState.showSnackbar(
+                                context.getString(
+                                    if (favorite) R.string.budget_favorite_added else R.string.budget_favorite_removed,
+                                    name,
+                                ),
+                            )
+                        }
+                    },
                     onSetCategoryHidden = { group, category, hidden, onChanged ->
                         mutate(if (hidden) R.string.navigation_hiding_category else R.string.navigation_showing_category, onChanged = onChanged) {
                             repository.setCategoryHidden(group, category, hidden)
