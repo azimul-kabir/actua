@@ -7,6 +7,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Added
 
 - Added a Terms of Service link to Settings → About ([#1664](https://github.com/azimul-kabir/actua/pull/1664))
+- Added a confirmation message when you add or remove a budget category or an account from favorites ([#1666](https://github.com/azimul-kabir/actua/pull/1666))
 
 ### Fixed
 

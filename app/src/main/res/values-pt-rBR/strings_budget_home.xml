@@ -118,6 +118,10 @@
     <string name="budget_category_options">Opções da categoria</string>
     <string name="budget_add_favorite">Adicionar aos favoritos</string>
     <string name="budget_remove_favorite">Remover dos favoritos</string>
+    <string name="budget_favorite_added">%1$s adicionada aos favoritos</string>
+    <string name="budget_favorite_removed">%1$s removida dos favoritos</string>
+    <string name="accounts_favorite_added">%1$s adicionada aos favoritos</string>
+    <string name="accounts_favorite_removed">%1$s removida dos favoritos</string>
     <string name="budget_transactions_month">Transações deste mês</string>
     <string name="budget_rename_category">Renomear categoria</string>
     <string name="budget_rename_group">Renomear grupo</string>

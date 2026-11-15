@@ -98,6 +98,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -862,6 +863,7 @@ fun AppNavigation(
     // (configuration-aware) and bundled into a single holder so the content switch below
     // captures one object instead of one parameter per string.
     val navStrings = navigationStrings()
+    val resources = LocalResources.current
 
     // The (disk I/O) mutation runs off the main thread; [onChanged] fires afterwards on the
     // main thread once the local write has durably completed, so callers that need to react to
@@ -3212,6 +3214,17 @@ fun AppNavigation(
                         favoriteCategoryIds = favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.CATEGORY)
                         WidgetUpdater.requestAll(context)
                     },
+                    onFavoriteFeedback = { name, favorite ->
+                        coroutineScope.launch {
+                            snackbarHostState.currentSnackbarData?.dismiss()
+                            snackbarHostState.showSnackbar(
+                                resources.getString(
+                                    if (favorite) R.string.budget_favorite_added else R.string.budget_favorite_removed,
+                                    name,
+                                ),
+                            )
+                        }
+                    },
                     onSetCategoryHidden = { group, category, hidden, onChanged ->
                         mutate(if (hidden) R.string.navigation_hiding_category else R.string.navigation_showing_category, onChanged = onChanged) {
                             repository.setCategoryHidden(group, category, hidden)
@@ -3397,6 +3410,17 @@ fun AppNavigation(
                     onFavoriteAccountChange = { id, favorite ->
                         favoritePreferences.set(favoriteBudgetId, FavoritePreferences.Type.ACCOUNT, id, favorite)
                         favoriteAccountIds = favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.ACCOUNT)
+                    },
+                    onFavoriteFeedback = { name, favorite ->
+                        coroutineScope.launch {
+                            snackbarHostState.currentSnackbarData?.dismiss()
+                            snackbarHostState.showSnackbar(
+                                resources.getString(
+                                    if (favorite) R.string.accounts_favorite_added else R.string.accounts_favorite_removed,
+                                    name,
+                                ),
+                            )
+                        }
                     },
                     scrollToTopRequest = rootRequests[MainDestination.Accounts] ?: 0,
                     hasFab = hasFab,
@@ -4351,6 +4375,7 @@ private fun NavigationAccountsScreen(
     onRefresh: () -> Unit,
     favoriteAccountIds: Set<String>,
     onFavoriteAccountChange: (String, Boolean) -> Unit,
+    onFavoriteFeedback: (String, Boolean) -> Unit,
     scrollToTopRequest: Int,
     hasFab: Boolean,
     monthStart: MonthStartRule,
@@ -4416,6 +4441,7 @@ private fun NavigationAccountsScreen(
         onRefresh = onRefresh,
         favoriteAccountIds = favoriteAccountIds,
         onFavoriteAccountChange = onFavoriteAccountChange,
+        onFavoriteFeedback = onFavoriteFeedback,
         scrollToTopRequest = scrollToTopRequest,
         hasFab = hasFab,
         monthStart = monthStart,
