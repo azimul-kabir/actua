@@ -483,4 +483,10 @@
     <string name="fs_eb_wait">Autorize %1$s no navegador e volte aqui. Isso aguarda até 5 minutos.</string>
     <string name="fs_eb_load_failed">Não foi possível carregar os bancos para %1$s.</string>
     <string name="fs_eb_authorize_failed">Não foi possível autorizar %1$s.</string>
+    <string name="fs_hide_tags">Ocultar</string>
+    <string name="fs_show_tags">Mostrar</string>
+    <string name="fs_selected_tag">Selecionada #%1$s</string>
+    <string name="fs_not_selected_tag">Não selecionada #%1$s</string>
+    <plurals name="fs_delete_tags_question"><item quantity="one">Excluir %d tag?</item><item quantity="other">Excluir %d tags?</item></plurals>
+    <string name="fs_delete_tags_message">Isso exclui os metadados das tags gerenciadas. As hashtags existentes em notas de transações antigas permanecerão como hashtags não gerenciadas.</string>
 </resources>

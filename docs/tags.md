@@ -12,6 +12,8 @@ Tag matching follows Actual: viewing a tag's transactions, rename and report fil
 
 Open **Manage → Tags** to create, edit, recolor, describe, hide/show, rename, or delete managed tags. Renaming a managed tag also rewrites matching transaction-note hashtags through Actua's CRDT transaction writer. Deleting tag metadata intentionally leaves historical hashtag text in notes as unmanaged text, matching Actual behavior.
 
+To change several tags at once, long-press a tag (or choose **Select** from its actions menu), then tap more tags to add or remove them. The header shows how many are selected and offers **Hide**, **Show** and **Delete**; each is written as one batch, like Actual's bulk actions, and Delete asks to confirm first. Back, or the header's back arrow, leaves selection without changing anything. With TalkBack, each tag reads as selected or not selected while selecting.
+
 Tap a managed tag, or use its actions menu and choose **View transactions**, to see transactions containing that exact tag. The active tag is shown as a removable filter chip. Parent and split notes are both considered.
 
 ## Sync and offline behavior
@@ -55,7 +57,7 @@ Audit of tags against Actual Budget, tracked in
 | Edit | writes the fields passed | writes name (if changed), color, description and hidden | Match |
 | Hide / show | `hidden` 1/0; hidden tags left out of autocomplete | same; hidden tags left out of autocomplete (`ui/transactions/TagAutocomplete.kt`) | Match |
 | Delete | tombstones the row; notes keep their `#tag` text | same | Match |
-| Bulk delete, hide and show (`tags-delete-all`, `tags-hide-all`, `tags-unhide-all`) | Manage Tags selection | one tag at a time | **N/A** |
+| Bulk delete, hide and show (`tags-delete-all`, `tags-hide-all`, `tags-unhide-all`) | Manage Tags selection; `tombstone` 1, or `hidden` 1/0, on every selected row in one `batchMessages` | Manage Tags selection; same rows and values in one `applyLocalMessages` (`ActualTagWriter.deleteAll`, `setHiddenAll`) | Match ([#1364](https://github.com/azimul-kabir/actua/issues/1364)) |
 | Order in Manage Tags | `Intl.Collator`, numeric, case-insensitive | `ORDER BY tag COLLATE NOCASE` (`tag10` sorts before `tag2`) | Intentional (display only) |
 
 ### Rename

@@ -398,6 +398,14 @@ fun SettingsScreen(
                     runCatching { tagRepository.delete(tag) }
                         .onSuccess { if (it) tagVersion += 1 }
                 },
+                onDeleteAll = { tags ->
+                    runCatching { tagRepository.deleteAll(tags) }
+                        .onSuccess { if (it) tagVersion += 1 }
+                },
+                onSetHidden = { tags, hidden ->
+                    runCatching { tagRepository.setHidden(tags, hidden) }
+                        .onSuccess { if (it) tagVersion += 1 }
+                },
                 modifier = Modifier.fillMaxSize(),
             )
         } else Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollStates.getValue(shownPage))) {
