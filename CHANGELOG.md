@@ -19,6 +19,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed Home section editing showing an available Greeting toggle for non-supporters ([#1675](https://github.com/azimul-kabir/actua/pull/1675))
+
 - Fixed the greeting's count of transactions to categorize not matching the Budget screen; it now counts this month only ([#1668](https://github.com/azimul-kabir/actua/pull/1668))
 - Fixed the Updated line on list widgets taking a row at 2x3; it now shows from 2x4 ([#1669](https://github.com/azimul-kabir/actua/pull/1669))
 - Fixed merging two transactions losing the receipt photo kept with the one that is removed ([#1667](https://github.com/azimul-kabir/actua/pull/1667))
