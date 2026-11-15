@@ -74,7 +74,7 @@ class CustomizeHomeScreenTest {
         var latest: HomeLayout? = null
         compose.setContent {
             MaterialTheme {
-                CustomizeHomeScreen(layout = HomeLayout.default(), onBack = {}, onLayoutChange = { latest = it })
+                CustomizeHomeScreen(isSupporter = true, showSupporterExtras = true, layout = HomeLayout.default(), onBack = {}, onLayoutChange = { latest = it })
             }
         }
 
@@ -87,7 +87,7 @@ class CustomizeHomeScreenTest {
     @Test fun ready_to_budget_has_no_switch_and_is_labeled_required() {
         compose.setContent {
             MaterialTheme {
-                CustomizeHomeScreen(layout = HomeLayout.default(), onBack = {}, onLayoutChange = {})
+                CustomizeHomeScreen(isSupporter = true, showSupporterExtras = true, layout = HomeLayout.default(), onBack = {}, onLayoutChange = {})
             }
         }
 
@@ -101,7 +101,7 @@ class CustomizeHomeScreenTest {
         var latest: HomeLayout? = null
         compose.setContent {
             MaterialTheme {
-                CustomizeHomeScreen(layout = HomeLayout.default(), onBack = {}, onLayoutChange = { latest = it })
+                CustomizeHomeScreen(isSupporter = true, showSupporterExtras = true, layout = HomeLayout.default(), onBack = {}, onLayoutChange = { latest = it })
             }
         }
 
@@ -118,7 +118,7 @@ class CustomizeHomeScreenTest {
         val customized = HomeLayoutPlanner.setHidden(HomeLayout.default(), HomeSection.REPORTS, true)
         compose.setContent {
             MaterialTheme {
-                CustomizeHomeScreen(layout = customized, onBack = {}, onLayoutChange = { latest = it })
+                CustomizeHomeScreen(isSupporter = true, showSupporterExtras = true, layout = customized, onBack = {}, onLayoutChange = { latest = it })
             }
         }
 
