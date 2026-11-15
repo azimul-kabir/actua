@@ -29,6 +29,47 @@ class CustomizeHomeScreenTest {
     private fun sectionTitle(section: HomeSection) =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(section.titleRes)
 
+    @Test fun non_supporter_greeting_is_marked_and_has_no_controls() {
+        compose.setContent {
+            MaterialTheme {
+                CustomizeHomeScreen(
+                    layout = HomeLayoutPlanner.restrict(HomeLayout.default(), HomeLayoutPlanner.offered(false)),
+                    onBack = {}, onLayoutChange = {}, isSupporter = false, showSupporterExtras = true,
+                )
+            }
+        }
+        compose.onNodeWithText(sectionTitle(HomeSection.GREETING)).assertExists()
+        compose.onNodeWithText(label(R.string.settings_supporter_extras_marker)).assertExists()
+        compose.onNodeWithContentDescription(label(R.string.home_show_section, sectionTitle(HomeSection.GREETING))).assertDoesNotExist()
+        compose.onNodeWithContentDescription(label(R.string.home_drag_reorder, sectionTitle(HomeSection.GREETING))).assertDoesNotExist()
+        compose.onNodeWithContentDescription(label(R.string.home_move_down, sectionTitle(HomeSection.GREETING))).assertDoesNotExist()
+    }
+
+    @Test fun supporter_can_hide_greeting() {
+        var latest: HomeLayout? = null
+        compose.setContent {
+            MaterialTheme {
+                CustomizeHomeScreen(
+                    layout = HomeLayout.default(), onBack = {}, onLayoutChange = { latest = it },
+                    isSupporter = true, showSupporterExtras = true,
+                )
+            }
+        }
+        compose.onNodeWithContentDescription(label(R.string.home_show_section, sectionTitle(HomeSection.GREETING))).performClick()
+        assertTrue(HomeSection.GREETING in requireNotNull(latest).hidden)
+    }
+
+    @Test fun greeting_is_absent_when_supporter_extras_are_unavailable() {
+        compose.setContent {
+            MaterialTheme {
+                CustomizeHomeScreen(
+                    layout = HomeLayout.default(), onBack = {}, onLayoutChange = {}, showSupporterExtras = false,
+                )
+            }
+        }
+        compose.onNodeWithText(sectionTitle(HomeSection.GREETING)).assertDoesNotExist()
+    }
+
     @Test fun toggling_a_switch_hides_the_section_and_reports_the_change() {
         var latest: HomeLayout? = null
         compose.setContent {

@@ -3016,6 +3016,7 @@ fun AppNavigation(
                 onMutateSync = { labelRes, action -> mutateSync(labelRes, action) },
             )
             DetailDestination.CustomizeHome -> CustomizeHomeScreen(
+                isSupporter = greeting.supporter,
                 layout = HomeLayoutPlanner.restrict(homeLayout, HomeLayoutPlanner.offered(greeting.supporter)),
                 onBack = { detail = DetailDestination.Main },
                 onLayoutChange = { edited ->
