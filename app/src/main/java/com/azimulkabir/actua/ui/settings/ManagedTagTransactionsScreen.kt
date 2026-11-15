@@ -28,7 +28,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -49,9 +51,15 @@ import com.azimulkabir.actua.ui.transactions.filterByTag
 @Composable
 internal fun ManagedTagTransactionsScreen(tag: ActualTag, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val repository = remember { ActuaRepository(context) }
     val syncGeneration by SyncSignals.dataGeneration.collectAsState()
-    val transactions = remember(syncGeneration, tag.tag) { repository.transactions().filterByTag(tag.tag) }
+    val transactions by produceState<List<com.azimulkabir.actua.model.Transaction>?>(null, syncGeneration, tag.tag) {
+        value = null
+        value = withContext(Dispatchers.IO) {
+            val repository = ActuaRepository(context)
+            try { repository.transactions().filterByTag(tag.tag) } finally { repository.close() }
+        }
+    }
+    val shownTransactions = transactions.orEmpty()
     BackHandler(onBack = onBack)
 
     Column(modifier.fillMaxSize()) {
@@ -70,17 +78,19 @@ internal fun ManagedTagTransactionsScreen(tag: ActualTag, onBack: () -> Unit, mo
             )
             Spacer(Modifier.weight(1f))
             Text(
-                pluralStringResource(R.plurals.fs_tag_transaction_count, transactions.size, transactions.size),
+                pluralStringResource(R.plurals.fs_tag_transaction_count, shownTransactions.size, shownTransactions.size),
                 style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (transactions.isEmpty()) {
+        if (transactions == null) {
+            androidx.compose.material3.CircularProgressIndicator(Modifier.padding(32.dp))
+        } else if (shownTransactions.isEmpty()) {
             Column(Modifier.fillMaxSize().padding(32.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(stringResource(R.string.fs_no_tag_transactions, tag.tag), style = MaterialTheme.typography.titleMedium)
                 Text(stringResource(R.string.fs_tag_matching_note, tag.tag), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
             }
         } else LazyColumn(Modifier.fillMaxSize()) {
-            items(transactions, key = { it.id }) { transaction ->
+            items(shownTransactions, key = { it.id }) { transaction ->
                 Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {

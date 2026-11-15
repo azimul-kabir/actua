@@ -17,9 +17,9 @@ internal object SingleAccountWidget {
         return views
     }
 
-    fun update(context: Context, manager: AppWidgetManager, widgetId: Int) {
+    fun update(context: Context, manager: AppWidgetManager, widgetId: Int, sharedRepository: ActuaRepository? = null) {
         val views = RemoteViews(context.packageName, WidgetStyles.layout(context, R.layout.widget_single_account, R.layout.widget_single_account_styled))
-        val repository = ActuaRepository(context)
+        val repository = sharedRepository ?: ActuaRepository(context)
         try {
             loadBudgetFormats(repository)
             if (!repository.isUsingActualBudget) {
@@ -48,7 +48,7 @@ internal object SingleAccountWidget {
             WidgetStyles.apply(context, views)
             manager.updateAppWidget(widgetId, views)
         } finally {
-            repository.close()
+            if (sharedRepository == null) repository.close()
         }
     }
 }

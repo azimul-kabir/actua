@@ -18,7 +18,9 @@ class ScheduleWidgetService : RemoteViewsService() {
 internal class ScheduleWidgetRows(
     private val context: Context,
     private val widgetId: Int,
-    private val load: (Context, Int) -> List<ScheduleWidgetEntry> = ScheduledTransactionsWidget::scheduleEntries,
+    private val load: (Context, Int) -> List<ScheduleWidgetEntry> = { context, id ->
+        WidgetListSnapshots.schedules(context, id) ?: ScheduledTransactionsWidget.scheduleEntries(context, id)
+    },
 ) : RemoteViewsService.RemoteViewsFactory {
     private var entries: List<ScheduleWidgetEntry> = emptyList()
 

@@ -9,7 +9,6 @@ import android.text.format.DateFormat
 import android.widget.RemoteViews
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
-import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.preferences.HomePreferences
 import com.azimulkabir.actua.data.preferences.withAppLanguage
 import com.azimulkabir.actua.data.schedules.ActualScheduleSummary
@@ -44,9 +43,14 @@ internal object ScheduledTransactionsWidget {
     // The service-backed adapter is deprecated on newer releases, but its replacement
     // (RemoteCollectionItems) needs API 31 and minSdk is 28.
     @Suppress("DEPRECATION")
-    fun update(context: Context, manager: AppWidgetManager, widgetId: Int) {
-        val repository = ActuaRepository(context)
-        val usingBudget = try { repository.isUsingActualBudget } finally { repository.close() }
+    fun update(context: Context, manager: AppWidgetManager, widgetId: Int, sharedRepository: ActuaRepository? = null) {
+        val repository = sharedRepository ?: ActuaRepository(context)
+        val usingBudget = repository.isUsingActualBudget
+        try {
+            WidgetListSnapshots.saveSchedules(repository.activeMetadata?.id, widgetId, scheduleEntries(context, widgetId, repository))
+        } finally {
+            if (sharedRepository == null) repository.close()
+        }
         val updatedAt = DateFormat.getTimeFormat(context).format(Date())
         manager.updateAppWidget(
             widgetId,
@@ -83,8 +87,8 @@ internal object ScheduledTransactionsWidget {
         manager.notifyAppWidgetViewDataChanged(widgetId, R.id.widget_schedule_list)
     }
 
-    internal fun scheduleEntries(context: Context, widgetId: Int): List<ScheduleWidgetEntry> {
-        val repository = ActuaRepository(context)
+    internal fun scheduleEntries(context: Context, widgetId: Int, sharedRepository: ActuaRepository? = null): List<ScheduleWidgetEntry> {
+        val repository = sharedRepository ?: ActuaRepository(context)
         try {
             loadBudgetFormats(repository)
             if (!repository.isUsingActualBudget) return emptyList()
@@ -93,14 +97,14 @@ internal object ScheduledTransactionsWidget {
             return ScheduleWidgetProjection.upcoming(
                 repository.schedules(
                     today,
-                    com.azimulkabir.actua.data.preferences.HomePreferences(context).monthStartRule(
-                        com.azimulkabir.actua.data.budget.ActiveBudgetStore(context).budgetId ?: "no-budget",
+                    HomePreferences(context).monthStartRule(
+                        repository.activeMetadata?.id ?: "no-budget",
                     ).nonWorkingDays,
                 ),
                 today, periodDays,
             )
         } finally {
-            repository.close()
+            if (sharedRepository == null) repository.close()
         }
     }
 

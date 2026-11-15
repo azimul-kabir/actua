@@ -28,14 +28,14 @@ internal object SpendingTrendWidget {
     /** What the Spending trend widget draws: nothing without a budget, or the trend (which may be empty). */
     private class TrendData(val usingBudget: Boolean, val trend: SpendingTrend?)
 
-    fun update(context: Context, manager: AppWidgetManager, widgetId: Int) {
-        val repository = ActuaRepository(context)
+    fun update(context: Context, manager: AppWidgetManager, widgetId: Int, sharedRepository: ActuaRepository? = null) {
+        val repository = sharedRepository ?: ActuaRepository(context)
         val data = try {
             loadBudgetFormats(repository)
             val using = repository.isUsingActualBudget
             TrendData(using, if (using) repository.spendingTrend() else null)
         } finally {
-            repository.close()
+            if (sharedRepository == null) repository.close()
         }
         // The chart is a bitmap, so it is drawn for the widget's current size and redrawn when it is resized.
         val (widthDp, heightDp) = widgetSizeDp(context, manager, widgetId)

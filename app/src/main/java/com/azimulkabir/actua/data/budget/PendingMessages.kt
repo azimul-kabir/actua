@@ -63,6 +63,25 @@ internal object PendingMessages {
         )
     }
 
+    /** A future-schema cell alone must not force a write transaction on every budget open. */
+    fun needsReplay(database: SQLiteDatabase): Boolean {
+        if (!database.hasPendingTable()) return false
+        val cells = database.rawQuery("SELECT dataset, `column`, value FROM $TABLE", null).use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) add(Triple(cursor.getString(0), cursor.getString(1), cursor.getString(2)))
+            }
+        }
+        if (cells.isEmpty()) return false
+        val schema = StoredMessageReplay.schema(database)
+        if (cells.any { (dataset, column, value) -> !shouldDefer(schema, dataset, column, value) }) return true
+        return database.rawQuery(
+            """SELECT 1 FROM $TABLE p WHERE EXISTS (
+                SELECT 1 FROM messages_crdt c WHERE c.dataset = p.dataset AND c.row = p.row
+                  AND c.`column` = p.`column` AND c.timestamp > p.timestamp) LIMIT 1""",
+            null,
+        ).use { it.moveToFirst() }
+    }
+
     private data class Pending(val dataset: String, val row: String, val column: String, val value: String)
 
     /**

@@ -151,7 +151,7 @@ class ActuaRepository(context: Context) {
     private val ratingPrompt = RatingPromptPreferences(context)
     private val scheduleSync = {
         ActualSyncScheduler.scheduleMutation(appContext)
-        WidgetUpdater.requestAll(appContext)
+        WidgetUpdater.requestAllAsync(appContext)
     }
     private val unopened = mutableListOf<BudgetMetadata>()
     private val openedBudget: Pair<ActualBudgetDatabase, BudgetMetadata>? = BudgetFileManager(context).let { files ->
@@ -162,11 +162,15 @@ class ActuaRepository(context: Context) {
         )
         val opened = candidates.firstNotNullOfOrNull { metadata ->
             openBudget(files, metadata)?.let { db ->
-                if (metadata.id != selectedId) activeBudgetStore.budgetId = metadata.id
+                if (metadata.id != selectedId && activeBudgetStore.budgetId == selectedId) {
+                    activeBudgetStore.budgetId = metadata.id
+                }
                 db to metadata
             }
         }
-        if (opened == null && selectedId != null) activeBudgetStore.budgetId = null
+        if (opened == null && selectedId != null && activeBudgetStore.budgetId == selectedId) {
+            activeBudgetStore.budgetId = null
+        }
         opened
     }
     private val actualDatabase: ActualBudgetDatabase? = openedBudget?.first
@@ -206,7 +210,7 @@ class ActuaRepository(context: Context) {
             .getOrNull()
             ?: return null
         return try {
-            BudgetOpenProbe.validate(database)
+            BudgetOpenProbe.validateOnce(files.databaseFile(budgetId), database)
             database
         } catch (error: CancellationException) {
             database.close()
@@ -1742,7 +1746,7 @@ class ActuaRepository(context: Context) {
      */
     internal fun reportDataForWidgets(): com.azimulkabir.actua.data.reports.ReportDataSnapshot? {
         val db = actualDatabase ?: return null
-        return com.azimulkabir.actua.data.reports.SharedReportData.get(ActiveBudgetStore(appContext).budgetId, db)
+        return com.azimulkabir.actua.data.reports.SharedReportData.get(activeMetadata?.id, db)
     }
 
     /** The dashboard cards the Report card home-screen widget can show, in dashboard order. */

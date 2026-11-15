@@ -127,7 +127,6 @@ import com.azimulkabir.actua.ui.accounts.CloseCategoryGroup
 import com.azimulkabir.actua.ui.automation.BudgetAutomationScreen
 import com.azimulkabir.actua.ui.budget.BudgetScreen
 import com.azimulkabir.actua.ui.budget.CategoryBudgetAction
-import com.azimulkabir.actua.ui.settings.BudgetSelectionItem
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.azimulkabir.actua.ui.settings.SettingsScreen
@@ -478,7 +477,15 @@ fun AppNavigation(
     var repositoryVersion by remember { mutableStateOf(0) }
     var budgetReplacementInProgress by remember { mutableStateOf(false) }
     var budgetReplacementCompleted by remember { mutableStateOf(false) }
-    val activeBudgetId = remember(repositoryVersion) { ActiveBudgetStore(context).budgetId }
+    var dataVersion by remember { mutableStateOf(0) }
+    val repositoryState = rememberRepository(appContext, repositoryVersion) { dataVersion += 1 }
+    if (repositoryState == null) {
+        BudgetSwitchDialog()
+        return
+    }
+    val repositoryLoading = repositoryState.version != repositoryVersion
+    val repository = repositoryState.repository
+    val activeBudgetId = repository.activeMetadata?.id
     val favoriteBudgetId = activeBudgetId ?: "no-budget"
     val homeBudgetPreferencesState = rememberHomeBudgetPreferencesState(homePreferences, favoritePreferences, favoriteBudgetId)
     var homeMonthStart by homeBudgetPreferencesState.homeMonthStart
@@ -487,16 +494,7 @@ fun AppNavigation(
     // 64 KB method limit, and inline handlers here pushed it over.
     val onMonthStartChange: (MonthStartRule) -> Unit = homeBudgetPreferencesState::setMonthStart
     val onHolidaysChange: (List<Holiday>) -> Unit = homeBudgetPreferencesState::setHolidays
-    val availableBudgetOptions = remember(repositoryVersion) {
-        BudgetFileManager(context).listLocalBudgets().map { budget ->
-            BudgetSelectionItem(
-                id = budget.id,
-                name = budget.budgetName ?: budget.id,
-            )
-        }
-    }
-    val repository = remember(repositoryVersion) { ActuaRepository(context) }
-    var dataVersion by remember { mutableStateOf(0) }
+    val availableBudgetOptions = repositoryState.budgets
     val importNavigationState = rememberImportNavigationState()
     var sharedImportText by importNavigationState.sharedImportText
     var sharedImportFile by importNavigationState.sharedImportFile
@@ -1099,8 +1097,8 @@ fun AppNavigation(
         if (syncDataGeneration > 0) dataVersion += 1
     }
 
-    LaunchedEffect(budgetReplacementCompleted) {
-        if (budgetReplacementCompleted) {
+    LaunchedEffect(budgetReplacementCompleted, repositoryLoading) {
+        if (budgetReplacementCompleted && !repositoryLoading) {
             // repositoryVersion has already rebuilt the repository and all screen projections.
             // Keep the blocker through the first frame that can display those new values.
             withFrameNanos { }
@@ -1386,7 +1384,6 @@ fun AppNavigation(
             transactionSearch = ""
         }
         repositoryVersion += 1
-        dataVersion += 1
         WidgetUpdater.requestAll(context)
         ActualSyncScheduler.scheduleMutation(context)
     }
@@ -1749,7 +1746,6 @@ fun AppNavigation(
             ) {
                 budgetReplacementInProgress = true
                 budgetReplacementCompleted = false
-                repository.close()
                 ActiveBudgetStore(context).budgetId = budgetId
                 // Account, category and month filters hold ids from the previous budget.
                 transactionAccount = null
@@ -1757,7 +1753,6 @@ fun AppNavigation(
                 transactionMonth = null
                 transactionSearch = ""
                 repositoryVersion += 1
-                dataVersion += 1
                 budgetReplacementCompleted = true
                 CreditCardDueNotificationScheduler.refreshAsync(context)
                 WidgetUpdater.requestAll(context)
@@ -2406,7 +2401,6 @@ fun AppNavigation(
                 },
                 onBudgetInstalled = {
                     repositoryVersion += 1
-                    dataVersion += 1
                     if (budgetReplacementInProgress) budgetReplacementCompleted = true
                     CreditCardDueNotificationScheduler.refreshAsync(context)
                 },
@@ -3331,7 +3325,7 @@ fun AppNavigation(
         }
         }
     }
-    if (budgetReplacementInProgress) BudgetSwitchDialog()
+    if (budgetReplacementInProgress || repositoryLoading) BudgetSwitchDialog()
     TransactionImpactPopup(
         cues = transactionImpactCues,
         hideDecimalPlaces = hideDecimalPlaces,

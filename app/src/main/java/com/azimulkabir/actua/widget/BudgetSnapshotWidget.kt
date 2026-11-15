@@ -38,8 +38,8 @@ internal object BudgetSnapshotWidget {
         val spokenBalance: String? = null,
     )
 
-    private fun loadBudget(context: Context): BudgetData {
-        val repository = ActuaRepository(context)
+    private fun loadBudget(context: Context, sharedRepository: ActuaRepository?): BudgetData {
+        val repository = sharedRepository ?: ActuaRepository(context)
         try {
             loadBudgetFormats(repository)
             if (!repository.isUsingActualBudget) {
@@ -58,12 +58,12 @@ internal object BudgetSnapshotWidget {
                 spokenBalance = spoken(context, overview.availableCents),
             )
         } finally {
-            repository.close()
+            if (sharedRepository == null) repository.close()
         }
     }
 
-    fun update(context: Context, manager: AppWidgetManager, widgetId: Int) {
-        val data = loadBudget(context)
+    fun update(context: Context, manager: AppWidgetManager, widgetId: Int, sharedRepository: ActuaRepository? = null) {
+        val data = loadBudget(context, sharedRepository)
         val updatedAt = DateFormat.getTimeFormat(context).format(Date())
         manager.updateAppWidget(
             widgetId,

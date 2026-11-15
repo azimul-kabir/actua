@@ -32,14 +32,14 @@ internal object IncomeSpendingWidget {
     /** What the Income and spending widget draws: nothing without a budget, or the series (which may be empty). */
     private class IncomeSpendingData(val usingBudget: Boolean, val series: IncomeSpending?)
 
-    fun update(context: Context, manager: AppWidgetManager, widgetId: Int) {
-        val repository = ActuaRepository(context)
+    fun update(context: Context, manager: AppWidgetManager, widgetId: Int, sharedRepository: ActuaRepository? = null) {
+        val repository = sharedRepository ?: ActuaRepository(context)
         val data = try {
             loadBudgetFormats(repository)
             val using = repository.isUsingActualBudget
             IncomeSpendingData(using, if (using) repository.incomeSpending() else null)
         } finally {
-            repository.close()
+            if (sharedRepository == null) repository.close()
         }
         val (widthDp, heightDp) = widgetSizeDp(context, manager, widgetId)
         manager.updateAppWidget(

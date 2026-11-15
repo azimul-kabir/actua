@@ -92,8 +92,12 @@ internal object ActualMigrations {
      * Runs every pending Actual migration in one transaction and replays stored sync values into the
      * columns and tables they add. If anything fails, nothing changes and the budget opens as before.
      */
-    fun upgrade(database: SQLiteDatabase, metadata: File?) {
-        if (!database.hasTable("__migrations__")) return
+    fun upgrade(database: SQLiteDatabase, metadata: File?): Boolean {
+        if (!database.hasTable("__migrations__")) return false
+        val appliedBefore = database.rawQuery("SELECT id FROM __migrations__", null).use { cursor ->
+            buildSet { while (cursor.moveToNext()) add(cursor.getLong(0)) }
+        }
+        if (BAD_FILTERS_MIGRATION !in appliedBefore && pending(appliedBefore).isEmpty()) return false
         database.beginTransaction()
         try {
             patchBadMigrations(database)
@@ -107,8 +111,10 @@ internal object ActualMigrations {
                 StoredMessageReplay.replay(database, before)
             }
             database.setTransactionSuccessful()
+            return true
         } catch (error: Exception) {
             Log.w("ActualMigrations", "Could not apply Actual's migrations (${error.javaClass.simpleName})")
+            return false
         } finally {
             database.endTransaction()
         }

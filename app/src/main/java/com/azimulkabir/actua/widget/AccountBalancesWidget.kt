@@ -25,9 +25,14 @@ internal object AccountBalancesWidget {
         )
     }
 
-    fun update(context: Context, manager: AppWidgetManager, widgetId: Int) {
-        val repository = ActuaRepository(context)
-        val usingBudget = try { repository.isUsingActualBudget } finally { repository.close() }
+    fun update(context: Context, manager: AppWidgetManager, widgetId: Int, sharedRepository: ActuaRepository? = null) {
+        val repository = sharedRepository ?: ActuaRepository(context)
+        val usingBudget = repository.isUsingActualBudget
+        try {
+            WidgetListSnapshots.save(repository.activeMetadata?.id, widgetId, accountRows(context, widgetId, repository))
+        } finally {
+            if (sharedRepository == null) repository.close()
+        }
         val updatedAt = DateFormat.getTimeFormat(context).format(Date())
         manager.updateAppWidget(
             widgetId,
@@ -55,8 +60,8 @@ internal object AccountBalancesWidget {
         manager.notifyAppWidgetViewDataChanged(widgetId, R.id.widget_item_list)
     }
 
-    internal fun accountRows(context: Context, widgetId: Int): List<WidgetRow> {
-        val repository = ActuaRepository(context)
+    internal fun accountRows(context: Context, widgetId: Int, sharedRepository: ActuaRepository? = null): List<WidgetRow> {
+        val repository = sharedRepository ?: ActuaRepository(context)
         try {
             loadBudgetFormats(repository)
             val all = repository.accounts().filterNot { it.closed }
@@ -66,7 +71,7 @@ internal object AccountBalancesWidget {
                 WidgetRow(it.name, money(context, it.balanceCents), 0, it.name, spokenAmount = spoken(context, it.balanceCents))
             }
         } finally {
-            repository.close()
+            if (sharedRepository == null) repository.close()
         }
     }
 }
