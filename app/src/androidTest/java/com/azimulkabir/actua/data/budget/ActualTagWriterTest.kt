@@ -9,6 +9,8 @@ import java.io.File
 import java.util.UUID
 
 class ActualTagWriterTest {
+    private val CrdtValueOne = com.azimulkabir.actua.data.sync.CrdtValue.serialize(1)
+
     @Test
     fun createUpdateAndDeleteUseCanonicalTagsDataset() {
         withDatabase { database, file ->
@@ -113,6 +115,62 @@ class ActualTagWriterTest {
             assertFailure { writer.create("") }
             assertFailure { writer.create("two words") }
             assertFailure { writer.create("#school") }
+        }
+    }
+
+    @Test
+    fun bulkHideShowAndDeleteWriteTheSameRowsAsActualInOneBatchEach() {
+        withDatabase { database, file ->
+            var next = 0
+            var pushes = 0
+            val writer = ActualTagWriter(
+                database, nodeId = "dddddddddddddddd", idFactory = { "bulk-${++next}" }, onWrite = { pushes++ },
+            )
+            val a = writer.create("food")
+            val b = writer.create("travel")
+            val c = writer.create("gifts")
+            writer.update(b, hidden = true)
+            pushes = 0
+            fun state(id: String): Pair<Int, Int> =
+                SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                    db.rawQuery("SELECT hidden, tombstone FROM tags WHERE id = ?", arrayOf(id)).use {
+                        assertTrue(it.moveToFirst())
+                        it.getInt(0) to it.getInt(1)
+                    }
+                }
+            fun messages(column: String): Map<String, String> =
+                SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                    db.rawQuery(
+                        "SELECT row, value FROM messages_crdt WHERE dataset = 'tags' AND column = ? ORDER BY timestamp",
+                        arrayOf(column),
+                    ).use { cursor ->
+                        buildMap { while (cursor.moveToNext()) put(cursor.getString(0), cursor.getString(1)) }
+                    }
+                }
+
+            // tags-hide-all: hidden = 1 on every id passed, the already hidden one too, and nothing else.
+            writer.setHiddenAll(listOf(a, b, a), hidden = true)
+            assertEquals(1 to 0, state(a))
+            assertEquals(1 to 0, state(b))
+            assertEquals(0 to 0, state(c))
+            assertEquals(setOf(a, b), messages("hidden").filterValues { it == CrdtValueOne }.keys)
+
+            // tags-unhide-all: hidden = 0.
+            writer.setHiddenAll(listOf(a, c), hidden = false)
+            assertEquals(0 to 0, state(a))
+            assertEquals(1 to 0, state(b))
+            assertEquals(0 to 0, state(c))
+
+            // tags-delete-all: tombstone = 1; the other columns stay.
+            writer.deleteAll(listOf(a, b))
+            assertEquals(0 to 1, state(a))
+            assertEquals(1 to 1, state(b))
+            assertEquals(0 to 0, state(c))
+            assertEquals(setOf(a, b), messages("tombstone").filterValues { it == CrdtValueOne }.keys)
+
+            assertEquals("each bulk action is one write", 3, pushes)
+            assertFailure { writer.deleteAll(emptyList()) }
+            assertFailure { writer.setHiddenAll(listOf(""), hidden = true) }
         }
     }
 

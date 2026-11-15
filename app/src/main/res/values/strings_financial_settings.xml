@@ -482,4 +482,10 @@
     <string name="fs_eb_wait">Authorize %1$s in the browser, then come back here. This waits up to 5 minutes.</string>
     <string name="fs_eb_load_failed">Could not load banks for %1$s.</string>
     <string name="fs_eb_authorize_failed">Could not authorize %1$s.</string>
+    <string name="fs_hide_tags">Hide</string>
+    <string name="fs_show_tags">Show</string>
+    <string name="fs_selected_tag">Selected #%1$s</string>
+    <string name="fs_not_selected_tag">Not selected #%1$s</string>
+    <plurals name="fs_delete_tags_question"><item quantity="one">Delete %d tag?</item><item quantity="other">Delete %d tags?</item></plurals>
+    <string name="fs_delete_tags_message">This deletes the managed tag metadata. Existing hashtags in historical transaction notes will remain as unmanaged hashtags.</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,11 +21,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,11 +44,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.R
@@ -72,12 +80,24 @@ fun ManageTagsScreen(
     tags: List<ActualTag>, hiddenSupported: Boolean, onBack: () -> Unit,
     onCreate: (String, String?, String?, Boolean) -> Unit,
     onUpdate: (ActualTag, String, String?, String?, Boolean) -> Unit,
-    onDelete: (ActualTag) -> Unit, modifier: Modifier = Modifier,
+    onDelete: (ActualTag) -> Unit,
+    onDeleteAll: (List<ActualTag>) -> Unit = {},
+    onSetHidden: (List<ActualTag>, Boolean) -> Unit = { _, _ -> },
+    modifier: Modifier = Modifier,
 ) {
     var query by remember { mutableStateOf("") }; var editing by remember { mutableStateOf<ActualTag?>(null) }
     var creating by remember { mutableStateOf(false) }; var deleting by remember { mutableStateOf<ActualTag?>(null) }
     var viewing by remember { mutableStateOf<ActualTag?>(null) }; var actionsFor by remember { mutableStateOf<ActualTag?>(null) }
     val filtered = remember(tags, query) { tags.filter { query.isBlank() || it.tag.contains(query, true) || it.description.orEmpty().contains(query, true) } }
+    // Multi-select for the bulk actions (Actual's tags-delete-all / tags-hide-all / tags-unhide-all). Ids survive
+    // rotation; tags that disappear after a sync or a write drop out of the selection.
+    var selectedIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    var deletingAll by remember { mutableStateOf<List<ActualTag>?>(null) }
+    val selected = remember(tags, selectedIds) { tags.filter { it.id in selectedIds } }
+    val selecting = selected.isNotEmpty()
+    fun toggle(tag: ActualTag) { selectedIds = if (tag.id in selectedIds) selectedIds - tag.id else selectedIds + tag.id }
+    // Back leaves selection mode before it leaves the screen.
+    BackHandler(enabled = selecting && viewing == null) { selectedIds = emptyList() }
 
     viewing?.let { tag ->
         ManagedTagTransactionsScreen(tag = tag, onBack = { viewing = null }, modifier = modifier)
@@ -85,9 +105,27 @@ fun ManageTagsScreen(
     }
 
     Scaffold(modifier = modifier, topBar = {
-        ActuaScreenHeader(title = stringResource(R.string.fs_manage_tags), onBack = onBack)
+        if (selecting) {
+            ActuaScreenHeader(
+                title = pluralStringResource(R.plurals.fs_selected_count, selected.size, selected.size),
+                onBack = { selectedIds = emptyList() },
+                actions = {
+                    if (hiddenSupported) {
+                        TextButton(onClick = { onSetHidden(selected, true); selectedIds = emptyList() }, enabled = selected.any { !it.hidden }) {
+                            Text(stringResource(R.string.fs_hide_tags))
+                        }
+                        TextButton(onClick = { onSetHidden(selected, false); selectedIds = emptyList() }, enabled = selected.any { it.hidden }) {
+                            Text(stringResource(R.string.fs_show_tags))
+                        }
+                    }
+                    TextButton(onClick = { deletingAll = selected }) { Text(stringResource(R.string.fs_delete)) }
+                },
+            )
+        } else {
+            ActuaScreenHeader(title = stringResource(R.string.fs_manage_tags), onBack = onBack)
+        }
     }, floatingActionButton = {
-        FloatingActionButton(onClick = { creating = true }, modifier = Modifier.padding(bottom = floatingBarClearance())) { Icon(Icons.Outlined.Add, stringResource(R.string.fs_create_tag)) }
+        if (!selecting) FloatingActionButton(onClick = { creating = true }, modifier = Modifier.padding(bottom = floatingBarClearance())) { Icon(Icons.Outlined.Add, stringResource(R.string.fs_create_tag)) }
     }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             OutlinedTextField(query, { query = it }, label = { Text(stringResource(R.string.fs_search_tags)) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm))
@@ -97,22 +135,36 @@ fun ManageTagsScreen(
                 )
             }
             else LazyColumn(contentPadding = PaddingValues(top = Spacing.sm, bottom = floatingBarClearance() + 88.dp)) { itemsIndexed(filtered, key = { _, tag -> tag.id }) { index, tag ->
+                val isSelected = tag.id in selectedIds
+                val selectionDescription = if (selecting) stringResource(
+                    if (isSelected) R.string.fs_selected_tag else R.string.fs_not_selected_tag, tag.tag,
+                ) else null
                 ActuaGroupedItem(GroupPosition.of(index, filtered.size), dividerInset = Spacing.lg + 18.dp + Spacing.md) {
                 ActuaListRow(
                     title = { Text("#${tag.tag}", style = MaterialTheme.typography.bodyLarge) },
                     subtitle = { val detail = listOfNotNull(tag.description?.takeIf(String::isNotBlank), if (tag.hidden) stringResource(R.string.fs_hidden) else null); if (detail.isNotEmpty()) Text(detail.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                    leading = { TagColorDot(tag.color) },
-                    trailing = {
-                        Box {
+                    leading = if (selecting) {
+                        { Checkbox(checked = isSelected, onCheckedChange = null) }
+                    } else {
+                        { TagColorDot(tag.color) }
+                    },
+                    trailing = if (selecting) null else {
+                        { Box {
                             IconButton(onClick = { actionsFor = tag }) { Icon(Icons.Outlined.Edit, stringResource(R.string.fs_tag_actions, tag.tag)) }
                             DropdownMenu(expanded = actionsFor?.id == tag.id, onDismissRequest = { actionsFor = null }) {
                                 DropdownMenuItem(text = { Text(stringResource(R.string.fs_view_transactions)) }, leadingIcon = { Icon(Icons.Outlined.ReceiptLong, null) }, onClick = { actionsFor = null; viewing = tag })
                                 DropdownMenuItem(text = { Text(stringResource(R.string.fs_edit)) }, leadingIcon = { Icon(Icons.Outlined.Edit, null) }, onClick = { actionsFor = null; editing = tag })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.fs_select)) }, leadingIcon = { Icon(Icons.Outlined.CheckBox, null) }, onClick = { actionsFor = null; toggle(tag) })
                                 DropdownMenuItem(text = { Text(stringResource(R.string.fs_delete)) }, leadingIcon = { Icon(Icons.Outlined.Delete, null) }, onClick = { actionsFor = null; deleting = tag })
                             }
-                        }
+                        } }
                     },
-                    onClick = { viewing = tag },
+                    onClick = if (selecting) ({ toggle(tag) }) else ({ viewing = tag }),
+                    onLongClick = { toggle(tag) },
+                    modifier = if (selectionDescription != null) Modifier.semantics {
+                        contentDescription = selectionDescription
+                        this.selected = isSelected
+                    } else Modifier,
                 )
                 }
             } }
@@ -120,6 +172,25 @@ fun ManageTagsScreen(
     }
     if (creating) TagEditorDialog(stringResource(R.string.fs_create_tag_title), null, hiddenSupported, { creating = false }) { n,c,d,h -> onCreate(n,c,d,h); creating = false }
     editing?.let { tag -> TagEditorDialog(stringResource(R.string.fs_edit_tag_title, tag.tag), tag, hiddenSupported, { editing = null }) { n,c,d,h -> onUpdate(tag,n,c,d,h); editing = null } }
+    deletingAll?.let { targets ->
+        AlertDialog(
+            onDismissRequest = { deletingAll = null },
+            title = {
+                Text(
+                    if (targets.size == 1) stringResource(R.string.fs_delete_tag_title, targets.single().tag)
+                    else pluralStringResource(R.plurals.fs_delete_tags_question, targets.size, targets.size),
+                )
+            },
+            text = {
+                Text(
+                    if (targets.size == 1) stringResource(R.string.fs_delete_tag_message, targets.single().tag)
+                    else stringResource(R.string.fs_delete_tags_message),
+                )
+            },
+            confirmButton = { TextButton(onClick = { onDeleteAll(targets); deletingAll = null; selectedIds = emptyList() }) { Text(stringResource(R.string.fs_delete)) } },
+            dismissButton = { TextButton(onClick = { deletingAll = null }) { Text(stringResource(R.string.fs_cancel)) } },
+        )
+    }
     deleting?.let { tag -> AlertDialog(onDismissRequest = { deleting = null }, title = { Text(stringResource(R.string.fs_delete_tag_title, tag.tag)) }, text = { Text(stringResource(R.string.fs_delete_tag_message, tag.tag)) }, confirmButton = { TextButton(onClick = { onDelete(tag); deleting = null }) { Text(stringResource(R.string.fs_delete)) } }, dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.fs_cancel)) } }) }
 }
 
