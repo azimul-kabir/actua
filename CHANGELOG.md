@@ -10,7 +10,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
-- Fixed merging two transactions losing the receipt photo kept with the one that is removed ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
+- Fixed merging two transactions losing the receipt photo kept with the one that is removed ([#1667](https://github.com/azimul-kabir/actua/pull/1667))
 
 ## [2.7.0] - 2026-11-14
 
