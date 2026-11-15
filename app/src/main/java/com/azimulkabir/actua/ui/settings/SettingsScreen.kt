@@ -1159,7 +1159,11 @@ fun SettingsScreen(
                         }
                         SettingsDivider()
                         AboutRow(stringResource(R.string.settings_privacy_policy), stringResource(R.string.settings_privacy_policy_description)) {
-                            uriHandler.openUri("https://github.com/azimul-kabir/actua/blob/main/PRIVACY.md")
+                            uriHandler.openUri("https://actua.azimulkabir.com/privacy")
+                        }
+                        SettingsDivider()
+                        AboutRow(stringResource(R.string.settings_terms_of_service), stringResource(R.string.settings_terms_of_service_description)) {
+                            uriHandler.openUri("https://actua.azimulkabir.com/terms")
                         }
                         SettingsDivider()
                         AboutRow(stringResource(R.string.settings_diagnostics), stringResource(R.string.settings_diagnostics_description)) {

@@ -298,7 +298,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] From a deep detail screen, repeatedly press/gesture Back and verify the app collapses to the configured Start page tab (falling back to the first visible tab, then Accounts, if Start page's tab is hidden) before the next back press exits the app.
 - [ ] From Manage → Settings → Display → Tab Bar and Manage → Settings → Home (Customize Home), press/gesture Back and verify it returns to the Settings page it was opened from (General or Display), not all the way to the Manage root.
 - [ ] Add/edit transaction Save button, keypad and selectors remain usable with the software keyboard open.
-- [ ] The About screen shows working links to the Actua website, FAQ and Discord server.
+- [ ] The About screen shows working links to the Actua website, FAQ, Discord server, Privacy Policy and Terms of Service.
 - [ ] Light/dark/system appearance and Material You rendering remain legible.
 - [ ] On Android 12+, Settings > Display "Material You colors" toggle switches between the app's own brand palette and wallpaper-derived dynamic color, in both light and dark mode; the setting persists across relaunch and the toggle is hidden/inert below Android 12.
 - [ ] Settings → Display → Currency picker offers the full expanded currency list (beyond the original ~12); select a newly added currency (e.g. BRL, CHF, RUB, TRY) and verify amounts display with its correct symbol in both normal and symbol-only decimal-hiding mode.

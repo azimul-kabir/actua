@@ -329,6 +329,8 @@
 <string name="settings_contact">Contacto</string>
 <string name="settings_privacy_policy">Política de privacidad</string>
 <string name="settings_privacy_policy_description">Qué datos guarda y sincroniza Actua y cuáles nunca recopila</string>
+<string name="settings_terms_of_service">Términos del servicio</string>
+<string name="settings_terms_of_service_description">Condiciones de uso de Actua y de las compras de Apoyar a Actua</string>
 <string name="settings_diagnostics">Diagnósticos</string>
 <string name="settings_diagnostics_description">Copia, guarda o envía por correo electrónico un informe de la actividad reciente de la aplicación para solucionar problemas</string>
 <string name="settings_section_credits">Créditos</string>

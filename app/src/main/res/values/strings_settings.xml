@@ -345,6 +345,8 @@
     <string name="settings_contact_url" translatable="false">actua@azimulkabir.com</string>
     <string name="settings_privacy_policy">Privacy Policy</string>
     <string name="settings_privacy_policy_description">What data Actua stores, syncs and never collects</string>
+    <string name="settings_terms_of_service">Terms of Service</string>
+    <string name="settings_terms_of_service_description">Terms for using Actua and for Support Actua purchases</string>
     <string name="settings_diagnostics">Diagnostics</string>
     <string name="settings_diagnostics_description">Copy, save or email a report of recent app activity to troubleshoot problems</string>
     <string name="settings_section_credits">Credits</string>

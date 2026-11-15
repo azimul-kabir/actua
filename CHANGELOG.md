@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added a Terms of Service link to Settings → About ([#1664](https://github.com/azimul-kabir/actua/pull/1664))
+
 ## [2.7.0] - 2026-11-14
 
 ### Added
