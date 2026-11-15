@@ -444,8 +444,9 @@ fun AppNavigation(
     val languageTag = AppCompatDelegate.getApplicationLocales().get(0)?.toLanguageTag().orEmpty()
     val favoritePreferences = remember { FavoritePreferences(context) }
     val homePreferences = remember { HomePreferences(context) }
-    var homeLayout by remember { mutableStateOf(homePreferences.layout()) }
-    var homeCollapsed by remember { mutableStateOf(homePreferences.collapsed()) }
+    val homeLayoutState = rememberHomeLayoutState(homePreferences)
+    var homeLayout by homeLayoutState.homeLayout
+    var homeCollapsed by homeLayoutState.homeCollapsed
 
     val tabBarPreferences = remember { TabBarPreferences(context) }
     var tabBarLayout by remember { mutableStateOf(tabBarPreferences.layout()) }
@@ -479,23 +480,13 @@ fun AppNavigation(
     var budgetReplacementCompleted by remember { mutableStateOf(false) }
     val activeBudgetId = remember(repositoryVersion) { ActiveBudgetStore(context).budgetId }
     val favoriteBudgetId = activeBudgetId ?: "no-budget"
-    var homeMonthStart by remember(favoriteBudgetId) { mutableStateOf(homePreferences.monthStartRule(favoriteBudgetId)) }
-    var homeHolidays by remember(favoriteBudgetId) { mutableStateOf(homePreferences.holidays(favoriteBudgetId)) }
+    val homeBudgetPreferencesState = rememberHomeBudgetPreferencesState(homePreferences, favoritePreferences, favoriteBudgetId)
+    var homeMonthStart by homeBudgetPreferencesState.homeMonthStart
+    var homeHolidays by homeBudgetPreferencesState.homeHolidays
     // Kept out of the screen lambdas below: AppNavigation's content lambda is close to the JVM's
     // 64 KB method limit, and inline handlers here pushed it over.
-    val onMonthStartChange: (MonthStartRule) -> Unit = { rule ->
-        val clamped = rule.copy(day = rule.day.coerceIn(1, 31))
-        homePreferences.setSummaryStartDay(favoriteBudgetId, clamped.day)
-        homePreferences.setStartDayAdjustment(favoriteBudgetId, clamped.adjustment)
-        homePreferences.setWeekendDays(favoriteBudgetId, clamped.weekendDays)
-        homeMonthStart = clamped
-    }
-    val onHolidaysChange: (List<Holiday>) -> Unit = { holidays ->
-        val normalized = HolidayCodec.normalize(holidays)
-        homePreferences.setHolidays(favoriteBudgetId, normalized)
-        homeHolidays = normalized
-        homeMonthStart = homeMonthStart.copy(holidays = normalized.mapTo(mutableSetOf()) { it.date })
-    }
+    val onMonthStartChange: (MonthStartRule) -> Unit = homeBudgetPreferencesState::setMonthStart
+    val onHolidaysChange: (List<Holiday>) -> Unit = homeBudgetPreferencesState::setHolidays
     val availableBudgetOptions = remember(repositoryVersion) {
         BudgetFileManager(context).listLocalBudgets().map { budget ->
             BudgetSelectionItem(
@@ -521,9 +512,8 @@ fun AppNavigation(
     val syncStatusGeneration by SyncSignals.statusGeneration.collectAsState()
     val syncDataGeneration by SyncSignals.dataGeneration.collectAsState()
     var syncStatus by remember { mutableStateOf(syncStatusStore.read()) }
-    var budgetMonth by rememberSaveable {
-        mutableStateOf(java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US).format(java.util.Date()))
-    }
+    val budgetSelectionState = rememberBudgetSelectionState()
+    var budgetMonth by budgetSelectionState.budgetMonth
     // The selected month's data loads off the main thread. The previous month stays on screen
     // until the new one arrives, and the screen reads its month from the data it shows so an edit
     // never lands on a month other than the one displayed.
@@ -654,7 +644,7 @@ fun AppNavigation(
         }
     }
     var editingScheduleId by rememberSaveable { mutableStateOf<String?>(null) }
-    var editingAutomationCategory by rememberSaveable { mutableStateOf<String?>(null) }
+    var editingAutomationCategory by budgetSelectionState.editingAutomationCategory
     var destination by rememberSaveable {
         mutableStateOf(
             visibleMainDestinations.firstOrNull { it.label == displayPreferences.startPage }
@@ -721,9 +711,9 @@ fun AppNavigation(
     var editorReturnsToReports by transactionNavigationState.editorReturnsToReports
     var editorReturnsToReportsDetail by transactionNavigationState.editorReturnsToReportsDetail
     var activeDrillDown by remember { mutableStateOf<Pair<ReportCategory, String>?>(null) }
-    var activeBudgetCategory by rememberSaveable { mutableStateOf<String?>(null) }
-    var reopenBudgetCategory by rememberSaveable { mutableStateOf<String?>(null) }
-    var transactionsReturnCategory by rememberSaveable { mutableStateOf<String?>(null) }
+    var activeBudgetCategory by budgetSelectionState.activeBudgetCategory
+    var reopenBudgetCategory by budgetSelectionState.reopenBudgetCategory
+    var transactionsReturnCategory by budgetSelectionState.transactionsReturnCategory
     val tabSnapshots = remember { mutableStateMapOf<MainDestination, TabSnapshot>() }
     val rootRequests = remember { mutableStateMapOf<MainDestination, Int>() }
     val tabStateHolder = rememberSaveableStateHolder()
@@ -773,15 +763,9 @@ fun AppNavigation(
     }
     var budgetCategoryView by remember { mutableStateOf(displayPreferences.budgetCategoryView) }
     var favoritesOnly by remember { mutableStateOf(displayPreferences.favoritesOnly) }
-    var favoriteCategoryIds by remember(favoriteBudgetId) {
-        mutableStateOf(favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.CATEGORY))
-    }
-    var favoriteAccountIds by remember(favoriteBudgetId) {
-        mutableStateOf(favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.ACCOUNT))
-    }
-    var favoriteReportIds by remember(favoriteBudgetId) {
-        mutableStateOf(favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.REPORT))
-    }
+    var favoriteCategoryIds by homeBudgetPreferencesState.favoriteCategoryIds
+    var favoriteAccountIds by homeBudgetPreferencesState.favoriteAccountIds
+    var favoriteReportIds by homeBudgetPreferencesState.favoriteReportIds
     var requestedReportPageId by remember { mutableStateOf<String?>(null) }
     var requestedReportPageRequest by remember { mutableStateOf(0) }
     var privacyMode by remember { mutableStateOf(displayPreferences.privacyMode) }
