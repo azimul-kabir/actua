@@ -320,4 +320,3 @@ internal fun NavigationScheduleScreens(
         else -> Unit
     }
 }
-
