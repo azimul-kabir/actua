@@ -46,10 +46,15 @@ fun CreditCardStatementsScreen(
     onBack: () -> Unit,
     onSelectStatement: (CreditCardCycle.StatementRecord) -> Unit,
     modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
 ) {
     Column(modifier.fillMaxSize()) {
         ActuaScreenHeader(title = accountName, onBack = onBack)
-        if (statements.isEmpty()) {
+        if (isLoading && statements.isEmpty()) {
+            Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (statements.isEmpty()) {
             Text(stringResource(R.string.fs_no_closed_statements), style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(20.dp))
         } else {

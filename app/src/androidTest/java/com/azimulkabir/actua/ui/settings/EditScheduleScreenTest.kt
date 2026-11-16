@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.ui.settings
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -83,9 +84,19 @@ class EditScheduleScreenTest {
         assertTrue(deleted)
     }
 
+    @Test fun linkedTransactionsDoNotShowEmptyUntilLoaded() {
+        val loading = mutableStateOf(true)
+        setContent(linkedLoading = { loading.value })
+        compose.onNodeWithText("Linked Transactions").performScrollTo().assertExists()
+        compose.onNodeWithText("No transactions linked yet.").assertDoesNotExist()
+        compose.runOnIdle { loading.value = false }
+        compose.onNodeWithText("No transactions linked yet.").assertExists()
+    }
+
     private fun setContent(
         onSave: (ScheduleFormFields, String) -> Unit = { _, _ -> },
         onDelete: () -> Unit = {},
+        linkedLoading: () -> Boolean = { false },
     ) {
         compose.setContent {
             MaterialTheme {
@@ -98,6 +109,7 @@ class EditScheduleScreenTest {
                     onBack = {},
                     onSave = onSave,
                     onDelete = onDelete,
+                    linkedTransactionsLoading = linkedLoading(),
                 )
             }
         }
