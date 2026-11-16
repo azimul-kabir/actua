@@ -24,7 +24,13 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 class RepositoryBackgroundOperationTest {
-    @Test fun cancelledSearchKeepsTheConnectionUntilBlockingWorkReturns() = withRepository { repository ->
+    @Test fun cancelledSearchKeepsTheConnectionUntilBlockingWorkReturns() =
+        checkSearchAfterClose(cancelCaller = true)
+
+    @Test fun budgetSwitchDiscardsOldSearchResultsEvenIfItsCallerRemainsActive() =
+        checkSearchAfterClose(cancelCaller = false)
+
+    private fun checkSearchAfterClose(cancelCaller: Boolean) = withRepository { repository ->
         val entered = CountDownLatch(1)
         val resume = CountDownLatch(1)
         val published = AtomicBoolean()
@@ -39,7 +45,7 @@ class RepositoryBackgroundOperationTest {
         }
         try {
             assertTrue(entered.await(15, TimeUnit.SECONDS))
-            job.cancel()
+            if (cancelCaller) job.cancel()
             repository.close()
             repository.accounts()
             resume.countDown()
@@ -103,10 +109,12 @@ class RepositoryBackgroundOperationTest {
         val executor = Executors.newFixedThreadPool(2)
         try {
             val report = executor.submit {
-                repository.withRetainedAccess {
-                    entered.countDown()
-                    check(resumeReport.await(15, TimeUnit.SECONDS))
-                    repository.reports()
+                assertThrows(CancellationException::class.java) {
+                    repository.withRetainedAccess {
+                        entered.countDown()
+                        check(resumeReport.await(15, TimeUnit.SECONDS))
+                        repository.reports()
+                    }
                 }
             }
             val callback = executor.submit {

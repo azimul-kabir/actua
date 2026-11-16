@@ -201,24 +201,32 @@ class ActuaRepository(context: Context) {
     private var backgroundOperations = 0
     private var closeRequested = false
 
-    /** Blocking work keeps its connection until it returns, even if its coroutine is cancelled. */
+    /**
+     * Keep blocking work alive until it returns. Discard results after disposal, including when
+     * navigation's coroutine scope survives a budget switch or the result was queued for delivery.
+     */
     internal suspend fun <T> withBackgroundOperation(
         dispatcher: CoroutineDispatcher = Dispatchers.IO,
         block: () -> T,
-    ): T = withContext(dispatcher) { withRetainedAccess(block) }
+    ): T = withContext(dispatcher) { withRetainedAccess(block) }.also { ensureOpen() }
 
     /** For callbacks whose owner already dispatches blocking work (e.g. bank authorization). */
     internal fun <T> withRetainedAccess(block: () -> T): T {
         retainBackgroundOperation()
-        return try { block() } finally { releaseBackgroundOperation() }
+        return try { block().also { ensureOpen() } } finally { releaseBackgroundOperation() }
     }
 
     @Synchronized
     private fun retainBackgroundOperation() {
         // A stale loader may have been queued before disposal. End it as cancellation, not a
         // closed-SQLite error, and never start another query or write on the old budget.
-        if (closeRequested) throw CancellationException("Repository is closed")
+        ensureOpen()
         backgroundOperations++
+    }
+
+    @Synchronized
+    private fun ensureOpen() {
+        if (closeRequested) throw CancellationException("Repository is closed")
     }
 
     @Synchronized
