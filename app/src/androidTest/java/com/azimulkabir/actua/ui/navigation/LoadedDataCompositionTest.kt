@@ -13,7 +13,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.After
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -24,6 +23,8 @@ class LoadedDataCompositionTest {
 
     @After fun unblockReaders() { releases.forEach(CountDownLatch::countDown) }
 
+    // waitUntil advances Compose's test clock while observing IO work. Blocking the test thread
+    // on a latch after a state change prevents the next frame (and its LaunchedEffect) from running.
     private fun releaseGate() = CountDownLatch(1).also(releases::add)
 
     @Test fun refreshKeepsTheLoadedValueAndReadsOffTheMainThread() {
@@ -47,7 +48,7 @@ class LoadedDataCompositionTest {
         }
         compose.waitUntil(5_000) { observed.get() == "Loaded 0" }
         compose.runOnIdle { version.intValue = 1 }
-        assertTrue(started.await(5, TimeUnit.SECONDS))
+        compose.waitUntil(5_000) { started.count == 0L }
         compose.onNodeWithText("Loaded 0").assertExists()
         compose.onNodeWithText("Loading").assertDoesNotExist()
         release.countDown()
@@ -83,13 +84,13 @@ class LoadedDataCompositionTest {
         }
         compose.waitUntil(5_000) { observed.get() == "account-a/0" }
         compose.runOnIdle { version.intValue = 1 }
-        assertTrue(obsoleteStarted.await(5, TimeUnit.SECONDS))
+        compose.waitUntil(5_000) { obsoleteStarted.count == 0L }
         compose.runOnIdle { selection.value = "account-b" }
-        assertTrue(nextStarted.await(5, TimeUnit.SECONDS))
+        compose.waitUntil(5_000) { nextStarted.count == 0L }
         compose.onNodeWithText("Loading").assertExists()
         compose.onNodeWithText("account-a/0").assertDoesNotExist()
         obsoleteRelease.countDown()
-        assertTrue(obsoleteFinished.await(5, TimeUnit.SECONDS))
+        compose.waitUntil(5_000) { obsoleteFinished.count == 0L }
         compose.onNodeWithText("Loading").assertExists()
         compose.onNodeWithText("account-a/1").assertDoesNotExist()
         nextRelease.countDown()
@@ -115,7 +116,7 @@ class LoadedDataCompositionTest {
         }
         compose.waitUntil(5_000) { observed.get() == "budget-a" }
         compose.runOnIdle { budget.value = "budget-b" }
-        assertTrue(started.await(5, TimeUnit.SECONDS))
+        compose.waitUntil(5_000) { started.count == 0L }
         compose.onNodeWithText("Loading").assertExists()
         compose.onNodeWithText("budget-a").assertDoesNotExist()
         release.countDown()
