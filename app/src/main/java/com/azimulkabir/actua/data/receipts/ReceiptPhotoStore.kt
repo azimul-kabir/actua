@@ -44,18 +44,13 @@ enum class ReceiptKeepResult {
 }
 
 /**
- * Receipt photos kept with a transaction, on this device only.
+ * Receipt photos kept with a transaction, outside Actual sync.
  *
- * Photos live in `files/ReceiptPhotos/<budget id>/<transaction id>.jpg`, outside the budget directory, so
- * no budget copy Actua makes (server sync, local and Google Drive backups, WebDAV backups, Export archive)
- * can include them: those only ever contain `db.sqlite` and `metadata.json`. The link between a transaction
- * and its photo is just that file name. It is not written to the budget database or the message log, adds
- * no synced field, and isolates budgets by directory. A missing file simply means no photo. The folder is
- * excluded from Android backup and device transfer in `backup_rules.xml` and `data_extraction_rules.xml`.
- *
- * If the user chose a receipt photo folder ([ReceiptPhotoFolder]), new photos go there instead, in the same
- * layout per budget and transaction. Photos already kept are not moved: lookups check the chosen folder first
- * and then private storage, and deletes remove a photo from both.
+ * Photos live outside the budget database and never enter Actual sync, standard exports, local or Google
+ * Drive backups. WebDAV backups explicitly include them inside authenticated encryption. The transaction link
+ * is the file name, scoped by budget id. Android backup and device transfer exclude the private photo folder.
+ * New photos can instead go to a user-selected folder. Private photos (including restored copies) take
+ * precedence on lookup; writing a new photo to the chosen folder removes any older private copy.
  */
 class ReceiptPhotoStore(context: Context) {
     private val appContext = context.applicationContext
@@ -65,10 +60,11 @@ class ReceiptPhotoStore(context: Context) {
     /** The kept photo of [transactionId] in [budgetId], from the chosen folder or private storage, or null. */
     fun photo(budgetId: String, transactionId: String): ReceiptPhoto? {
         if (!isSafeName(budgetId) || !isSafeName(transactionId)) return null
+        photoFile(budgetId, transactionId)?.let { return ReceiptPhoto.ofFile(it) }
         folder.usableTree()?.let { tree ->
             folder.find(tree, budgetId, transactionId)?.let { return ReceiptPhoto.ofDocument(it) }
         }
-        return photoFile(budgetId, transactionId)?.let(ReceiptPhoto::ofFile)
+        return null
     }
 
     /**
@@ -80,6 +76,7 @@ class ReceiptPhotoStore(context: Context) {
         val chosen = folder.state()
         val tree = chosen.uri
         if (tree != null && chosen.usable && pending.isFile && folder.write(tree, budgetId, transactionId, pending)) {
+            photoFile(budgetId, transactionId)?.delete()
             pending.delete()
             return ReceiptKeepResult.IN_FOLDER
         }
@@ -162,6 +159,63 @@ class ReceiptPhotoStore(context: Context) {
         val directory = directoryFor(budgetId) ?: return
         directory.deleteRecursively()
         folder.usableTree()?.let { folder.deleteBudget(it, budgetId) }
+    }
+
+    /** Effective photos for one budget, including the currently accessible user folder. */
+    fun backupPhotos(budgetId: String): Map<String, ReceiptPhoto> {
+        require(isSafeName(budgetId))
+        val photos = linkedMapOf<String, ReceiptPhoto>()
+        folder.usableTree()?.let { tree ->
+            folder.photoIds(tree, budgetId).forEach { id ->
+                val uri = folder.find(tree, budgetId, id) ?: error("Receipt disappeared during backup")
+                photos[id] = ReceiptPhoto.ofDocument(uri)
+            }
+        }
+        directoryFor(budgetId)?.listFiles()?.filter { it.isFile && it.extension == "jpg" && isSafeName(it.nameWithoutExtension) }
+            ?.forEach { photos[it.nameWithoutExtension] = ReceiptPhoto.ofFile(it) }
+        return photos
+    }
+
+    /**
+     * Installs validated photos in private storage by directory rename, rolling back if the budget restore
+     * fails. Merge preserves photos missing from older backups. Private copies take precedence over SAF copies
+     * so restore never needs to overwrite a user's external files or depend on a folder permission grant.
+     */
+    fun <T> withRestoredPhotos(budgetId: String, photos: File, restoreBudget: () -> T): T {
+        val restoredPhotos = photos.listFiles() ?: error("Cannot read staged receipts")
+        if (restoredPhotos.isEmpty()) return restoreBudget()
+        val destination = directoryFor(budgetId) ?: error("Invalid receipt budget id")
+        check(root.mkdirs() || root.isDirectory)
+        val staged = File(root, ".restore-${UUID.randomUUID()}")
+        val previous = File(root, ".previous-${UUID.randomUUID()}")
+        var installed = false
+        var movedPrevious = false
+        var committed = false
+        try {
+            check(staged.mkdir())
+            if (destination.exists()) destination.copyRecursively(staged, overwrite = true)
+            restoredPhotos.forEach { photo ->
+                require(photo.isFile && photo.extension == "jpg" && isSafeName(photo.nameWithoutExtension))
+                photo.copyTo(File(staged, photo.name), overwrite = true)
+            }
+            if (destination.exists()) {
+                check(destination.renameTo(previous)) { "Cannot preserve receipt photos" }
+                movedPrevious = true
+            }
+            check(staged.renameTo(destination)) { "Cannot install receipt photos" }
+            installed = true
+            val result = restoreBudget()
+            committed = true
+            return result
+        } catch (error: Throwable) {
+            if (installed) check(destination.deleteRecursively()) { "Cannot roll back receipt photos" }
+            if (movedPrevious) check(previous.renameTo(destination)) { "Cannot recover receipt photos" }
+            throw error
+        } finally {
+            staged.deleteRecursively()
+            // A failed rollback must retain the previous directory for recovery.
+            if (committed) previous.deleteRecursively()
+        }
     }
 
     private fun directoryFor(budgetId: String): File? =

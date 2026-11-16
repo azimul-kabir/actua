@@ -109,6 +109,17 @@ class ReceiptPhotoFolderTest {
         assertNull(store.photo("..", "txn"))
     }
 
+    @Test fun backupIncludesPrivateFallbackAndIsolatesBudgets() {
+        chooseUnreachableFolder()
+        val first = budget()
+        val second = budget()
+        store.keepPreferred(first, "txn", pending("first"))
+        store.keepPreferred(second, "txn", pending("second"))
+        val photos = store.backupPhotos(first)
+        assertEquals(setOf("txn"), photos.keys)
+        assertEquals("first", photos.getValue("txn").open(context)!!.use { String(it.readBytes()) })
+    }
+
     @Test fun aMissingPendingFileIsNotKept() {
         assertEquals(
             ReceiptKeepResult.FAILED,

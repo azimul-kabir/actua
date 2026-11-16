@@ -15,8 +15,10 @@ import com.azimulkabir.actua.data.budget.backup.RemoteBackupItem
 import com.azimulkabir.actua.data.network.PinnedCertificateTrustManager
 import com.azimulkabir.actua.data.network.TrustedCertificateStore
 import com.azimulkabir.actua.data.network.systemTrustManager
+import com.azimulkabir.actua.data.receipts.ReceiptPhotoStore
 import okhttp3.OkHttpClient
 import java.io.File
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
 
@@ -92,7 +94,18 @@ class WebDavBackupManager(
     }
 
     fun uploadBackup(budgetId: String, archiveFile: File): RemoteBackupItem {
-        val uploaded = pipeline().upload(budgetId, archiveFile)
+        val bundleDirectory = File(appContext.cacheDir, "webdav-upload-${UUID.randomUUID()}")
+        check(bundleDirectory.mkdir())
+        val uploaded = try {
+            val bundle = File(bundleDirectory, archiveFile.name)
+            val photos = ReceiptPhotoStore(appContext).backupPhotos(budgetId).mapValues { (_, photo) ->
+                { photo.open(appContext) ?: error("Cannot read receipt photo") }
+            }
+            WebDavReceiptArchive.write(archiveFile, photos, bundle)
+            pipeline().upload(budgetId, bundle)
+        } finally {
+            bundleDirectory.deleteRecursively()
+        }
         store.lastSuccessfulBackupMillis = System.currentTimeMillis()
         store.lastBackupError = null
         return uploaded
@@ -114,7 +127,7 @@ class WebDavBackupManager(
             transport = WebDavBackupTransport(client(config), config.baseUrl(), config.folderSegments()),
             passphraseProvider = { store.loadPassphrase() },
             budgetNameOf = { budgetId -> files.listLocalBudgets().firstOrNull { it.id == budgetId }?.budgetName },
-            restoreSink = BudgetRestoreSink(files, backupService),
+            restoreSink = WebDavReceiptRestoreSink(appContext, files, BudgetRestoreSink(files, backupService)),
             workDir = appContext.cacheDir,
         )
     }

@@ -268,13 +268,13 @@
     <string name="receipt_split_not_now">Agora não</string>
     <string name="receipt_split_tax_note">Imposto</string>
     <string name="receipt_photo_keep">Manter a foto do recibo</string>
-    <string name="receipt_photo_keep_caption">Fica apenas neste telefone. Não é sincronizada nem incluída em backups.</string>
+    <string name="receipt_photo_keep_caption">Salva neste telefone. Incluída nos backups WebDAV criptografados quando configurados.</string>
     <string name="receipt_photo_title">Foto do recibo</string>
     <string name="receipt_photo_view">Ver</string>
     <string name="receipt_photo_close">Fechar</string>
     <string name="receipt_photo_description">Foto do recibo</string>
     <string name="receipt_photo_unavailable">Não foi possível mostrar esta foto.</string>
-    <string name="receipt_photo_local_note">Fica apenas neste telefone. Não é sincronizada, incluída em backups nem exportada, então não estará em outro telefone nem após restaurar um backup.</string>
+    <string name="receipt_photo_local_note">Não é sincronizada com o Actual. Backups WebDAV criptografados incluem esta foto; backups locais, Google Drive e exportações padrão não.</string>
     <string name="receipt_photo_remove">Remover foto</string>
     <string name="receipt_photo_remove_title">Remover a foto?</string>
     <string name="receipt_photo_remove_message">A foto é apagada deste telefone. A transação não é alterada.</string>
@@ -290,7 +290,7 @@
     <string name="receipt_folder_unavailable_caption">Esta pasta não está disponível (removida, desmontada ou sem permissão). As novas fotos ficam no armazenamento privado até você escolher uma pasta de novo.</string>
     <string name="receipt_folder_use_private">Usar armazenamento privado</string>
     <string name="receipt_folder_dialog_title">Escolher uma pasta de fotos de recibos</string>
-    <string name="receipt_folder_dialog_message">As fotos nesta pasta ficam fora do Actua. O bloqueio do app não as protege, outros apps com acesso à pasta podem vê-las e um app que sincroniza a pasta, como o Nextcloud, vai copiá-las. O próprio Actua nunca as envia.</string>
+    <string name="receipt_folder_dialog_message">As fotos nesta pasta ficam fora do Actua. O bloqueio do app não as protege, outros apps com acesso podem vê-las e um app como o Nextcloud pode copiá-las. O Actua inclui fotos acessíveis nos backups WebDAV criptografados quando configurados.</string>
     <string name="receipt_folder_dialog_existing">As fotos que você já guardou continuam onde estão e não são movidas. Se você voltar ao armazenamento privado depois, as fotos deixadas na pasta deixam de aparecer no Actua.</string>
     <string name="receipt_folder_choose">Escolher pasta</string>
     <string name="amount_clear">Limpar</string>

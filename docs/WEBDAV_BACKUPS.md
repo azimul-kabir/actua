@@ -63,6 +63,19 @@ ever listed, downloaded or deleted; retention removes old backups there and noth
 Back up now, list, and restore into the open budget (with the usual confirmation and safety copy), scheduled
 backups, and restoring on a fresh install.
 
+WebDAV backups include kept scanned receipt photos from private storage and the currently accessible selected
+receipt folder. Photos are collected when the upload runs and encrypted together with the budget. Unselected
+or inaccessible folders cannot be included. A photo that is found but cannot be read fails the upload rather
+than silently producing an incomplete copy. The uncompressed budget and photos together must fit the 500 MB
+archive limit.
+
+Restore recovers photos into private storage under the destination budget and transaction IDs, including when
+a new budget ID is assigned. Existing photos absent from the backup are preserved, and recovered copies take
+precedence over external-folder copies. Restore does not write to the selected external folder. Older backups
+without photos remain supported. The pre-restore safety copy covers the budget database and metadata; reverting
+to it does not undo recovered photos. Local backups, standard exports and Google Drive backups exclude receipts.
+Older Actua versions can restore the budget from these backups but ignore the receipt entries.
+
 Only standard WebDAV is supported. SMB, SFTP, S3 and vendor sync protocols (Synology Drive, Qsync, UGREEN's own
 sync) are not.
 

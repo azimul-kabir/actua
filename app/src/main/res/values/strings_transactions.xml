@@ -268,13 +268,13 @@
     <string name="receipt_split_not_now">Not now</string>
     <string name="receipt_split_tax_note">Tax</string>
     <string name="receipt_photo_keep">Keep the receipt photo</string>
-    <string name="receipt_photo_keep_caption">Stays on this phone only. Not synced or backed up.</string>
+    <string name="receipt_photo_keep_caption">Kept on this phone. Included in encrypted WebDAV backups when configured.</string>
     <string name="receipt_photo_title">Receipt photo</string>
     <string name="receipt_photo_view">View</string>
     <string name="receipt_photo_close">Close</string>
     <string name="receipt_photo_description">Photo of the receipt</string>
     <string name="receipt_photo_unavailable">This photo can\'t be shown.</string>
-    <string name="receipt_photo_local_note">Kept on this phone only. It is not synced, backed up or exported, so it will not be on another phone or after restoring a backup.</string>
+    <string name="receipt_photo_local_note">Not synced to Actual. Encrypted WebDAV backups include this photo; local backups, Google Drive and standard exports do not.</string>
     <string name="receipt_photo_remove">Remove photo</string>
     <string name="receipt_photo_remove_title">Remove the photo?</string>
     <string name="receipt_photo_remove_message">The photo is deleted from this phone. The transaction is not changed.</string>
@@ -290,7 +290,7 @@
     <string name="receipt_folder_unavailable_caption">This folder is not available (removed, unmounted or no longer allowed). New photos are kept in private storage until you choose a folder again.</string>
     <string name="receipt_folder_use_private">Use private storage</string>
     <string name="receipt_folder_dialog_title">Choose a receipt photo folder</string>
-    <string name="receipt_folder_dialog_message">Photos in this folder are outside Actua. The app lock does not protect them, other apps with access to the folder can see them, and an app that syncs the folder, such as Nextcloud, will copy them. Actua itself never uploads them.</string>
+    <string name="receipt_folder_dialog_message">Photos in this folder are outside Actua. The app lock does not protect them, other apps with access to the folder can see them, and an app that syncs the folder, such as Nextcloud, will copy them. Actua includes accessible photos in encrypted WebDAV backups when configured.</string>
     <string name="receipt_folder_dialog_existing">Photos you already kept stay where they are and are not moved. If you switch back to private storage later, photos left in the folder are no longer shown in Actua.</string>
     <string name="receipt_folder_choose">Choose folder</string>
     <string name="amount_clear">Clear</string>

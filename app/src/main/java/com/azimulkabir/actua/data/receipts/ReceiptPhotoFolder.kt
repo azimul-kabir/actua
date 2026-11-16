@@ -17,9 +17,11 @@ data class ReceiptPhotoFolderState(val uri: Uri?, val name: String?, val usable:
  * An optional folder for kept receipt photos, chosen with the Storage Access Framework like the local backup
  * folder. Photos go to `<folder>/Actua receipts/<budget id>/<transaction id>.jpg`, one subfolder per budget.
  * The folder is outside Actua's control: the app lock does not protect it, other apps with access to it can
- * read it, and a sync app that mirrors it will copy the photos. Actua itself never uploads them.
+ * read it, and a sync app that mirrors it will copy the photos. Actua includes accessible photos in
+ * encrypted WebDAV backups when configured.
  *
- * Every operation tolerates a missing, unmounted or revoked folder: it reports failure instead of throwing.
+ * Photo lookups and writes tolerate an unavailable folder. Backup enumeration throws on provider errors
+ * so an unreadable folder cannot silently produce an incomplete backup.
  */
 class ReceiptPhotoFolder(context: Context) {
     private val app = context.applicationContext
@@ -58,6 +60,25 @@ class ReceiptPhotoFolder(context: Context) {
         val budgetDirectory = child(appDirectory, budgetId) ?: return null
         child(budgetDirectory, "$transactionId.jpg")
     }.getOrNull()
+
+    /** Lists readable photo ids in the selected budget folder; provider errors fail the backup. */
+    fun photoIds(tree: Uri, budgetId: String): List<String> {
+        val appDirectory = child(root(tree), DIRECTORY) ?: return emptyList()
+        val budgetDirectory = child(appDirectory, budgetId) ?: return emptyList()
+        val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, DocumentsContract.getDocumentId(budgetDirectory))
+        val result = mutableListOf<String>()
+        val cursor = resolver.query(children, arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)
+            ?: error("Cannot read receipt folder")
+        cursor.use {
+            while (it.moveToNext()) {
+                val name = it.getString(0)
+                if (name.endsWith(".jpg") && ReceiptPhotoStore.isSafeName(name.removeSuffix(".jpg"))) {
+                    result += name.removeSuffix(".jpg")
+                }
+            }
+        }
+        return result
+    }
 
     /** Writes [source] as the photo of [transactionId]; false (nothing thrown) when the folder cannot be written. */
     fun write(tree: Uri, budgetId: String, transactionId: String, source: File): Boolean = try {
@@ -108,11 +129,12 @@ class ReceiptPhotoFolder(context: Context) {
 
     private fun child(parent: Uri, name: String): Uri? {
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(parent, DocumentsContract.getDocumentId(parent))
-        resolver.query(
+        val cursor = resolver.query(
             children,
             arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME),
             null, null, null,
-        )?.use { cursor ->
+        ) ?: error("Cannot read receipt folder")
+        cursor.use {
             while (cursor.moveToNext()) if (cursor.getString(1) == name) {
                 return DocumentsContract.buildDocumentUriUsingTree(parent, cursor.getString(0))
             }

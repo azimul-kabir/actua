@@ -200,18 +200,18 @@ After a scan you can turn on "Keep the receipt photo" before saving the transact
 - The photo is stored as a compressed copy (longest side 1600 pixels) in Actua's private
   storage on this phone, in a folder per budget, named after the transaction. You can open
   it again from the transaction and remove it there.
-- **It stays on this phone only.** It is never synced to an Actual server, and it is not
-  included in local backups, Export archive, Google Drive backups or WebDAV backups: those
-  contain only the budget's database and metadata. The link between a transaction and its
-  photo is not stored in your budget at all. The folder is also excluded from Android
-  backup and device-to-device transfer.
-- Because of that, a photo is not on another phone, and not after restoring a backup or
-  downloading the budget again. The transactions come back without it; Actua shows
-  nothing for a missing photo and does not report an error.
+- Photos are never synced to an Actual server. Encrypted WebDAV backups include kept photos
+  from private storage and the currently accessible receipt folder, and restore them with their
+  transactions. Local backups, Export archive and Google Drive backups still exclude photos.
+  The transaction link is a file name, never a synced budget field. Android backup and
+  device-to-device transfer exclude private photos.
+- Restoring a WebDAV backup recovers its photos into private storage, including on another
+  phone. Older backups without photos and re-downloading from Actual cannot recover them.
+  Restoring preserves existing photos absent from the backup; restored copies take precedence
+  over copies in the selected external folder.
 - Deleting the transaction deletes its photo, and removing a budget from the device
   deletes that budget's photos.
-- The app lock protects the photo while it is inside Actua. Actua has no way to share or
-  export a photo.
+- The app lock protects the photo while it is inside Actua. Actua includes it in WebDAV backups when you configure that destination.
 
 ### Choosing a receipt photo folder
 
@@ -220,8 +220,8 @@ example on an SD card or in a folder that a sync app such as Nextcloud mirrors. 
 off by default.
 - Photos in that folder are **outside Actua's control**: the app lock does not protect
   them, other apps with access to the folder can read them, and any app that syncs or backs
-  up that folder will copy them. Actua itself never uploads them and tells you this before
-  the folder picker opens.
+  up that folder will copy them. Actua includes readable photos in encrypted WebDAV backups when configured, as explained
+  before the folder picker opens.
 - The folder is picked with the system folder picker, so Actua can only reach that folder
   and keeps the permission only on this phone. The setting is excluded from Android backup
   and device transfer.
@@ -232,7 +232,7 @@ off by default.
   that budget's subfolder, where the folder allows it.
 - If the folder is gone, unmounted or no longer allowed, new photos are kept in private
   storage instead and Actua tells you; transactions always open.
-- The photos are still never part of a sync, backup or export that Actua makes.
+- Photos enter encrypted WebDAV backups only, never Actual sync, local or Google Drive backups, or standard exports.
 
 ## Other on-device data
 
