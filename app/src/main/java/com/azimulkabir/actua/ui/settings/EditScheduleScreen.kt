@@ -70,6 +70,7 @@ fun EditScheduleScreen(
     hideDecimalPlaces: Boolean,
     conventionalAmountEntry: Boolean,
     linkedTransactions: List<ScheduleLinkedTransaction> = emptyList(),
+    linkedTransactionsLoading: Boolean = false,
     onBack: () -> Unit,
     onSave: (ScheduleFormFields, String) -> Unit,
     onDelete: (() -> Unit)? = null,
@@ -343,7 +344,9 @@ fun EditScheduleScreen(
 
             if (schedule != null) {
                 ActuaGroupLabel(stringResource(R.string.fs_linked_transactions))
-                if (linkedTransactions.isEmpty()) {
+                if (linkedTransactionsLoading && linkedTransactions.isEmpty()) {
+                    CircularProgressIndicator(Modifier.padding(Spacing.lg))
+                } else if (linkedTransactions.isEmpty()) {
                     Text(
                         stringResource(R.string.fs_no_linked_transactions),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

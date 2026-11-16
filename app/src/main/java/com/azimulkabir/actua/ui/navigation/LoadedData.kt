@@ -18,7 +18,8 @@ import kotlinx.coroutines.withContext
  * The previous result stays on screen while a reload runs, so an edit or sync never flashes
  * empty content. [budgetKey] identifies the open budget: changing it discards the previous
  * value and cancels any load still running for the old budget, so one budget's data is never
- * shown under another. [reloadKeys] (a data version, a filter) restart the load but keep the
+ * shown under another. [selectionKey] likewise clears values when an account, statement or schedule
+ * changes, while retaining them across refreshes of the same selection. [reloadKeys] (a data version, a filter) restart the load but keep the
  * previous value. While [enabled] is false nothing is loaded and the last value is kept.
  */
 @Composable
@@ -27,10 +28,11 @@ internal fun <T> rememberLoaded(
     vararg reloadKeys: Any?,
     initial: T,
     enabled: Boolean = true,
+    selectionKey: Any? = null,
     load: () -> T,
 ): T {
-    var value by remember(budgetKey) { mutableStateOf(initial) }
-    LaunchedEffect(budgetKey, enabled, *reloadKeys) {
+    var value by remember(budgetKey, selectionKey) { mutableStateOf(initial) }
+    LaunchedEffect(budgetKey, selectionKey, enabled, *reloadKeys) {
         if (enabled) {
             val repository = budgetKey as? ActuaRepository
             value = if (repository != null) repository.withBackgroundOperation(block = load)

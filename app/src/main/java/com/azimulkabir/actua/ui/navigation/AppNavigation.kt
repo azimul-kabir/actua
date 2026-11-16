@@ -151,7 +151,6 @@ import com.azimulkabir.actua.ui.transactions.NearbyPayeeOption
 import com.azimulkabir.actua.ui.transactions.NearbyPayeeSearchResult
 import com.azimulkabir.actua.ui.transactions.PayeeLocationSaveResult
 import com.azimulkabir.actua.ui.transactions.TransactionsScreen
-import com.azimulkabir.actua.ui.transactions.upcomingTransactionsFrom
 import com.azimulkabir.actua.ui.transactions.recurringScheduleIds
 import com.azimulkabir.actua.ui.transactions.UpcomingTransactionAction
 import com.azimulkabir.actua.data.export.ReportCsv
@@ -618,9 +617,12 @@ fun AppNavigation(
     // transaction cleared while on the Budget tab no longer also recomputes Reports' aggregation
     // or refetches rule-editor data (accounts/categories/payees) that nothing is currently
     // showing — matching the existing pattern `payeeLocations` already used below.
-    val schedules = remember(dataVersion, homeMonthStart.nonWorkingDays) {
-        repository.schedules(nonWorkingDays = homeMonthStart.nonWorkingDays)
+    val loadedSchedules = rememberLoaded<ScheduleNavigationData?>(
+        repository, dataVersion, homeMonthStart.nonWorkingDays, initial = null,
+    ) {
+        ScheduleNavigationData.load(repository, homeMonthStart.nonWorkingDays)
     }
+    val schedules = loadedSchedules?.schedules.orEmpty()
     // Replan schedule reminders after any local write, sync or budget switch, so posted, skipped,
     // matched, edited and deleted occurrences stop notifying. Rapid successive writes replan once.
     LaunchedEffect(dataVersion, repositoryVersion, scheduleRemindersEnabled, scheduleReminderLeadDays, homeMonthStart.nonWorkingDays) {
@@ -628,13 +630,7 @@ fun AppNavigation(
         withContext(Dispatchers.IO) { ScheduleReminderScheduler.refresh(appContext) }
     }
     val greeting = rememberGreetingState(repository, dataVersion, budgetGroups, schedules, transactions)
-    val upcomingTransactions = remember(schedules, homeMonthStart.nonWorkingDays) {
-        upcomingTransactionsFrom(
-            schedules,
-            defaultUpcomingLength = repository.upcomingScheduleLength(),
-            nonWorkingDays = homeMonthStart.nonWorkingDays,
-        )
-    }
+    val upcomingTransactions = loadedSchedules?.upcomingTransactions.orEmpty()
     val upcomingRecurringScheduleIds = remember(schedules) { recurringScheduleIds(schedules) }
     val linkableSchedules = remember(schedules) {
         schedules.filterNot { it.schedule.completed }.map {
@@ -2458,12 +2454,13 @@ fun AppNavigation(
             DetailDestination.CreditCardStatements -> {
                 val accountId = statementsAccountId
                 val card = creditCards.firstOrNull { it.accountId == accountId }
-                val statements = remember(accountId, dataVersion) {
-                    accountId?.let { repository.fetchRecentStatements(it) } ?: emptyList()
-                }
+                val statements = rememberLoaded<List<com.azimulkabir.actua.model.CreditCardCycle.StatementRecord>?>(
+                    repository, dataVersion, initial = null, selectionKey = accountId,
+                ) { accountId?.let { repository.fetchRecentStatements(it) }.orEmpty() }
                 com.azimulkabir.actua.ui.settings.CreditCardStatementsScreen(
                     accountName = card?.accountName ?: "",
-                    statements = statements,
+                    statements = statements.orEmpty(),
+                    isLoading = statements == null,
                     hideDecimalPlaces = hideDecimalPlaces,
                     onBack = {
                         detail = if (statementsReturnToTransactions) DetailDestination.Transactions else DetailDestination.CreditCards
@@ -2482,9 +2479,11 @@ fun AppNavigation(
                 if (statement == null || accountId == null) {
                     detail = DetailDestination.CreditCardStatements
                 } else {
-                    var statementTransactions by remember(statement) { mutableStateOf<List<Transaction>?>(null) }
-                    LaunchedEffect(statement, accountId, dataVersion) {
-                        statementTransactions = repository.fetchStatementTransactions(
+                    val statementTransactions = rememberLoaded<List<Transaction>?>(
+                        repository, dataVersion, initial = null,
+                        selectionKey = accountId to (statement.startDate to statement.endDate),
+                    ) {
+                        repository.fetchStatementTransactions(
                             accountId, statement.startDate.yyyymmdd, statement.endDate.yyyymmdd,
                         )
                     }
@@ -2654,6 +2653,7 @@ fun AppNavigation(
                 repository = repository,
                 dataVersion = dataVersion,
                 schedules = schedules,
+                schedulesLoaded = loadedSchedules != null,
                 nonWorkingDays = homeMonthStart.nonWorkingDays,
                 accounts = accounts,
                 payeeNames = payeeNames,

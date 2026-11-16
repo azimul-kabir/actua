@@ -7,6 +7,11 @@ import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -32,6 +37,7 @@ internal fun NavigationScheduleScreens(
     repository: ActuaRepository,
     dataVersion: Int,
     schedules: List<ScheduleListItem>,
+    schedulesLoaded: Boolean,
     nonWorkingDays: com.azimulkabir.actua.data.home.NonWorkingDays,
     accounts: List<Account>,
     payeeNames: List<String>,
@@ -285,15 +291,17 @@ internal fun NavigationScheduleScreens(
         DetailDestination.EditSchedule -> schedules.firstOrNull {
             it.schedule.id == editingScheduleId
         }?.let { item ->
+            val linkedTransactions = rememberLoaded<List<com.azimulkabir.actua.data.schedules.ScheduleLinkedTransaction>?>(
+                repository, dataVersion, initial = null, selectionKey = item.schedule.id,
+            ) { repository.scheduleTransactions(item.schedule.id) }
             com.azimulkabir.actua.ui.settings.EditScheduleScreen(
                 item = item,
                 accounts = accounts,
                 payeeOptions = payeeNames,
                 hideDecimalPlaces = hideDecimalPlaces,
                 conventionalAmountEntry = conventionalAmountEntry,
-                linkedTransactions = remember(dataVersion, item.schedule.id) {
-                    repository.scheduleTransactions(item.schedule.id)
-                },
+                linkedTransactions = linkedTransactions.orEmpty(),
+                linkedTransactionsLoading = linkedTransactions == null,
                 onBack = onReturnFromEditSchedule,
                 onSave = { fields, payeeName ->
                     onMutate(
@@ -318,7 +326,15 @@ internal fun NavigationScheduleScreens(
                 },
                 modifier = contentModifier,
             )
-        } ?: run { onDetailChange(DetailDestination.Schedules) }
+        } ?: run {
+            if (!schedulesLoaded) {
+                Box(contentModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                LaunchedEffect(editingScheduleId) { onDetailChange(DetailDestination.Schedules) }
+            }
+        }
         else -> Unit
     }
 }

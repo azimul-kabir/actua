@@ -21,6 +21,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed UI pauses when opening schedules and credit-card statements ([#1694](https://github.com/azimul-kabir/actua/pull/1694))
+
 - Fixed background sync racing with disconnect cleanup ([#1691](https://github.com/azimul-kabir/actua/pull/1691))
 - Fixed Home section editing showing an available Greeting toggle for non-supporters ([#1675](https://github.com/azimul-kabir/actua/pull/1675))
 
