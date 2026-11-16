@@ -87,21 +87,19 @@ fun ManageCategoriesScreen(
     loadCategoryDeletePlan: suspend (group: String, category: String) -> CategoryDeletePlan?,
     onDeleteGroup: (group: ActualCategoryGroup, targetGroupId: String) -> Unit = { _, _ -> },
     onMoveCategory: (CategoryReorderPlanner.CategoryMove) -> Boolean,
-    /**
-     * Saves a move chosen in the Move to group dialog. Unlike [onMoveCategory] it reports no result,
-     * because the dialog never shows the move optimistically, so the write can run off the main
-     * thread. Falls back to [onMoveCategory] when null.
-     */
+    /** Optional handler for a Move to group selection without a local preview; falls back to [onMoveCategory]. */
     onMoveCategoryToGroup: ((CategoryReorderPlanner.CategoryMove) -> Unit)? = null,
     modifier: Modifier = Modifier,
+    reorderRevision: Long = 0,
+    savingOrder: Boolean = false,
 ) {
     val orderKey = remember(groups) { groups.joinToString("|") { g -> g.id + ":" + g.categories.joinToString(",") { it.id } } }
     var localGroups by remember { mutableStateOf(groups) }
     var draggingCategoryId by remember { mutableStateOf<String?>(null) }
     var dragStartGroups by remember { mutableStateOf(groups) }
     var dragOffsetPx by remember { mutableStateOf(0f) }
-    LaunchedEffect(orderKey) {
-        if (draggingCategoryId == null) localGroups = groups
+    LaunchedEffect(orderKey, reorderRevision, savingOrder, draggingCategoryId) {
+        if (draggingCategoryId == null && !savingOrder) localGroups = groups
     }
 
     val listState = rememberLazyListState()

@@ -21,6 +21,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed pauses while reordering categories and accounts ([#1695](https://github.com/azimul-kabir/actua/pull/1695))
+
 - Fixed UI pauses when opening schedules and credit-card statements ([#1694](https://github.com/azimul-kabir/actua/pull/1694))
 
 - Fixed background sync racing with disconnect cleanup ([#1691](https://github.com/azimul-kabir/actua/pull/1691))

@@ -1,6 +1,8 @@
 package com.azimulkabir.actua.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.ui.accounts.AccountsScreen
@@ -24,10 +26,14 @@ internal fun NavigationManageCategoriesScreen(
     onBack: () -> Unit,
     onReorderGroupsClick: () -> Unit,
     onMutate: (labelRes: Int, action: () -> Boolean) -> Unit,
-    onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
-) {
-    val groups = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.categoryGroupsForReorder() }
+    reorders: NavigationReorders,
+) = key(repository) {
+    LaunchedEffect(repository, dataVersion) { reorders.queue.refresh() }
+    val state = reorders.queue.view
+    val groups = state.snapshot.categories
     ManageCategoriesScreen(
+        reorderRevision = state.revision,
+        savingOrder = state.saving,
         groups = groups,
         onBack = onBack,
         onReorderGroupsClick = onReorderGroupsClick,
@@ -54,8 +60,8 @@ internal fun NavigationManageCategoriesScreen(
         onDeleteGroup = { group, targetGroupId ->
             onMutate(R.string.navigation_deleting_group) { repository.deleteCategoryGroup(group.id, targetGroupId) }
         },
-        onMoveCategory = { move -> onMutateSync(R.string.navigation_reordering_category) { repository.moveCategory(move) } },
-        onMoveCategoryToGroup = { move -> onMutate(R.string.navigation_reordering_category) { repository.moveCategory(move) } },
+        onMoveCategory = reorders::category,
+        onMoveCategoryToGroup = { reorders.category(it) },
         modifier = contentModifier,
     )
 }
@@ -66,13 +72,17 @@ internal fun NavigationReorderGroupsScreen(
     dataVersion: Int,
     contentModifier: Modifier,
     onBack: () -> Unit,
-    onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
-) {
-    val groups = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.categoryGroupsForReorder() }
+    reorders: NavigationReorders,
+) = key(repository) {
+    LaunchedEffect(repository, dataVersion) { reorders.queue.refresh() }
+    val state = reorders.queue.view
+    val groups = state.snapshot.categories
     ReorderGroupsScreen(
+        reorderRevision = state.revision,
+        savingOrder = state.saving,
         groups = groups,
         onBack = onBack,
-        onMoveGroup = { move -> onMutateSync(R.string.navigation_reordering_category_group) { repository.moveCategoryGroup(move) } },
+        onMoveGroup = reorders::categoryGroup,
         modifier = contentModifier,
     )
 }
@@ -84,17 +94,21 @@ internal fun NavigationReorderAccountsScreen(
     contentModifier: Modifier,
     onBack: () -> Unit,
     onMutate: (labelRes: Int, action: () -> Boolean) -> Unit,
-    onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
-) {
-    val accounts = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.accountsForReorder() }
-    val groups = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.accountGroupsForReorder() }
+    reorders: NavigationReorders,
+) = key(repository) {
+    LaunchedEffect(repository, dataVersion) { reorders.queue.refresh() }
+    val state = reorders.queue.view
+    val accounts = state.snapshot.accounts
+    val groups = state.snapshot.accountGroups
     ReorderAccountsScreen(
+        reorderRevision = state.revision,
+        savingOrder = state.saving,
         accounts = accounts,
         groups = groups,
         onBack = onBack,
-        onMoveAccount = { move -> onMutateSync(R.string.navigation_reordering_account) { repository.moveAccount(move) } },
-        onMoveGroup = { move -> onMutateSync(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
-        onMoveGroupFromSheet = { move -> onMutate(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
+        onMoveAccount = reorders::account,
+        onMoveGroup = reorders::accountGroup,
+        onMoveGroupFromSheet = { reorders.accountGroup(it) },
         onCreateGroup = { name -> onMutate(R.string.navigation_creating_account_group) { repository.createAccountGroup(name) } },
         onRenameGroup = { id, name -> onMutate(R.string.navigation_renaming_account_group) { repository.renameAccountGroup(id, name) } },
         onDeleteGroup = { id -> onMutate(R.string.navigation_deleting_account_group) { repository.deleteAccountGroup(id) } },
@@ -118,7 +132,7 @@ internal fun NavigationAccountsScreen(
     onAccountClick: (String) -> Unit,
     onAllAccountsClick: () -> Unit,
     onMutate: (labelRes: Int, action: () -> Boolean) -> Unit,
-    onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
+    reorders: NavigationReorders,
     pendingCaptureCount: Int,
     onReviewCaptures: () -> Unit,
     newTransactionCounts: Map<String, Int>,
@@ -132,10 +146,14 @@ internal fun NavigationAccountsScreen(
     scrollToTopRequest: Int,
     hasFab: Boolean,
     monthStart: MonthStartRule,
-) {
-    val accountGroups = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.accountGroupsForReorder() }
-    val accountsForReorder = rememberLoaded(repository, dataVersion, initial = emptyList()) { repository.accountsForReorder() }
+) = key(repository) {
+    LaunchedEffect(repository, dataVersion) { reorders.queue.refresh() }
+    val state = reorders.queue.view
+    val accountGroups = state.snapshot.accountGroups
+    val accountsForReorder = state.snapshot.accounts
     AccountsScreen(
+        reorderRevision = state.revision,
+        savingOrder = state.saving,
         modifier = contentModifier,
         accounts = accounts,
         transactions = transactions,
@@ -179,9 +197,9 @@ internal fun NavigationAccountsScreen(
             onMutate(R.string.navigation_updating_account_group) { repository.setAccountGroup(account.id, groupId) }
         },
         accountsForReorder = accountsForReorder,
-        onMoveAccount = { move -> onMutateSync(R.string.navigation_reordering_account) { repository.moveAccount(move) } },
-        onMoveGroup = { move -> onMutateSync(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
-        onMoveGroupFromSheet = { move -> onMutate(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
+        onMoveAccount = reorders::account,
+        onMoveGroup = reorders::accountGroup,
+        onMoveGroupFromSheet = { reorders.accountGroup(it) },
         onCreateGroup = { name -> onMutate(R.string.navigation_creating_account_group) { repository.createAccountGroup(name) } },
         onRenameGroup = { id, name -> onMutate(R.string.navigation_renaming_account_group) { repository.renameAccountGroup(id, name) } },
         onDeleteGroup = { id -> onMutate(R.string.navigation_deleting_account_group) { repository.deleteAccountGroup(id) } },

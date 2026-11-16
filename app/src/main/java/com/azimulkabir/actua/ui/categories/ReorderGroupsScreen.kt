@@ -61,14 +61,16 @@ fun ReorderGroupsScreen(
     onBack: () -> Unit,
     onMoveGroup: (CategoryReorderPlanner.GroupMove) -> Boolean,
     modifier: Modifier = Modifier,
+    reorderRevision: Long = 0,
+    savingOrder: Boolean = false,
 ) {
     val orderKey = remember(groups) { groups.joinToString("|") { it.id } }
     var localGroups by remember { mutableStateOf(groups) }
     var draggingGroupId by remember { mutableStateOf<String?>(null) }
     var dragStartGroups by remember { mutableStateOf(groups) }
     var dragOffsetPx by remember { mutableStateOf(0f) }
-    LaunchedEffect(orderKey) {
-        if (draggingGroupId == null) localGroups = groups
+    LaunchedEffect(orderKey, reorderRevision, savingOrder, draggingGroupId) {
+        if (draggingGroupId == null && !savingOrder) localGroups = groups
     }
 
     val listState = rememberLazyListState()

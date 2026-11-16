@@ -75,14 +75,13 @@ class NavigationMutationRunnerTest {
         assertEquals("Failed pt:3", f.feedback.error.value)
     }
 
-    @Test fun sync_returns_result_and_invalidates_only_success_on_calling_thread() = runBlocking {
+    @Test fun reorder_failure_reports_rejection_or_exception_without_invalidation() = runBlocking {
         val f = Fixture(this)
-        val runner = f.runner()
-        val thread = Thread.currentThread()
-        assertTrue(runner.mutateSync(1) { assertSame(thread, Thread.currentThread()); true })
-        assertFalse(runner.mutateSync(1) { false })
-        assertFalse(runner.mutateSync(1) { error("failed") })
-        assertEquals(1, f.events.count { it == "invalidate" })
+        f.runner().reorderFailed(1, null)
+        assertEquals("Incomplete en:1", f.feedback.error.value)
+        f.runner().reorderFailed(2, IllegalStateException("reorder failed"))
+        assertEquals("reorder failed", f.feedback.error.value)
+        assertEquals(listOf("rejected:en:1", "failed:en:2"), f.events)
     }
 
     @Test fun new_composition_inputs_keep_feedback_but_use_updated_locale() = runBlocking {
