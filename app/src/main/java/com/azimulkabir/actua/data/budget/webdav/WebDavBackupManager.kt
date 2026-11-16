@@ -10,6 +10,7 @@ import com.azimulkabir.actua.data.budget.BackupService
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.BudgetMetadata
 import com.azimulkabir.actua.data.budget.backup.BudgetRestoreSink
+import com.azimulkabir.actua.data.budget.backup.BackupStorage
 import com.azimulkabir.actua.data.budget.backup.EncryptedBackupPipeline
 import com.azimulkabir.actua.data.budget.backup.RemoteBackupItem
 import com.azimulkabir.actua.data.network.PinnedCertificateTrustManager
@@ -129,6 +130,7 @@ class WebDavBackupManager(
             budgetNameOf = { budgetId -> files.listLocalBudgets().firstOrNull { it.id == budgetId }?.budgetName },
             restoreSink = WebDavReceiptRestoreSink(appContext, files, BudgetRestoreSink(files, backupService)),
             workDir = appContext.cacheDir,
+            openStagingOutput = BackupStorage::open,
         )
     }
 

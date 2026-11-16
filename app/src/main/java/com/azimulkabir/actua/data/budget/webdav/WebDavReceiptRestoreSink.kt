@@ -4,6 +4,7 @@ import android.content.Context
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.BudgetMetadata
 import com.azimulkabir.actua.data.budget.backup.BackupRestoreSink
+import com.azimulkabir.actua.data.budget.backup.BackupStorage
 import com.azimulkabir.actua.data.receipts.ReceiptPhotoStore
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
 import java.io.File
@@ -42,7 +43,7 @@ internal class WebDavReceiptRestoreSink(
         check(directory.mkdir())
         try {
             val zip = File(directory, "backup.zip")
-            zip.outputStream().use { archive.copyTo(it) }
+            BackupStorage.open(zip).use { archive.copyTo(it) }
             val receipts = File(directory, "photos")
             WebDavReceiptArchive.extract(zip, receipts)
             // The local backup list must keep standard archives, so another destination cannot later

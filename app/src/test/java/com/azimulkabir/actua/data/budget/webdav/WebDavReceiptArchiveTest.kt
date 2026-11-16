@@ -72,7 +72,7 @@ class WebDavReceiptArchiveTest {
         assertTrue(runCatching { WebDavReceiptArchive.extract(duplicate, temporary.newFolder()) }.isFailure)
     }
 
-    @Test fun rejectsOversizedEntriesAndAmbiguousBudgetEntries() {
+    @Test fun rejectsDishonestEntrySizesAndAmbiguousBudgetEntries() {
         val oversized = archive("ReceiptPhotos/a.jpg" to "small")
         val bytes = oversized.readBytes()
         val central = bytes.indices.first { i -> i + 3 < bytes.size &&
@@ -84,6 +84,28 @@ class WebDavReceiptArchiveTest {
         assertTrue(runCatching { WebDavReceiptArchive.extract(oversized, temporary.newFolder()) }.isFailure)
         val ambiguous = archive("db.sqlite" to "one", "nested/db.sqlite" to "two", "metadata.json" to "{}")
         assertTrue(runCatching { WebDavReceiptArchive.extract(ambiguous, temporary.newFolder()) }.isFailure)
+    }
+
+    @Test fun receiptsLargerThanTheStandardBudgetLimitRoundTrip() {
+        val size = com.azimulkabir.actua.data.budget.BudgetArchivePolicy.MAX_ARCHIVE_BYTES + 1
+        val budget = archive("db.sqlite" to "db", "metadata.json" to "{}")
+        val bundle = temporary.newFile()
+        WebDavReceiptArchive.write(budget, mapOf("large" to {
+            object : java.io.InputStream() {
+                private var remaining = size
+                override fun read(): Int = if (remaining-- > 0) 0 else -1
+                override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+                    if (remaining == 0L) return -1
+                    val count = minOf(remaining, length.toLong()).toInt()
+                    java.util.Arrays.fill(buffer, offset, offset + count, 0.toByte())
+                    remaining -= count
+                    return count
+                }
+            }
+        }), bundle)
+        val photos = temporary.newFolder()
+        WebDavReceiptArchive.extract(bundle, photos)
+        assertEquals(size, File(photos, "large.jpg").length())
     }
 
     @Test fun invalidZipAndMissingBudgetEntriesCannotBeUploaded() {

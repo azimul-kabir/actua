@@ -66,8 +66,12 @@ backups, and restoring on a fresh install.
 WebDAV backups include kept scanned receipt photos from private storage and the currently accessible selected
 receipt folder. Photos are collected when the upload runs and encrypted together with the budget. Unselected
 or inaccessible folders cannot be included. A photo that is found but cannot be read fails the upload rather
-than silently producing an incomplete copy. The uncompressed budget and photos together must fit the 500 MB
-archive limit.
+than silently producing an incomplete copy. Receipt photos have no fixed total-size limit. Capacity depends on your WebDAV server and the phone:
+Actua streams data, checks free device storage while writing temporary files, and leaves 32 MB of working space.
+A restore needs room for the downloaded and decrypted archive, staged photos and the safety copies; this can
+be several times the backup size. Insufficient phone storage stops the operation and removes temporary files.
+The existing 500 MB limit still applies to the budget database and metadata, separately from receipt photos.
+Archive paths, duplicate entries, declared sizes and checksums are validated before the live budget changes.
 
 Restore recovers photos into private storage under the destination budget and transaction IDs, including when
 a new budget ID is assigned. Existing photos absent from the backup are preserved, and recovered copies take

@@ -48,4 +48,5 @@
     <string name="webdav_restore_change_connection">Cambiar conexión</string>
     <string name="webdav_restore_done">Se restauró «%1$s» desde WebDAV.</string>
     <string name="webdav_error_local_network_denied">Actua necesita el permiso «Dispositivos cercanos» para conectarse a un servidor de tu red doméstica. Actívalo en Ajustes de Android → Aplicaciones → Actua → Permisos y vuelve a intentarlo.</string>
+    <string name="webdav_error_device_storage_full">No hay suficiente espacio libre en este dispositivo para crear o restaurar la copia. Libera espacio e inténtalo de nuevo.</string>
 </resources>

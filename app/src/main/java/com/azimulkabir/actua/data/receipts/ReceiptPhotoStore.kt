@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.ExifInterface
 import android.net.Uri
+import com.azimulkabir.actua.data.budget.backup.BackupStorage
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -188,6 +189,10 @@ class ReceiptPhotoStore(context: Context) {
         check(root.mkdirs() || root.isDirectory)
         val staged = File(root, ".restore-${UUID.randomUUID()}")
         val previous = File(root, ".previous-${UUID.randomUUID()}")
+        val existingBytes = if (destination.exists()) destination.walkTopDown().filter(File::isFile)
+            .fold(0L) { total, file -> Math.addExact(total, file.length()) } else 0L
+        val restoredBytes = restoredPhotos.fold(0L) { total, file -> Math.addExact(total, file.length()) }
+        BackupStorage.requireSpace(root, Math.addExact(existingBytes, restoredBytes))
         var installed = false
         var movedPrevious = false
         var committed = false

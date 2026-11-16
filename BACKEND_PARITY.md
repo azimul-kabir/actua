@@ -590,7 +590,9 @@ lists what was ported, what was only checked by reading, and what is not ported.
   field: no photo enters Actual sync, the message log, standard exports, local or Google Drive
   backups, Android backup or device transfer. WebDAV backups extend the ZIP with
   `ReceiptPhotos/<transaction id>.jpg` entries inside ACTUABKP authenticated encryption, including
-  private photos and the currently accessible chosen folder. Restore stages and validates photos,
+  private photos and the currently accessible chosen folder. Receipts have no fixed total-size cap;
+  streaming storage checks retain 32 MB of device working space. The standard budget-data import cap
+  remains unchanged. Restore validates entry sizes/checksums and stages photos,
   recovers them into private storage under the destination budget id, and preserves existing photos
   absent from the backup. Private copies take precedence over external copies; external folders
   are never overwritten by restore. Older WebDAV backups without photos still restore. Photos from
