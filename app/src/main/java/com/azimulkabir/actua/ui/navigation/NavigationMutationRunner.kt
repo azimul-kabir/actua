@@ -68,23 +68,15 @@ internal class NavigationMutationRunner(
         }
     }
 
-    fun mutateSync(@StringRes labelRes: Int, action: () -> Boolean): Boolean {
+    fun reorderFailed(@StringRes labelRes: Int, error: Throwable?) {
         val label = labelFor(labelRes)
-        return runCatching(action).fold(
-            onSuccess = { changed ->
-                if (changed) onInvalidated() else {
-                    onRejected(label)
-                    errorMessage = incompleteFormat.format(label)
-                }
-                changed
-            },
-            onFailure = { error ->
-                onFailed(label, error)
-                errorMessage = error.message?.takeIf(String::isNotBlank)
-                    ?: failedFormat.format(label)
-                false
-            },
-        )
+        if (error == null) {
+            onRejected(label)
+            errorMessage = incompleteFormat.format(label)
+        } else {
+            onFailed(label, error)
+            errorMessage = error.message?.takeIf(String::isNotBlank) ?: failedFormat.format(label)
+        }
     }
 
     fun mutateWithImpactCue(@StringRes labelRes: Int, categories: Set<String>, onChanged: () -> Unit = {}, action: () -> Boolean): Job {

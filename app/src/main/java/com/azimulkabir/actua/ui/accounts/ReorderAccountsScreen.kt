@@ -122,15 +122,13 @@ fun ReorderAccountsScreen(
     modifier: Modifier = Modifier,
     groups: List<ActualAccountGroup> = emptyList(),
     onMoveGroup: ((AccountGroupReorderPlanner.GroupMove) -> Boolean)? = null,
-    /**
-     * Saves a group move made from the manage-groups sheet. Unlike [onMoveGroup] it reports no result
-     * because the sheet never shows a move optimistically, so the write can run off the main thread.
-     * Falls back to [onMoveGroup] when null.
-     */
+    /** Optional handler for sheet moves without a local preview; falls back to [onMoveGroup]. */
     onMoveGroupFromSheet: ((AccountGroupReorderPlanner.GroupMove) -> Unit)? = null,
     onCreateGroup: ((String) -> Unit)? = null,
     onRenameGroup: ((String, String) -> Unit)? = null,
     onDeleteGroup: ((String) -> Unit)? = null,
+    reorderRevision: Long = 0,
+    savingOrder: Boolean = false,
 ) {
     var showManageGroupsSheet by remember { mutableStateOf(false) }
 
@@ -145,6 +143,8 @@ fun ReorderAccountsScreen(
         ReorderAccountsContent(
             accounts = accounts,
             onMoveAccount = onMoveAccount,
+            reorderRevision = reorderRevision,
+            savingOrder = savingOrder,
             modifier = Modifier.weight(1f),
             groups = groups,
             onMoveGroup = onMoveGroup,
@@ -177,6 +177,8 @@ fun ReorderAccountsContent(
     onCreateGroup: ((String) -> Unit)? = null,
     onRenameGroup: ((String, String) -> Unit)? = null,
     onDeleteGroup: ((String) -> Unit)? = null,
+    reorderRevision: Long = 0,
+    savingOrder: Boolean = false,
     showManageGroupsSheet: Boolean = false,
     onDismissManageGroupsSheet: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(bottom = Spacing.xl),
@@ -184,7 +186,7 @@ fun ReorderAccountsContent(
     val orderKey = remember(accounts, groups) {
         accounts.joinToString("|") { it.id } + "::" + groups.joinToString("|") { "${it.id}:${it.sortOrder}" }
     }
-    var localGroups by remember(groups) { mutableStateOf(groups.sortedWith(compareBy({ it.sortOrder }, { it.id }))) }
+    var localGroups by remember { mutableStateOf(groups.sortedWith(compareBy({ it.sortOrder }, { it.id }))) }
     var localChunks by remember { mutableStateOf(buildReorderChunks(accounts, localGroups)) }
     var draggingAccountId by remember { mutableStateOf<String?>(null) }
     var dragStartChunks by remember { mutableStateOf(localChunks) }
@@ -193,8 +195,8 @@ fun ReorderAccountsContent(
     var collapsedGroups by remember { mutableStateOf(emptySet<String>()) }
     var renamingGroup by remember { mutableStateOf<ActualAccountGroup?>(null) }
     var deletingGroup by remember { mutableStateOf<ActualAccountGroup?>(null) }
-    LaunchedEffect(orderKey) {
-        if (draggingAccountId == null) {
+    LaunchedEffect(orderKey, reorderRevision, savingOrder, draggingAccountId) {
+        if (draggingAccountId == null && !savingOrder) {
             val sorted = groups.sortedWith(compareBy({ it.sortOrder }, { it.id }))
             localGroups = sorted
             localChunks = buildReorderChunks(accounts, sorted)
@@ -313,8 +315,8 @@ fun ReorderAccountsContent(
                                         {
                                             AccountGroupReorderPlanner.moveGroupUp(localGroups, currentGroup!!.id)?.let { (stepped, move) ->
                                                 if (onMoveGroup(move)) {
-                                                    localGroups = stepped
-                                                    localChunks = buildReorderChunks(accounts, stepped)
+                                                    localGroups = stepped.mapIndexed { index, group -> group.copy(sortOrder = index.toDouble()) }
+                                                    localChunks = buildReorderChunks(localChunks.flatMap { it.accounts }, localGroups)
                                                 }
                                             }
                                         }
@@ -323,8 +325,8 @@ fun ReorderAccountsContent(
                                         {
                                             AccountGroupReorderPlanner.moveGroupDown(localGroups, currentGroup!!.id)?.let { (stepped, move) ->
                                                 if (onMoveGroup(move)) {
-                                                    localGroups = stepped
-                                                    localChunks = buildReorderChunks(accounts, stepped)
+                                                    localGroups = stepped.mapIndexed { index, group -> group.copy(sortOrder = index.toDouble()) }
+                                                    localChunks = buildReorderChunks(localChunks.flatMap { it.accounts }, localGroups)
                                                 }
                                             }
                                         }

@@ -885,13 +885,7 @@ fun AppNavigation(
         LoanScreenActions(repository, transactionLoanAccount) { res, action -> mutate(res, action = action) }
     }
 
-    // Drag and arrow reorders need to know synchronously whether a move was accepted, to decide
-    // whether to keep the just-dropped optimistic order or snap back to the last confirmed one, so
-    // they stay on the calling thread (single-row writes). Moves that show nothing optimistically,
-    // such as the Move to group dialog and the account-group sheet arrows, use [mutate] instead.
-    // labelRes is a runtime @StringRes parameter (see [mutate]).
-    @SuppressLint("LocalContextGetResourceValueCall")
-    fun mutateSync(@StringRes labelRes: Int, action: () -> Boolean): Boolean = mutations.mutateSync(labelRes, action)
+    val reorders = rememberNavigationReorders(repository, mutations) { dataVersion += 1 }
 
     /** Like [mutate], but also shows [transactionImpactCues] for every budget category [categories] touches. */
     fun onUpcomingAction(transaction: Transaction, action: UpcomingTransactionAction) {
@@ -2582,14 +2576,14 @@ fun AppNavigation(
                 onBack = { detail = DetailDestination.Main },
                 onReorderGroupsClick = { detail = DetailDestination.ReorderGroups },
                 onMutate = { labelRes, action -> mutate(labelRes, action = action) },
-                onMutateSync = { labelRes, action -> mutateSync(labelRes, action) },
+                reorders = reorders,
             )
             DetailDestination.ReorderGroups -> NavigationReorderGroupsScreen(
                 repository = repository,
                 dataVersion = dataVersion,
                 contentModifier = contentModifier,
                 onBack = { detail = DetailDestination.ManageCategories },
-                onMutateSync = { labelRes, action -> mutateSync(labelRes, action) },
+                reorders = reorders,
             )
             DetailDestination.ReorderAccounts -> NavigationReorderAccountsScreen(
                 repository = repository,
@@ -2597,7 +2591,7 @@ fun AppNavigation(
                 contentModifier = contentModifier,
                 onBack = { detail = DetailDestination.Main },
                 onMutate = { labelRes, action -> mutate(labelRes, action = action) },
-                onMutateSync = { labelRes, action -> mutateSync(labelRes, action) },
+                reorders = reorders,
             )
             DetailDestination.CustomizeHome -> CustomizeHomeScreen(
                 isSupporter = greeting.supporter,
@@ -2987,7 +2981,7 @@ fun AppNavigation(
                         detail = DetailDestination.Transactions
                     },
                     onMutate = { labelRes, action -> mutate(labelRes, action = action) },
-                    onMutateSync = { labelRes, action -> mutateSync(labelRes, action) },
+                    reorders = reorders,
                     pendingCaptureCount = pendingCaptureCount,
                     onReviewCaptures = { openCapturedReview() },
                     newTransactionCounts = newBankTransactionCounts,
