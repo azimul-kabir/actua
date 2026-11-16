@@ -6,6 +6,7 @@ import com.azimulkabir.actua.data.budget.gdrive.EncryptedBackupArchive
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.Locale
@@ -34,6 +35,7 @@ class EncryptedBackupPipeline(
     private val restoreSink: BackupRestoreSink,
     private val workDir: File,
     private val clock: () -> Instant = Instant::now,
+    private val openStagingOutput: (File) -> OutputStream = { FileOutputStream(it) },
 ) {
     /** Encrypts [archiveFile], uploads it, then prunes old remote backups. Returns the uploaded file. */
     fun upload(budgetId: String, archiveFile: File): RemoteBackupItem {
@@ -45,7 +47,7 @@ class EncryptedBackupPipeline(
         try {
             // 1. Client-side authenticated encryption (before anything leaves the device)
             archiveFile.inputStream().use { input ->
-                FileOutputStream(stagingFile).use { output ->
+                openStagingOutput(stagingFile).use { output ->
                     EncryptedBackupArchive.encrypt(input, output, passphrase)
                 }
             }
@@ -112,7 +114,7 @@ class EncryptedBackupPipeline(
 
         try {
             // 1. Download the stored file
-            FileOutputStream(tempDownloaded).use { out ->
+            openStagingOutput(tempDownloaded).use { out ->
                 transport.download(remoteBackupId, out)
             }
 
@@ -130,7 +132,7 @@ class EncryptedBackupPipeline(
 
                 // Decrypt to standard ZIP archive
                 tempDownloaded.inputStream().use { inStream ->
-                    FileOutputStream(tempDecrypted).use { outStream ->
+                    openStagingOutput(tempDecrypted).use { outStream ->
                         EncryptedBackupArchive.decrypt(inStream, outStream, effectivePassphrase)
                     }
                 }

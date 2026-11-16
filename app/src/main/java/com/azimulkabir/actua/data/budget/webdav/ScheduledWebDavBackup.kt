@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.data.budget.webdav
 
 import java.io.File
+import com.azimulkabir.actua.data.budget.backup.InsufficientBackupSpaceException
 
 /**
  * One scheduled WebDAV upload: what to do with the newest local backup, and whether a failure is worth
@@ -54,6 +55,7 @@ class ScheduledWebDavBackup(
         fun isRetryable(error: Throwable): Boolean = when (error) {
             is WebDavException.Network, is WebDavException.UploadIncomplete -> true
             is WebDavException.Server -> error.status >= 500 || error.status == 408 || error.status == 429
+            is InsufficientBackupSpaceException,
             is WebDavException.Unauthorized,
             is WebDavException.NotFound,
             is WebDavException.InsufficientStorage,

@@ -47,6 +47,7 @@ class EncryptedBackupPipelineTest {
     private fun pipeline(
         provider: () -> CharArray? = { passphrase },
         transport: BackupTransport = this.transport,
+        output: (File) -> OutputStream = { it.outputStream() },
     ) = EncryptedBackupPipeline(
         transport = transport,
         passphraseProvider = provider,
@@ -54,10 +55,26 @@ class EncryptedBackupPipelineTest {
         restoreSink = sink,
         workDir = workDir,
         clock = { now },
+        openStagingOutput = output,
     )
 
     private fun archive(name: String = "2026-11-04_13-00-00.zip"): File =
         temporary.newFile(name).also { it.writeBytes(plaintext) }
+
+    @Test fun insufficientDeviceSpaceNeverUploadsPrunesOrRestoresAndCleansStagingFiles() {
+        val constrained = pipeline(output = { file -> BackupStorage.checked(file.outputStream()) { 0L } })
+        assertThrows(InsufficientBackupSpaceException::class.java) { constrained.upload("budget-1", archive()) }
+        assertTrue(transport.uploads.isEmpty())
+        assertTrue(transport.deleted.isEmpty())
+        assertTrue(workDir.listFiles()!!.isEmpty())
+
+        val uploaded = pipeline().upload("budget-1", archive("2026-11-04_14-00-00.zip"))
+        assertThrows(InsufficientBackupSpaceException::class.java) { constrained.restore(uploaded.id) }
+        assertNull(sink.importedAsNew)
+        assertNull(sink.restoredInto)
+        assertTrue(workDir.listFiles()!!.isEmpty())
+        assertTrue(transport.stored.containsKey(uploaded.id))
+    }
 
     @Test fun uploadEncryptsBeforeTheTransportSeesAnything() {
         val uploaded = pipeline().upload("budget-1", archive())

@@ -584,20 +584,21 @@ lists what was ported, what was only checked by reading, and what is not ported.
 
 ## Actua-only features (not in Actual)
 
-- **Receipt photos** (Google Play and `-full.apk` builds): a scanned receipt photo can be kept with a
-  transaction. Actual has no receipt or attachment field, so this is local to the device and outside
-  every sync and copy: the photo is a file under `files/ReceiptPhotos/<budget id>/<transaction id>.jpg`,
-  never in `db.sqlite`, the message log or the backup/export archive (which hold only `db.sqlite` and
-  `metadata.json`), and excluded from Android backup and device transfer. No synced field, table or
-  message exists for it, so Actual and other Actua devices never see it. Restoring a backup or
-  downloading a budget elsewhere brings the transactions without their photos. Deleting a transaction
-  through Actua, or removing a budget from the device, deletes its photos; a transaction deleted by a
-  sync from another device, or merged away, can leave an unreferenced photo on this device.
-  Optionally the user can choose a receipt photo folder (system folder picker); new photos then go to
-  `Actua receipts/<budget id>/<transaction id>.jpg` inside it. That folder is outside Actua's control
-  (no app lock, readable by other apps, copied by any sync app that mirrors it) though Actua itself
-  never uploads it, and the photos still never enter a sync, backup or export that Actua makes. If the
-  folder becomes unavailable, photos fall back to private storage.
+- **Receipt photos** (scanning in Google Play and `-full.apk` builds): kept photos live outside
+  `db.sqlite` under `files/ReceiptPhotos/<budget id>/<transaction id>.jpg`, or in the optional
+  user-selected `Actua receipts/<budget id>/<transaction id>.jpg` folder. Actual has no attachment
+  field: no photo enters Actual sync, the message log, standard exports, local or Google Drive
+  backups, Android backup or device transfer. WebDAV backups extend the ZIP with
+  `ReceiptPhotos/<transaction id>.jpg` entries inside ACTUABKP authenticated encryption, including
+  private photos and the currently accessible chosen folder. Receipts have no fixed total-size cap;
+  streaming storage checks retain 32 MB of device working space. The standard budget-data import cap
+  remains unchanged. Restore validates entry sizes/checksums and stages photos,
+  recovers them into private storage under the destination budget id, and preserves existing photos
+  absent from the backup. Private copies take precedence over external copies; external folders
+  are never overwritten by restore. Older WebDAV backups without photos still restore. Photos from
+  unselected or inaccessible folders cannot be backed up. Removing a transaction or budget deletes
+  its photos; remote deletions may leave unreferenced local photos. This is an Actua-only extension,
+  with no upstream protocol/database change.
 - **Running total for a category list** (Transactions filtered to one category, with the Running balance
   option on): each row shows the running total of the rows listed, oldest to newest, in exact integer
   cents. Actual's register shows running balances for accounts only, so this is not Actual behavior. It

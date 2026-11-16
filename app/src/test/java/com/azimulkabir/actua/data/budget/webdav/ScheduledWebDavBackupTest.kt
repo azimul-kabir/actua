@@ -119,6 +119,7 @@ class ScheduledWebDavBackupTest {
             WebDavException.Unauthorized(401),
             WebDavException.NotFound(),
             WebDavException.InsufficientStorage(),
+            com.azimulkabir.actua.data.budget.backup.InsufficientBackupSpaceException(),
             WebDavException.Tls(IOException("cert")),
             WebDavException.Redirect("https://elsewhere/"),
             WebDavException.MoveUnsupported(),

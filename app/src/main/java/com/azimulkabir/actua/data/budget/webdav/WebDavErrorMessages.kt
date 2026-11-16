@@ -2,6 +2,7 @@ package com.azimulkabir.actua.data.budget.webdav
 
 import android.content.res.Resources
 import com.azimulkabir.actua.R
+import com.azimulkabir.actua.data.budget.backup.InsufficientBackupSpaceException
 
 /** The user-facing wording for each way a WebDAV operation can fail, shared by the Backups screen and the worker. */
 internal object WebDavErrorMessages {
@@ -16,6 +17,7 @@ internal object WebDavErrorMessages {
         )
         is WebDavException.Unauthorized -> resources.getString(R.string.webdav_error_unauthorized)
         is WebDavException.NotFound -> resources.getString(R.string.webdav_error_not_found)
+        is InsufficientBackupSpaceException -> resources.getString(R.string.webdav_error_device_storage_full)
         is WebDavException.InsufficientStorage -> resources.getString(R.string.webdav_error_storage_full)
         is WebDavException.Tls -> resources.getString(R.string.webdav_error_tls)
         is WebDavException.Redirect -> resources.getString(R.string.webdav_error_redirect)
