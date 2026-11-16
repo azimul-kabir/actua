@@ -7,6 +7,8 @@ import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.network.ActualServerClient
 import com.azimulkabir.actua.data.network.TrustedCertificateStore
+import com.azimulkabir.actua.data.sync.ActualSyncRunner
+import com.azimulkabir.actua.data.sync.ActualSyncScheduler
 import com.azimulkabir.actua.data.network.UrlConnectionTransport
 /**
  * Applies Actua's local reset policy after a deliberate server disconnect.
@@ -48,7 +50,8 @@ class DisconnectResetManager(context: Context) {
         }
     }
 
-    fun resetLocalServerData() {
+    fun resetLocalServerData() = ActualSyncRunner.whileSyncPaused {
+        ActualSyncScheduler.cancelForDisconnect(app)
         revokeServerSession()
         val files = BudgetFileManager(app)
         val encryptionKeys = BudgetEncryptionKeyStore(app)

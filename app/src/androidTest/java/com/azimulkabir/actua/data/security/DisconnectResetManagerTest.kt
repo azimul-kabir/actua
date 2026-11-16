@@ -3,22 +3,32 @@ package com.azimulkabir.actua.data.security
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.work.ListenableWorker
+import androidx.work.testing.TestListenableWorkerBuilder
+import androidx.work.workDataOf
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BackupItem
 import com.azimulkabir.actua.data.budget.BackupService
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.DemoBudgetManager
+import com.azimulkabir.actua.data.sync.ActualSyncRunner
+import com.azimulkabir.actua.data.sync.ActualSyncWorker
 import com.azimulkabir.actua.data.sync.LoadedEncryptionKey
+import com.azimulkabir.actua.data.sync.LocalBackupWorker
+import com.azimulkabir.actua.data.sync.SyncStatusStore
+import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class DisconnectResetManagerTest {
@@ -104,6 +114,90 @@ class DisconnectResetManagerTest {
         assertTrue(context.getSharedPreferences("actua-schedule-poster", Context.MODE_PRIVATE).all.isEmpty())
         assertTrue(context.getSharedPreferences("budget_ui_preferences", Context.MODE_PRIVATE).all.isEmpty())
         assertTrue(context.getSharedPreferences("account_detail_preferences", Context.MODE_PRIVATE).all.isEmpty())
+    }
+
+    @Test
+    fun queuedSyncCannotRepopulateStatusAfterDisconnectEvenAfterReconnecting() = runBlocking {
+        val generation = ActualSyncRunner.workGeneration(context)
+        // Work persisted before this upgrade has no generation field and belongs to generation zero.
+        val legacyWorker = TestListenableWorkerBuilder<ActualSyncWorker>(context)
+            .setInputData(workDataOf(ActualSyncWorker.BACKGROUND_KEY to true)).build()
+        val worker = TestListenableWorkerBuilder<ActualSyncWorker>(context)
+            .setInputData(workDataOf(
+                ActualSyncWorker.GENERATION_KEY to generation,
+                ActualSyncWorker.BACKGROUND_KEY to true,
+            )).build()
+        DisconnectResetManager(context).resetLocalServerData()
+        // Reconnecting must not make a worker from the previous session valid again.
+        credentials.saveConnection("https://actual.test", "synth-token")
+        activeStore.budgetId = null
+        assertEquals(ListenableWorker.Result.success(), worker.doWork())
+        assertEquals(ListenableWorker.Result.success(), legacyWorker.doWork())
+        assertTrue(context.getSharedPreferences("actua-sync-status", Context.MODE_PRIVATE).all.isEmpty())
+
+        val freshWorker = TestListenableWorkerBuilder<ActualSyncWorker>(context)
+            .setInputData(workDataOf(
+                ActualSyncWorker.GENERATION_KEY to ActualSyncRunner.workGeneration(context),
+                ActualSyncWorker.BACKGROUND_KEY to true,
+            )).build()
+        assertEquals(ListenableWorker.Result.success(), freshWorker.doWork())
+        assertTrue(context.getSharedPreferences("actua-sync-status", Context.MODE_PRIVATE)
+            .getLong("lastBackgroundRefresh", 0L) > 0L)
+    }
+
+    @Test
+    fun queuedBackupCannotBackUpTheRetainedStandaloneBudgetAfterDisconnect() = runBlocking {
+        val budget = files.createBudget("Standalone ${UUID.randomUUID()}").also { createdBudgetIds.add(it.id) }
+        activeStore.budgetId = budget.id
+        val worker = TestListenableWorkerBuilder<LocalBackupWorker>(context)
+            .setInputData(workDataOf(ActualSyncWorker.GENERATION_KEY to ActualSyncRunner.workGeneration(context)))
+            .build()
+        DisconnectResetManager(context).resetLocalServerData()
+        assertEquals(ListenableWorker.Result.success(), worker.doWork())
+        assertTrue(BackupService(context, files).availableBackups(budget.id).filterIsInstance<BackupItem.Archive>().isEmpty())
+
+        // Newly scheduled work still runs for standalone budgets without server credentials.
+        val freshWorker = TestListenableWorkerBuilder<LocalBackupWorker>(context)
+            .setInputData(workDataOf(ActualSyncWorker.GENERATION_KEY to ActualSyncRunner.workGeneration(context)))
+            .build()
+        assertEquals(ListenableWorker.Result.success(), freshWorker.doWork())
+        assertEquals(1, BackupService(context, files).availableBackups(budget.id).filterIsInstance<BackupItem.Archive>().size)
+    }
+
+    @Test
+    fun resetWaitsForRunningWorkIncludingItsCompletionWrites() {
+        val generation = ActualSyncRunner.workGeneration(context)
+        val workerStarted = CountDownLatch(1)
+        val finishWorker = CountDownLatch(1)
+        val resetStarted = CountDownLatch(1)
+        val resetFinished = CountDownLatch(1)
+        val executor = Executors.newFixedThreadPool(2)
+        try {
+            val work = executor.submit {
+                ActualSyncRunner.runScheduledWork(context, generation) {
+                    workerStarted.countDown()
+                    check(finishWorker.await(10, TimeUnit.SECONDS))
+                    // Completion writes used to run outside the sync lock.
+                    assertEquals(1L, resetFinished.count)
+                    SyncStatusStore(context).backgroundRefreshFinished()
+                }
+            }
+            assertTrue(workerStarted.await(10, TimeUnit.SECONDS))
+            val reset = executor.submit {
+                resetStarted.countDown()
+                DisconnectResetManager(context).resetLocalServerData()
+                resetFinished.countDown()
+            }
+            assertTrue(resetStarted.await(10, TimeUnit.SECONDS))
+            assertFalse("Reset must wait for the running worker", resetFinished.await(200, TimeUnit.MILLISECONDS))
+            finishWorker.countDown()
+            work.get(10, TimeUnit.SECONDS)
+            reset.get(10, TimeUnit.SECONDS)
+            assertTrue(context.getSharedPreferences("actua-sync-status", Context.MODE_PRIVATE).all.isEmpty())
+        } finally {
+            finishWorker.countDown()
+            executor.shutdownNow()
+        }
     }
 
     @Test
