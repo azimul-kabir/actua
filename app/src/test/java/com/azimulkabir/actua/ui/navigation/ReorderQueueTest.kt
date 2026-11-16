@@ -160,6 +160,25 @@ class ReorderQueueTest {
         } finally { release.countDown(); old.queue.close(); next.queue.close() }
     }
 
+    @Test fun failedReloadKeepsLaterCommittedMovesWithoutAnEarlierRejectedMove() = runBlocking {
+        val f = Fixture(this)
+        val started = CompletableDeferred<Unit>()
+        val release = CountDownLatch(1)
+        try {
+            f.read = { error("reload failed") }
+            f.end("a", result = false) { started.complete(Unit); check(release.await(5, TimeUnit.SECONDS)) }
+            withTimeout(5_000) { started.await() }
+            f.end("b")
+            release.countDown()
+            f.settled()
+            assertEquals(listOf("a", "c", "b"), f.queue.view.snapshot)
+            assertEquals(f.database.get(), f.queue.view.snapshot)
+            assertEquals(1, f.changes)
+            assertEquals(2, f.failures.size)
+            assertEquals("reload failed", f.failures.last().second!!.message)
+        } finally { release.countDown(); f.queue.close() }
+    }
+
     @Test fun failedRefreshReturnsToConfirmedDataAndReportsTheError() = runBlocking {
         val f = Fixture(this)
         try {

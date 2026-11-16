@@ -28,9 +28,9 @@ internal class ReorderQueue<S>(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val repository: ActuaRepository? = null,
 ) {
-    private data class Request(val label: Int?, val write: (() -> Boolean)?)
+    private data class Request<S>(val label: Int?, val write: (() -> Boolean)?, val optimistic: ((S) -> S)?)
     private val scope = CoroutineScope(parentScope.coroutineContext + SupervisorJob(parentScope.coroutineContext[Job]))
-    private val requests = Channel<Request>(Channel.UNLIMITED)
+    private val requests = Channel<Request<S>>(Channel.UNLIMITED)
     private var worker: Job? = null
     private var closed = false
     private var confirmed = initial
@@ -41,14 +41,14 @@ internal class ReorderQueue<S>(
     fun submit(label: Int, optimistic: (S) -> S, write: () -> Boolean): Boolean {
         if (closed || scope.coroutineContext[Job]?.isActive != true) return false
         val next = optimistic(view.snapshot)
-        if (requests.trySend(Request(label, write)).isFailure) return false
+        if (requests.trySend(Request(label, write, optimistic)).isFailure) return false
         view = view.copy(snapshot = next, saving = true)
         start()
         return true
     }
 
     fun refresh() {
-        if (closed || scope.coroutineContext[Job]?.isActive != true || requests.trySend(Request(null, null)).isFailure) return
+        if (closed || scope.coroutineContext[Job]?.isActive != true || requests.trySend(Request<S>(null, null, null)).isFailure) return
         view = view.copy(saving = true)
         start()
     }
@@ -71,8 +71,12 @@ internal class ReorderQueue<S>(
                     } catch (error: Exception) {
                         Result.failure(error)
                     }
-                    if (result.getOrDefault(false)) onChanged()
-                    else onFailure(current.label, result.exceptionOrNull())
+                    if (result.getOrDefault(false)) {
+                        // Keep a projection of committed moves for recovery if the read below fails.
+                        // Rejected moves never enter this baseline, even when later moves succeed.
+                        confirmed = current.optimistic?.invoke(confirmed) ?: confirmed
+                        onChanged()
+                    } else onFailure(current.label, result.exceptionOrNull())
                 }
                 request = requests.tryReceive().getOrNull()
                 if (request != null) continue
@@ -84,11 +88,11 @@ internal class ReorderQueue<S>(
                     onFailure(current.label, error)
                     confirmed
                 }
+                confirmed = loaded
                 request = requests.tryReceive().getOrNull()
                 // A newer move may have arrived during the read. Keep its optimistic state until it too
                 // has been saved; never publish an older result over a newer gesture.
                 if (request == null) {
-                    confirmed = loaded
                     view = ReorderView(loaded, view.revision + 1, saving = false)
                 }
             }
