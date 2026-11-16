@@ -125,6 +125,9 @@ import com.azimulkabir.actua.data.schedules.sortedForDisplay
 import com.azimulkabir.actua.model.BudgetScheduleFunding
 import com.azimulkabir.actua.widget.WidgetUpdater
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 data class PayeeLocationSummary(
     val id: String,
@@ -151,7 +154,7 @@ class ActuaRepository(context: Context) {
     private val ratingPrompt = RatingPromptPreferences(context)
     private val scheduleSync = {
         ActualSyncScheduler.scheduleMutation(appContext)
-        WidgetUpdater.requestAll(appContext)
+        WidgetUpdater.requestAllAsync(appContext)
     }
     private val unopened = mutableListOf<BudgetMetadata>()
     private val openedBudget: Pair<ActualBudgetDatabase, BudgetMetadata>? = BudgetFileManager(context).let { files ->
@@ -162,11 +165,15 @@ class ActuaRepository(context: Context) {
         )
         val opened = candidates.firstNotNullOfOrNull { metadata ->
             openBudget(files, metadata)?.let { db ->
-                if (metadata.id != selectedId) activeBudgetStore.budgetId = metadata.id
+                if (metadata.id != selectedId && activeBudgetStore.budgetId == selectedId) {
+                    activeBudgetStore.budgetId = metadata.id
+                }
                 db to metadata
             }
         }
-        if (opened == null && selectedId != null) activeBudgetStore.budgetId = null
+        if (opened == null && selectedId != null && activeBudgetStore.budgetId == selectedId) {
+            activeBudgetStore.budgetId = null
+        }
         opened
     }
     private val actualDatabase: ActualBudgetDatabase? = openedBudget?.first
@@ -191,8 +198,49 @@ class ActuaRepository(context: Context) {
     val isUsingActualBudget: Boolean get() = actualDatabase != null
     val isServerBacked: Boolean get() = activeMetadata?.isServerBacked == true
 
+    private var backgroundOperations = 0
+    private var closeRequested = false
+
+    /**
+     * Keep blocking work alive until it returns. Discard results after disposal, including when
+     * navigation's coroutine scope survives a budget switch or the result was queued for delivery.
+     */
+    internal suspend fun <T> withBackgroundOperation(
+        dispatcher: CoroutineDispatcher = Dispatchers.IO,
+        block: () -> T,
+    ): T = withContext(dispatcher) { withRetainedAccess(block) }.also { ensureOpen() }
+
+    /** For callbacks whose owner already dispatches blocking work (e.g. bank authorization). */
+    internal fun <T> withRetainedAccess(block: () -> T): T {
+        retainBackgroundOperation()
+        return try { block().also { ensureOpen() } } finally { releaseBackgroundOperation() }
+    }
+
+    @Synchronized
+    private fun retainBackgroundOperation() {
+        // A stale loader may have been queued before disposal. End it as cancellation, not a
+        // closed-SQLite error, and never start another query or write on the old budget.
+        ensureOpen()
+        backgroundOperations++
+    }
+
+    @Synchronized
+    private fun ensureOpen() {
+        if (closeRequested) throw CancellationException("Repository is closed")
+    }
+
+    @Synchronized
+    private fun releaseBackgroundOperation() {
+        check(backgroundOperations > 0)
+        backgroundOperations--
+        if (closeRequested && backgroundOperations == 0) actualDatabase?.close()
+    }
+
+    @Synchronized
     fun close() {
-        actualDatabase?.close()
+        if (closeRequested) return
+        closeRequested = true
+        if (backgroundOperations == 0) actualDatabase?.close()
     }
 
     private fun openBudget(files: BudgetFileManager, metadata: BudgetMetadata): ActualBudgetDatabase? {
@@ -206,7 +254,7 @@ class ActuaRepository(context: Context) {
             .getOrNull()
             ?: return null
         return try {
-            BudgetOpenProbe.validate(database)
+            BudgetOpenProbe.validateOnce(files.databaseFile(budgetId), database)
             database
         } catch (error: CancellationException) {
             database.close()
@@ -1742,7 +1790,7 @@ class ActuaRepository(context: Context) {
      */
     internal fun reportDataForWidgets(): com.azimulkabir.actua.data.reports.ReportDataSnapshot? {
         val db = actualDatabase ?: return null
-        return com.azimulkabir.actua.data.reports.SharedReportData.get(ActiveBudgetStore(appContext).budgetId, db)
+        return com.azimulkabir.actua.data.reports.SharedReportData.get(activeMetadata?.id, db)
     }
 
     /** The dashboard cards the Report card home-screen widget can show, in dashboard order. */

@@ -5,7 +5,32 @@ import java.time.YearMonth
 
 /** Exercises the same core reads the app performs when opening a budget. */
 internal object BudgetOpenProbe {
-    fun validate(file: java.io.File) = ActualBudgetDatabase.open(file).use(::validate)
+    private data class OpenedFile(val device: Long, val inode: Long, val schema: Int)
+    private val validated = mutableMapOf<String, OpenedFile>()
+
+    /** Only successful probes are shared. A replaced file or migrated schema must be checked anew. */
+    @Synchronized
+    fun validateOnce(file: java.io.File, database: ActualBudgetDatabase) {
+        val stat = android.system.Os.stat(file.absolutePath)
+        val identity = OpenedFile(database.fileIdentity.first, database.fileIdentity.second, database.schemaVersion)
+        val sameFile = stat.st_dev == identity.device && stat.st_ino == identity.inode
+        val path = file.canonicalPath
+        if (sameFile && validated[path] == identity) return
+        database.verifyWritable()
+        validate(database)
+        // A connection opened before a concurrent replacement must not validate the new file.
+        if (sameFile) validated[path] = identity
+    }
+
+    @Synchronized
+    fun invalidate(file: java.io.File) {
+        validated.remove(file.canonicalPath)
+    }
+
+    fun validate(file: java.io.File) {
+        invalidate(file)
+        ActualBudgetDatabase.open(file).use(::validate)
+    }
 
     fun validate(database: ActualBudgetDatabase) {
         try {

@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
 import com.azimulkabir.actua.ui.components.TransactionImpactCue
 import kotlinx.coroutines.CoroutineDispatcher
@@ -20,7 +21,7 @@ internal class NavigationMutationFeedback {
 }
 
 /**
- * Executes the existing mutation contracts without owning a repository or invalidation counter.
+ * Executes mutations against the current repository without owning its close or invalidation counter.
  * Constructed with current composition inputs so locale/repository callbacks cannot become stale.
  * The supplied composition scope still cancels asynchronous work when navigation is disposed.
  */
@@ -35,14 +36,19 @@ internal class NavigationMutationRunner(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val onRejected: (String) -> Unit = { DiagnosticsLog.actionRejected(it) },
     private val onFailed: (String, Throwable) -> Unit = { label, error -> DiagnosticsLog.actionFailed(label, error) },
+    private val repository: ActuaRepository? = null,
 ) {
     private var errorMessage by feedback.error
     private var transactionImpactCues by feedback.impactCues
 
+    private suspend fun <T> runOnIo(action: () -> T): T =
+        if (repository != null) repository.withBackgroundOperation(ioDispatcher, action)
+        else withContext(ioDispatcher) { action() }
+
     fun mutate(@StringRes labelRes: Int, onChanged: () -> Unit = {}, action: () -> Boolean): Job {
         val label = labelFor(labelRes)
         return scope.launch {
-            val result = withContext(ioDispatcher) { runCatching(action) }
+            val result = runOnIo { runCatching(action) }
             result.fold(
                 onSuccess = { changed ->
                     if (changed) {
@@ -84,13 +90,13 @@ internal class NavigationMutationRunner(
     fun mutateWithImpactCue(@StringRes labelRes: Int, categories: Set<String>, onChanged: () -> Unit = {}, action: () -> Boolean): Job {
         val label = labelFor(labelRes)
         return scope.launch {
-            val before = withContext(ioDispatcher) { categoryAvailableCents(categories) }
-            val result = withContext(ioDispatcher) { runCatching(action) }
+            val before = runOnIo { categoryAvailableCents(categories) }
+            val result = runOnIo { runCatching(action) }
             result.fold(
                 onSuccess = { changed ->
                     if (changed) {
                         onInvalidated()
-                        val after = withContext(ioDispatcher) { categoryAvailableCents(categories) }
+                        val after = runOnIo { categoryAvailableCents(categories) }
                         transactionImpactCues = impactCues(before, after)
                         onChanged()
                     } else {
@@ -110,7 +116,7 @@ internal class NavigationMutationRunner(
     fun mutateAsync(@StringRes labelRes: Int, action: () -> Boolean, onChanged: () -> Unit): Job {
         val label = labelFor(labelRes)
         return scope.launch {
-            val result = withContext(ioDispatcher) { runCatching(action) }
+            val result = runOnIo { runCatching(action) }
             result.fold(
                 onSuccess = { changed ->
                     if (changed) {
@@ -133,13 +139,13 @@ internal class NavigationMutationRunner(
     fun mutateAsyncWithImpactCue(@StringRes labelRes: Int, categories: Set<String>, action: () -> Boolean, onChanged: () -> Unit): Job {
         val label = labelFor(labelRes)
         return scope.launch {
-            val before = withContext(ioDispatcher) { categoryAvailableCents(categories) }
-            val result = withContext(ioDispatcher) { runCatching(action) }
+            val before = runOnIo { categoryAvailableCents(categories) }
+            val result = runOnIo { runCatching(action) }
             result.fold(
                 onSuccess = { changed ->
                     if (changed) {
                         onInvalidated()
-                        val after = withContext(ioDispatcher) { categoryAvailableCents(categories) }
+                        val after = runOnIo { categoryAvailableCents(categories) }
                         transactionImpactCues = impactCues(before, after)
                         onChanged()
                     } else {

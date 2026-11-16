@@ -7,7 +7,6 @@ import android.view.View
 import android.widget.RemoteViews
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
-import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.preferences.HomePreferences
 import com.azimulkabir.actua.data.reports.ReportCards
 
@@ -27,8 +26,8 @@ internal object ReportCardWidget {
         class Message(val text: String, val tap: PendingIntent) : ReportCardState
     }
 
-    fun update(context: Context, manager: AppWidgetManager, widgetId: Int) {
-        val repository = ActuaRepository(context)
+    fun update(context: Context, manager: AppWidgetManager, widgetId: Int, sharedRepository: ActuaRepository? = null) {
+        val repository = sharedRepository ?: ActuaRepository(context)
         val state = try {
             loadBudgetFormats(repository)
             if (!repository.isUsingActualBudget) {
@@ -43,7 +42,7 @@ internal object ReportCardWidget {
                     is SingleChoice.Found -> {
                         // Summary cards follow the month start day chosen on this device, as they do in Reports.
                         repository.reportMonthStart = HomePreferences(context)
-                            .monthStartRule(ActiveBudgetStore(context).budgetId ?: "no-budget")
+                            .monthStartRule(repository.activeMetadata?.id ?: "no-budget")
                         val headline = repository.reportCard(choice.item.id)?.let(ReportCards::headline)
                         if (headline == null) missing else ReportCardState.Card(
                             choice.item.name,
@@ -59,7 +58,7 @@ internal object ReportCardWidget {
                 }
             }
         } finally {
-            repository.close()
+            if (sharedRepository == null) repository.close()
         }
         manager.updateAppWidget(
             widgetId,

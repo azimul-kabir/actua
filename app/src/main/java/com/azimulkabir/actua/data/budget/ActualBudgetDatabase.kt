@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.data.budget
 
 import android.content.ContentValues
+import android.database.DatabaseErrorHandler
 import android.database.DatabaseUtils
 import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
@@ -57,6 +58,7 @@ import java.time.LocalDate
 /** A thin boundary around an Actual budget's own db.sqlite file. */
 class ActualBudgetDatabase private constructor(
     private val database: SQLiteDatabase,
+    internal val fileIdentity: Pair<Long, Long>,
 ) : Closeable {
     data class BankSyncAccount(
         val id: String,
@@ -80,6 +82,20 @@ class ActualBudgetDatabase private constructor(
     )
 
     override fun close() = database.close()
+
+    internal val schemaVersion: Int
+        get() = database.rawQuery("PRAGMA schema_version", null).use { it.moveToFirst(); it.getInt(0) }
+
+
+    /** First-use readiness for editing, formerly checked implicitly by the migration transaction. */
+    internal fun verifyWritable() {
+        database.beginTransaction()
+        try {
+            // Acquiring the writer is sufficient; never modify the budget to test it.
+        } finally {
+            database.endTransaction()
+        }
+    }
 
     /** Live accounts and their Actual-compatible, split-aware balances. */
     @Synchronized
@@ -2646,24 +2662,70 @@ class ActualBudgetDatabase private constructor(
             "zero_budgets",
         )
 
+        // Android's default corruption handler deletes the database and its sidecars. Recovery is
+        // user-confirmed in Actua; even a corrupt file may contain unsynced edits and must survive.
+        private val preserveCorruptDatabase = DatabaseErrorHandler { }
+
         fun open(file: File, readOnly: Boolean = false): ActualBudgetDatabase {
-            validate(file)
+            if (!file.isFile) throw BudgetFileException.MissingDatabase
+            val stat = android.system.Os.stat(file.absolutePath)
+            val identity = stat.st_dev to stat.st_ino
             val flags = if (readOnly) SQLiteDatabase.OPEN_READONLY else SQLiteDatabase.OPEN_READWRITE
-            val database = SQLiteDatabase.openDatabase(file.absolutePath, null, flags)
-            // WAL lets a writer connection (e.g. the sync worker) commit without blocking readers on
-            // another connection (e.g. the UI's repository), so concurrent access doesn't stall the UI.
-            if (!readOnly) database.enableWriteAheadLogging()
-            // PRAGMA busy_timeout returns the applied value as a result row, which execSQL()
-            // (update/delete only) rejects; rawQuery consumes that row instead.
-            database.rawQuery("PRAGMA busy_timeout=5000", null).use { it.moveToFirst() }
-            if (!readOnly) {
-                ActualMigrations.upgrade(database, File(file.absoluteFile.parentFile, "metadata.json"))
-                runMigrations(database)
+            val database = try {
+                SQLiteDatabase.openDatabase(file.absolutePath, null, flags, preserveCorruptDatabase)
+            } catch (_: Exception) {
+                throw BudgetFileException.InvalidArchive
             }
-            return ActualBudgetDatabase(database)
+            try {
+                validate(database)
+                // Keep independent UI, widget and sync connections concurrent.
+                if (!readOnly) database.enableWriteAheadLogging()
+                database.rawQuery("PRAGMA busy_timeout=5000", null).use { it.moveToFirst() }
+                if (!readOnly) {
+                    val upgraded = ActualMigrations.upgrade(database, File(file.absoluteFile.parentFile, "metadata.json"))
+                    val migrated = runMigrations(database)
+                    if (upgraded || migrated) BudgetOpenProbe.invalidate(file)
+                }
+                return ActualBudgetDatabase(database, identity)
+            } catch (error: Throwable) {
+                database.close()
+                throw error
+            }
         }
 
-        private fun runMigrations(database: SQLiteDatabase) {
+        /** Read-only preflight: never reserve a writer when the schema is already current. */
+        private fun needsMigrations(database: SQLiteDatabase): Boolean {
+            val objects = database.rawQuery("SELECT name FROM sqlite_master", null).use { cursor ->
+                buildSet { while (cursor.moveToNext()) add(cursor.getString(0)) }
+            }
+            if ("__migrations__" !in objects) return true
+            val applied = database.rawQuery("SELECT id FROM __migrations__", null).use { cursor ->
+                buildSet { while (cursor.moveToNext()) add(cursor.getLong(0)) }
+            }
+            if (applied.any { it in PRIVATE_MIGRATION_IDS }) return true
+            if ("payees" in objects && listOf(
+                    "payee_locations", "idx_payee_locations_payee_id",
+                    "idx_payee_locations_tombstone_payee_created", "idx_payee_locations_geo_tombstone",
+                ).any { it !in objects }) return true
+            if ("payees" in objects && 1768872504000L !in applied) return true
+            if ("accounts" in objects && "account_groups" !in objects) return true
+            if ("categories" in objects && "cleanup_groups" !in objects) return true
+            if (columnMigrations.any { migration ->
+                    migration.table in objects &&
+                        (migration.id !in PRIVATE_MIGRATION_IDS && migration.id !in applied ||
+                            !database.hasColumn(migration.table, migration.column))
+                }) return true
+            if ("transactions" in objects) {
+                if (database.hasColumn("transactions", "acct") && database.hasColumn("transactions", "tombstone") &&
+                    "idx_transactions_acct_tombstone" !in objects) return true
+                if (database.hasColumn("transactions", "schedule") && "idx_transactions_schedule" !in objects) return true
+            }
+            // Preserve replay on open, including cells received since the previous connection.
+            return PendingMessages.needsReplay(database)
+        }
+
+        private fun runMigrations(database: SQLiteDatabase): Boolean {
+            if (!needsMigrations(database)) return false
             database.beginTransaction()
             try {
                 database.execSQL("CREATE TABLE IF NOT EXISTS __migrations__ (id INTEGER PRIMARY KEY)")
@@ -2725,6 +2787,7 @@ class ActualBudgetDatabase private constructor(
                 StoredMessageReplay.replay(database, schemaBefore)
                 PendingMessages.replay(database)
                 database.setTransactionSuccessful()
+                return true
             } finally {
                 database.endTransaction()
             }
@@ -2747,25 +2810,27 @@ class ActualBudgetDatabase private constructor(
         fun validate(file: File) {
             if (!file.isFile) throw BudgetFileException.MissingDatabase
             val database = try {
-                SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READONLY)
+                SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READONLY, preserveCorruptDatabase)
             } catch (_: Exception) {
                 throw BudgetFileException.InvalidArchive
             }
-            database.use { db ->
-                val found = mutableSetOf<String>()
-                try {
-                    db.rawQuery("SELECT name FROM sqlite_master WHERE type = 'table'", null).use { cursor ->
-                        while (cursor.moveToNext()) found += cursor.getString(0)
-                    }
-                } catch (_: Exception) {
-                    throw BudgetFileException.InvalidArchive
+            database.use(::validate)
+        }
+
+        private fun validate(database: SQLiteDatabase) {
+            val found = mutableSetOf<String>()
+            try {
+                database.rawQuery("SELECT name FROM sqlite_master WHERE type = 'table'", null).use { cursor ->
+                    while (cursor.moveToNext()) found += cursor.getString(0)
                 }
-                val missing = requiredTables - found
-                if (missing.isNotEmpty()) {
-                    throw BudgetFileException.UnsafeArchive(
-                        "database is missing Actual tables: ${missing.sorted().joinToString()}",
-                    )
-                }
+            } catch (_: Exception) {
+                throw BudgetFileException.InvalidArchive
+            }
+            val missing = requiredTables - found
+            if (missing.isNotEmpty()) {
+                throw BudgetFileException.UnsafeArchive(
+                    "database is missing Actual tables: ${missing.sorted().joinToString()}",
+                )
             }
         }
     }

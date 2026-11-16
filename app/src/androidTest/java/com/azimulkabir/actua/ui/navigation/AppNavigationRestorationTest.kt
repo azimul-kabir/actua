@@ -69,10 +69,12 @@ class AppNavigationRestorationTest {
                 AppNavigation()
             }
         }
+        composeRule.waitForNavigation()
 
         composeRule.onNodeWithContentDescription("Customize Home").assertExists()
 
         restorationTester.emulateSavedInstanceStateRestore()
+        composeRule.waitForNavigation()
 
         composeRule.onNodeWithContentDescription("Customize Home").assertExists()
     }

@@ -32,7 +32,7 @@ internal class WidgetListRows(
     // Called on a binder thread, so reading the budget here doesn't block the main thread.
     override fun onDataSetChanged() {
         style = WidgetPreferences(context).rowStyle(kind, widgetId)
-        rows = when (kind) {
+        rows = WidgetListSnapshots.rows(context, widgetId) ?: when (kind) {
             WidgetKind.Categories -> FavouriteCategoriesWidget.categoryRows(context)
             WidgetKind.Accounts -> AccountBalancesWidget.accountRows(context, widgetId)
             // The single-item widgets have no list.

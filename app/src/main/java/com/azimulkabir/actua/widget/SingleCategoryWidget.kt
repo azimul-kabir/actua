@@ -5,7 +5,6 @@ import android.content.Context
 import android.widget.RemoteViews
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
-import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.preferences.FavoritePreferences
 import com.azimulkabir.actua.model.categoryKey
 
@@ -23,16 +22,16 @@ internal object SingleCategoryWidget {
         return views
     }
 
-    fun update(context: Context, manager: AppWidgetManager, widgetId: Int) {
+    fun update(context: Context, manager: AppWidgetManager, widgetId: Int, sharedRepository: ActuaRepository? = null) {
         val views = RemoteViews(context.packageName, WidgetStyles.layout(context, R.layout.widget_single_category, R.layout.widget_single_category_styled))
-        val repository = ActuaRepository(context)
+        val repository = sharedRepository ?: ActuaRepository(context)
         var progressStatus = ProgressStatus.Normal
         try {
             loadBudgetFormats(repository)
             if (!repository.isUsingActualBudget) {
                 showSingleMessage(views, context.getString(R.string.widget_no_budget), open(context, WidgetActions.BUDGET, widgetId))
             } else {
-                val budgetId = ActiveBudgetStore(context).budgetId ?: "no-budget"
+                val budgetId = repository.activeMetadata?.id ?: "no-budget"
                 val favorites = FavoritePreferences(context).ids(budgetId, FavoritePreferences.Type.CATEGORY)
                 // Skipping setup shows the first favorite, or the first category when there are none.
                 val categories = repository.budgetGroups().asSequence()
@@ -59,7 +58,7 @@ internal object SingleCategoryWidget {
             WidgetStyles.apply(context, views, progressStatus)
             manager.updateAppWidget(widgetId, views)
         } finally {
-            repository.close()
+            if (sharedRepository == null) repository.close()
         }
     }
 }

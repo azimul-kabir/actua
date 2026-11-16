@@ -127,7 +127,6 @@ import com.azimulkabir.actua.ui.accounts.CloseCategoryGroup
 import com.azimulkabir.actua.ui.automation.BudgetAutomationScreen
 import com.azimulkabir.actua.ui.budget.BudgetScreen
 import com.azimulkabir.actua.ui.budget.CategoryBudgetAction
-import com.azimulkabir.actua.ui.settings.BudgetSelectionItem
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.azimulkabir.actua.ui.settings.SettingsScreen
@@ -478,7 +477,15 @@ fun AppNavigation(
     var repositoryVersion by remember { mutableStateOf(0) }
     var budgetReplacementInProgress by remember { mutableStateOf(false) }
     var budgetReplacementCompleted by remember { mutableStateOf(false) }
-    val activeBudgetId = remember(repositoryVersion) { ActiveBudgetStore(context).budgetId }
+    var dataVersion by remember { mutableStateOf(0) }
+    val repositoryState = rememberRepository(appContext, repositoryVersion) { dataVersion += 1 }
+    if (repositoryState == null) {
+        BudgetSwitchDialog()
+        return
+    }
+    val repositoryLoading = repositoryState.version != repositoryVersion
+    val repository = repositoryState.repository
+    val activeBudgetId = repository.activeMetadata?.id
     val favoriteBudgetId = activeBudgetId ?: "no-budget"
     val homeBudgetPreferencesState = rememberHomeBudgetPreferencesState(homePreferences, favoritePreferences, favoriteBudgetId)
     var homeMonthStart by homeBudgetPreferencesState.homeMonthStart
@@ -487,16 +494,7 @@ fun AppNavigation(
     // 64 KB method limit, and inline handlers here pushed it over.
     val onMonthStartChange: (MonthStartRule) -> Unit = homeBudgetPreferencesState::setMonthStart
     val onHolidaysChange: (List<Holiday>) -> Unit = homeBudgetPreferencesState::setHolidays
-    val availableBudgetOptions = remember(repositoryVersion) {
-        BudgetFileManager(context).listLocalBudgets().map { budget ->
-            BudgetSelectionItem(
-                id = budget.id,
-                name = budget.budgetName ?: budget.id,
-            )
-        }
-    }
-    val repository = remember(repositoryVersion) { ActuaRepository(context) }
-    var dataVersion by remember { mutableStateOf(0) }
+    val availableBudgetOptions = repositoryState.budgets
     val importNavigationState = rememberImportNavigationState()
     var sharedImportText by importNavigationState.sharedImportText
     var sharedImportFile by importNavigationState.sharedImportFile
@@ -597,7 +595,7 @@ fun AppNavigation(
     ) { repository.transactions(statusFilter = transactionStatusFilter) }
     val filteredTransactions = transactionsForStatusFilter(transactionStatusFilter, transactions, narrowedTransactions)
     val searchTransactions: suspend (String) -> List<Transaction> = remember(repository, transactionStatusFilter) {
-        { query -> withContext(Dispatchers.IO) {
+        { query -> repository.withBackgroundOperation {
             repository.transactions(query, statusFilter = transactionStatusFilter)
         } }
     }
@@ -852,6 +850,7 @@ fun AppNavigation(
         failedFormat = navStrings.mutationFailedFormat,
         onInvalidated = { dataVersion += 1 },
         categoryAvailableCents = ::categoryAvailableCents,
+        repository = repository,
     )
 
     // The (disk I/O) mutation runs off the main thread; [onChanged] fires afterwards on the
@@ -871,7 +870,7 @@ fun AppNavigation(
     ) {
         coroutineScope.launch {
             suspendRunCatching {
-                withContext(Dispatchers.IO) {
+                repository.withBackgroundOperation {
                     context.contentResolver.openOutputStream(uri, "w")!!.bufferedWriter(Charsets.UTF_8).use(write)
                 }
             }.onSuccess {
@@ -930,7 +929,7 @@ fun AppNavigation(
                     it.name == transactionAccount && it.bankSyncSource != null
                 }
                 if (linkedAccount != null) {
-                    val bankResult = withContext(Dispatchers.IO) { repository.syncBanks(linkedAccount.id) }
+                    val bankResult = repository.withBackgroundOperation { repository.syncBanks(linkedAccount.id) }
                     snackbarHostState.showSnackbar(bankResult.summary)
                 }
                 when (withContext(Dispatchers.IO) {
@@ -960,7 +959,7 @@ fun AppNavigation(
         coroutineScope.launch {
             try {
                 if (accounts.any { it.bankSyncSource != null }) {
-                    val bankResult = withContext(Dispatchers.IO) { repository.syncBanks() }
+                    val bankResult = repository.withBackgroundOperation { repository.syncBanks() }
                     // One account with new rows can be opened from the message (#1066).
                     val viewAccount = bankResult.added.keys.singleOrNull()?.let { id -> accounts.firstOrNull { it.id == id } }
                     launch {
@@ -1099,8 +1098,8 @@ fun AppNavigation(
         if (syncDataGeneration > 0) dataVersion += 1
     }
 
-    LaunchedEffect(budgetReplacementCompleted) {
-        if (budgetReplacementCompleted) {
+    LaunchedEffect(budgetReplacementCompleted, repositoryLoading) {
+        if (budgetReplacementCompleted && !repositoryLoading) {
             // repositoryVersion has already rebuilt the repository and all screen projections.
             // Keep the blocker through the first frame that can display those new values.
             withFrameNanos { }
@@ -1128,7 +1127,7 @@ fun AppNavigation(
             (detail == DetailDestination.Main && destination in setOf(MainDestination.Home, MainDestination.Reports))
         if (needsReportSnapshot && (reportSnapshotVersion != dataVersion || reportSnapshotMonthStart != homeMonthStart)) {
             try {
-                val loaded = withContext(Dispatchers.IO) { repository.reports(dataVersion) }
+                val loaded = repository.withBackgroundOperation { repository.reports(dataVersion) }
                 reportSnapshot = loaded
                 reportSnapshotVersion = dataVersion
                 reportSnapshotMonthStart = homeMonthStart
@@ -1386,7 +1385,6 @@ fun AppNavigation(
             transactionSearch = ""
         }
         repositoryVersion += 1
-        dataVersion += 1
         WidgetUpdater.requestAll(context)
         ActualSyncScheduler.scheduleMutation(context)
     }
@@ -1610,16 +1608,16 @@ fun AppNavigation(
         val contentModifier = (if (drawsBehindTabBar) Modifier.padding(top = innerPadding.calculateTopPadding()) else Modifier.padding(innerPadding))
             .nestedScroll(fabScrollConnection)
         val loadReportWidgets: suspend (ReportViewFilter) -> List<ReportWidget> = remember(repository, dataVersion, homeMonthStart) {
-            { view -> withContext(Dispatchers.IO) { repository.savedReportWidgets(view, dataVersion) } }
+            { view -> repository.withBackgroundOperation { repository.savedReportWidgets(view, dataVersion) } }
         }
         val loadReportWidgetForRange: suspend (String, com.azimulkabir.actua.model.ReportRange) -> ReportWidget? = remember(repository, dataVersion, homeMonthStart) {
-            { widgetId, range -> withContext(Dispatchers.IO) { repository.reportWidgetForRange(widgetId, range, dataVersion) } }
+            { widgetId, range -> repository.withBackgroundOperation { repository.reportWidgetForRange(widgetId, range, dataVersion) } }
         }
         val loadReportTransactions: suspend (List<String>) -> List<Transaction> = remember(repository) {
-            { ids -> withContext(Dispatchers.IO) { repository.reportTransactions(ids) } }
+            { ids -> repository.withBackgroundOperation { repository.reportTransactions(ids) } }
         }
         val loadDrillDownTransactions: suspend (DrillDownQuery) -> List<Transaction> = remember(repository) {
-            { query -> withContext(Dispatchers.IO) { repository.drillDownTransactions(query) } }
+            { query -> repository.withBackgroundOperation { repository.drillDownTransactions(query) } }
         }
         val onEditReportTransaction: (Transaction) -> Unit = { tx ->
             editingTransaction = tx
@@ -1749,7 +1747,6 @@ fun AppNavigation(
             ) {
                 budgetReplacementInProgress = true
                 budgetReplacementCompleted = false
-                repository.close()
                 ActiveBudgetStore(context).budgetId = budgetId
                 // Account, category and month filters hold ids from the previous budget.
                 transactionAccount = null
@@ -1757,7 +1754,6 @@ fun AppNavigation(
                 transactionMonth = null
                 transactionSearch = ""
                 repositoryVersion += 1
-                dataVersion += 1
                 budgetReplacementCompleted = true
                 CreditCardDueNotificationScheduler.refreshAsync(context)
                 WidgetUpdater.requestAll(context)
@@ -2104,12 +2100,12 @@ fun AppNavigation(
                     val impactCategories = budgetCategoriesOf(savedTransaction) +
                         (editingTransaction?.let { budgetCategoriesOf(it) } ?: emptySet())
                     coroutineScope.launch {
-                        val categoryBalancesBefore = withContext(Dispatchers.IO) { categoryAvailableCents(impactCategories) }
+                        val categoryBalancesBefore = repository.withBackgroundOperation { categoryAvailableCents(impactCategories) }
                         // The local CRDT write is disk I/O; keep it off the main thread so the
                         // editor dismisses as soon as the transaction is durably saved locally,
                         // without waiting on anything network-related (sync is scheduled
                         // separately and runs fully asynchronously).
-                        val result = withContext(Dispatchers.IO) {
+                        val result = repository.withBackgroundOperation {
                             runCatching { repository.saveTransaction(savedTransaction) }
                         }
                         result.onFailure { error ->
@@ -2119,13 +2115,13 @@ fun AppNavigation(
                         if (result.isSuccess) {
                             dataVersion += 1
                             if (impactCategories.isNotEmpty()) {
-                                val categoryBalancesAfter = withContext(Dispatchers.IO) { categoryAvailableCents(impactCategories) }
+                                val categoryBalancesAfter = repository.withBackgroundOperation { categoryAvailableCents(impactCategories) }
                                 transactionImpactCues = mutations.impactCues(categoryBalancesBefore, categoryBalancesAfter)
                             }
                             WidgetUpdater.requestAll(context)
                             keptReceiptPhoto?.let { photo ->
                                 val createdId = result.getOrNull()
-                                val outcome = withContext(Dispatchers.IO) {
+                                val outcome = repository.withBackgroundOperation {
                                     // A transfer has no single id to attach a photo to; the cache file goes away.
                                     val kept = if (!wasEditing && createdId != null) repository.keepReceiptPhoto(createdId, photo) else null
                                     photo.delete()
@@ -2152,7 +2148,7 @@ fun AppNavigation(
                             ) {
                                 val location = AndroidLocationProvider(context).currentCoordinates()
                                 if (location is CurrentLocationResult.Success) {
-                                    withContext(Dispatchers.IO) {
+                                    repository.withBackgroundOperation {
                                         repository.recordPayeeLocation(savedTransaction.payee, location.coordinates)
                                     }
                                 }
@@ -2247,7 +2243,7 @@ fun AppNavigation(
                     onDeleteReceiptPhoto = {
                         editingTransaction?.id?.let { id ->
                             coroutineScope.launch {
-                                withContext(Dispatchers.IO) { repository.deleteReceiptPhoto(id) }
+                                repository.withBackgroundOperation { repository.deleteReceiptPhoto(id) }
                                 receiptPhotoVersion += 1
                             }
                         }
@@ -2256,7 +2252,7 @@ fun AppNavigation(
                     onFindNearbyPayees = {
                         when (val location = AndroidLocationProvider(context).currentCoordinates()) {
                             is CurrentLocationResult.Success -> {
-                                val nearby = withContext(Dispatchers.IO) {
+                                val nearby = repository.withBackgroundOperation {
                                     repository.nearbyPayees(location.coordinates)
                                 }
                                 NearbyPayeeSearchResult(
@@ -2295,7 +2291,7 @@ fun AppNavigation(
                         { payeeName ->
                             when (val location = AndroidLocationProvider(context).currentCoordinates()) {
                                 is CurrentLocationResult.Success -> {
-                                    val recorded = withContext(Dispatchers.IO) {
+                                    val recorded = repository.withBackgroundOperation {
                                         repository.recordPayeeLocation(payeeName, location.coordinates)
                                     }
                                     if (recorded) dataVersion += 1
@@ -2330,7 +2326,7 @@ fun AppNavigation(
                     },
                     onForgetPayeeLocation = if (repository.payeeLocationWritesSupported()) {
                         { locationId ->
-                            withContext(Dispatchers.IO) {
+                            repository.withBackgroundOperation {
                                 repository.deletePayeeLocation(locationId)
                             }.also { deleted ->
                                 if (deleted) dataVersion += 1
@@ -2345,7 +2341,7 @@ fun AppNavigation(
                 transactions = filteredTransactions,
                 searchTransactions = remember(repository, transactionStatusFilter) {
                     { query, limit, offset ->
-                        withContext(Dispatchers.IO) {
+                        repository.withBackgroundOperation {
                             repository.transactions(query, limit, offset,
                                 statusFilter = transactionStatusFilter)
                         }
@@ -2406,7 +2402,6 @@ fun AppNavigation(
                 },
                 onBudgetInstalled = {
                     repositoryVersion += 1
-                    dataVersion += 1
                     if (budgetReplacementInProgress) budgetReplacementCompleted = true
                     CreditCardDueNotificationScheduler.refreshAsync(context)
                 },
@@ -2932,7 +2927,7 @@ fun AppNavigation(
                         }
                     },
                     loadCategoryDeletePlan = { group, category ->
-                        withContext(Dispatchers.IO) { runCatching { repository.categoryDeletePlan(group, category) }.getOrNull() }
+                        repository.withBackgroundOperation { runCatching { repository.categoryDeletePlan(group, category) }.getOrNull() }
                     },
                     onEditTransaction = { transaction ->
                         activeBudgetCategory = null
@@ -3331,7 +3326,7 @@ fun AppNavigation(
         }
         }
     }
-    if (budgetReplacementInProgress) BudgetSwitchDialog()
+    if (budgetReplacementInProgress || repositoryLoading) BudgetSwitchDialog()
     TransactionImpactPopup(
         cues = transactionImpactCues,
         hideDecimalPlaces = hideDecimalPlaces,

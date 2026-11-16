@@ -13,6 +13,7 @@ import android.os.Looper
 import android.widget.Toast
 import com.azimulkabir.actua.BuildConfig
 import com.azimulkabir.actua.R
+import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.preferences.withAppLanguage
 import com.azimulkabir.actua.data.schedules.ScheduleWidgetPeriod
 import java.util.concurrent.Executors
@@ -115,6 +116,7 @@ abstract class ActuaWidgetProvider : AppWidgetProvider() {
 
     override fun onDeleted(context: Context, widgetIds: IntArray) {
         kind?.let { WidgetPreferences(context).remove(it, widgetIds) }
+        widgetIds.forEach(WidgetListSnapshots::remove)
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -140,21 +142,17 @@ abstract class ActuaWidgetProvider : AppWidgetProvider() {
         onDone: () -> Unit = {},
     ) {
         val pending = goAsync()
-        EXECUTOR.execute {
+        WidgetUpdater.execute {
             try {
                 // Widget providers get no AppCompat locale handling, so resolve strings through
                 // a configuration context for the app locale chosen in Settings.
                 val localizedContext = context.withAppLanguage()
-                widgetIds.forEach { WidgetUpdater.update(localizedContext, manager, it, this) }
+                WidgetUpdater.updateProvider(localizedContext, manager, widgetIds, this)
                 onDone()
             } finally {
                 pending.finish()
             }
         }
-    }
-
-    private companion object {
-        val EXECUTOR = Executors.newSingleThreadExecutor()
     }
 }
 
@@ -259,44 +257,79 @@ object WidgetUpdater {
     }
     private val requestExecutor = Executors.newSingleThreadExecutor()
 
-    /** [requestAll] off the calling thread, for callers on the main thread such as configuration callbacks. */
+    internal fun execute(update: () -> Unit) { requestExecutor.execute(update) }
+
+    /** Always dispatches, including configuration callbacks that already run in a coroutine. */
     fun requestAllAsync(context: Context) {
         val app = context.applicationContext
-        requestExecutor.execute { requestAll(app) }
+        requestExecutor.execute { refreshAll(app) }
     }
 
     fun requestAll(context: Context) {
         val app = context.applicationContext
-        previewExecutor.execute { publishPreviews(app) }
-        val manager = AppWidgetManager.getInstance(app)
-        providers.forEach { provider ->
-            val component = ComponentName(app, provider)
-            val ids = manager.getAppWidgetIds(component)
-            if (ids.isNotEmpty()) {
-                app.sendBroadcast(Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE).apply {
-                    this.component = component
-                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
-                })
-            }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            requestAllAsync(app)
+        } else {
+            // A worker must finish its widget pass before returning and releasing its lifetime.
+            refreshAll(app)
         }
     }
+
+    private fun refreshAll(context: Context) {
+        previewExecutor.execute { publishPreviews(context) }
+        val manager = AppWidgetManager.getInstance(context)
+        val updates = providers.mapNotNull { provider ->
+            val ids = manager.getAppWidgetIds(ComponentName(context, provider))
+            if (ids.isEmpty()) null else provider.getDeclaredConstructor().newInstance() to ids
+        }
+        updateBatch(context.withAppLanguage(), manager, updates)
+    }
+
+    internal fun updateProvider(context: Context, manager: AppWidgetManager, ids: IntArray, provider: ActuaWidgetProvider) {
+        updateBatch(context, manager, listOf(provider to ids))
+    }
+
+    /** One owner for every widget and its service-backed collection rows in an update pass. */
+    @Synchronized
+    internal fun updateBatch(
+        context: Context,
+        manager: AppWidgetManager,
+        updates: List<Pair<ActuaWidgetProvider, IntArray>>,
+        openRepository: (Context) -> ActuaRepository = ::ActuaRepository,
+    ) {
+        if (updates.none { it.second.isNotEmpty() }) return
+        if (updates.all { (provider, ids) -> provider is QuickTransactionWidgetProvider || ids.isEmpty() }) {
+            updates.forEach { (provider, ids) -> ids.forEach { update(context, manager, it, provider) } }
+            return
+        }
+        val repository = openRepository(context)
+        try {
+            updates.forEach { (provider, ids) ->
+                ids.forEach { update(context, manager, it, provider, repository) }
+            }
+        } finally {
+            repository.close()
+        }
+    }
+
     internal fun update(
         context: Context,
         manager: AppWidgetManager,
         widgetId: Int,
         provider: ActuaWidgetProvider,
+        repository: ActuaRepository? = null,
     ) {
         when (provider) {
-            is BudgetSnapshotWidgetProvider -> BudgetSnapshotWidget.update(context, manager, widgetId)
-            is FavouriteCategoriesWidgetProvider -> FavouriteCategoriesWidget.update(context, manager, widgetId)
+            is BudgetSnapshotWidgetProvider -> BudgetSnapshotWidget.update(context, manager, widgetId, repository)
+            is FavouriteCategoriesWidgetProvider -> FavouriteCategoriesWidget.update(context, manager, widgetId, repository)
             is QuickTransactionWidgetProvider -> QuickTransactionWidget.update(context, manager, widgetId)
-            is AccountBalancesWidgetProvider -> AccountBalancesWidget.update(context, manager, widgetId)
-            is ScheduledTransactionsWidgetProvider -> ScheduledTransactionsWidget.update(context, manager, widgetId)
-            is SingleCategoryWidgetProvider -> SingleCategoryWidget.update(context, manager, widgetId)
-            is SingleAccountWidgetProvider -> SingleAccountWidget.update(context, manager, widgetId)
-            is SpendingTrendWidgetProvider -> SpendingTrendWidget.update(context, manager, widgetId)
-            is IncomeSpendingWidgetProvider -> IncomeSpendingWidget.update(context, manager, widgetId)
-            is ReportCardWidgetProvider -> ReportCardWidget.update(context, manager, widgetId)
+            is AccountBalancesWidgetProvider -> AccountBalancesWidget.update(context, manager, widgetId, repository)
+            is ScheduledTransactionsWidgetProvider -> ScheduledTransactionsWidget.update(context, manager, widgetId, repository)
+            is SingleCategoryWidgetProvider -> SingleCategoryWidget.update(context, manager, widgetId, repository)
+            is SingleAccountWidgetProvider -> SingleAccountWidget.update(context, manager, widgetId, repository)
+            is SpendingTrendWidgetProvider -> SpendingTrendWidget.update(context, manager, widgetId, repository)
+            is IncomeSpendingWidgetProvider -> IncomeSpendingWidget.update(context, manager, widgetId, repository)
+            is ReportCardWidgetProvider -> ReportCardWidget.update(context, manager, widgetId, repository)
             else -> Unit
         }
     }

@@ -49,6 +49,7 @@ class SettingsBackNavigationTest {
 
     @Test fun backFromCustomizeHomeReturnsToSettingsNotManage() {
         composeRule.setContent { MaterialTheme { AppNavigation() } }
+        composeRule.waitForNavigation()
 
         composeRule.onNodeWithContentDescription("Manage", useUnmergedTree = true).performClick()
         composeRule.onNodeWithContentDescription(strings.getString(R.string.settings_open_settings)).performClick()
@@ -68,6 +69,7 @@ class SettingsBackNavigationTest {
 
     @Test fun backFromCustomizeTabBarReturnsToDisplaySettingsNotManage() {
         composeRule.setContent { MaterialTheme { AppNavigation() } }
+        composeRule.waitForNavigation()
 
         composeRule.onNodeWithContentDescription("Manage", useUnmergedTree = true).performClick()
         composeRule.onNodeWithContentDescription(strings.getString(R.string.settings_open_settings)).performClick()

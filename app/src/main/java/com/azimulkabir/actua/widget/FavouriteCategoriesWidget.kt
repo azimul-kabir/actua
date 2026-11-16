@@ -7,7 +7,6 @@ import android.text.format.DateFormat
 import android.widget.RemoteViews
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
-import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.preferences.FavoritePreferences
 import java.util.Date
 
@@ -30,10 +29,15 @@ internal object FavouriteCategoriesWidget {
         )
     }
 
-    fun update(context: Context, manager: AppWidgetManager, widgetId: Int) {
-        val repository = ActuaRepository(context)
-        val usingBudget = try { repository.isUsingActualBudget } finally { repository.close() }
-        val budgetId = ActiveBudgetStore(context).budgetId ?: "no-budget"
+    fun update(context: Context, manager: AppWidgetManager, widgetId: Int, sharedRepository: ActuaRepository? = null) {
+        val repository = sharedRepository ?: ActuaRepository(context)
+        val usingBudget = repository.isUsingActualBudget
+        try {
+            WidgetListSnapshots.save(repository.activeMetadata?.id, widgetId, categoryRows(context, repository))
+        } finally {
+            if (sharedRepository == null) repository.close()
+        }
+        val budgetId = repository.activeMetadata?.id ?: "no-budget"
         val noFavorites = usingBudget && FavoritePreferences(context).ids(budgetId, FavoritePreferences.Type.CATEGORY).isEmpty()
         val updatedAt = DateFormat.getTimeFormat(context).format(Date())
         manager.updateAppWidget(
@@ -71,8 +75,8 @@ internal object FavouriteCategoriesWidget {
         manager.notifyAppWidgetViewDataChanged(widgetId, R.id.widget_item_list)
     }
 
-    internal fun categoryRows(context: Context): List<WidgetRow> {
-        val repository = ActuaRepository(context)
+    internal fun categoryRows(context: Context, sharedRepository: ActuaRepository? = null): List<WidgetRow> {
+        val repository = sharedRepository ?: ActuaRepository(context)
         try {
             loadBudgetFormats(repository)
             val all = repository.budgetGroups().asSequence()
@@ -80,11 +84,11 @@ internal object FavouriteCategoriesWidget {
                 .flatMap { it.categories.asSequence() }
                 .filterNot { it.hidden }
                 .toList()
-            val budgetId = ActiveBudgetStore(context).budgetId ?: "no-budget"
+            val budgetId = repository.activeMetadata?.id ?: "no-budget"
             val favorites = FavoritePreferences(context).ids(budgetId, FavoritePreferences.Type.CATEGORY)
             return all.filter { it.id in favorites }.take(MAX_WIDGET_ROWS).map { categoryRowOf(context, it) }
         } finally {
-            repository.close()
+            if (sharedRepository == null) repository.close()
         }
     }
 }

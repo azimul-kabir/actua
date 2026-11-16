@@ -45,6 +45,16 @@ class BudgetFileManager(context: Context) {
         check(root.mkdirs() || root.isDirectory) { "Unable to create the budgets directory" }
     }
 
+    /** A schema-readability check for background callers; no migrations, repository or full probe. */
+    fun hasReadableActiveBudget(): Boolean {
+        val budgetId = ActiveBudgetStore(localizedContext).budgetId ?: return false
+        return runCatching {
+            if (metadata(budgetId) == null) return@runCatching false
+            ActualBudgetDatabase.validate(databaseFile(budgetId))
+            true
+        }.getOrDefault(false)
+    }
+
     fun budgetDirectory(budgetId: String): File = File(root, safeBudgetId(budgetId))
     fun databaseFile(budgetId: String): File = File(budgetDirectory(budgetId), DATABASE_NAME)
     fun metadataFile(budgetId: String): File = File(budgetDirectory(budgetId), METADATA_NAME)
@@ -121,6 +131,7 @@ class BudgetFileManager(context: Context) {
     }
 
     fun deleteBudget(budgetId: String) {
+        BudgetOpenProbe.invalidate(databaseFile(budgetId))
         val directory = budgetDirectory(budgetId)
         require(directory.isDirectory) { "Budget no longer exists on this device" }
         check(directory.deleteRecursively()) { "Unable to remove budget from this device" }
@@ -156,7 +167,6 @@ class BudgetFileManager(context: Context) {
         check(staging.mkdirs()) { "Unable to create import staging directory" }
         try {
             val extracted = extractArchive(archive, staging)
-            ActualBudgetDatabase.validate(extracted.database)
             BudgetOpenProbe.validate(extracted.database)
 
             val json = JSONObject(extracted.metadata.readText())
@@ -204,7 +214,6 @@ class BudgetFileManager(context: Context) {
         check(staging.mkdirs()) { "Unable to create import staging directory" }
         try {
             val extracted = extractArchive(archive, staging)
-            ActualBudgetDatabase.validate(extracted.database)
             BudgetOpenProbe.validate(extracted.database)
 
             val json = JSONObject(extracted.metadata.readText())
@@ -303,6 +312,7 @@ class BudgetFileManager(context: Context) {
     ) {
         val directory = budgetDirectory(budgetId)
         val liveDatabase = databaseFile(budgetId)
+        BudgetOpenProbe.invalidate(liveDatabase)
         val liveMetadata = metadataFile(budgetId)
         checkpoint(liveDatabase)
 
