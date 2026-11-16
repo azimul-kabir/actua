@@ -65,6 +65,21 @@ object ActualSyncRunner {
         clearRecentSuccess()
     }
 
+    // Persisted separately from cleared sync status so queued work stays invalid after process death.
+    internal fun workGeneration(context: Context): Long = context.applicationContext
+        .getSharedPreferences("actua-sync-work", Context.MODE_PRIVATE).getLong("generation", 0L)
+
+    @Synchronized
+    internal fun invalidateScheduledWork(context: Context) {
+        check(context.applicationContext.getSharedPreferences("actua-sync-work", Context.MODE_PRIVATE)
+            .edit().putLong("generation", workGeneration(context) + 1L).commit())
+    }
+
+    /** Includes completion writes and follow-up work in the same critical section as disconnect. */
+    @Synchronized
+    internal fun <T : Any> runScheduledWork(context: Context, generation: Long, block: () -> T): T? =
+        if (generation == workGeneration(context)) block() else null
+
     @Synchronized
     fun run(
         context: Context,
@@ -236,7 +251,13 @@ internal fun allowsRecentSuccess(reason: String?): Boolean =
     reason != ActualSyncWorker.REASON_MUTATION
 
 class ActualSyncWorker(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): Result = ActualSyncRunner.runScheduledWork(
+        applicationContext, inputData.getLong(GENERATION_KEY, 0L),
+    ) {
+        if (isStopped) Result.success() else runSync()
+    } ?: Result.success()
+
+    private fun runSync(): Result {
         val reason = inputData.getString(REASON_KEY)
         return try {
             when (val run = ActualSyncRunner.run(
@@ -275,6 +296,7 @@ class ActualSyncWorker(context: Context, parameters: WorkerParameters) : Corouti
     }
 
     companion object {
+        internal const val GENERATION_KEY = "syncGeneration"
         const val BACKUP_KEY = "makeBackup"
         const val BACKGROUND_KEY = "backgroundRefresh"
         const val REASON_KEY = "reason"
@@ -285,7 +307,13 @@ class ActualSyncWorker(context: Context, parameters: WorkerParameters) : Corouti
 }
 
 class LocalBackupWorker(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): Result = ActualSyncRunner.runScheduledWork(
+        applicationContext, inputData.getLong(ActualSyncWorker.GENERATION_KEY, 0L),
+    ) {
+        if (isStopped) Result.success() else runBackup()
+    } ?: Result.success()
+
+    private fun runBackup(): Result {
         return try {
             val budgetId = ActiveBudgetStore(applicationContext).budgetId ?: return Result.success()
             BackupService(applicationContext).makeBackup(budgetId)
@@ -302,6 +330,7 @@ object ActualSyncScheduler {
     fun schedulePeriodic(context: Context) {
         val request = PeriodicWorkRequestBuilder<ActualSyncWorker>(15, TimeUnit.MINUTES)
             .setInputData(workDataOf(
+                ActualSyncWorker.GENERATION_KEY to ActualSyncRunner.workGeneration(context),
                 ActualSyncWorker.BACKUP_KEY to true,
                 ActualSyncWorker.BACKGROUND_KEY to true,
                 ActualSyncWorker.REASON_KEY to ActualSyncWorker.REASON_PERIODIC,
@@ -314,16 +343,28 @@ object ActualSyncScheduler {
     /** A short delay coalesces the CRDT cells produced by one user operation. */
     fun scheduleMutation(context: Context) {
         val request = OneTimeWorkRequestBuilder<ActualSyncWorker>()
-            .setInputData(workDataOf(ActualSyncWorker.REASON_KEY to ActualSyncWorker.REASON_MUTATION))
+            .setInputData(workDataOf(
+                ActualSyncWorker.GENERATION_KEY to ActualSyncRunner.workGeneration(context),
+                ActualSyncWorker.REASON_KEY to ActualSyncWorker.REASON_MUTATION,
+            ))
             .setInitialDelay(1, TimeUnit.SECONDS)
             .setConstraints(network).setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.SECONDS).build()
         WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(IMMEDIATE, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
     }
 
     fun scheduleLocalBackup(context: Context) {
-        val request = OneTimeWorkRequestBuilder<LocalBackupWorker>().build()
+        val request = OneTimeWorkRequestBuilder<LocalBackupWorker>()
+            .setInputData(workDataOf(ActualSyncWorker.GENERATION_KEY to ActualSyncRunner.workGeneration(context)))
+            .build()
         WorkManager.getInstance(context.applicationContext)
             .enqueueUniqueWork(LOCAL_BACKUP, ExistingWorkPolicy.REPLACE, request)
+    }
+
+    /** Call while sync is paused; invalidation also covers work whose cancellation arrives late. */
+    internal fun cancelForDisconnect(context: Context) {
+        ActualSyncRunner.invalidateScheduledWork(context)
+        val manager = WorkManager.getInstance(context.applicationContext)
+        listOf(PERIODIC, IMMEDIATE, LOCAL_BACKUP).forEach(manager::cancelUniqueWork)
     }
 
     private const val PERIODIC = "actua-periodic-sync"
