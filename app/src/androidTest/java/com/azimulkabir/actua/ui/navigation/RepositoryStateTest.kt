@@ -3,6 +3,7 @@ package com.azimulkabir.actua.ui.navigation
 import android.os.StrictMode
 import android.os.strictmode.Violation
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -24,7 +25,13 @@ import java.util.concurrent.atomic.AtomicReference
 class RepositoryStateTest {
     @get:Rule val composeRule = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun disposingRepositoryWaitsForCancelledProjectionToFinishReading() {
+    @Test fun disposingRepositoryWaitsForCancelledProjectionToFinishReading() =
+        checkDisposalWaitsForRead(useRememberLoaded = true)
+
+    @Test fun disposingRepositoryWaitsForDirectReportLoadToFinishReading() =
+        checkDisposalWaitsForRead(useRememberLoaded = false)
+
+    private fun checkDisposalWaitsForRead(useRememberLoaded: Boolean) {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val files = BudgetFileManager(context)
         val active = ActiveBudgetStore(context)
@@ -42,17 +49,22 @@ class RepositoryStateTest {
                 if (showing.value) {
                     val state = rememberRepository(context, 0)
                     latest.set(state)
-                    if (state != null) rememberLoaded(state.repository, initial = 0) {
-                        entered.countDown()
-                        try {
-                            check(resume.await(15, TimeUnit.SECONDS))
-                            state.repository.accounts().size
-                        } catch (error: Throwable) {
-                            failure.set(error)
-                            throw error
-                        } finally {
-                            finished.countDown()
+                    if (state != null) {
+                        val load = {
+                            entered.countDown()
+                            try {
+                                check(resume.await(15, TimeUnit.SECONDS))
+                                if (useRememberLoaded) state.repository.accounts().size
+                                else state.repository.reports().months.size
+                            } catch (error: Throwable) {
+                                failure.set(error)
+                                throw error
+                            } finally {
+                                finished.countDown()
+                            }
                         }
+                        if (useRememberLoaded) rememberLoaded(state.repository, initial = 0, load = load)
+                        else LaunchedEffect(state.repository) { state.repository.withBackgroundOperation(block = load) }
                     }
                 }
             }

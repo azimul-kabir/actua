@@ -18,7 +18,6 @@ import com.azimulkabir.actua.ui.banksync.EnableBankingFlow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 internal class BankSyncNavigationActions(
     val enableBankingFlow: EnableBankingFlow,
@@ -68,19 +67,19 @@ internal fun bankSyncNavigationActions(
 
     fun loadBankSyncProviderStatus() {
         coroutineScope.launch {
-            simpleFinConfigured = withContext(Dispatchers.IO) {
+            simpleFinConfigured = repository.withBackgroundOperation {
                 runCatching { repository.bankSyncProviderConfigured("simpleFin") }.getOrDefault(false)
             }
-            goCardlessConfigured = withContext(Dispatchers.IO) {
+            goCardlessConfigured = repository.withBackgroundOperation {
                 runCatching { repository.bankSyncProviderConfigured("goCardless") }.getOrDefault(false)
             }
-            enableBankingConfigured = withContext(Dispatchers.IO) {
+            enableBankingConfigured = repository.withBackgroundOperation {
                 runCatching { repository.bankSyncProviderConfigured("enableBanking") }.getOrDefault(false)
             }
-            pluggyAiConfigured = withContext(Dispatchers.IO) {
+            pluggyAiConfigured = repository.withBackgroundOperation {
                 runCatching { repository.bankSyncProviderConfigured("pluggyai") }.getOrDefault(false)
             }
-            akahuConfigured = withContext(Dispatchers.IO) {
+            akahuConfigured = repository.withBackgroundOperation {
                 runCatching { repository.bankSyncProviderConfigured("akahu") }.getOrDefault(false)
             }
         }
@@ -96,9 +95,9 @@ internal fun bankSyncNavigationActions(
         com.azimulkabir.actua.ui.banksync.EnableBankingFlow(
             scope = coroutineScope,
             io = Dispatchers.IO,
-            loadBanks = repository::discoverEnableBankingBanks,
-            startAuthorization = repository::startEnableBankingAuthorization,
-            awaitAuthorization = repository::awaitEnableBankingAuthorization,
+            loadBanks = { country -> repository.withRetainedAccess { repository.discoverEnableBankingBanks(country) } },
+            startAuthorization = { bank -> repository.withRetainedAccess { repository.startEnableBankingAuthorization(bank) } },
+            awaitAuthorization = { state -> repository.withRetainedAccess { repository.awaitEnableBankingAuthorization(state) } },
             openUrl = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
             onError = { message -> errorMessage = message },
             messages = enableBankingMessages,
@@ -107,7 +106,7 @@ internal fun bankSyncNavigationActions(
 
     fun saveEnableBankingCredentials(applicationId: String, secretKey: String) {
         coroutineScope.launch {
-            suspendRunCatching { withContext(Dispatchers.IO) { repository.setEnableBankingCredentials(applicationId, secretKey) } }
+            suspendRunCatching { repository.withBackgroundOperation { repository.setEnableBankingCredentials(applicationId, secretKey) } }
                 .onSuccess {
                     loadBankSyncProviderStatus()
                     snackbarHostState.showSnackbar(navStrings.enableBankingSaved)
@@ -128,7 +127,7 @@ internal fun bankSyncNavigationActions(
 
     fun savePluggyAiCredentials(clientId: String, clientSecret: String, itemIds: String, perBudget: Boolean) {
         coroutineScope.launch {
-            suspendRunCatching { withContext(Dispatchers.IO) { repository.setPluggyAiCredentials(clientId, clientSecret, itemIds, perBudget) } }
+            suspendRunCatching { repository.withBackgroundOperation { repository.setPluggyAiCredentials(clientId, clientSecret, itemIds, perBudget) } }
                 .onSuccess {
                     loadBankSyncProviderStatus()
                     snackbarHostState.showSnackbar(pluggyAiSavedMessage)
@@ -139,7 +138,7 @@ internal fun bankSyncNavigationActions(
 
     fun saveAkahuCredentials(userToken: String, appToken: String) {
         coroutineScope.launch {
-            suspendRunCatching { withContext(Dispatchers.IO) { repository.setAkahuCredentials(userToken, appToken) } }
+            suspendRunCatching { repository.withBackgroundOperation { repository.setAkahuCredentials(userToken, appToken) } }
                 .onSuccess {
                     loadBankSyncProviderStatus()
                     snackbarHostState.showSnackbar(akahuSavedMessage)
@@ -164,7 +163,7 @@ internal fun bankSyncNavigationActions(
     fun discoverPluggyAiAccounts() {
         pluggyAiDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Loading
         coroutineScope.launch {
-            pluggyAiDiscovery = suspendRunCatching { withContext(Dispatchers.IO) { repository.discoverPluggyAiAccounts() } }.fold(
+            pluggyAiDiscovery = suspendRunCatching { repository.withBackgroundOperation { repository.discoverPluggyAiAccounts() } }.fold(
                 onSuccess = ::providerDiscovery,
                 onFailure = { error ->
                     DiagnosticsLog.actionFailed("Loading Pluggy.ai accounts", error)
@@ -177,7 +176,7 @@ internal fun bankSyncNavigationActions(
     fun discoverAkahuAccounts() {
         akahuDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Loading
         coroutineScope.launch {
-            akahuDiscovery = suspendRunCatching { withContext(Dispatchers.IO) { repository.discoverAkahuAccounts() } }.fold(
+            akahuDiscovery = suspendRunCatching { repository.withBackgroundOperation { repository.discoverAkahuAccounts() } }.fold(
                 onSuccess = ::providerDiscovery,
                 onFailure = { error ->
                     DiagnosticsLog.actionFailed("Loading Akahu accounts", error)
@@ -189,7 +188,7 @@ internal fun bankSyncNavigationActions(
 
     fun saveSimpleFinToken(token: String) {
         coroutineScope.launch {
-            suspendRunCatching { withContext(Dispatchers.IO) { repository.setSimpleFinToken(token) } }
+            suspendRunCatching { repository.withBackgroundOperation { repository.setSimpleFinToken(token) } }
                 .onSuccess {
                     loadBankSyncProviderStatus()
                     snackbarHostState.showSnackbar(navStrings.simplefinSaved)
@@ -203,7 +202,7 @@ internal fun bankSyncNavigationActions(
 
     fun saveGoCardlessCredentials(secretId: String, secretKey: String) {
         coroutineScope.launch {
-            suspendRunCatching { withContext(Dispatchers.IO) { repository.setGoCardlessCredentials(secretId, secretKey) } }
+            suspendRunCatching { repository.withBackgroundOperation { repository.setGoCardlessCredentials(secretId, secretKey) } }
                 .onSuccess {
                     loadBankSyncProviderStatus()
                     snackbarHostState.showSnackbar(navStrings.gocardlessSaved)
@@ -218,7 +217,7 @@ internal fun bankSyncNavigationActions(
     fun discoverSimpleFinAccounts() {
         simpleFinDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Loading
         coroutineScope.launch {
-            simpleFinDiscovery = suspendRunCatching { withContext(Dispatchers.IO) { repository.discoverSimpleFinAccounts() } }.fold(
+            simpleFinDiscovery = suspendRunCatching { repository.withBackgroundOperation { repository.discoverSimpleFinAccounts() } }.fold(
                 onSuccess = { result ->
                     when (result) {
                         is com.azimulkabir.actua.data.network.SimpleFinAccountsResult.Available -> com.azimulkabir.actua.ui.banksync.DiscoveryState.Available(
@@ -245,7 +244,7 @@ internal fun bankSyncNavigationActions(
     fun loadGoCardlessInstitutions(country: String) {
         goCardlessInstitutionsLoading = true
         coroutineScope.launch {
-            goCardlessInstitutions = suspendRunCatching { withContext(Dispatchers.IO) { repository.discoverGoCardlessInstitutions(country) } }
+            goCardlessInstitutions = suspendRunCatching { repository.withBackgroundOperation { repository.discoverGoCardlessInstitutions(country) } }
                 .getOrElse { error ->
                     errorMessage = error.message?.takeIf(String::isNotBlank)
                         ?: navStrings.banksLoadFailedFormat.format(country)
@@ -257,7 +256,7 @@ internal fun bankSyncNavigationActions(
 
     fun startGoCardlessAuthorization(institutionId: String) {
         coroutineScope.launch {
-            suspendRunCatching { withContext(Dispatchers.IO) { repository.startGoCardlessAuthorization(institutionId) } }
+            suspendRunCatching { repository.withBackgroundOperation { repository.startGoCardlessAuthorization(institutionId) } }
                 .onSuccess { webToken ->
                     goCardlessRequisitionId = webToken.requisitionId
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(webToken.link)))
@@ -279,7 +278,7 @@ internal fun bankSyncNavigationActions(
         }
         goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Loading
         coroutineScope.launch {
-            goCardlessDiscovery = suspendRunCatching { withContext(Dispatchers.IO) { repository.goCardlessAccountsForRequisition(requisitionId) } }.fold(
+            goCardlessDiscovery = suspendRunCatching { repository.withBackgroundOperation { repository.goCardlessAccountsForRequisition(requisitionId) } }.fold(
                 onSuccess = { result ->
                     when (result) {
                         is com.azimulkabir.actua.data.network.GoCardlessAccountsResult.Available -> com.azimulkabir.actua.ui.banksync.DiscoveryState.Available(

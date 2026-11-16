@@ -2,8 +2,6 @@ package com.azimulkabir.actua.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.ui.accounts.AccountsScreen
 import com.azimulkabir.actua.ui.accounts.CloseAccountOptions
@@ -51,7 +49,7 @@ internal fun NavigationManageCategoriesScreen(
             onMutate(R.string.navigation_deleting_category) { repository.deleteCategory(group, category, transferToId) }
         },
         loadCategoryDeletePlan = { group, category ->
-            withContext(Dispatchers.IO) { runCatching { repository.categoryDeletePlan(group, category) }.getOrNull() }
+            repository.withBackgroundOperation { runCatching { repository.categoryDeletePlan(group, category) }.getOrNull() }
         },
         onDeleteGroup = { group, targetGroupId ->
             onMutate(R.string.navigation_deleting_group) { repository.deleteCategoryGroup(group.id, targetGroupId) }
@@ -150,7 +148,7 @@ internal fun NavigationAccountsScreen(
         onAccountClick = onAccountClick,
         onAllAccountsClick = onAllAccountsClick,
         loadCloseOptions = { account ->
-            withContext(Dispatchers.IO) {
+            repository.withBackgroundOperation {
                 CloseAccountOptions(
                     hasTransactions = repository.accountHasTransactions(account.id),
                     categoryGroups = repository.categoryGroupsForReorder().map { group ->

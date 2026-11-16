@@ -79,7 +79,9 @@ lists what was ported, what was only checked by reading, and what is not ported.
   each budget file in a process and again after migration or file replacement; downloads, imports
   and restores always validate their staged file. Failed checks never delete the local budget.
   The app opens repositories off the main thread, and each widget refresh pass shares its open
-  repository and prepares the collection rows before the launcher requests them.
+  repository and prepares the collection rows before the launcher requests them. Background reads,
+  mutations and dispatched callbacks retain that repository until their blocking work returns;
+  disposal rejects queued stale work and defers connection closure until every operation completes.
 - Accounts, payees, category groups/categories, transactions, transfers, splits; account
   lifecycle, balances, groups, notes/preferences and credit-card data are itemized with upstream
   links, a synthetic balance cross-check and filed divergences in

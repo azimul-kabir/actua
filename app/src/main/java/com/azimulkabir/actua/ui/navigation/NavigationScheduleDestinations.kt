@@ -14,8 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.ui.settings.SchedulesScreen
@@ -171,7 +169,9 @@ internal fun NavigationScheduleScreens(
         }
         DetailDestination.ImportTransactions -> ImportTransactionsScreen(
             accounts = accounts.filterNot { it.closed },
-            findMatches = repository::importMatches,
+            findMatches = { accountId, candidates ->
+                repository.withRetainedAccess { repository.importMatches(accountId, candidates) }
+            },
             onImport = { groups, cleared, onImported ->
                 onMutate(R.string.navigation_importing_transactions, onImported) {
                     repository.importTransactions(groups, cleared) == groups.sumOf { it.candidates.size }
@@ -188,7 +188,9 @@ internal fun NavigationScheduleScreens(
         DetailDestination.ReviewCaptured -> key(capturedReviewRequest) {
             ImportTransactionsScreen(
                 accounts = accounts.filterNot { it.closed },
-                findMatches = repository::importMatches,
+                findMatches = { accountId, candidates ->
+                    repository.withRetainedAccess { repository.importMatches(accountId, candidates) }
+                },
                 onImport = { groups, cleared, onImported ->
                     onMutate(R.string.navigation_importing_transactions, onImported) {
                         repository.importTransactions(groups, cleared) == groups.sumOf { it.candidates.size }
@@ -244,7 +246,7 @@ internal fun NavigationScheduleScreens(
                 initialValue = null,
                 key1 = dataVersion,
             ) {
-                value = withContext(Dispatchers.IO) { repository.discoverSchedules() }
+                value = repository.withBackgroundOperation { repository.discoverSchedules() }
             }
             FindSchedulesScreen(
                 proposals = proposals,

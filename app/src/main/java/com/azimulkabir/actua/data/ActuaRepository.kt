@@ -125,6 +125,9 @@ import com.azimulkabir.actua.data.schedules.sortedForDisplay
 import com.azimulkabir.actua.model.BudgetScheduleFunding
 import com.azimulkabir.actua.widget.WidgetUpdater
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 data class PayeeLocationSummary(
     val id: String,
@@ -195,28 +198,41 @@ class ActuaRepository(context: Context) {
     val isUsingActualBudget: Boolean get() = actualDatabase != null
     val isServerBacked: Boolean get() = activeMetadata?.isServerBacked == true
 
-    private var backgroundReaders = 0
+    private var backgroundOperations = 0
     private var closeRequested = false
 
-    /** Keep the connection alive until a cancelled IO projection has actually returned. */
-    @Synchronized
-    internal fun retainBackgroundRead() {
-        check(!closeRequested) { "Repository is closed" }
-        backgroundReaders++
+    /** Blocking work keeps its connection until it returns, even if its coroutine is cancelled. */
+    internal suspend fun <T> withBackgroundOperation(
+        dispatcher: CoroutineDispatcher = Dispatchers.IO,
+        block: () -> T,
+    ): T = withContext(dispatcher) { withRetainedAccess(block) }
+
+    /** For callbacks whose owner already dispatches blocking work (e.g. bank authorization). */
+    internal fun <T> withRetainedAccess(block: () -> T): T {
+        retainBackgroundOperation()
+        return try { block() } finally { releaseBackgroundOperation() }
     }
 
     @Synchronized
-    internal fun releaseBackgroundRead() {
-        check(backgroundReaders > 0)
-        backgroundReaders--
-        if (closeRequested && backgroundReaders == 0) actualDatabase?.close()
+    private fun retainBackgroundOperation() {
+        // A stale loader may have been queued before disposal. End it as cancellation, not a
+        // closed-SQLite error, and never start another query or write on the old budget.
+        if (closeRequested) throw CancellationException("Repository is closed")
+        backgroundOperations++
+    }
+
+    @Synchronized
+    private fun releaseBackgroundOperation() {
+        check(backgroundOperations > 0)
+        backgroundOperations--
+        if (closeRequested && backgroundOperations == 0) actualDatabase?.close()
     }
 
     @Synchronized
     fun close() {
         if (closeRequested) return
         closeRequested = true
-        if (backgroundReaders == 0) actualDatabase?.close()
+        if (backgroundOperations == 0) actualDatabase?.close()
     }
 
     private fun openBudget(files: BudgetFileManager, metadata: BudgetMetadata): ActualBudgetDatabase? {

@@ -33,12 +33,8 @@ internal fun <T> rememberLoaded(
     LaunchedEffect(budgetKey, enabled, *reloadKeys) {
         if (enabled) {
             val repository = budgetKey as? ActuaRepository
-            repository?.retainBackgroundRead()
-            try {
-                value = withContext(Dispatchers.IO) { load() }
-            } finally {
-                repository?.releaseBackgroundRead()
-            }
+            value = if (repository != null) repository.withBackgroundOperation(block = load)
+                else withContext(Dispatchers.IO) { load() }
         }
     }
     return value
