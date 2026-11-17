@@ -9,13 +9,13 @@ on:
         type: string
       flavor:
         description: >-
-          Which build to make: fdroid (no Play Billing, the public GitHub and F-Droid build) or
+          Which build to make: direct (Direct Full, without Play Billing) or
           playstore (the full build with Play Billing and the supporter extras)
         required: false
-        default: fdroid
+        default: direct
         type: choice
         options:
-          - fdroid
+          - direct
           - playstore
 
 permissions:
@@ -91,12 +91,12 @@ jobs:
         env:
           FLAVOR: ${{ inputs.flavor }}
         run: |
-          # "fdroid" (the default) matches the public GitHub/F-Droid APK; "playstore" is the full build
+          # "direct" (the default) is Direct Full; "playstore" is Play Full
           # with Play Billing. Anything else is refused rather than guessed at.
-          case "${FLAVOR:-fdroid}" in
-            fdroid)
-              echo "task=assembleFdroidRelease" >> "$GITHUB_OUTPUT"
-              echo "dir=fdroid" >> "$GITHUB_OUTPUT"
+          case "${FLAVOR:-direct}" in
+            direct)
+              echo "task=assembleDirectRelease" >> "$GITHUB_OUTPUT"
+              echo "dir=direct" >> "$GITHUB_OUTPUT"
               echo "label=" >> "$GITHUB_OUTPUT"
               ;;
             playstore)

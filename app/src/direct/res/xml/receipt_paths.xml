@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Where a receipt photo is written while it is being read; deleted right after, never backed up (cache). -->
+<paths>
+    <cache-path name="receipts" path="receipts/" />
+</paths>

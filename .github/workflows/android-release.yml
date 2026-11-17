@@ -75,17 +75,17 @@ jobs:
           ACTUA_KEYSTORE_PASSWORD: ${{ secrets.ACTUA_RELEASE_STORE_PASSWORD }}
           ACTUA_KEY_ALIAS: ${{ secrets.ACTUA_RELEASE_KEY_ALIAS }}
           ACTUA_KEY_PASSWORD: ${{ secrets.ACTUA_RELEASE_KEY_PASSWORD }}
-        # The "fdroid" flavor excludes Play Billing, so it's the flavor published to GitHub
-        # Releases and built by F-Droid. AGP registers no flavor-aggregating task for unit tests
+        # The "direct" flavor excludes Play Billing, so it's the flavor published to GitHub
+        # Releases. AGP registers no flavor-aggregating task for unit tests
         # or lint, so both flavors are named explicitly (see android-ci.yml).
         run: >-
-          ./gradlew --no-daemon assembleFdroidRelease
-          testFdroidInstrumentedUnitTest testPlaystoreInstrumentedUnitTest
-          lintFdroidDebug lintPlaystoreDebug
+          ./gradlew --no-daemon assembleDirectRelease
+          testDirectInstrumentedUnitTest testPlaystoreInstrumentedUnitTest
+          lintDirectDebug lintPlaystoreDebug
       - name: Verify release signature
         run: |
           BUILD_TOOLS_VERSION="$(ls "$ANDROID_SDK_ROOT/build-tools" | sort -V | tail -1)"
-          "$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/apksigner" verify --verbose --print-certs app/build/outputs/apk/fdroid/release/app-fdroid-release.apk
+          "$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/apksigner" verify --verbose --print-certs app/build/outputs/apk/direct/release/app-direct-release.apk
       - name: Build release bundle for Play Console upload
         env:
           ACTUA_KEYSTORE_PATH: ${{ runner.temp }}/actua-release.jks
@@ -155,7 +155,7 @@ jobs:
       # keeps Google Play's title and descriptions in step with it (nothing happens when they already
       # match). It runs after the bundle is on Play and is deliberately not a release blocker: a listing
       # problem (for example a service account without "Manage store presence") must not leave Play
-      # ahead of the GitHub release, the F-Droid template and the Discord post. The next step turns a
+      # ahead of the GitHub release and the Discord post. The next step turns a
       # failure into a visible warning; run "Google Play Listing Text" to retry it.
       - name: Update Google Play listing text
         id: listing
@@ -170,79 +170,6 @@ jobs:
         run: |
           echo "::warning title=Google Play listing text not updated::The release is published, but the title and descriptions on Google Play were not updated. See the 'Update Google Play listing text' step, then run the 'Google Play Listing Text' workflow to retry."
           echo "Google Play listing text was NOT updated by this release. Run the Google Play Listing Text workflow to retry." >> "$GITHUB_STEP_SUMMARY"
-      - name: Update F-Droid submission template
-        env:
-          RELEASE_VERSION: ${{ steps.version.outputs.name }}
-          RELEASE_VERSION_CODE: ${{ steps.version.outputs.code }}
-          RELEASE_COMMIT_SHA: ${{ github.sha }}
-        run: |
-          python3 - <<'PY'
-          import os
-          import re
-          import sys
-
-          version_name = os.environ["RELEASE_VERSION"]
-          version_code = os.environ["RELEASE_VERSION_CODE"]
-          commit_sha = os.environ["RELEASE_COMMIT_SHA"]
-          path = "fdroid/com.azimulkabir.actua.yml"
-
-          with open(path) as f:
-              content = f.read()
-
-          def sub_required(pattern, repl, content, description):
-              content, count = re.subn(pattern, repl, content, flags=re.MULTILINE)
-              if count == 0:
-                  sys.exit(f"F-Droid template update failed: no match for {description} in {path}")
-              return content
-
-          # F-Droid requires a pinned commit SHA in the build recipe, not a tag or branch.
-          content = sub_required(
-              r"^(# Actua ).*( is built from source at the release commit pinned below\.)$",
-              rf"\g<1>{version_name}\g<2>",
-              content,
-              "header comment",
-          )
-          content = sub_required(r"^(\s*- versionName: ).*$", rf"\g<1>{version_name}", content, "Builds versionName")
-          content = sub_required(r"^(\s*versionCode: ).*$", rf"\g<1>{version_code}", content, "Builds versionCode")
-          content = sub_required(r"^(\s*commit: ).*$", rf"\g<1>{commit_sha}", content, "Builds commit")
-          content = sub_required(r"^(CurrentVersion: ).*$", rf"\g<1>{version_name}", content, "CurrentVersion")
-          content = sub_required(r"^(CurrentVersionCode: ).*$", rf"\g<1>{version_code}", content, "CurrentVersionCode")
-
-          # These fields don't change per release, but they were added by hand
-          # directly in the fdroiddata merge request in response to reviewer
-          # comments and only backported here afterward. Nothing else in this
-          # script keeps them in sync, so fail loudly if one goes missing
-          # (e.g. a template edit accidentally drops it) instead of silently
-          # publishing an incomplete submission template.
-          required_inline_fields = [
-              "License", "AuthorName", "AuthorWebSite", "SourceCode", "IssueTracker",
-              "RepoType", "Repo", "Binaries", "AllowedAPKSigningKeys",
-              "AutoUpdateMode", "UpdateCheckMode",
-          ]
-          for field in required_inline_fields:
-              if not re.search(rf"^{field}:\s*\S", content, re.MULTILINE):
-                  sys.exit(f"F-Droid template is missing required field '{field}' in {path}")
-
-          if not re.search(r"^Categories:\s*\n\s*-\s*\S", content, re.MULTILINE):
-              sys.exit(f"F-Droid template is missing a Categories entry in {path}")
-
-          with open(path, "w") as f:
-              f.write(content)
-          PY
-      - name: Commit F-Droid submission template update
-        env:
-          RELEASE_VERSION: ${{ steps.version.outputs.name }}
-        run: |
-          if git diff --quiet -- fdroid/com.azimulkabir.actua.yml; then
-            echo "No F-Droid template changes"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add fdroid/com.azimulkabir.actua.yml
-          git commit -m "Update F-Droid submission template for v${RELEASE_VERSION}"
-          git pull --rebase origin main
-          git push origin HEAD:main
       - name: Prepare release notes
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.name }}
@@ -266,16 +193,15 @@ jobs:
           fi
           test -s release-notes.md
       - name: Prepare release APKs
-        # Actua-v<version>.apk must stay the fdroid flavor: the F-Droid recipe's Binaries line and the
-        # F-Droid Verify workflow both use that exact file. The full build is a separate asset.
+        # Retain existing asset names for installed download/update configurations.
         run: |
-          cp app/build/outputs/apk/fdroid/release/app-fdroid-release.apk "Actua-v${{ steps.version.outputs.name }}.apk"
+          cp app/build/outputs/apk/direct/release/app-direct-release.apk "Actua-v${{ steps.version.outputs.name }}.apk"
           cp app/build/outputs/apk/playstore/release/app-playstore-release.apk "Actua-v${{ steps.version.outputs.name }}-full.apk"
           {
             cat release-notes.md
             printf '\n\n---\n\n**Which APK?**\n\n'
-            printf -- '- `Actua-v%s.apk`: fully open source, no Google libraries (this is the build F-Droid verifies).\n' "${{ steps.version.outputs.name }}"
-            printf -- '- `Actua-v%s-full.apk`: adds receipt scanning (on-device Google ML Kit) and the Google Play purchase code. Same app, same signing key, so you can switch between them.\n' "${{ steps.version.outputs.name }}"
+            printf -- '- `Actua-v%s.apk`: Direct Full build with on-device receipt scanning; website sales are not yet enabled.\n' "${{ steps.version.outputs.name }}"
+            printf -- '- `Actua-v%s-full.apk`: Play Full build with on-device receipt scanning and Google Play Billing. Same app, same signing key, so you can switch between them.\n' "${{ steps.version.outputs.name }}"
           } > github-release-notes.md
       - name: Upload Play Store bundle artifact
         uses: actions/upload-artifact@v7

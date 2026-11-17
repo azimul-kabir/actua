@@ -47,7 +47,7 @@ private const val PLAY_ANSWER_TIMEOUT_MILLIS = 30_000L
 suspend fun refreshSupporterPerksIfDue(context: Context) {
     if (!supporterPerksAvailable()) return
     val perks = SupporterPerks(context)
-    if (!perks.isCheckDue()) return
+    if (!perks.isCheckDue() && !supporterRefreshDue()) return
     val manager = createSupportBillingManager(context)
     manager.start()
     try {

@@ -252,3 +252,12 @@ private class PlayStoreSupportBillingManager(context: Context) : SupportBillingM
 fun createSupportBillingManager(context: Context): SupportBillingManager = PlayStoreSupportBillingManager(context)
 
 fun supporterPerksAvailable(): Boolean = true
+
+@androidx.compose.runtime.Composable
+fun WebsiteActivation() = Unit
+
+fun websiteEntitlementValid(context: Context): Boolean = true
+
+fun supporterRefreshDue(): Boolean = false
+
+fun supporterPreferencesName(): String = "supporter_perks"

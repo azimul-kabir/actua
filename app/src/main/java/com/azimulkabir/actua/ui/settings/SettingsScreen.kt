@@ -51,6 +51,7 @@ import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -350,6 +351,7 @@ fun SettingsScreen(
     }
     LaunchedEffect(openSupportPage) {
         if (openSupportPage) {
+            supportBillingManager.start()
             page = SettingsPage.Support
             onSupportPageOpened()
         }
@@ -592,8 +594,7 @@ fun SettingsScreen(
                     if (supportPurchaseState.isAvailable || supporterPerksAvailable()) SettingsGroup(stringResource(R.string.settings_section_support)) {
                         if (supportPurchaseState.isAvailable) SettingsRow(
                             stringResource(R.string.settings_support_actua),
-                            if (supportPurchaseState.isSupporter) stringResource(R.string.settings_support_thank_you)
-                            else stringResource(R.string.settings_support_description),
+                            stringResource(supporterDescriptionRes(supportPurchaseState)),
                             true,
                             Icons.Outlined.FavoriteBorder,
                         ) {
@@ -1350,6 +1351,8 @@ private fun SupportSettings(
     onPurchase: (SupportProduct) -> Unit,
     onManageSubscription: () -> Unit,
 ) {
+    com.azimulkabir.actua.billing.WebsiteActivation()
+    if (com.azimulkabir.actua.BuildConfig.FLAVOR == "direct") return
     SettingsNote(stringResource(R.string.settings_support_intro))
     if (state.isSupporter || state.showThanks) {
         SettingsGroup {
@@ -1402,7 +1405,7 @@ private fun SupportSettings(
  * sent to the Support page when they tap it.
  */
 @Composable
-private fun SupporterExtras(
+internal fun SupporterExtras(
     isSupporter: Boolean,
     onOpenSupport: () -> Unit,
     onOpenAppIcon: () -> Unit,
@@ -1411,6 +1414,11 @@ private fun SupporterExtras(
     onOpenWidgetStyle: () -> Unit,
 ) {
     val context = LocalContext.current
+    if (!isSupporter) {
+        Button(onClick = onOpenSupport, modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg)) {
+            Text(stringResource(R.string.settings_support_actua))
+        }
+    }
     SettingsGroup {
         SupporterExtraRow(
             icon = Icons.Outlined.FavoriteBorder,
@@ -1463,8 +1471,22 @@ private fun SupporterExtras(
                 DisplayPreferences(context).celebrationsEnabled = it
             }
         } else {
+            SupporterExtraRow(
+                icon = Icons.Outlined.Lock,
+                label = stringResource(R.string.settings_greeting),
+                current = null,
+                onOpen = onOpenSupport,
+            )
+            SettingsDivider()
+            SupporterExtraRow(
+                icon = Icons.Outlined.Lock,
+                label = stringResource(R.string.settings_greeting_nickname),
+                current = null,
+                onOpen = onOpenSupport,
+            )
+            SettingsDivider()
             ActuaFormRow(
-                icon = Icons.Outlined.Celebration,
+                icon = Icons.Outlined.Lock,
                 label = stringResource(R.string.settings_celebrations),
                 value = stringResource(R.string.settings_supporter_extras_marker),
                 onClick = onOpenSupport,
@@ -1495,7 +1517,7 @@ private fun AccentColorRow(useDynamicColor: Boolean, onOpen: () -> Unit) {
 @Composable
 private fun SupporterExtraRow(icon: ImageVector, label: String, current: String?, onOpen: () -> Unit) {
     ActuaFormRow(
-        icon = icon,
+        icon = if (current == null) Icons.Outlined.Lock else icon,
         label = label,
         value = current ?: stringResource(R.string.settings_supporter_extras_marker),
         onClick = onOpen,
@@ -1678,4 +1700,11 @@ private fun AboutRow(title: String, detail: String, onClick: (() -> Unit)? = nul
         },
         onClick = onClick,
     )
+}
+
+@StringRes
+internal fun supporterDescriptionRes(state: SupportPurchaseState): Int = when {
+    state.isSupporter -> R.string.settings_support_thank_you
+    state.websiteAvailable -> R.string.settings_support_intro
+    else -> R.string.settings_support_description
 }

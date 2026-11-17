@@ -16,10 +16,14 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Replaced the F-Droid build with Direct Full, including receipt scanning and sandbox purchase activation ([#1697](https://github.com/azimul-kabir/actua/pull/1697))
+
 - Removed the notes badge from the Budget tab's three-dot menu ([#1673](https://github.com/azimul-kabir/actua/pull/1673))
 - Changed the Favourite categories and Account balances widgets to be placed at 4x3 instead of 2x3 ([#1669](https://github.com/azimul-kabir/actua/pull/1669))
 
 ### Fixed
+
+- Fixed supporter status and made locked extras easier to discover ([#1697](https://github.com/azimul-kabir/actua/pull/1697))
 
 - Fixed pauses while reordering categories and accounts ([#1695](https://github.com/azimul-kabir/actua/pull/1695))
 

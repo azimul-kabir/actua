@@ -614,3 +614,7 @@ and view behavior before changing Android. Port financial and synchronization
 semantics with tests; adapt only platform presentation and lifecycle behavior.
 Record deliberate exclusions here so the Android project never presents an
 Apple-only feature as unfinished work.
+
+### Direct Full supporter activation (sandbox)
+
+The direct distribution includes full receipt scanning and cosmetic settings. Debug/test builds can verify website sandbox purchase credentials against the isolated entitlement service. Signed ES256 proofs use the pinned sandbox public key and expire within 24 hours. Credentials and cached proofs use Android Keystore encryption in device-local, non-backed-up storage. Release builds reject sandbox activation; live website sales and live entitlement support remain deferred. Play Billing remains confined to the Play distribution.
