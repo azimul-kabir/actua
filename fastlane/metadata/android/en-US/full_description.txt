@@ -1,41 +1,52 @@
-Actua is an unofficial, open-source native Android client for Actual Budget. It brings a mobile-first budgeting experience to Android with a modern Material 3 interface.
+Manage your Actual Budget on Android. See what’s left to budget, track spending, and stay ahead of upcoming bills. Connect to your own Actual Budget server or create a standalone budget that works entirely offline.
 
-WHAT YOU CAN DO
-• View budgets and track category progress
-• See Ready to Budget, favorites, upcoming bills and recent activity at a glance on a customizable Home
-• Add, edit, search, and filter transactions, scan a receipt to fill them in, and keep the receipt photo on your phone
-• Split transactions, make transfers, and reconcile accounts
-• Group and reorder accounts, and manage categories, targets, and budget templates
-• Track loans with a payoff planner and weekly, biweekly or monthly payments, and see goal and target progress on your balances
-• View scheduled transactions and a bills calendar, with optional reminders before they are due, and set your own weekend days and holidays for pay periods and schedules
-• Review dashboards and reports, tap any chart to see its transactions, or open a report full screen with a data table
-• Sync with your Actual Budget server and use supported bank-sync providers (SimpleFIN, GoCardless, Pluggy.ai, Akahu, Enable Banking) through that server
-• Import transactions from CSV, OFX, QFX, QIF, CAMT.053, XLSX, PDF, SMS, and supported bank notifications, share statement files straight into Actua, and review captured transactions before they are saved
-• Export an account, a filtered list or search results to CSV
-• Queue transactions from Tasker and other automation apps
-• Use automatic categorization and Actual Budget rules
-• Create local backups and restore your budget data, or back up to your own Google Drive or WebDAV server (Nextcloud, ownCloud, NAS) with encryption
-• Budget on your device without a server, or import an Actual Budget archive
-• Lock Actua with biometrics or your device PIN, and hide it in the recents screen
-• Add home-screen widgets for your budget, favorite categories, account balances, upcoming bills, spending trend and report cards, plus launcher shortcuts
-• Use Actua in English, Brazilian Portuguese or Spanish
+MAKE YOUR BUDGET YOUR OWN
+
+Customize Home to see Ready to Budget, favorite categories, upcoming bills, and recent activity at a glance. Track category progress, set targets, use budget templates, and organize your accounts.
+
+KEEP TRANSACTIONS ORGANIZED
+
+▶ Add, edit, search, and filter transactions.
+▶ Scan receipts to fill in transaction details and keep the photos on your phone.
+▶ Split transactions, make transfers, and reconcile accounts.
+▶ Categorize transactions automatically with Actual Budget rules, or queue transactions from Tasker and other automation apps.
+
+PLAN FOR BILLS AND LOANS
+
+See scheduled transactions in a bills calendar and turn on reminders before payments are due. Set your own weekend days and holidays for pay periods and schedules. Track loans with a payoff planner for weekly, biweekly, or monthly payments, and see how your balances measure up against your goals.
+
+SEE WHERE YOUR MONEY GOES
+
+Explore dashboards and spending reports. Tap a chart to see the transactions behind it, or open a full-screen report with a data table.
+
+IMPORT, EXPORT, AND SYNC
+
+▶ Share CSV, OFX, QFX, QIF, CAMT.053, XLSX, and PDF statements directly into Actua.
+▶ Capture transactions from SMS and supported bank notifications, then review them before saving.
+▶ Export an account, a filtered transaction list, or search results to CSV.
+▶ Use supported bank connections through your Actual Budget server, including SimpleFIN, GoCardless, Pluggy.ai, Akahu, and Enable Banking.
 
 MADE FOR ANDROID
-Actua is built as a native Android app, not a website wrapped in an app. Its Material 3 interface is designed for Android phones and supports features such as offline budgets, customizable navigation, and flexible appearance settings.
+
+Actua is a native Android app with a Material 3 interface, customizable navigation, and flexible appearance settings. Add home-screen widgets for your budget, favorite categories, balances, bills, spending trends, and reports, or jump in with launcher shortcuts. Available in English, Brazilian Portuguese, and Spanish.
 
 YOUR DATA, YOUR SERVER
-Actua connects directly to your own Actual Budget server and keeps a local copy of your budget for offline use. It does not require a separate Actua account. You remain in control of your budget through Actual Budget and its supported synchronization methods.
 
-New to Actua? You can explore the built-in local demo budget or create a budget on your device without connecting a server.
+Actua connects directly to your Actual Budget server and keeps a local copy for offline use. No separate Actua account is required. To try Actua without a server, open the built-in demo, create an on-device budget, or import an Actual Budget archive.
+
+Create and restore local backups, or save encrypted backups to your own Google Drive or WebDAV server. Lock Actua with biometrics or your device PIN and hide it from the Android recents screen.
 
 FREE AND OPEN SOURCE
-Actua is free and open source, and budgeting always stays free. In the Google Play version you can optionally support its development; supporters also get cosmetic extras such as app icons, accent colors, Catppuccin themes and widget styles. You can review the source code, report bugs, suggest improvements, or contribute to the project:
+
+Budgeting is free. Optional Google Play purchases and subscriptions support development and unlock cosmetic extras such as app icons, accent colors, Catppuccin themes, and widget styles.
+
+View the source, report issues, or contribute on GitHub.
 https://github.com/azimul-kabir/actua
 
-UNOFFICIAL PROJECT
-Actua is an independent community project. It is not affiliated with, endorsed by, sponsored by, or an official product of Actual Budget. Actual Budget is a separate project; its name is used only to identify compatibility.
+ABOUT THIS PROJECT
 
-IMPORTANT
-Actua requires access to your own Actual Budget server for connected budgeting features. Actua can write changes to your synchronized budget. Back up your important budget data before connecting a new client, and report bugs or unexpected synchronization behavior through the project's issue tracker.
+Actua is an independent, unofficial client for Actual Budget. It is not affiliated with or endorsed by the Actual Budget project.
 
-Website: https://actua.azimulkabir.com
+Connected budgeting requires access to your own Actual Budget server. Actua can write changes to your synced budget, so back up important data before connecting a new client.
+
+https://actua.azimulkabir.com
