@@ -9,7 +9,7 @@ on:
         type: string
       flavor:
         description: >-
-          Which build to make: direct (no Play Billing, the public GitHub and F-Droid build) or
+          Which build to make: direct (Direct Full, without Play Billing) or
           playstore (the full build with Play Billing and the supporter extras)
         required: false
         default: direct
@@ -91,7 +91,7 @@ jobs:
         env:
           FLAVOR: ${{ inputs.flavor }}
         run: |
-          # "direct" (the default) matches the public GitHub/F-Droid APK; "playstore" is the full build
+          # "direct" (the default) is Direct Full; "playstore" is Play Full
           # with Play Billing. Anything else is refused rather than guessed at.
           case "${FLAVOR:-direct}" in
             direct)

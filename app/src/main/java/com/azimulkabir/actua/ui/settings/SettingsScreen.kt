@@ -592,7 +592,8 @@ fun SettingsScreen(
                     if (supportPurchaseState.isAvailable || supporterPerksAvailable()) SettingsGroup(stringResource(R.string.settings_section_support)) {
                         if (supportPurchaseState.isAvailable) SettingsRow(
                             stringResource(R.string.settings_support_actua),
-                            if (supportPurchaseState.isSupporter) stringResource(R.string.settings_support_thank_you)
+                            if (supportPurchaseState.websiteAvailable) stringResource(R.string.settings_support_intro)
+                            else if (supportPurchaseState.isSupporter) stringResource(R.string.settings_support_thank_you)
                             else stringResource(R.string.settings_support_description),
                             true,
                             Icons.Outlined.FavoriteBorder,
@@ -1351,6 +1352,7 @@ private fun SupportSettings(
     onManageSubscription: () -> Unit,
 ) {
     com.azimulkabir.actua.billing.WebsiteActivation()
+    if (com.azimulkabir.actua.BuildConfig.FLAVOR == "direct") return
     SettingsNote(stringResource(R.string.settings_support_intro))
     if (state.isSupporter || state.showThanks) {
         SettingsGroup {
