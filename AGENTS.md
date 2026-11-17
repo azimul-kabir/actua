@@ -88,22 +88,18 @@ Use the committed Gradle wrapper. The daemon toolchain is JDK 25 in
 which is not the Gradle runtime requirement. Install Android SDK 37; minSdk is
 28. Dependency versions live in `gradle/libs.versions.toml`.
 
-The app has two product flavors: `fdroid` (no proprietary dependencies, what
-F-Droid builds and the main `Actua-v<version>.apk` on GitHub Releases ships) and
-`playstore` (adds proprietary Google libraries such as Play Billing for the
-optional Support Actua purchase; published to Google Play and as
-`Actua-v<version>-full.apk` on GitHub Releases). `assembleDebug`/`bundleRelease` still
-aggregate both flavors, but unit test and lint tasks don't — name the flavor
-explicitly for those, or use `connected<Flavor>InstrumentedAndroidTest` for
-instrumented tests (the flavors only differ in the billing wrapper, so
-`fdroid` alone is normally sufficient coverage).
+The app has two Full product flavors: `direct` (GitHub downloads with receipt
+scanning and sandbox website activation in debug/test builds) and `playstore`
+(Google Play Billing and receipt scanning). Both use the existing application ID
+and release signing configuration. Unit-test and lint tasks must name the flavor
+explicitly. Test both flavors when changing shared supporter behavior.
 
 ```sh
-./gradlew assembleDebug testFdroidInstrumentedUnitTest testPlaystoreInstrumentedUnitTest lintFdroidDebug lintPlaystoreDebug
+./gradlew assembleDebug testDirectInstrumentedUnitTest testPlaystoreInstrumentedUnitTest lintDirectDebug lintPlaystoreDebug
 # With an emulator/device connected (the test build type is "instrumented"):
-./gradlew connectedFdroidInstrumentedAndroidTest
+./gradlew connectedDirectInstrumentedAndroidTest
 # Narrow a JVM regression run where appropriate:
-./gradlew testFdroidInstrumentedUnitTest --tests '*SyncCoreFixtureTest'
+./gradlew testDirectInstrumentedUnitTest --tests '*SyncCoreFixtureTest'
 ```
 
 Add meaningful regression coverage for changed behavior. Keep pure logic tests

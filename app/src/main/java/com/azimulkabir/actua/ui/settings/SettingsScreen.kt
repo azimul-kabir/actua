@@ -1350,6 +1350,7 @@ private fun SupportSettings(
     onPurchase: (SupportProduct) -> Unit,
     onManageSubscription: () -> Unit,
 ) {
+    com.azimulkabir.actua.billing.WebsiteActivation()
     SettingsNote(stringResource(R.string.settings_support_intro))
     if (state.isSupporter || state.showThanks) {
         SettingsGroup {

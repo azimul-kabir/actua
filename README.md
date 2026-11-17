@@ -240,7 +240,7 @@ Actua requires **Android 9 or newer**.
 
 Other ways to install, from [GitHub Releases](https://github.com/azimul-kabir/actua/releases):
 
-- `Actua-v<version>.apk`: fully open source, with no Google libraries. This is the build F-Droid verifies.
+- `Actua-v<version>.apk`: Direct Full build, including on-device receipt scanning. Website purchase activation is being tested in sandbox builds; live website sales are not enabled.
 - `Actua-v<version>-full.apk`: adds receipt scanning (on-device Google ML Kit) and the other Google Play version features, for devices without the Play Store.
 - [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua): update notifications and in-place upgrades from GitHub Releases. It lists both APKs, so use its APK filter (a regular expression) to pick one, for example `-full` for the full build.
 

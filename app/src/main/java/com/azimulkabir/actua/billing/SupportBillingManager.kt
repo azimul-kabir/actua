@@ -39,6 +39,8 @@ enum class SupportProduct(val productId: String, val kind: SupportProductKind) {
 data class SupportOption(val product: SupportProduct, val priceLabel: String)
 
 data class SupportPurchaseState(
+    val websiteSupporter: Boolean = false,
+    val websiteAvailable: Boolean = false,
     /** Products Play returned details for, in [SupportProduct] declaration order. */
     val options: List<SupportOption> = emptyList(),
     /** The product whose purchase sheet is open or whose purchase is being finished. */
@@ -52,9 +54,9 @@ data class SupportPurchaseState(
     /** True once Play has answered both purchase queries, so [isSupporter] can be trusted. */
     val purchasesRestored: Boolean = false,
 ) {
-    val isAvailable: Boolean get() = options.isNotEmpty()
+    val isAvailable: Boolean get() = options.isNotEmpty() || websiteAvailable
     val isProcessing: Boolean get() = processingProduct != null
-    val isSupporter: Boolean get() = ownedProducts.isNotEmpty() || isSubscribed
+    val isSupporter: Boolean get() = ownedProducts.isNotEmpty() || isSubscribed || websiteSupporter
 
     /** Options still worth offering: each drops out once owned, the subscription while it's active. */
     val offeredOptions: List<SupportOption>

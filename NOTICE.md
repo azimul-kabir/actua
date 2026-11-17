@@ -109,7 +109,7 @@ WebDAV methods PROPFIND, MKCOL and MOVE.
 
 The Google Play version of Actua uses [Google ML Kit](https://developers.google.com/ml-kit) text recognition
 (bundled Latin, Chinese, Japanese, Korean and Devanagari models, on-device) to read receipt photos. It is a proprietary dependency and is included in the
-`playstore` flavor only; the `fdroid` flavor, which GitHub Releases and F-Droid ship, does not contain it.
+`playstore` flavor only; the `direct` flavor does not contain Google Play Billing.
 
 ## Trademarks and support
 

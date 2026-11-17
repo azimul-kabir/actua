@@ -1,0 +1,31 @@
+# Full distributions
+
+The `playstore` build uses Google Play Billing. The `direct` build includes the
+same on-device receipt scanner and cosmetic settings, with sandbox website
+purchase activation in debug/instrumented builds only. Both retain the existing
+application ID and configured release signing key. Real installed-release and
+Play App Signing certificate compatibility must be checked before publishing.
+
+Existing GitHub asset names remain: `Actua-v<version>.apk` is Direct Full and
+`Actua-v<version>-full.apk` is Play Full. F-Droid verification automation is retired;
+historical F-Droid submission metadata is retained for reference.
+
+## Sandbox testing
+
+Build Direct debug, open Settings → Support Actua, and enter a saved sandbox
+purchase recovery credential. The app calls the isolated sandbox service and
+verifies ES256 with key ID `sandbox-1`, the pinned P-256 public key, exact sandbox
+issuer/audience/environment, and a maximum 24-hour validity. A signature from the
+actual deployment still needs an end-to-end device check.
+
+Credentials and proofs are AES-GCM encrypted with an Android Keystore key and
+stored in the app's no-backup directory. They do not enter budget sync or backups.
+A valid cached proof permits offline cosmetics until expiry, bounded by monotonic
+time in the running process. Wall time earlier than the persisted verification
+time rejects the proof. Restart requires reloading/rechecking on a background
+thread. A refund prevents renewal; existing signed proofs may remain valid for
+up to 24 hours. Sandbox and Play supporter caches are separate.
+
+Release Direct builds have no live activation yet and reject sandbox ownership.
+Live keys, live sales, release-device upgrade checks, and physical-device
+Macrobenchmark measurements remain outside the verified sandbox boundary.

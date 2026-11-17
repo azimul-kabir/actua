@@ -180,10 +180,10 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none${{ matrix.api_level == 28 && ' -no-snapshot-load' || '' }}
           # AGP doesn't provide a flavor-aggregating task for connected tests (unlike
-          # assemble/bundle), so this must name one flavor explicitly. The "fdroid" and
-          # "playstore" flavors only differ in the Play Billing wrapper, so fdroid's coverage
+          # assemble/bundle), so this must name one flavor explicitly. The "direct" and
+          # "playstore" flavors only differ in the Play Billing wrapper, so direct's coverage
           # applies to both.
-          script: ./gradlew --no-daemon --stacktrace connectedFdroidInstrumentedAndroidTest
+          script: ./gradlew --no-daemon --stacktrace connectedDirectInstrumentedAndroidTest
 
       - name: Upload compatibility test reports
         if: ${{ always() }}

@@ -19,10 +19,10 @@ The global rules in `~/.claude/CLAUDE.md` apply too (commit identity, no AI trac
 Run before proposing a change (see AGENTS.md for details and narrowing):
 
 ```sh
-./gradlew assembleDebug testFdroidInstrumentedUnitTest testPlaystoreInstrumentedUnitTest lintFdroidDebug lintPlaystoreDebug
+./gradlew assembleDebug testDirectInstrumentedUnitTest testPlaystoreInstrumentedUnitTest lintDirectDebug lintPlaystoreDebug
 ```
 
-Instrumented tests need an emulator or device (`./gradlew connectedFdroidInstrumentedAndroidTest`). If you cannot run something, say so rather than implying it passed. Documentation-only changes need format and link checks, not the full suite.
+Instrumented tests need an emulator or device (`./gradlew connectedDirectInstrumentedAndroidTest`). If you cannot run something, say so rather than implying it passed. Documentation-only changes need format and link checks, not the full suite.
 
 ## Changelog
 

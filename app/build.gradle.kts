@@ -31,13 +31,10 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    // The "playstore" flavor adds Google Play Billing (a proprietary dependency) for the
-    // in-app "Support Actua" purchase; "fdroid" excludes it so the GitHub/F-Droid build
-    // stays free of non-free dependencies. Same applicationId and signing key both flavors —
-    // this only changes which optional dependency and Kotlin sources get compiled in.
+    // Full builds for Google Play and direct download share package identity and signing.
     flavorDimensions += "distribution"
     productFlavors {
-        create("fdroid") {
+        create("direct") {
             dimension = "distribution"
         }
         create("playstore") {
@@ -54,7 +51,7 @@ android {
         }
     }
 
-    // F-Droid rejects the opaque dependency metadata in APK signing blocks.
+    // Keep dependency metadata out of release signing blocks.
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false
@@ -130,10 +127,15 @@ dependencies {
     // On-device receipt text recognition (bundled models for Latin, Chinese, Japanese, Korean and Devanagari
     // scripts; nothing is sent anywhere); playstore only.
     add("playstoreImplementation", libs.mlkit.text.recognition)
+    add("directImplementation", libs.mlkit.text.recognition)
     add("playstoreImplementation", libs.mlkit.text.recognition.chinese)
+    add("directImplementation", libs.mlkit.text.recognition.chinese)
     add("playstoreImplementation", libs.mlkit.text.recognition.devanagari)
+    add("directImplementation", libs.mlkit.text.recognition.devanagari)
     add("playstoreImplementation", libs.mlkit.text.recognition.japanese)
+    add("directImplementation", libs.mlkit.text.recognition.japanese)
     add("playstoreImplementation", libs.mlkit.text.recognition.korean)
+    add("directImplementation", libs.mlkit.text.recognition.korean)
     testImplementation(libs.junit)
     testImplementation(libs.okhttp.mockwebserver)
     // Real org.json impl for JVM unit tests — the Android stub jar throws on use.
