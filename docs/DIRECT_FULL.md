@@ -29,3 +29,16 @@ up to 24 hours. Sandbox and Play supporter caches are separate.
 Release Direct builds have no live activation yet and reject sandbox ownership.
 Live keys, live sales, release-device upgrade checks, and physical-device
 Macrobenchmark measurements remain outside the verified sandbox boundary.
+
+## Checkout return and locked extras
+
+The sandbox website completion screen links to the separate test package with a
+fixed `actua-supporter-sandbox://return` intent. Only Direct debug/instrumented
+builds register that route. Query parameters, fragments and release/Play builds
+cannot turn it into an activation request. Returning opens Support Actua and
+refreshes an existing saved credential; otherwise enter the saved purchase key.
+
+Settings shows the supporter thank-you after verified activation. Non-supporters
+can discover all extras, including greeting and nickname customization, as locked
+rows with a Support Actua action. Free Material You/Violet accent choices remain
+available. Android follow-up: #1698; website follow-up: actua-website#35 / PR #36.
