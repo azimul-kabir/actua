@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
@@ -767,7 +768,8 @@ fun ImportTransactionsScreen(
             val importPlan = groupImportRows(reviewed)
             val waiting = importPlan.unassigned.size
             Column(Modifier.align(Alignment.BottomCenter).padding(bottom = floatingBarClearance())
-                .onSizeChanged { actionHeight = with(density) { it.height.toDp() } }) {
+                .onSizeChanged { actionHeight = with(density) { it.height.toDp() } }
+                    .background(MaterialTheme.colorScheme.background)) {
                 ActuaPrimaryActionBar(
                     text = if (waiting > 0) stringResource(R.string.import_waiting_accounts, importPlan.importCount, waiting)
                         else pluralStringResource(R.plurals.approve_and_import, importPlan.importCount, importPlan.importCount),

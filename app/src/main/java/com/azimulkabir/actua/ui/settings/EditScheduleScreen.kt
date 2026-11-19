@@ -2,6 +2,7 @@ package com.azimulkabir.actua.ui.settings
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -396,7 +397,8 @@ fun EditScheduleScreen(
                 enabled = canSave,
                 icon = Icons.Outlined.Check,
                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = floatingBarClearance())
-                    .onSizeChanged { actionHeight = with(density) { it.height.toDp() } },
+                    .onSizeChanged { actionHeight = with(density) { it.height.toDp() } }
+                    .background(MaterialTheme.colorScheme.background),
             )
         }
     }
