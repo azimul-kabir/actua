@@ -2,6 +2,7 @@ package com.azimulkabir.actua.ui.settings
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -27,6 +28,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -157,6 +160,8 @@ fun EditScheduleScreen(
     val shownAmount = sign + withCurrencySymbol(heroAmountText(amountLow), currencySymbol)
     val upperAmount = sign + withCurrencySymbol(heroAmountText(amountHigh), currencySymbol)
 
+    val density = LocalDensity.current
+    var actionHeight by remember { mutableStateOf(0.dp) }
     BackHandler(onBack = onBack)
     Column(modifier.fillMaxSize().imePadding()) {
         ActuaScreenHeader(
@@ -174,223 +179,228 @@ fun EditScheduleScreen(
             }
         }
 
-        Column(
-            Modifier.weight(1f).verticalScroll(rememberScrollState())
-                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = floatingBarClearance() + Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            if (unreadableDate) {
-                Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    shape = MaterialTheme.shapes.large,
-                ) {
-                    Text(
-                        stringResource(R.string.fs_unreadable_repeat),
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(Spacing.lg),
-                    )
-                }
-            } else if (schedule?.isCustom == true) {
-                Text(
-                    stringResource(R.string.fs_custom_rule_preserved),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = Spacing.xs),
-                )
-            }
-
-            ActuaHeroAmount(
-                amount = shownAmount,
-                caption = caption,
-                amountColor = if (amountLow == 0L) MaterialTheme.colorScheme.onSurfaceVariant else kindColor,
-                captionColor = kindColor,
-                supportingText = when (amountOp) {
-                    ScheduleAmountOp.EXACT -> stringResource(R.string.fs_exact_amount)
-                    ScheduleAmountOp.APPROXIMATE -> stringResource(R.string.fs_approximate_amount)
-                    ScheduleAmountOp.BETWEEN -> stringResource(R.string.fs_up_to_amount, upperAmount)
-                },
-                contentDescription = if (amountOp == ScheduleAmountOp.BETWEEN) {
-                    stringResource(R.string.fs_amount_between_cd, caption, shownAmount, upperAmount)
-                } else stringResource(R.string.fs_amount_cd, caption, shownAmount),
-                onClickLabel = stringResource(R.string.fs_edit_amount),
-                onClick = { calculatorTarget = 0 },
-                action = {
-                    AssistChip(
-                        onClick = { income = !income },
-                        label = { Text(stringResource(if (income) R.string.fs_switch_to_expense else R.string.fs_switch_to_income)) },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Outlined.SwapVert,
-                                contentDescription = null,
-                                modifier = Modifier.size(AssistChipDefaults.IconSize),
-                            )
-                        },
-                    )
-                },
-            )
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                ScheduleAmountOp.entries.forEachIndexed { index, op ->
-                    SegmentedButton(
-                        selected = amountOp == op,
-                        onClick = { amountOp = op },
-                        shape = SegmentedButtonDefaults.itemShape(index, ScheduleAmountOp.entries.size),
+        Box(Modifier.weight(1f)) {
+            Column(
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                    .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = floatingBarClearance() + actionHeight + Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                if (unreadableDate) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = MaterialTheme.shapes.large,
                     ) {
                         Text(
-                            when (op) {
-                                ScheduleAmountOp.EXACT -> stringResource(R.string.fs_exact)
-                                ScheduleAmountOp.APPROXIMATE -> stringResource(R.string.fs_approximate)
-                                ScheduleAmountOp.BETWEEN -> stringResource(R.string.fs_between)
-                            },
+                            stringResource(R.string.fs_unreadable_repeat),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.padding(Spacing.lg),
                         )
                     }
-                }
-            }
-            if (amountOp == ScheduleAmountOp.BETWEEN) {
-                ActuaFormCard {
-                    ActuaFormRow(
-                        icon = Icons.Outlined.Calculate,
-                        label = stringResource(R.string.fs_from),
-                        value = withCurrencySymbol(centsToInput(amountLow), currencySymbol),
-                        onClick = { calculatorTarget = 0 },
-                    )
-                    ActuaCardDivider()
-                    ActuaFormRow(
-                        icon = Icons.Outlined.Calculate,
-                        label = stringResource(R.string.fs_to),
-                        value = withCurrencySymbol(centsToInput(amountHigh), currencySymbol),
-                        onClick = { calculatorTarget = 1 },
-                    )
-                }
-            }
-
-            ActuaFormCard {
-                ActuaFormTextField(
-                    icon = Icons.Outlined.Edit,
-                    label = stringResource(R.string.fs_schedule_name),
-                    value = name,
-                    onValueChange = { name = it },
-                    placeholder = stringResource(R.string.fs_optional),
-                )
-                ActuaCardDivider()
-                PickerTextField(
-                    label = stringResource(R.string.fs_payee_optional),
-                    value = payeeName,
-                    options = payeeOptions,
-                    onValueChange = { payeeName = it },
-                    allowCustom = true,
-                    rowIcon = Icons.Outlined.Storefront,
-                    placeholder = stringResource(R.string.fs_none),
-                )
-                ActuaCardDivider()
-                PickerTextField(
-                    label = stringResource(R.string.fs_account),
-                    value = accountName,
-                    options = accounts.filterNot { it.closed }.map { it.name },
-                    onValueChange = { accountName = it },
-                    rowIcon = Icons.Outlined.AccountBalanceWallet,
-                    placeholder = stringResource(R.string.fs_choose_account),
-                )
-            }
-
-            ActuaFormCard {
-                ActuaFormRow(
-                    icon = Icons.Outlined.Repeat,
-                    label = stringResource(R.string.fs_repeats),
-                    value = null,
-                    checked = repeats,
-                    onClick = { repeats = !repeats },
-                )
-                ActuaCardDivider()
-                if (repeats) {
-                    ActuaFormRow(
-                        icon = Icons.Outlined.EventAvailable,
-                        label = stringResource(R.string.fs_repeat),
-                        value = recurrenceSummary(recurrence),
-                        caption = nextDateSummary(recurrence),
-                        onClick = { showRepeatEditor = true },
-                    )
-                } else {
-                    ActuaFormRow(
-                        icon = Icons.Outlined.CalendarMonth,
-                        label = stringResource(R.string.fs_date),
-                        value = formatDate(oneOffDate.toLocalDate()),
-                        onClick = { datePickerTarget = DateTarget.ONE_OFF },
-                    )
-                }
-            }
-
-            ActuaFormCard {
-                ActuaFormRow(
-                    icon = Icons.Outlined.Bolt,
-                    label = stringResource(R.string.fs_automatically_add_transaction),
-                    value = null,
-                    caption = stringResource(R.string.fs_automatically_add_description),
-                    checked = automaticallyAdd,
-                    onClick = { automaticallyAdd = !automaticallyAdd },
-                )
-                ActuaCardDivider()
-                val upcomingChoices = upcomingOptionValues.map { upcomingWindowLabel(it) to it }
-                PickerTextField(
-                    label = stringResource(R.string.fs_upcoming_window),
-                    value = upcomingChoices.firstOrNull { it.second == upcomingValue }?.first
-                        ?: stringResource(R.string.fs_budget_default),
-                    options = upcomingChoices.map { it.first },
-                    onValueChange = { label ->
-                        upcomingValue = upcomingChoices.firstOrNull { it.first == label }?.second
-                    },
-                    rowIcon = Icons.Outlined.DateRange,
-                )
-            }
-
-            if (schedule != null) {
-                ActuaGroupLabel(stringResource(R.string.fs_linked_transactions))
-                if (linkedTransactionsLoading && linkedTransactions.isEmpty()) {
-                    CircularProgressIndicator(Modifier.padding(Spacing.lg))
-                } else if (linkedTransactions.isEmpty()) {
+                } else if (schedule?.isCustom == true) {
                     Text(
-                        stringResource(R.string.fs_no_linked_transactions),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = Spacing.xs),
-                    )
-                } else {
-                    ActuaFormCard {
-                        linkedTransactions.forEachIndexed { index, transaction ->
-                            LinkedTransactionRow(
-                                transaction = transaction,
-                                hideDecimalPlaces = hideDecimalPlaces,
-                                onUnlink = onUnlinkTransaction?.let { unlink ->
-                                    { unlink(transaction.id) }
-                                },
-                            )
-                            if (index != linkedTransactions.lastIndex) ActuaCardDivider(inset = Spacing.lg)
-                        }
-                    }
-                }
-            }
-
-            val ruleId = schedule?.ruleId
-            if (onEditAsRule != null && ruleId != null) {
-                if (schedule?.isCustom == true) {
-                    Text(
-                        stringResource(R.string.fs_custom_schedule_note),
+                        stringResource(R.string.fs_custom_rule_preserved),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = Spacing.xs),
                     )
                 }
-                ActuaSecondaryButton(
-                    text = stringResource(R.string.fs_edit_as_rule),
-                    onClick = { onEditAsRule(ruleId) },
-                )
-            }
-        }
 
-        ActuaPrimaryActionBar(
-            text = stringResource(R.string.fs_save),
-            onClick = { onSave(fields(), payeeName) },
-            enabled = canSave,
-            icon = Icons.Outlined.Check,
-        )
+                ActuaHeroAmount(
+                    amount = shownAmount,
+                    caption = caption,
+                    amountColor = if (amountLow == 0L) MaterialTheme.colorScheme.onSurfaceVariant else kindColor,
+                    captionColor = kindColor,
+                    supportingText = when (amountOp) {
+                        ScheduleAmountOp.EXACT -> stringResource(R.string.fs_exact_amount)
+                        ScheduleAmountOp.APPROXIMATE -> stringResource(R.string.fs_approximate_amount)
+                        ScheduleAmountOp.BETWEEN -> stringResource(R.string.fs_up_to_amount, upperAmount)
+                    },
+                    contentDescription = if (amountOp == ScheduleAmountOp.BETWEEN) {
+                        stringResource(R.string.fs_amount_between_cd, caption, shownAmount, upperAmount)
+                    } else stringResource(R.string.fs_amount_cd, caption, shownAmount),
+                    onClickLabel = stringResource(R.string.fs_edit_amount),
+                    onClick = { calculatorTarget = 0 },
+                    action = {
+                        AssistChip(
+                            onClick = { income = !income },
+                            label = { Text(stringResource(if (income) R.string.fs_switch_to_expense else R.string.fs_switch_to_income)) },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Outlined.SwapVert,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(AssistChipDefaults.IconSize),
+                                )
+                            },
+                        )
+                    },
+                )
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    ScheduleAmountOp.entries.forEachIndexed { index, op ->
+                        SegmentedButton(
+                            selected = amountOp == op,
+                            onClick = { amountOp = op },
+                            shape = SegmentedButtonDefaults.itemShape(index, ScheduleAmountOp.entries.size),
+                        ) {
+                            Text(
+                                when (op) {
+                                    ScheduleAmountOp.EXACT -> stringResource(R.string.fs_exact)
+                                    ScheduleAmountOp.APPROXIMATE -> stringResource(R.string.fs_approximate)
+                                    ScheduleAmountOp.BETWEEN -> stringResource(R.string.fs_between)
+                                },
+                            )
+                        }
+                    }
+                }
+                if (amountOp == ScheduleAmountOp.BETWEEN) {
+                    ActuaFormCard {
+                        ActuaFormRow(
+                            icon = Icons.Outlined.Calculate,
+                            label = stringResource(R.string.fs_from),
+                            value = withCurrencySymbol(centsToInput(amountLow), currencySymbol),
+                            onClick = { calculatorTarget = 0 },
+                        )
+                        ActuaCardDivider()
+                        ActuaFormRow(
+                            icon = Icons.Outlined.Calculate,
+                            label = stringResource(R.string.fs_to),
+                            value = withCurrencySymbol(centsToInput(amountHigh), currencySymbol),
+                            onClick = { calculatorTarget = 1 },
+                        )
+                    }
+                }
+
+                ActuaFormCard {
+                    ActuaFormTextField(
+                        icon = Icons.Outlined.Edit,
+                        label = stringResource(R.string.fs_schedule_name),
+                        value = name,
+                        onValueChange = { name = it },
+                        placeholder = stringResource(R.string.fs_optional),
+                    )
+                    ActuaCardDivider()
+                    PickerTextField(
+                        label = stringResource(R.string.fs_payee_optional),
+                        value = payeeName,
+                        options = payeeOptions,
+                        onValueChange = { payeeName = it },
+                        allowCustom = true,
+                        rowIcon = Icons.Outlined.Storefront,
+                        placeholder = stringResource(R.string.fs_none),
+                    )
+                    ActuaCardDivider()
+                    PickerTextField(
+                        label = stringResource(R.string.fs_account),
+                        value = accountName,
+                        options = accounts.filterNot { it.closed }.map { it.name },
+                        onValueChange = { accountName = it },
+                        rowIcon = Icons.Outlined.AccountBalanceWallet,
+                        placeholder = stringResource(R.string.fs_choose_account),
+                    )
+                }
+
+                ActuaFormCard {
+                    ActuaFormRow(
+                        icon = Icons.Outlined.Repeat,
+                        label = stringResource(R.string.fs_repeats),
+                        value = null,
+                        checked = repeats,
+                        onClick = { repeats = !repeats },
+                    )
+                    ActuaCardDivider()
+                    if (repeats) {
+                        ActuaFormRow(
+                            icon = Icons.Outlined.EventAvailable,
+                            label = stringResource(R.string.fs_repeat),
+                            value = recurrenceSummary(recurrence),
+                            caption = nextDateSummary(recurrence),
+                            onClick = { showRepeatEditor = true },
+                        )
+                    } else {
+                        ActuaFormRow(
+                            icon = Icons.Outlined.CalendarMonth,
+                            label = stringResource(R.string.fs_date),
+                            value = formatDate(oneOffDate.toLocalDate()),
+                            onClick = { datePickerTarget = DateTarget.ONE_OFF },
+                        )
+                    }
+                }
+
+                ActuaFormCard {
+                    ActuaFormRow(
+                        icon = Icons.Outlined.Bolt,
+                        label = stringResource(R.string.fs_automatically_add_transaction),
+                        value = null,
+                        caption = stringResource(R.string.fs_automatically_add_description),
+                        checked = automaticallyAdd,
+                        onClick = { automaticallyAdd = !automaticallyAdd },
+                    )
+                    ActuaCardDivider()
+                    val upcomingChoices = upcomingOptionValues.map { upcomingWindowLabel(it) to it }
+                    PickerTextField(
+                        label = stringResource(R.string.fs_upcoming_window),
+                        value = upcomingChoices.firstOrNull { it.second == upcomingValue }?.first
+                            ?: stringResource(R.string.fs_budget_default),
+                        options = upcomingChoices.map { it.first },
+                        onValueChange = { label ->
+                            upcomingValue = upcomingChoices.firstOrNull { it.first == label }?.second
+                        },
+                        rowIcon = Icons.Outlined.DateRange,
+                    )
+                }
+
+                if (schedule != null) {
+                    ActuaGroupLabel(stringResource(R.string.fs_linked_transactions))
+                    if (linkedTransactionsLoading && linkedTransactions.isEmpty()) {
+                        CircularProgressIndicator(Modifier.padding(Spacing.lg))
+                    } else if (linkedTransactions.isEmpty()) {
+                        Text(
+                            stringResource(R.string.fs_no_linked_transactions),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = Spacing.xs),
+                        )
+                    } else {
+                        ActuaFormCard {
+                            linkedTransactions.forEachIndexed { index, transaction ->
+                                LinkedTransactionRow(
+                                    transaction = transaction,
+                                    hideDecimalPlaces = hideDecimalPlaces,
+                                    onUnlink = onUnlinkTransaction?.let { unlink ->
+                                        { unlink(transaction.id) }
+                                    },
+                                )
+                                if (index != linkedTransactions.lastIndex) ActuaCardDivider(inset = Spacing.lg)
+                            }
+                        }
+                    }
+                }
+
+                val ruleId = schedule?.ruleId
+                if (onEditAsRule != null && ruleId != null) {
+                    if (schedule?.isCustom == true) {
+                        Text(
+                            stringResource(R.string.fs_custom_schedule_note),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = Spacing.xs),
+                        )
+                    }
+                    ActuaSecondaryButton(
+                        text = stringResource(R.string.fs_edit_as_rule),
+                        onClick = { onEditAsRule(ruleId) },
+                    )
+                }
+            }
+
+            ActuaPrimaryActionBar(
+                text = stringResource(R.string.fs_save),
+                onClick = { onSave(fields(), payeeName) },
+                enabled = canSave,
+                icon = Icons.Outlined.Check,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = floatingBarClearance())
+                    .onSizeChanged { actionHeight = with(density) { it.height.toDp() } }
+                    .background(MaterialTheme.colorScheme.background),
+            )
+        }
     }
 
     calculatorTarget?.let { target ->

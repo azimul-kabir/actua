@@ -7,6 +7,9 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.platform.LocalDensity
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.azimulkabir.actua.data.schedules.ActualScheduleSummary
 import com.azimulkabir.actua.data.schedules.DayDate
@@ -39,6 +42,32 @@ class EditScheduleScreenTest {
         "Checking",
         "Landlord",
     )
+
+    @Test fun saveActionClearsTheFloatingBarAndStaysReachableAfterScrolling() {
+        var clearancePx = 0f
+        compose.setContent {
+            MaterialTheme {
+                clearancePx = with(LocalDensity.current) { floatingBarClearance().toPx() }
+                EditScheduleScreen(
+                    item = rent,
+                    accounts = accounts,
+                    payeeOptions = listOf("Landlord"),
+                    hideDecimalPlaces = false,
+                    conventionalAmountEntry = false,
+                    onBack = {},
+                    onSave = { _, _ -> },
+                )
+            }
+        }
+        val bottom = compose.onRoot().fetchSemanticsNode().boundsInRoot.bottom
+        fun assertSaveClearsBar() {
+            val save = compose.onNodeWithText("Save").fetchSemanticsNode().boundsInRoot
+            assertTrue("Save must end above the floating bar", save.bottom <= bottom - clearancePx)
+        }
+        assertSaveClearsBar()
+        compose.onNodeWithText("Automatically Add Transaction").performScrollTo()
+        assertSaveClearsBar()
+    }
 
     @Test fun switchingToIncomeAndAutoAddSavesTheSameSchedule() {
         var saved: ScheduleFormFields? = null

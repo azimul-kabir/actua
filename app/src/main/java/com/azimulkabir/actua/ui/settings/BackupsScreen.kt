@@ -59,6 +59,7 @@ import com.azimulkabir.actua.data.budget.webdav.WebDavBackupStore
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
 import com.azimulkabir.actua.ui.components.ActuaGroupLabel
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
 import com.azimulkabir.actua.ui.theme.Sizes
@@ -548,7 +549,7 @@ fun BackupsScreen(
         ActuaScreenHeader(title = stringResource(R.string.backups_title), onBack = onBack)
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = Spacing.xl),
+                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = floatingBarClearance() + Spacing.xl),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             ActuaGroupLabel(stringResource(R.string.destination))

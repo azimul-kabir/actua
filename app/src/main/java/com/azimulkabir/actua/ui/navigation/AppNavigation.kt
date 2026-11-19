@@ -309,7 +309,7 @@ private val DetailsBehindTabBar = setOf(
     DetailDestination.ImportTransactions, DetailDestination.ReviewCaptured, DetailDestination.NewSchedule,
     DetailDestination.EditSchedule, DetailDestination.FindSchedules, DetailDestination.ReorderGroups,
     DetailDestination.ReorderAccounts, DetailDestination.BudgetAutomation, DetailDestination.CustomizeHome,
-    DetailDestination.CustomizeTabBar,
+    DetailDestination.CustomizeTabBar, DetailDestination.BillsCalendar,
 )
 
 internal enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Loans, Rules, Schedules, ImportTransactions, ReviewCaptured, PayeeLocations, ManagePayees, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, ReorderAccounts, BudgetAutomation, CustomizeHome, CustomizeTabBar, BankSync }
@@ -1600,7 +1600,7 @@ fun AppNavigation(
             } }
         },
     ) { innerPadding ->
-        Box(Modifier.fillMaxSize().then(if (blurTabBar) Modifier.recordsBackdrop(tabBarBackdrop) else Modifier)) {
+        Box(Modifier.fillMaxSize().then(if (blurTabBar) Modifier.recordsBackdrop(tabBarBackdrop, MaterialTheme.colorScheme.background) else Modifier)) {
         // Root list screens run behind the transparent area around the floating pill and clear it
         // with their own bottom padding; every other screen still ends above the bar.
         val drawsBehindTabBar = detail == DetailDestination.Main || detail in DetailsBehindTabBar
