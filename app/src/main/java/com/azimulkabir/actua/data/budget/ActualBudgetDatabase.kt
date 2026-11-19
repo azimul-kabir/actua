@@ -60,6 +60,13 @@ class ActualBudgetDatabase private constructor(
     private val database: SQLiteDatabase,
     internal val fileIdentity: Pair<Long, Long>,
 ) : Closeable {
+    // A log-derived baseline, never loaded from messages_clock. Access only under this
+    // wrapper's monitor and a SQLite write transaction (including the data_version read).
+    private data class LocalMerkle(val tree: MerkleTree, val dataVersion: Long)
+    private var localMerkle: LocalMerkle? = null
+    private var transactionFailed = false
+    private var localWriteDepth = 0
+
     data class BankSyncAccount(
         val id: String,
         val name: String,
@@ -2349,6 +2356,32 @@ class ActualBudgetDatabase private constructor(
         database.insertWithOnConflict("messages_clock", null, values, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
+    /** Save a sync boundary against the current log under the writer lock, including concurrent local edits. */
+    @Synchronized
+    internal fun saveClockFromMessageLog(timestamp: String) = transaction {
+        saveClock(ClockRecord(timestamp, deriveMerkleFromMessageLog().root))
+    }
+
+    private fun finishLocalMessages(inserted: List<CrdtMessage>) {
+        if (inserted.isEmpty()) return
+        // Write transactions pin Android's primary SQLite connection and exclude other writers.
+        // data_version is connection-local: compare it only here, on that same connection.
+        val version = database.rawQuery("PRAGMA main.data_version", null).use {
+            check(it.moveToFirst())
+            it.getLong(0)
+        }
+        val baseline = localMerkle?.takeIf { it.dataVersion == version }
+        val tree = if (baseline == null) {
+            // Cold open, remote insertion or another connection's commit: repair from the
+            // authoritative log, which already includes this batch. Do not insert it twice.
+            deriveMerkleFromMessageLog()
+        } else {
+            inserted.fold(baseline.tree) { current, message -> current.inserting(message.timestamp) }.pruned()
+        }
+        saveClock(ClockRecord(inserted.maxOf { it.timestamp }.toString(), tree.root))
+        localMerkle = LocalMerkle(tree, version)
+    }
+
     private fun hasSameOrNewerCellMessage(message: CrdtMessage): Boolean = database.rawQuery(
         """
             SELECT 1 FROM messages_crdt
@@ -2376,6 +2409,8 @@ class ActualBudgetDatabase private constructor(
             )
             if (result != -1L) inserted += message
         }
+        if (localWriteDepth > 0) finishLocalMessages(inserted)
+        else if (inserted.isNotEmpty()) localMerkle = null
         return inserted
     }
 
@@ -2458,12 +2493,42 @@ class ActualBudgetDatabase private constructor(
     @Synchronized
     fun <T> atomically(block: () -> T): T = transaction(block)
 
-    private inline fun <T> transaction(block: () -> T): T {
-        database.beginTransaction()
-        return try {
-            block().also { database.setTransactionSuccessful() }
+    /**
+     * Writers opt into atomic row/log/clock persistence. Raw log/receive APIs keep their
+     * recovery semantics outside this scope; their inserts invalidate the local baseline.
+     */
+    @Synchronized
+    internal fun <T> localWrite(block: () -> T): T = transaction {
+        localWriteDepth++
+        try {
+            block()
         } finally {
-            database.endTransaction()
+            localWriteDepth--
+        }
+    }
+
+    private inline fun <T> transaction(block: () -> T): T {
+        val outermost = !database.inTransaction()
+        if (outermost) transactionFailed = false
+        database.beginTransaction()
+        var successful = false
+        return try {
+            val result = block()
+            database.setTransactionSuccessful()
+            successful = true
+            result
+        } finally {
+            // A failed nested transaction poisons its parent even if its caller catches the
+            // exception and writes again. Never retain a tree containing rolled-back rows.
+            if (!successful) transactionFailed = true
+            try {
+                database.endTransaction()
+            } catch (error: Throwable) {
+                localMerkle = null
+                throw error
+            } finally {
+                if (outermost && transactionFailed) localMerkle = null
+            }
         }
     }
 

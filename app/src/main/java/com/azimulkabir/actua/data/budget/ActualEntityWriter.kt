@@ -787,8 +787,7 @@ class ActualEntityWriter(
 
     private fun persist(messages: List<CrdtMessage>) {
         if (messages.isEmpty()) return
-        database.applyLocalMessages(messages)
-        database.saveClock(ActualBudgetDatabase.ClockRecord(clock.current().toString(), database.deriveMerkleFromMessageLog().root))
+        database.localWrite { database.applyLocalMessages(messages) }
         onWrite()
     }
 

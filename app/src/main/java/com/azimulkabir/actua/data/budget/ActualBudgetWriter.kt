@@ -83,10 +83,7 @@ class ActualBudgetWriter(
             }
         }
         if (messages.isEmpty()) return
-        database.applyLocalMessages(messages)
-        database.saveClock(ActualBudgetDatabase.ClockRecord(
-            clock.current().toString(), database.deriveMerkleFromMessageLog().root,
-        ))
+        database.localWrite { database.applyLocalMessages(messages) }
         onWrite()
     }
 
@@ -115,10 +112,7 @@ class ActualBudgetWriter(
                 add(message(cell.table, cell.rowId, "carryover", if (enabled) 1 else 0))
             }
         }
-        database.applyLocalMessages(messages)
-        database.saveClock(ActualBudgetDatabase.ClockRecord(
-            clock.current().toString(), database.deriveMerkleFromMessageLog().root,
-        ))
+        database.localWrite { database.applyLocalMessages(messages) }
         onWrite()
     }
 
@@ -126,10 +120,7 @@ class ActualBudgetWriter(
     @Synchronized
     fun setBuffered(month: String, amountCents: Long) {
         val cell = database.bufferCell(month) ?: error("Buffer table is missing")
-        database.applyLocalMessages(listOf(message("zero_budget_months", cell.rowId, "buffered", amountCents)))
-        database.saveClock(ActualBudgetDatabase.ClockRecord(
-            clock.current().toString(), database.deriveMerkleFromMessageLog().root,
-        ))
+        database.localWrite { database.applyLocalMessages(listOf(message("zero_budget_months", cell.rowId, "buffered", amountCents))) }
         onWrite()
     }
 
@@ -172,10 +163,7 @@ class ActualBudgetWriter(
                 add(message(cell.table, cell.rowId, "amount", amount))
             }
         } + extra
-        database.applyLocalMessages(messages)
-        database.saveClock(ActualBudgetDatabase.ClockRecord(
-            clock.current().toString(), database.deriveMerkleFromMessageLog().root,
-        ))
+        database.localWrite { database.applyLocalMessages(messages) }
         onWrite()
     }
 

@@ -20,8 +20,7 @@ class ActualScheduleWriter(
             message(nextDateRowId, "local_next_date", newDate.yyyymmdd),
             message(nextDateRowId, "local_next_date_ts", baseNextDateTimestamp),
         )
-        database.applyLocalMessages(messages)
-        database.saveClock(ActualBudgetDatabase.ClockRecord(clock.current().toString(), database.deriveMerkleFromMessageLog().root))
+        database.localWrite { database.applyLocalMessages(messages) }
         onWrite()
     }
 
@@ -30,9 +29,10 @@ class ActualScheduleWriter(
         val messages = plan.writes.flatMap { write -> write.fields.map { (column, value) ->
             CrdtMessage(clock.send(), write.dataset, write.row, column, CrdtValue.serialize(value))
         } }
-        database.applyLocalMessages(messages)
-        plan.conditions?.let { database.writeScheduleJsonPaths(plan.scheduleId, it) }
-        database.saveClock(ActualBudgetDatabase.ClockRecord(clock.current().toString(), database.deriveMerkleFromMessageLog().root))
+        database.localWrite {
+            database.applyLocalMessages(messages)
+            plan.conditions?.let { database.writeScheduleJsonPaths(plan.scheduleId, it) }
+        }
         onWrite()
     }
 
