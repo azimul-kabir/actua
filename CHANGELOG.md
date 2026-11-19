@@ -23,6 +23,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed floating tab bar blur across menus and schedule forms ([#1700](https://github.com/azimul-kabir/actua/pull/1700))
+
 - Fixed supporter status and made locked extras easier to discover ([#1697](https://github.com/azimul-kabir/actua/pull/1697))
 
 - Fixed pauses while reordering categories and accounts ([#1695](https://github.com/azimul-kabir/actua/pull/1695))
