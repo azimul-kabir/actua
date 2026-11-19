@@ -60,12 +60,17 @@ internal fun rememberTabBarBackdrop(): TabBarBackdrop {
 }
 
 /** Draws this content as usual and also records it for [backdrop]. A no-op below API 31. */
-internal fun Modifier.recordsBackdrop(backdrop: TabBarBackdrop): Modifier =
+internal fun Modifier.recordsBackdrop(backdrop: TabBarBackdrop, background: Color): Modifier =
     if (!BackdropBlurSupported) this
     else this
         .onGloballyPositioned { backdrop.contentOrigin = it.positionInWindow() }
         .drawWithContent {
-            backdrop.layer.record { this@drawWithContent.drawContent() }
+            backdrop.layer.record {
+                // Transparent screen pixels would let the original, sharp content show through
+                // the blurred copy. Include the Scaffold background in the recording itself.
+                drawRect(background)
+                this@drawWithContent.drawContent()
+            }
             drawLayer(backdrop.layer)
             backdrop.markRecorded()
         }

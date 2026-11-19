@@ -47,6 +47,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
@@ -376,6 +378,8 @@ fun ImportTransactionsScreen(
         }
     }
 
+    val density = LocalDensity.current
+    var actionHeight by remember { mutableStateOf(0.dp) }
     Column(modifier.fillMaxSize().imePadding()) {
         ActuaScreenHeader(
             title = stringResource(
@@ -383,429 +387,434 @@ fun ImportTransactionsScreen(
             ),
             onBack = onBack,
         )
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())
-            .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = floatingBarClearance())) {
-            if (!capturedReviewOnly) {
-                Text(stringResource(R.string.import_transactions_privacy),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                ActuaGroupLabel(stringResource(R.string.message_group))
-                OutlinedTextField(pastedText, { pastedText = it }, label = { Text(stringResource(R.string.paste_financial_alert)) },
-                    minLines = 3, modifier = Modifier.fillMaxWidth())
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton(enabled = pastedText.isNotBlank(), onClick = {
-                        reviewText(pastedText, resources.getString(R.string.pasted_message), StatementFormat.SHARED_TEXT)
-                    }) { Text(stringResource(R.string.review_text)) }
-                    if (queued.isNotEmpty()) TextButton(onClick = onOpenCapturedReview) {
-                        Text(pluralStringResource(R.plurals.review_captured, queued.size, queued.size))
-                    }
-                }
-                ActuaGroupLabel(stringResource(R.string.bank_notifications))
-                ActuaFormCard {
-                    ActuaFormRow(
-                        icon = Icons.Outlined.NotificationsActive,
-                        label = stringResource(R.string.capture_bank_notifications),
-                        value = null,
-                        checked = captureEnabled,
-                        onClick = {
-                            val enabled = !captureEnabled
-                            if (enabled && allowedPackages.isEmpty()) {
-                                message = resources.getString(R.string.select_app_before_capture)
-                                appMenu = true
-                            } else {
-                                captureEnabled = enabled; notificationPreferences.enabled = enabled
-                                if (enabled) context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-                            }
-                        },
-                    )
-                    ActuaCardDivider()
-                    ActuaFormRow(
-                        icon = Icons.Outlined.Notifications,
-                        label = stringResource(R.string.notify_about_captures),
-                        value = null,
-                        caption = stringResource(R.string.notify_captures_caption),
-                        checked = confirmNotifications,
-                        onClick = {
-                            val enabled = !confirmNotifications
-                            if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
-                                PackageManager.PERMISSION_GRANTED
-                            ) {
-                                notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            } else {
-                                confirmNotifications = enabled
-                                notificationPreferences.confirmNotificationsEnabled = enabled
-                            }
-                        },
-                    )
-                    ActuaCardDivider()
-                    Box(Modifier.fillMaxWidth()) {
-                        ActuaFormRow(
-                            icon = Icons.Outlined.Apps,
-                            label = stringResource(R.string.notification_apps),
-                            value = if (allowedPackages.isEmpty()) stringResource(R.string.select_notification_apps)
-                            else pluralStringResource(R.plurals.selected_apps, allowedPackages.size, allowedPackages.size),
-                            valueIsPlaceholder = allowedPackages.isEmpty(),
-                            onClick = { appMenu = true },
-                        )
-                        DropdownMenu(appMenu, { appMenu = false }) {
-                            notificationApps.forEach { (packageName, label) ->
-                                DropdownMenuItem(
-                                    text = { Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Checkbox(packageName in allowedPackages, null)
-                                        Text(label)
-                                    } },
-                                    onClick = {
-                                        allowedPackages = allowedPackages.toMutableSet().apply {
-                                            if (!add(packageName)) remove(packageName)
-                                        }
-                                        notificationPreferences.allowedPackages = allowedPackages
-                                        if (allowedPackages.isEmpty()) {
-                                            captureEnabled = false; notificationPreferences.enabled = false
-                                        }
-                                    },
-                                )
-                            }
+        Box(Modifier.weight(1f)) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = floatingBarClearance() + actionHeight + Spacing.md)) {
+                if (!capturedReviewOnly) {
+                    Text(stringResource(R.string.import_transactions_privacy),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    ActuaGroupLabel(stringResource(R.string.message_group))
+                    OutlinedTextField(pastedText, { pastedText = it }, label = { Text(stringResource(R.string.paste_financial_alert)) },
+                        minLines = 3, modifier = Modifier.fillMaxWidth())
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        TextButton(enabled = pastedText.isNotBlank(), onClick = {
+                            reviewText(pastedText, resources.getString(R.string.pasted_message), StatementFormat.SHARED_TEXT)
+                        }) { Text(stringResource(R.string.review_text)) }
+                        if (queued.isNotEmpty()) TextButton(onClick = onOpenCapturedReview) {
+                            Text(pluralStringResource(R.plurals.review_captured, queued.size, queued.size))
                         }
                     }
-                    ActuaCardDivider()
-                    DefaultAccountRow()
-                    ActuaCardDivider()
-                    ActuaFormTextField(icon = Icons.AutoMirrored.Outlined.TrendingDown, label = stringResource(R.string.debit_keywords),
-                        value = debitKeywords, onValueChange = { debitKeywords = it })
-                    ActuaCardDivider()
-                    ActuaFormTextField(icon = Icons.AutoMirrored.Outlined.TrendingUp, label = stringResource(R.string.credit_keywords),
-                        value = creditKeywords, onValueChange = { creditKeywords = it })
-                }
-                Text(stringResource(R.string.notification_access_description),
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = Spacing.xs, vertical = Spacing.sm))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton(onClick = {
-                        val debit = debitKeywords.split(',').map { it.trim().lowercase() }.filter(String::isNotBlank).toSet()
-                        val credit = creditKeywords.split(',').map { it.trim().lowercase() }.filter(String::isNotBlank).toSet()
-                        if (debit.isEmpty() || credit.isEmpty()) message = resources.getString(R.string.keep_debit_credit_keyword)
-                        else {
-                            notificationPreferences.saveProfile(FinancialMessageProfile(debit, credit))
-                            message = resources.getString(R.string.saved_parser_keywords)
-                        }
-                    }) { Text(stringResource(R.string.save_parser_words)) }
-                    TextButton(onClick = {
-                        CapturedTransactionNotifications.cancel(context, notificationPreferences.queued().mapNotNull { it.queueId })
-                        notificationPreferences.clearAll(); captureEnabled = false; confirmNotifications = false; queued = emptyList()
-                        automationEnabled = false; automationToken = null
-                        message = resources.getString(R.string.deleted_notification_data)
-                    }) { Text(stringResource(R.string.delete_notification_data)) }
-                }
-                ActuaGroupLabel(stringResource(R.string.automation_apps))
-                ActuaFormCard {
-                    ActuaFormRow(
-                        icon = Icons.Outlined.Bolt,
-                        label = stringResource(R.string.accept_from_tasker),
-                        value = null,
-                        checked = automationEnabled,
-                        onClick = {
-                            automationEnabled = !automationEnabled
-                            notificationPreferences.automationEnabled = automationEnabled
-                            automationToken = notificationPreferences.automationToken
-                        },
-                    )
-                    automationToken?.let { token ->
-                        ActuaCardDivider()
+                    ActuaGroupLabel(stringResource(R.string.bank_notifications))
+                    ActuaFormCard {
                         ActuaFormRow(
-                            icon = Icons.Outlined.Key,
-                            label = stringResource(R.string.token_label),
-                            value = token,
-                            caption = stringResource(R.string.tap_to_copy),
+                            icon = Icons.Outlined.NotificationsActive,
+                            label = stringResource(R.string.capture_bank_notifications),
+                            value = null,
+                            checked = captureEnabled,
                             onClick = {
-                                copySensitiveText(context, resources.getString(R.string.automation_token_clipboard_label), token)
-                                message = resources.getString(R.string.copied_automation_token)
+                                val enabled = !captureEnabled
+                                if (enabled && allowedPackages.isEmpty()) {
+                                    message = resources.getString(R.string.select_app_before_capture)
+                                    appMenu = true
+                                } else {
+                                    captureEnabled = enabled; notificationPreferences.enabled = enabled
+                                    if (enabled) context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                                }
                             },
                         )
-                    }
-                    automationRejection?.let { rejection ->
                         ActuaCardDivider()
                         ActuaFormRow(
-                            icon = Icons.Outlined.ErrorOutline,
-                            label = stringResource(R.string.last_broadcast_ignored),
+                            icon = Icons.Outlined.Notifications,
+                            label = stringResource(R.string.notify_about_captures),
                             value = null,
-                            caption = rejection.reason,
-                            supportingValue = relativeTime(rejection.atMillis),
+                            caption = stringResource(R.string.notify_captures_caption),
+                            checked = confirmNotifications,
+                            onClick = {
+                                val enabled = !confirmNotifications
+                                if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                                    PackageManager.PERMISSION_GRANTED
+                                ) {
+                                    notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                } else {
+                                    confirmNotifications = enabled
+                                    notificationPreferences.confirmNotificationsEnabled = enabled
+                                }
+                            },
                         )
+                        ActuaCardDivider()
+                        Box(Modifier.fillMaxWidth()) {
+                            ActuaFormRow(
+                                icon = Icons.Outlined.Apps,
+                                label = stringResource(R.string.notification_apps),
+                                value = if (allowedPackages.isEmpty()) stringResource(R.string.select_notification_apps)
+                                else pluralStringResource(R.plurals.selected_apps, allowedPackages.size, allowedPackages.size),
+                                valueIsPlaceholder = allowedPackages.isEmpty(),
+                                onClick = { appMenu = true },
+                            )
+                            DropdownMenu(appMenu, { appMenu = false }) {
+                                notificationApps.forEach { (packageName, label) ->
+                                    DropdownMenuItem(
+                                        text = { Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Checkbox(packageName in allowedPackages, null)
+                                            Text(label)
+                                        } },
+                                        onClick = {
+                                            allowedPackages = allowedPackages.toMutableSet().apply {
+                                                if (!add(packageName)) remove(packageName)
+                                            }
+                                            notificationPreferences.allowedPackages = allowedPackages
+                                            if (allowedPackages.isEmpty()) {
+                                                captureEnabled = false; notificationPreferences.enabled = false
+                                            }
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                        ActuaCardDivider()
+                        DefaultAccountRow()
+                        ActuaCardDivider()
+                        ActuaFormTextField(icon = Icons.AutoMirrored.Outlined.TrendingDown, label = stringResource(R.string.debit_keywords),
+                            value = debitKeywords, onValueChange = { debitKeywords = it })
+                        ActuaCardDivider()
+                        ActuaFormTextField(icon = Icons.AutoMirrored.Outlined.TrendingUp, label = stringResource(R.string.credit_keywords),
+                            value = creditKeywords, onValueChange = { creditKeywords = it })
                     }
-                }
-                Text(
-                    stringResource(
-                        R.string.automation_help_text,
-                        AutomationIntent.ACTION_QUEUE_TRANSACTION, context.packageName,
-                    ),
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = Spacing.xs, vertical = Spacing.sm))
-                if (automationToken != null) TextButton(onClick = {
-                    automationToken = notificationPreferences.regenerateAutomationToken()
-                    message = resources.getString(R.string.token_regenerated)
-                }) { Text(stringResource(R.string.new_token)) }
-                ActuaGroupLabel(stringResource(R.string.statement_file))
-                ActuaFormCard {
-                    ActuaMenuRow(
-                        icon = Icons.Outlined.AccountBalanceWallet,
-                        label = stringResource(R.string.import_into),
-                        value = account?.name ?: stringResource(R.string.no_open_account),
-                        valueIsPlaceholder = account == null,
-                        choices = accounts.map { it.name to it },
-                    ) { account = it }
-                }
-                ActuaSecondaryButton(
-                    text = stringResource(if (busy) R.string.reading else R.string.choose_statement_file),
-                    icon = Icons.Outlined.UploadFile,
-                    enabled = !busy && account != null,
-                    onClick = { picker.launch(arrayOf(
-                        "text/csv", "text/comma-separated-values", "text/plain",
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/pdf",
-                        "application/x-ofx", "application/ofx", "application/qfx", "application/x-qfx",
-                        "application/qif", "text/qif", "application/xml", "text/xml", "*/*",
-                    )) },
-                    modifier = Modifier.padding(vertical = Spacing.md),
-                )
-                val activeTable = table
-                val activeMapping = mapping
-                if (activeTable != null && activeMapping != null) {
-                    ActuaGroupLabel(stringResource(R.string.column_mapping))
+                    Text(stringResource(R.string.notification_access_description),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = Spacing.xs, vertical = Spacing.sm))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        TextButton(onClick = {
+                            val debit = debitKeywords.split(',').map { it.trim().lowercase() }.filter(String::isNotBlank).toSet()
+                            val credit = creditKeywords.split(',').map { it.trim().lowercase() }.filter(String::isNotBlank).toSet()
+                            if (debit.isEmpty() || credit.isEmpty()) message = resources.getString(R.string.keep_debit_credit_keyword)
+                            else {
+                                notificationPreferences.saveProfile(FinancialMessageProfile(debit, credit))
+                                message = resources.getString(R.string.saved_parser_keywords)
+                            }
+                        }) { Text(stringResource(R.string.save_parser_words)) }
+                        TextButton(onClick = {
+                            CapturedTransactionNotifications.cancel(context, notificationPreferences.queued().mapNotNull { it.queueId })
+                            notificationPreferences.clearAll(); captureEnabled = false; confirmNotifications = false; queued = emptyList()
+                            automationEnabled = false; automationToken = null
+                            message = resources.getString(R.string.deleted_notification_data)
+                        }) { Text(stringResource(R.string.delete_notification_data)) }
+                    }
+                    ActuaGroupLabel(stringResource(R.string.automation_apps))
                     ActuaFormCard {
-                        activeTable.headers.forEachIndexed { index, header ->
-                            if (index > 0) ActuaCardDivider()
-                            ActuaMenuRow(
-                                icon = Icons.Outlined.ViewColumn,
-                                label = header.ifBlank { stringResource(R.string.column_number, index + 1) },
-                                value = activeMapping.roles.getOrElse(index) { ImportColumnRole.IGNORE }.displayName(),
-                                choices = ImportColumnRole.entries.map { it.displayName() to it },
-                            ) { role ->
-                                val roles = activeMapping.roles.toMutableList().apply { this[index] = role }
-                                review(activeTable, activeMapping.copy(roles = roles))
-                            }
-                        }
-                    }
-                    ActuaFormCard(Modifier.padding(top = Spacing.md)) {
                         ActuaFormRow(
-                            icon = Icons.Outlined.SwapVert,
-                            label = stringResource(R.string.expenses_are_positive),
+                            icon = Icons.Outlined.Bolt,
+                            label = stringResource(R.string.accept_from_tasker),
                             value = null,
-                            checked = activeMapping.expensesArePositive,
-                            onClick = { review(activeTable, activeMapping.copy(expensesArePositive = !activeMapping.expensesArePositive)) },
+                            checked = automationEnabled,
+                            onClick = {
+                                automationEnabled = !automationEnabled
+                                notificationPreferences.automationEnabled = automationEnabled
+                                automationToken = notificationPreferences.automationToken
+                            },
                         )
-                        ActuaCardDivider()
-                        ActuaMenuRow(
-                            icon = Icons.Outlined.CalendarMonth,
-                            label = stringResource(R.string.date_format_label),
-                            value = activeMapping.datePattern,
-                            choices = listOf("Auto", "yyyy-MM-dd", "dd/MM/yyyy", "MM/dd/yyyy", "dd-MM-yyyy", "dd MMM yyyy")
-                                .map { it to it },
-                        ) { pattern -> review(activeTable, activeMapping.copy(datePattern = pattern)) }
-                        ActuaCardDivider()
-                        ActuaFormTextField(icon = Icons.Outlined.Edit, label = stringResource(R.string.mapping_profile_name),
-                            value = profileName, onValueChange = { profileName = it })
+                        automationToken?.let { token ->
+                            ActuaCardDivider()
+                            ActuaFormRow(
+                                icon = Icons.Outlined.Key,
+                                label = stringResource(R.string.token_label),
+                                value = token,
+                                caption = stringResource(R.string.tap_to_copy),
+                                onClick = {
+                                    copySensitiveText(context, resources.getString(R.string.automation_token_clipboard_label), token)
+                                    message = resources.getString(R.string.copied_automation_token)
+                                },
+                            )
+                        }
+                        automationRejection?.let { rejection ->
+                            ActuaCardDivider()
+                            ActuaFormRow(
+                                icon = Icons.Outlined.ErrorOutline,
+                                label = stringResource(R.string.last_broadcast_ignored),
+                                value = null,
+                                caption = rejection.reason,
+                                supportingValue = relativeTime(rejection.atMillis),
+                            )
+                        }
                     }
-                    Row {
-                        Box {
-                            TextButton(enabled = importPreferences.profileNames().isNotEmpty(), onClick = { profileMenu = true }) {
-                                Text(stringResource(R.string.load_profile))
-                            }
-                            DropdownMenu(profileMenu, { profileMenu = false }) {
-                                importPreferences.profileNames().forEach { name -> DropdownMenuItem(text = { Text(name) }, onClick = {
-                                    val saved = importPreferences.profile(name)
-                                    profileMenu = false
-                                    if (saved?.roles?.size == activeTable.headers.size) {
-                                        profileName = name; review(activeTable, saved)
-                                    } else message = resources.getString(R.string.profile_column_count_mismatch)
-                                }) }
+                    Text(
+                        stringResource(
+                            R.string.automation_help_text,
+                            AutomationIntent.ACTION_QUEUE_TRANSACTION, context.packageName,
+                        ),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = Spacing.xs, vertical = Spacing.sm))
+                    if (automationToken != null) TextButton(onClick = {
+                        automationToken = notificationPreferences.regenerateAutomationToken()
+                        message = resources.getString(R.string.token_regenerated)
+                    }) { Text(stringResource(R.string.new_token)) }
+                    ActuaGroupLabel(stringResource(R.string.statement_file))
+                    ActuaFormCard {
+                        ActuaMenuRow(
+                            icon = Icons.Outlined.AccountBalanceWallet,
+                            label = stringResource(R.string.import_into),
+                            value = account?.name ?: stringResource(R.string.no_open_account),
+                            valueIsPlaceholder = account == null,
+                            choices = accounts.map { it.name to it },
+                        ) { account = it }
+                    }
+                    ActuaSecondaryButton(
+                        text = stringResource(if (busy) R.string.reading else R.string.choose_statement_file),
+                        icon = Icons.Outlined.UploadFile,
+                        enabled = !busy && account != null,
+                        onClick = { picker.launch(arrayOf(
+                            "text/csv", "text/comma-separated-values", "text/plain",
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/pdf",
+                            "application/x-ofx", "application/ofx", "application/qfx", "application/x-qfx",
+                            "application/qif", "text/qif", "application/xml", "text/xml", "*/*",
+                        )) },
+                        modifier = Modifier.padding(vertical = Spacing.md),
+                    )
+                    val activeTable = table
+                    val activeMapping = mapping
+                    if (activeTable != null && activeMapping != null) {
+                        ActuaGroupLabel(stringResource(R.string.column_mapping))
+                        ActuaFormCard {
+                            activeTable.headers.forEachIndexed { index, header ->
+                                if (index > 0) ActuaCardDivider()
+                                ActuaMenuRow(
+                                    icon = Icons.Outlined.ViewColumn,
+                                    label = header.ifBlank { stringResource(R.string.column_number, index + 1) },
+                                    value = activeMapping.roles.getOrElse(index) { ImportColumnRole.IGNORE }.displayName(),
+                                    choices = ImportColumnRole.entries.map { it.displayName() to it },
+                                ) { role ->
+                                    val roles = activeMapping.roles.toMutableList().apply { this[index] = role }
+                                    review(activeTable, activeMapping.copy(roles = roles))
+                                }
                             }
                         }
-                        TextButton(enabled = profileName.isNotBlank(), onClick = {
-                            importPreferences.saveProfile(profileName.trim(), activeMapping)
-                            message = resources.getString(R.string.saved_mapping_profile, profileName.trim())
-                        }) { Text(stringResource(R.string.save_profile)) }
+                        ActuaFormCard(Modifier.padding(top = Spacing.md)) {
+                            ActuaFormRow(
+                                icon = Icons.Outlined.SwapVert,
+                                label = stringResource(R.string.expenses_are_positive),
+                                value = null,
+                                checked = activeMapping.expensesArePositive,
+                                onClick = { review(activeTable, activeMapping.copy(expensesArePositive = !activeMapping.expensesArePositive)) },
+                            )
+                            ActuaCardDivider()
+                            ActuaMenuRow(
+                                icon = Icons.Outlined.CalendarMonth,
+                                label = stringResource(R.string.date_format_label),
+                                value = activeMapping.datePattern,
+                                choices = listOf("Auto", "yyyy-MM-dd", "dd/MM/yyyy", "MM/dd/yyyy", "dd-MM-yyyy", "dd MMM yyyy")
+                                    .map { it to it },
+                            ) { pattern -> review(activeTable, activeMapping.copy(datePattern = pattern)) }
+                            ActuaCardDivider()
+                            ActuaFormTextField(icon = Icons.Outlined.Edit, label = stringResource(R.string.mapping_profile_name),
+                                value = profileName, onValueChange = { profileName = it })
+                        }
+                        Row {
+                            Box {
+                                TextButton(enabled = importPreferences.profileNames().isNotEmpty(), onClick = { profileMenu = true }) {
+                                    Text(stringResource(R.string.load_profile))
+                                }
+                                DropdownMenu(profileMenu, { profileMenu = false }) {
+                                    importPreferences.profileNames().forEach { name -> DropdownMenuItem(text = { Text(name) }, onClick = {
+                                        val saved = importPreferences.profile(name)
+                                        profileMenu = false
+                                        if (saved?.roles?.size == activeTable.headers.size) {
+                                            profileName = name; review(activeTable, saved)
+                                        } else message = resources.getString(R.string.profile_column_count_mismatch)
+                                    }) }
+                                }
+                            }
+                            TextButton(enabled = profileName.isNotBlank(), onClick = {
+                                importPreferences.saveProfile(profileName.trim(), activeMapping)
+                                message = resources.getString(R.string.saved_mapping_profile, profileName.trim())
+                            }) { Text(stringResource(R.string.save_profile)) }
+                        }
                     }
                 }
-            }
-            if (problems.isNotEmpty()) Text(
-                pluralStringResource(R.plurals.malformed_rows_excluded, problems.size, problems.size) + " " +
-                    problems.take(3).map {
-                        stringResource(R.string.row_problem, it.sourceRow, importProblemMessage(it))
-                    }.joinToString(),
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(bottom = 8.dp),
-            )
-            message?.let { Text(it, modifier = Modifier.padding(bottom = 8.dp)) }
-            if (!capturedReviewOnly) {
-                if (history.isNotEmpty()) {
-                    ActuaGroupLabel(stringResource(R.string.recent_imports))
-                    history.take(3).forEach { entry ->
+                if (problems.isNotEmpty()) Text(
+                    pluralStringResource(R.plurals.malformed_rows_excluded, problems.size, problems.size) + " " +
+                        problems.take(3).map {
+                            stringResource(R.string.row_problem, it.sourceRow, importProblemMessage(it))
+                        }.joinToString(),
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+                message?.let { Text(it, modifier = Modifier.padding(bottom = 8.dp)) }
+                if (!capturedReviewOnly) {
+                    if (history.isNotEmpty()) {
+                        ActuaGroupLabel(stringResource(R.string.recent_imports))
+                        history.take(3).forEach { entry ->
+                            Text(stringResource(
+                                R.string.import_history_entry,
+                                entry.sourceName, entry.imported, entry.skipped, entry.accountName,
+                            ),
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+                if (rows.isNotEmpty()) ActuaFormCard(Modifier.padding(top = Spacing.md)) {
+                    if (perRowAccounts()) {
+                        // Account choices come first, ahead of the rows they apply to (#1064).
+                        if (rows.any { it.accountId == null }) {
+                            ActuaMenuRow(
+                                icon = Icons.Outlined.AccountBalanceWallet,
+                                label = stringResource(R.string.account_for_all),
+                                value = stringResource(R.string.choose_an_account),
+                                valueIsPlaceholder = true,
+                                choices = openAccounts.map { it.name to it.id },
+                            ) { assignUnassignedRows(it) }
+                            ActuaCardDivider()
+                        }
+                        DefaultAccountRow()
+                        ActuaCardDivider()
+                    }
+                    ActuaFormRow(
+                        icon = Icons.Outlined.Check,
+                        label = stringResource(R.string.mark_as_cleared),
+                        value = null,
+                        checked = markCleared,
+                        onClick = {
+                            markCleared = !markCleared
+                            notificationPreferences.setMarkCleared(budgetId, markCleared)
+                        },
+                    )
+                }
+                rows.forEachIndexed { index, row ->
+                    val candidate = row.toCandidateOrNull()
+                    val invalid = candidate == null
+                    val candidateKey = candidate?.let { ImportDuplicateDetector.key(it.date, it.amountCents, it.payee) }
+                    val duplicate = candidateKey != null && rows.take(index).any {
+                        it.toCandidateOrNull()?.let { prior ->
+                            ImportDuplicateDetector.key(prior.date, prior.amountCents, prior.payee) == candidateKey
+                        } == true
+                    }
+                    val duplicateReason = if (duplicate) stringResource(R.string.repeated_in_file) else null
+                    val match = matchesByRow[index]
+                    ActuaFormCard(Modifier.padding(top = Spacing.md)) {
+                        Column(Modifier.padding(start = Spacing.xs, end = Spacing.md, bottom = Spacing.sm)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = row.selected, onCheckedChange = { rows[index] = row.copy(selected = it) })
+                            Text(stringResource(R.string.format_row, sourceFormat.displayName(), row.sourceRow),
+                                style = MaterialTheme.typography.labelLarge)
+                            if (duplicateReason != null) Text(
+                                stringResource(R.string.duplicate_reason, duplicateReason),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        }
+                        if (perRowAccounts()) {
+                            val rowAccount = accounts.firstOrNull { it.id == row.accountId }
+                            ActuaMenuRow(
+                                icon = Icons.Outlined.AccountBalanceWallet,
+                                label = stringResource(R.string.account_label),
+                                value = rowAccount?.name ?: stringResource(R.string.choose_an_account),
+                                valueIsPlaceholder = rowAccount == null,
+                                choices = accounts.map { it.name to it.id },
+                            ) { rows[index] = row.copy(accountId = it) }
+                        }
                         Text(stringResource(
-                            R.string.import_history_entry,
-                            entry.sourceName, entry.imported, entry.skipped, entry.accountName,
+                            R.string.confidence_source,
+                            row.confidence.displayName(),
+                            if (row.sourceLabel == "Statement") stringResource(R.string.statement_source) else row.sourceLabel,
                         ),
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
-            if (rows.isNotEmpty()) ActuaFormCard(Modifier.padding(top = Spacing.md)) {
-                if (perRowAccounts()) {
-                    // Account choices come first, ahead of the rows they apply to (#1064).
-                    if (rows.any { it.accountId == null }) {
-                        ActuaMenuRow(
-                            icon = Icons.Outlined.AccountBalanceWallet,
-                            label = stringResource(R.string.account_for_all),
-                            value = stringResource(R.string.choose_an_account),
-                            valueIsPlaceholder = true,
-                            choices = openAccounts.map { it.name to it.id },
-                        ) { assignUnassignedRows(it) }
-                        ActuaCardDivider()
-                    }
-                    DefaultAccountRow()
-                    ActuaCardDivider()
-                }
-                ActuaFormRow(
-                    icon = Icons.Outlined.Check,
-                    label = stringResource(R.string.mark_as_cleared),
-                    value = null,
-                    checked = markCleared,
-                    onClick = {
-                        markCleared = !markCleared
-                        notificationPreferences.setMarkCleared(budgetId, markCleared)
-                    },
-                )
-            }
-            rows.forEachIndexed { index, row ->
-                val candidate = row.toCandidateOrNull()
-                val invalid = candidate == null
-                val candidateKey = candidate?.let { ImportDuplicateDetector.key(it.date, it.amountCents, it.payee) }
-                val duplicate = candidateKey != null && rows.take(index).any {
-                    it.toCandidateOrNull()?.let { prior ->
-                        ImportDuplicateDetector.key(prior.date, prior.amountCents, prior.payee) == candidateKey
-                    } == true
-                }
-                val duplicateReason = if (duplicate) stringResource(R.string.repeated_in_file) else null
-                val match = matchesByRow[index]
-                ActuaFormCard(Modifier.padding(top = Spacing.md)) {
-                    Column(Modifier.padding(start = Spacing.xs, end = Spacing.md, bottom = Spacing.sm)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = row.selected, onCheckedChange = { rows[index] = row.copy(selected = it) })
-                        Text(stringResource(R.string.format_row, sourceFormat.displayName(), row.sourceRow),
-                            style = MaterialTheme.typography.labelLarge)
-                        if (duplicateReason != null) Text(
-                            stringResource(R.string.duplicate_reason, duplicateReason),
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                    }
-                    if (perRowAccounts()) {
-                        val rowAccount = accounts.firstOrNull { it.id == row.accountId }
-                        ActuaMenuRow(
-                            icon = Icons.Outlined.AccountBalanceWallet,
-                            label = stringResource(R.string.account_label),
-                            value = rowAccount?.name ?: stringResource(R.string.choose_an_account),
-                            valueIsPlaceholder = rowAccount == null,
-                            choices = accounts.map { it.name to it.id },
-                        ) { rows[index] = row.copy(accountId = it) }
-                    }
-                    Text(stringResource(
-                        R.string.confidence_source,
-                        row.confidence.displayName(),
-                        if (row.sourceLabel == "Statement") stringResource(R.string.statement_source) else row.sourceLabel,
-                    ),
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (match != null) {
-                        val existing = stringResource(
-                            R.string.match_on_date,
-                            match.payeeName ?: stringResource(R.string.a_transaction),
-                            formatDate(match.date),
-                        )
-                        Text(
-                            when {
-                                row.addAsNew -> stringResource(R.string.match_add_as_new, existing)
-                                match.reconciled -> stringResource(R.string.match_reconciled, existing)
-                                else -> stringResource(R.string.match_updates, existing)
-                            },
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary,
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = row.addAsNew, onCheckedChange = { rows[index] = row.copy(addAsNew = it) })
-                            Text(stringResource(R.string.add_as_new), style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
-                    OutlinedTextField(row.date, { rows[index] = row.copy(date = it) }, label = { Text(stringResource(R.string.date_iso_label)) },
-                        isError = invalid, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(row.payee, { rows[index] = row.copy(payee = it) }, label = { Text(stringResource(R.string.payee)) },
-                        singleLine = true, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(row.amount, { rows[index] = row.copy(amount = it) }, label = { Text(stringResource(R.string.signed_amount)) },
-                        isError = invalid, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(row.notes, { rows[index] = row.copy(notes = it) }, label = { Text(stringResource(R.string.notes)) },
-                        modifier = Modifier.fillMaxWidth())
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = {
-                            rows.removeAt(index)
-                            // A rejected capture leaves the queue now, not only this page (#1076).
-                            row.queueId?.let { id ->
-                                CapturedTransactionNotifications.reject(context, notificationPreferences, id)
-                                queued = notificationPreferences.queued()
-                            }
-                        }) { Text(stringResource(R.string.reject)) }
-                    }
-                    }
-                }
-            }
-            Spacer(Modifier.height(Spacing.md))
-        }
-        val selected = rows.filter(ReviewRow::selected)
-        val reviewed = selected.mapNotNull { row ->
-            row.toCandidateOrNull()?.let { ReviewedCandidate(it, row.targetAccountId(), row.addAsNew) }
-        }
-        val importPlan = groupImportRows(reviewed)
-        val waiting = importPlan.unassigned.size
-        ActuaPrimaryActionBar(
-            text = if (waiting > 0) stringResource(R.string.import_waiting_accounts, importPlan.importCount, waiting)
-                else pluralStringResource(R.plurals.approve_and_import, importPlan.importCount, importPlan.importCount),
-            onClick = {
-                val imported = importPlan.importCount
-                val accountNames = importPlan.groups.mapNotNull { group -> accounts.firstOrNull { it.id == group.accountId }?.name }
-                // Ticked rows still without an account stay for review, and stay queued (#1037).
-                var leftover = rows.filter { it.selected && it.toCandidateOrNull() != null && it.targetAccountId() == null }
-                onImport(importPlan.groups, markCleared) {
-                    importPreferences.addHistory(ImportHistoryEntry(sourceName, sourceFormat, accountNames.joinToString(", "),
-                        imported, rows.size - imported, System.currentTimeMillis()))
-                    history = importPreferences.history()
-                    if (sourceFormat == StatementFormat.NOTIFICATION) {
-                        // Rows imported or dropped here no longer need their notifications (#1046).
-                        val keptIds = leftover.mapNotNull(ReviewRow::queueId).toSet()
-                        CapturedTransactionNotifications.cancel(context, rows.mapNotNull(ReviewRow::queueId).filterNot(keptIds::contains))
-                        // The next row from the same card or app starts with the account chosen now (#1045).
-                        notificationPreferences.rememberAccounts(budgetId, selected.mapNotNull { row ->
-                            row.accountId?.let { importAccountMemoryKey(row.accountHint, row.sourceLabel) to it }
-                        }.toMap())
-                        // Rows left waiting pick up the choices just remembered, as new captures do.
-                        leftover = leftover.map { row ->
-                            row.copy(accountId = prefilledAccountId(row.accountHint, row.sourceLabel))
-                        }
-                        val remaining = leftover.mapNotNull(ReviewRow::toQueuedCandidateOrNull)
-                        notificationPreferences.replaceQueue(remaining); queued = remaining
-                    }
-                    val waitingForAccount = leftover.count { it.targetAccountId() == null }
-                    message = resources.getQuantityString(R.plurals.imported_transactions, imported, imported) +
-                        if (waitingForAccount > 0) {
-                            " " + resources.getQuantityString(
-                                R.plurals.still_need_account, waitingForAccount, waitingForAccount,
+                        if (match != null) {
+                            val existing = stringResource(
+                                R.string.match_on_date,
+                                match.payeeName ?: stringResource(R.string.a_transaction),
+                                formatDate(match.date),
                             )
-                        } else ""
-                    rows.clear(); rows += leftover; problems = emptyList()
+                            Text(
+                                when {
+                                    row.addAsNew -> stringResource(R.string.match_add_as_new, existing)
+                                    match.reconciled -> stringResource(R.string.match_reconciled, existing)
+                                    else -> stringResource(R.string.match_updates, existing)
+                                },
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary,
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(checked = row.addAsNew, onCheckedChange = { rows[index] = row.copy(addAsNew = it) })
+                                Text(stringResource(R.string.add_as_new), style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                        OutlinedTextField(row.date, { rows[index] = row.copy(date = it) }, label = { Text(stringResource(R.string.date_iso_label)) },
+                            isError = invalid, singleLine = true, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(row.payee, { rows[index] = row.copy(payee = it) }, label = { Text(stringResource(R.string.payee)) },
+                            singleLine = true, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(row.amount, { rows[index] = row.copy(amount = it) }, label = { Text(stringResource(R.string.signed_amount)) },
+                            isError = invalid, singleLine = true, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(row.notes, { rows[index] = row.copy(notes = it) }, label = { Text(stringResource(R.string.notes)) },
+                            modifier = Modifier.fillMaxWidth())
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            TextButton(onClick = {
+                                rows.removeAt(index)
+                                // A rejected capture leaves the queue now, not only this page (#1076).
+                                row.queueId?.let { id ->
+                                    CapturedTransactionNotifications.reject(context, notificationPreferences, id)
+                                    queued = notificationPreferences.queued()
+                                }
+                            }) { Text(stringResource(R.string.reject)) }
+                        }
+                        }
+                    }
                 }
-            },
-            enabled = selected.isNotEmpty() && reviewed.size == selected.size && importPlan.importCount > 0,
-            icon = Icons.Outlined.Check,
-        )
-        if (!capturedReviewOnly) {
-            if (history.isNotEmpty()) {
-                TextButton(onClick = { importPreferences.clearHistory(); history = emptyList() },
-                    modifier = Modifier.align(Alignment.End)) {
-                    Text(pluralStringResource(R.plurals.clear_import_history, history.size, history.size))
+                Spacer(Modifier.height(Spacing.md))
+            }
+            val selected = rows.filter(ReviewRow::selected)
+            val reviewed = selected.mapNotNull { row ->
+                row.toCandidateOrNull()?.let { ReviewedCandidate(it, row.targetAccountId(), row.addAsNew) }
+            }
+            val importPlan = groupImportRows(reviewed)
+            val waiting = importPlan.unassigned.size
+            Column(Modifier.align(Alignment.BottomCenter).padding(bottom = floatingBarClearance())
+                .onSizeChanged { actionHeight = with(density) { it.height.toDp() } }) {
+                ActuaPrimaryActionBar(
+                    text = if (waiting > 0) stringResource(R.string.import_waiting_accounts, importPlan.importCount, waiting)
+                        else pluralStringResource(R.plurals.approve_and_import, importPlan.importCount, importPlan.importCount),
+                    onClick = {
+                        val imported = importPlan.importCount
+                        val accountNames = importPlan.groups.mapNotNull { group -> accounts.firstOrNull { it.id == group.accountId }?.name }
+                        // Ticked rows still without an account stay for review, and stay queued (#1037).
+                        var leftover = rows.filter { it.selected && it.toCandidateOrNull() != null && it.targetAccountId() == null }
+                        onImport(importPlan.groups, markCleared) {
+                            importPreferences.addHistory(ImportHistoryEntry(sourceName, sourceFormat, accountNames.joinToString(", "),
+                                imported, rows.size - imported, System.currentTimeMillis()))
+                            history = importPreferences.history()
+                            if (sourceFormat == StatementFormat.NOTIFICATION) {
+                                // Rows imported or dropped here no longer need their notifications (#1046).
+                                val keptIds = leftover.mapNotNull(ReviewRow::queueId).toSet()
+                                CapturedTransactionNotifications.cancel(context, rows.mapNotNull(ReviewRow::queueId).filterNot(keptIds::contains))
+                                // The next row from the same card or app starts with the account chosen now (#1045).
+                                notificationPreferences.rememberAccounts(budgetId, selected.mapNotNull { row ->
+                                    row.accountId?.let { importAccountMemoryKey(row.accountHint, row.sourceLabel) to it }
+                                }.toMap())
+                                // Rows left waiting pick up the choices just remembered, as new captures do.
+                                leftover = leftover.map { row ->
+                                    row.copy(accountId = prefilledAccountId(row.accountHint, row.sourceLabel))
+                                }
+                                val remaining = leftover.mapNotNull(ReviewRow::toQueuedCandidateOrNull)
+                                notificationPreferences.replaceQueue(remaining); queued = remaining
+                            }
+                            val waitingForAccount = leftover.count { it.targetAccountId() == null }
+                            message = resources.getQuantityString(R.plurals.imported_transactions, imported, imported) +
+                                if (waitingForAccount > 0) {
+                                    " " + resources.getQuantityString(
+                                        R.plurals.still_need_account, waitingForAccount, waitingForAccount,
+                                    )
+                                } else ""
+                            rows.clear(); rows += leftover; problems = emptyList()
+                        }
+                    },
+                    enabled = selected.isNotEmpty() && reviewed.size == selected.size && importPlan.importCount > 0,
+                    icon = Icons.Outlined.Check,
+                )
+                if (!capturedReviewOnly) {
+                    if (history.isNotEmpty()) {
+                        TextButton(onClick = { importPreferences.clearHistory(); history = emptyList() },
+                            modifier = Modifier.align(Alignment.End)) {
+                            Text(pluralStringResource(R.plurals.clear_import_history, history.size, history.size))
+                        }
+                    }
                 }
             }
         }
