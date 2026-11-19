@@ -7,6 +7,7 @@ import com.azimulkabir.actua.data.sync.CrdtMessage
 import com.azimulkabir.actua.data.sync.HlcTimestamp
 import com.azimulkabir.actua.data.sync.MerkleNode
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
@@ -133,6 +134,33 @@ class LocalMerklePersistenceTest {
                 write(first, message(5))
                 assertEquals(6, first.messageCountAfter(HlcTimestamp.ZERO.toString()))
                 assertCurrentTree(first)
+            }
+        }
+    }
+
+    @Test fun replacingThePhysicalConnectionCannotReuseAnEqualVersionCounter() = withBudget { file ->
+        ActualBudgetDatabase.open(file).use { database ->
+            write(database, message(0))
+            // Simulate Android recycling its primary connection without replacing the owning
+            // wrapper. A newly opened connection can start with the same data_version value.
+            // Reflect only our own field, not Android's hidden connection-pool implementation.
+            val connectionField = ActualBudgetDatabase::class.java.getDeclaredField("database").apply { isAccessible = true }
+            (connectionField.get(database) as SQLiteDatabase).close()
+            raw(file) { sql ->
+                val m = message(1)
+                sql.execSQL("INSERT INTO messages_crdt (timestamp, dataset, row, `column`, value) VALUES (?, ?, ?, ?, ?)",
+                    arrayOf(m.timestamp.toString(), m.dataset, m.row, m.column, m.value))
+            }
+            val replacement = SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE)
+            replacement.enableWriteAheadLogging()
+            connectionField.set(database, replacement)
+            write(database, message(2))
+            assertEquals(3, database.messageCountAfter(HlcTimestamp.ZERO.toString()))
+            assertCurrentTree(database)
+            raw(file) { sql ->
+                sql.rawQuery("SELECT 1 FROM sqlite_master WHERE name = 'actua_local_merkle_connection'", null).use {
+                    assertFalse(it.moveToFirst()) // Lifetime marker is never part of the budget schema.
+                }
             }
         }
     }

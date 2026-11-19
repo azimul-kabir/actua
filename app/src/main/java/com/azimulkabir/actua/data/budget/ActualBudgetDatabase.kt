@@ -2373,6 +2373,18 @@ class ActualBudgetDatabase private constructor(
 
     /** Called only while holding this wrapper's monitor and the SQLite writer transaction. */
     private fun localMerkleAfter(inserted: List<CrdtMessage>): LocalMerkle {
+        // data_version counters restart when Android replaces a pooled connection. TEMP
+        // schema belongs to that physical connection and disappears with it. A missing
+        // marker invalidates even a coincidentally equal version counter. Nothing enters
+        // the budget's persistent schema or its exported archive.
+        val sameConnection = database.rawQuery(
+            "SELECT 1 FROM sqlite_temp_master WHERE type = 'table' AND name = 'actua_local_merkle_connection'",
+            null,
+        ).use { it.moveToFirst() }
+        if (!sameConnection) {
+            localMerkle = null
+            database.execSQL("CREATE TEMP TABLE actua_local_merkle_connection (present INTEGER)")
+        }
         // Write transactions pin Android's primary SQLite connection and exclude other writers.
         // data_version is connection-local: compare it only here, on that same connection.
         val version = database.rawQuery("PRAGMA main.data_version", null).use {
