@@ -2359,11 +2359,20 @@ class ActualBudgetDatabase private constructor(
     /** Save a sync boundary against the current log under the writer lock, including concurrent local edits. */
     @Synchronized
     internal fun saveClockFromMessageLog(timestamp: String) = transaction {
-        saveClock(ClockRecord(timestamp, deriveMerkleFromMessageLog().root))
+        val current = localMerkleAfter(emptyList())
+        saveClock(ClockRecord(timestamp, current.tree.root))
+        localMerkle = current
     }
 
     private fun finishLocalMessages(inserted: List<CrdtMessage>) {
         if (inserted.isEmpty()) return
+        val current = localMerkleAfter(inserted)
+        saveClock(ClockRecord(inserted.maxOf { it.timestamp }.toString(), current.tree.root))
+        localMerkle = current
+    }
+
+    /** Called only while holding this wrapper's monitor and the SQLite writer transaction. */
+    private fun localMerkleAfter(inserted: List<CrdtMessage>): LocalMerkle {
         // Write transactions pin Android's primary SQLite connection and exclude other writers.
         // data_version is connection-local: compare it only here, on that same connection.
         val version = database.rawQuery("PRAGMA main.data_version", null).use {
@@ -2378,8 +2387,7 @@ class ActualBudgetDatabase private constructor(
         } else {
             inserted.fold(baseline.tree) { current, message -> current.inserting(message.timestamp) }.pruned()
         }
-        saveClock(ClockRecord(inserted.maxOf { it.timestamp }.toString(), tree.root))
-        localMerkle = LocalMerkle(tree, version)
+        return LocalMerkle(tree, version)
     }
 
     private fun hasSameOrNewerCellMessage(message: CrdtMessage): Boolean = database.rawQuery(

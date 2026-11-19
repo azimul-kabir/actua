@@ -252,7 +252,8 @@ class ActualSyncClientTest {
             client(database, interleaving).sync()
 
             assertEquals(database.deriveMerkleFromMessageLog().root, database.loadClock()?.merkle)
-            assertEquals(snapshot.timestamp.toString(), database.loadClock()?.timestamp)
+            val boundary = HlcTimestamp(snapshot.timestamp.millis, snapshot.timestamp.counter, "cccccccccccccccc")
+            assertEquals(boundary.toString(), database.loadClock()?.timestamp)
             val outcome = client(database, server.client).sync()
             assertEquals(1, outcome.sentMessages)
             assertEquals(server.merkle(), database.deriveMerkleFromMessageLog())
