@@ -1,9 +1,9 @@
 # Merkle write-cost investigation (#1600)
 
-This is the investigation slice of [#1600](https://github.com/azimul-kabir/actua/issues/1600).
-It adds tests and opt-in measurements; it does not change production writers, clock
-persistence, wire encoding or recovery. The implementation and before/after acceptance
-criteria remain open.
+Tracks [#1600](https://github.com/azimul-kabir/actua/issues/1600). The original investigation
+and baseline below were merged in #1701. The implementation now opts production writers
+into atomic row/log/clock persistence and incrementally maintains a connection-local,
+log-derived Merkle baseline. Wire encoding, hashing and sync timestamp semantics are unchanged.
 
 ## History and upstream reference
 
@@ -99,7 +99,7 @@ Device: Android SDK built for arm64, API 37, arm64-v8a; emulator 37.2.13 on an
 Apple Silicon Mac with 8 GB RAM; `directInstrumented`, no physical device available.
 App assembly was complete before timing; no physical-device Macrobenchmark was run.
 These numbers are diagnostic emulator observations, **not a real-device baseline or an
-end-to-end before/after optimization claim**. The production writer is unchanged.
+end-to-end before/after optimization claim**. At that investigation stage, the production writer was unchanged.
 
 Times below are **median / p90 in milliseconds**, using nearest-rank p90 (the maximum
 of seven samples). Save and rebuild were timed in separate phases; differences between
@@ -130,7 +130,7 @@ Raw samples (nanoseconds; seed, operation, seven samples):
 500000,incremental_tree_only_ns,1184125,1268541,1188125,1187833,2066417,1142125,1176541
 ```
 
-## Validation of this slice
+## Investigation validation (#1701)
 
 - Committed wrapper: `:app:testDirectInstrumentedUnitTest --tests '*MerkleIncrementalConsistencyTest' --tests '*Sync*FixtureTest' --tests '*SyncUpstreamVectorTest'`:
   **31 tests passed** (four new consistency tests and the existing sync fixtures/vectors).
@@ -147,7 +147,7 @@ Raw samples (nanoseconds; seed, operation, seven samples):
 - Full-app lint, the complete JVM/device suite, API 28 and physical-device Macrobenchmark runs
   were not run for this test/documentation-only slice. Production behavior is unchanged.
 
-## Implementation decision and remaining work
+## Investigation decision (before implementation)
 
 The equivalence results support investigating incremental updates, but are not sufficient
 for replacing `saveClock()` with `loadClock().merkle.inserting(...)`:
@@ -168,4 +168,146 @@ for replacing `saveClock()` with `loadClock().merkle.inserting(...)`:
    two-client convergence, retry/offline and API 28 SQLite tests. Before/after physical-device
    measurements are still required when hardware is available.
 
-Do not close #1600 for this investigation slice.
+The investigation PR left #1600 open for the implementation and its validation.
+
+
+## Production implementation
+
+All six writers (transactions, entities, budgets, tags, schedules and payee locations) now
+run their existing database mutation in `ActualBudgetDatabase.localWrite`. The shared
+`insertMessageRows` path takes only successfully inserted timestamps and finalizes the
+clock/tree inside the same SQLite transaction. Callbacks retain their existing timing
+following the mutation. Payee locations keep their receive-side last-writer-wins selection.
+Schedule JSON-path bookkeeping is enclosed in the same local-write transaction.
+
+The baseline is scoped to one `ActualBudgetDatabase` instance, never initialized from
+`messages_clock`. The first local write without a validated baseline rebuilds from the authoritative log,
+already including that batch. Subsequent local writes insert accepted timestamps into that baseline and prune.
+A duplicate ignored by SQLite is not XORed into the tree again. No table or schema is added.
+
+Cold opens, raw log inserts, incoming remote rows, and any rolled-back transaction invalidate
+or lack the baseline and therefore force a full reconstruction on the next local write.
+Opening an imported/restored/redownloaded file and migration replay also precede creation of
+this instance-local baseline. A full rebuild remains an independent correctness oracle;
+sync initialization and every sync pass continue using it.
+
+Other connections are detected with SQLite's [PRAGMA data_version](https://www.sqlite.org/pragma.html#pragma_data_version).
+SQLite specifies that its value changes for commits by other connections and is meaningful
+only when compared on the same connection. Both the version check and tree update run in
+an Android SQLite **write transaction**, which pins the primary connection and excludes
+other writers. A changed version discards the cached baseline. An unrelated external commit
+can therefore cause a conservative full rebuild, but cannot admit stale tree state.
+
+The transaction helper remembers a failed nested transaction even if the caller catches its
+exception and performs more writes before the outer rollback. It discards the in-memory
+tree when that outer transaction ends, or when ending a transaction throws. This prevents
+rolled-back timestamps from being retained in the next successful write.
+
+Successful sync saves its existing timestamp boundary together with a current log-derived
+tree under the SQLite writer lock, reusing a validated baseline or rebuilding if invalid. Local edits committed since the response's snapshot are
+therefore included in the stored tree without being marked acknowledged by that boundary.
+Raw `applyLocalMessages`/`insertMessages`/`receiveMessages` APIs outside `localWrite` retain
+their prior recovery semantics and invalidate the local baseline when they add rows.
+
+A cold local write and the first after invalidation still pay the full
+history cost. The steady-state benchmark's warm-up excludes that rebuild. This optimization
+does not claim to remove cold-open/recovery work or accelerate the network sync protocol.
+
+
+## Implementation comparison on the same emulator
+
+Production baseline: retained pre-implementation APK with source `35e77d09` (production
+code is identical to investigation merge `55d75ab2`), benchmark harness from #1701.
+Optimized source: `b1224779`. Measured 2026-11-20 (Asia/Dhaka), on the same running API 37
+arm64 emulator, same `directInstrumented` variant, same untouched benchmark, two warm-ups
+and seven samples per size. Each instrumentation run starts its own app process. Assembly
+finished before timing, and no builds or lint ran during either measurement.
+
+**These are exploratory emulator results, not physical-device performance evidence.**
+No frame timings/janky-frame comparison or physical Macrobenchmark was available.
+
+| Seed messages | Before: median / p90 ms | After: median / p90 ms |
+| --- | --- | --- |
+| 10,000 | 44.468 / 45.577 | 0.831 / 1.028 |
+| 100,000 | 334.739 / 363.843 | 2.883 / 3.114 |
+| 500,000 | 1787.017 / 1827.744 | 5.857 / 8.800 |
+
+At 500k messages, the measured steady-state median fell from about 1.79 seconds to 5.86 ms.
+The benchmark excludes the cold rebuild through warm-up. The retained tree's shape and
+clock JSON still grow with the spread of minute buckets; this is not a claim of constant
+latency for every budget or after invalidation. Cross-connection writes, including clock-only
+commits, conservatively invalidate the baseline and can make the next local save cold.
+
+Raw transaction-save samples (nanoseconds):
+
+```csv
+before,10000,45568666,45577458,45269750,44467917,37250750,33489084,33489625
+before,100000,347129792,325230959,334738792,354843500,328526417,363843416,326569250
+before,500000,1808956542,1827743542,1779979917,1746201168,1803614793,1787017293,1776468376
+after,10000,847292,831375,764458,756417,746209,1028416,916875
+after,100000,2091959,3113833,3079042,2179167,2883416,1915584,2938125
+after,500000,6362916,5528583,5856708,6546500,5346625,8799750,5591750
+```
+
+
+## Implementation validation
+
+Source `b1224779`, API 37 and API 28 arm64 emulators, no production budgets or credentials.
+
+- `./gradlew :app:testDirectInstrumentedUnitTest :app:assembleDirectInstrumented :app:assembleDirectInstrumentedAndroidTest`:
+  **1,871 JVM tests passed and both instrumented APKs assembled**. This includes the existing
+  upstream hash/timestamp/wire/encryption vectors and seeded full-tree consistency tests.
+- API 37 core instrumentation: **33 passed** (`LocalMerklePersistenceTest`,
+  `ActualSyncClientTest`, `ActualBudgetDatabaseSyncTest`, `MerkleMessageLogConsistencyTest`).
+- API 37 affected-writer/recovery instrumentation: **224 passed**, using the selection below.
+- API 28: **all 257 core and affected-writer/recovery tests passed**, including the
+  `data_version`, concurrent-handle, rollback, duplicate, and clock-failure checks.
+- Both before/after benchmark runs completed and their clock/log consistency assertions passed.
+- The new sync-interleaving test initially expected the source message's node in the saved
+  boundary. Corrected it to assert the sync client's own node, preserving the existing HLC
+  semantics, then reran the complete core selection successfully.
+- The live Actual two-client workflow was not configured. Existing fake-server reconciliation,
+  overlapping/reverse-delivery tests and real concurrent SQLite-handle writes passed; these
+  do not substitute for a live upstream integration run.
+- No physical Android device was available for the retained AddEditTransactionBenchmark or
+  NavigationBenchmark before/after journeys. Emulator timings above are diagnostic only.
+
+For the core run, install the instrumented APKs, then use:
+
+```sh
+adb shell am instrument -w -r \
+  -e class com.azimulkabir.actua.data.budget.LocalMerklePersistenceTest,com.azimulkabir.actua.data.sync.ActualSyncClientTest,com.azimulkabir.actua.data.budget.ActualBudgetDatabaseSyncTest,com.azimulkabir.actua.data.budget.MerkleMessageLogConsistencyTest \
+  com.azimulkabir.actua.test.test/androidx.test.runner.AndroidJUnitRunner
+```
+
+The affected-writer selection adds these fully qualified classes (pass a comma-separated
+list to the same runner's `-e class`; the API 28 run combined this with the core selection):
+
+```text
+com.azimulkabir.actua.data.ActuaRepositoryMultiAccountImportTest
+com.azimulkabir.actua.data.ActuaRepositoryOneTimeScheduleTest
+com.azimulkabir.actua.data.ActuaRepositoryScheduleWeekendPostTest
+com.azimulkabir.actua.data.bank.BankSyncFailureTest
+com.azimulkabir.actua.data.bank.BankSyncReconciliationTest
+com.azimulkabir.actua.data.budget.ActualAccountCloseTest
+com.azimulkabir.actua.data.budget.ActualBudgetBufferTest
+com.azimulkabir.actua.data.budget.ActualBudgetReadModelTest
+com.azimulkabir.actua.data.budget.ActualDataIntegrityRegressionTest
+com.azimulkabir.actua.data.budget.ActualEntityWriterReorderTest
+com.azimulkabir.actua.data.budget.ActualTagWriterTest
+com.azimulkabir.actua.data.budget.BankLinkWriterTest
+com.azimulkabir.actua.data.budget.BudgetDownloadServiceTest
+com.azimulkabir.actua.data.budget.BudgetResetRecoveryTest
+com.azimulkabir.actua.data.budget.CategoryDeleteTransferTest
+com.azimulkabir.actua.data.budget.CategoryGroupDeleteTest
+com.azimulkabir.actua.data.budget.CustomReportAndDashboardWriterTest
+com.azimulkabir.actua.data.budget.DashboardRepairTest
+com.azimulkabir.actua.data.budget.TransactionMergeWriterTest
+com.azimulkabir.actua.data.budget.TransactionParityTest
+com.azimulkabir.actua.data.budget.TransactionTransferLinkWriterTest
+com.azimulkabir.actua.data.budget.TransferRemovalTest
+com.azimulkabir.actua.data.location.PayeeLocationDatabaseTest
+com.azimulkabir.actua.data.schedules.ScheduleWriteBuilderTest
+com.azimulkabir.actua.data.sync.StandaloneSchedulePostingTest
+com.azimulkabir.actua.data.sync.WriterClockHighWaterTest
+```
