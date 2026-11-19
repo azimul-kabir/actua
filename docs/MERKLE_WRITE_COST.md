@@ -21,6 +21,19 @@ criteria remain open.
   persists messages and clock/Merkle in one transaction. Full reconstruction is also a
   supported upstream [repair operation](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/sync/repair.ts).
 
+At production revision `35e77d09`, there are twelve rebuild call sites (plus the
+method declaration), distributed as follows:
+
+| Caller | Rebuild sites | Role |
+| --- | --- | --- |
+| `ActualTransactionWriter` | 1 | Shared post-mutation clock save for transaction operations |
+| `ActualEntityWriter` | 1 | Shared entity-message persistence |
+| `ActualBudgetWriter` | 4 | Budget/template amounts, rollover, income hold and category transfers |
+| `ActualScheduleWriter` | 2 | Next-date advancement and schedule write plans |
+| `ActualTagWriter` | 1 | Tag-message persistence |
+| `PayeeLocationWriter` | 1 | Payee-location message persistence |
+| `ActualSyncClient` | 2 | Client initialization and the start of every sync pass |
+
 ## Equivalence evidence
 
 `MerkleIncrementalConsistencyTest` compares **all retained nodes and hashes**, plus diff in
@@ -78,6 +91,61 @@ The runner prints `MERKLE_WRITE_COST` lines containing device/API/ABI and every 
 sample. Report the raw samples and median/p90, device, API, variant and source revision.
 Use the same device and conditions for a future production before/after comparison.
 Physical-device Macrobenchmark guidance remains in [PERFORMANCE_BASELINE.md](PERFORMANCE_BASELINE.md).
+
+## Exploratory emulator results
+
+Measured 2026-11-20 (Asia/Dhaka), production source `35e77d09`, harness `7a6068ad`.
+Device: Android SDK built for arm64, API 37, arm64-v8a; emulator 37.2.13 on an
+Apple Silicon Mac with 8 GB RAM; `directInstrumented`, no physical device available.
+App assembly was complete before timing; no physical-device Macrobenchmark was run.
+These numbers are diagnostic emulator observations, **not a real-device baseline or an
+end-to-end before/after optimization claim**. The production writer is unchanged.
+
+Times below are **median / p90 in milliseconds**, using nearest-rank p90 (the maximum
+of seven samples). Save and rebuild were timed in separate phases; differences between
+those medians must not be interpreted as a precise breakdown of the save's remaining work.
+
+| Seed messages | Current transaction save | Full tree rebuild only | Test-only insert/prune only |
+| --- | --- | --- | --- |
+| 10,000 | 44.708 / 45.308 | 30.298 / 31.643 | 0.193 / 0.205 |
+| 100,000 | 330.407 / 365.396 | 322.246 / 340.377 | 0.506 / 1.381 |
+| 500,000 | 1769.798 / 1799.981 | 1771.049 / 1812.414 | 1.188 / 2.066 |
+
+The 50× history increase produced roughly a 40× save-time increase in this run. This
+supports proceeding to an atomic incremental-update implementation slice, with the
+recovery protections below. The isolated tree operation demonstrates a potential source
+of savings but does not measure the final cost of any production replacement.
+
+Raw samples (nanoseconds; seed, operation, seven samples):
+
+```csv
+10000,save_ns,45224625,45308333,44707750,45269083,37291625,34141916,35286292
+10000,rebuild_ns,31165000,29422750,28638125,30054208,30297834,31643500,30500250
+10000,incremental_tree_only_ns,193709,192459,205083,192792,192125,194709,191917
+100000,save_ns,350991042,365396000,328853208,330407042,344911084,327252917,326251792
+100000,rebuild_ns,320421834,332781834,319525375,322246041,340377250,320451916,332597958
+100000,incremental_tree_only_ns,598709,506166,528125,483375,478500,479334,1380709
+500000,save_ns,1799981335,1776925542,1762900876,1769798376,1761138292,1774595876,1765326126
+500000,rebuild_ns,1761138376,1812414293,1771048834,1752187876,1758441751,1798510418,1789749001
+500000,incremental_tree_only_ns,1184125,1268541,1188125,1187833,2066417,1142125,1176541
+```
+
+## Validation of this slice
+
+- Committed wrapper: `:app:testDirectInstrumentedUnitTest --tests '*MerkleIncrementalConsistencyTest' --tests '*Sync*FixtureTest' --tests '*SyncUpstreamVectorTest'`:
+  **31 tests passed** (four new consistency tests and the existing sync fixtures/vectors).
+- `:app:assembleDirectInstrumented :app:assembleDirectInstrumentedAndroidTest`: **passed**.
+- API 37 instrumentation: **20 existing sync-client/database tests passed**, covering
+  recovery, offline writes, interrupted-response retries and fake-server/SQLite convergence.
+  The opt-in measurement completed successfully at all three sizes.
+- The initial test APK did not include the newly added SQLite consistency class. Rebuilt with
+  `:app:assembleDirectInstrumentedAndroidTest`, reinstalled, and ran that class alone:
+  **one test passed**. No test assertions were weakened to resolve the class-loading failure.
+- `TwoClientTransactionParityTest` skipped itself as designed: its live Actual-server workflow
+  was not configured. Fake-server/SQLite convergence above is not a live upstream round trip.
+- `git diff --check`: passed. The pinned upstream repair-source link was checked through GitHub.
+- Full-app lint, the complete JVM/device suite, API 28 and physical-device Macrobenchmark runs
+  were not run for this test/documentation-only slice. Production behavior is unchanged.
 
 ## Implementation decision and remaining work
 
