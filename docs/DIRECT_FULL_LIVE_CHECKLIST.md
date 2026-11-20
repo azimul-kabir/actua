@@ -15,22 +15,25 @@ each other.
 ## A. Finish sandbox verification
 
 ### 1. Email recovery
-Never exercised: the recovery tables are empty.
+Recovery email delivery and redemption were confirmed in the sandbox on 2026-11-17
+(see `actua-website/docs/PADDLE_SANDBOX.md`). The recovery tables are empty because the
+backend erases challenges, jobs and rate-limit rows after use or expiry.
 
-- [ ] Request recovery for a sandbox purchase email on the sandbox site.
-- [ ] The email arrives from the configured sender and the link or code works once.
-- [ ] Redeeming on a device yields a new recovery credential and the supporter thank-you.
-- [ ] Reusing the same link is rejected (the challenge is consumed).
+- [x] The recovery email arrives and redeeming it rotates the credential.
+- [ ] Reusing a consumed link is rejected.
 - [ ] Exceeding the hourly request limit is throttled.
-- [ ] The database shows the challenge consumed and redeemed, and no email address or
-      credential appears in plain text.
+- [ ] A recovery request after a refund is denied (covered by regression tests; the real
+      post-refund email request is untested).
+- [ ] Redeem on an Android device (the earlier check used the website entitlement page).
 
 ### 2. Refund to device
-The webhook and the revocation row are proven; the device side is not.
+Webhook delivery, the revocation row and server-side denial of new tokens after an
+approved refund were confirmed on 2026-11-17. Issued tokens keep their 24-hour expiry.
+The device side is not yet checked.
 
 - [ ] Activate a fresh sandbox purchase on a device.
 - [ ] Refund it in the Paddle sandbox.
-- [ ] A revocation row with `action=refund` appears.
+- [x] A revocation row with `action=refund` appears and the server denies new tokens.
 - [ ] A forced refresh on the device gets no new proof, and supporter status ends once the
       cached proof expires (up to 24 hours).
 - [ ] A late `transaction.completed` after the refund does not restore access.
