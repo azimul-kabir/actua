@@ -7,7 +7,10 @@ import java.net.URI
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.security.cert.CertificateException
+import java.security.cert.CertificateExpiredException
+import java.security.cert.CertificateNotYetValidException
 import java.security.cert.X509Certificate
+import java.util.Date
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.TrustManager
@@ -21,6 +24,15 @@ data class ServerCertificateInfo(
     val validUntil: String,
     val sha256Fingerprint: String,
 )
+
+/** The server presented a certificate whose validity period has ended. */
+class ServerCertificateExpiredException(val validUntil: Date) : CertificateException("The server certificate expired on $validUntil.")
+
+/** The server presented a certificate whose validity period has not started yet. */
+class ServerCertificateNotYetValidException(val validFrom: Date) : CertificateException("The server certificate is not valid until $validFrom.")
+
+/** The server presented a certificate issued for a different host. */
+class ServerCertificateHostMismatchException(val host: String) : CertificateException("The server certificate does not match $host.")
 
 class TrustedCertificateStore(context: Context) {
     private val preferences = context.applicationContext
@@ -179,7 +191,7 @@ private fun verifyCertificateHost(host: String, certificate: X509Certificate) {
     val commonName = commonNameFromRfc2253(certificate.subjectX500Principal.name)
 
     if (!certificateMatchesHost(host, dnsNames, ipAddresses, commonName)) {
-        throw CertificateException("The server certificate does not match $host.")
+        throw ServerCertificateHostMismatchException(host)
     }
 }
 
@@ -247,7 +259,15 @@ fun inspectServerCertificate(serverUrl: String): ServerCertificateInfo {
         it.startHandshake()
         val certificate = it.session.peerCertificates.firstOrNull() as? X509Certificate
             ?: throw CertificateException("The server did not present an X.509 certificate.")
-        certificate.checkValidity()
+        // Expired and mismatched certificates are never offered for trust; the typed exceptions only
+        // let the caller tell the user why.
+        try {
+            certificate.checkValidity()
+        } catch (_: CertificateExpiredException) {
+            throw ServerCertificateExpiredException(certificate.notAfter)
+        } catch (_: CertificateNotYetValidException) {
+            throw ServerCertificateNotYetValidException(certificate.notBefore)
+        }
         verifyCertificateHost(host, certificate)
         ServerCertificateInfo(
             host = host,

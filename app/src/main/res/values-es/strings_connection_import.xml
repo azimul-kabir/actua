@@ -40,6 +40,9 @@
     <string name="could_not_connect_server">No se pudo conectar al servidor.</string>
     <string name="incorrect_server_password">Contraseña del servidor incorrecta.</string>
     <string name="could_not_inspect_certificate">No se pudo inspeccionar el certificado del servidor.</string>
+    <string name="server_certificate_expired_error">El certificado del servidor caducó el %1$s. Renuévalo en el servidor e inténtalo de nuevo.</string>
+    <string name="server_certificate_not_yet_valid_error">El certificado del servidor no es válido hasta el %1$s. Comprueba el reloj y el certificado del servidor e inténtalo de nuevo.</string>
+    <string name="server_certificate_host_mismatch_error">El certificado del servidor se emitió para un host distinto de %1$s. Comprueba la dirección y el certificado del servidor.</string>
     <string name="server_certificate_not_trusted_error">El certificado del servidor no es de confianza. Actua no pudo verificar el certificado TLS de este servidor. Comprueba que el servidor proporcione una cadena de certificados válida. Si utilizas una autoridad de certificación privada o autofirmada, instálala como certificado de confianza en este dispositivo.</string>
     <string name="connected">Conectado</string>
     <string name="disconnected">Desconectado</string>

@@ -23,6 +23,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed the server connection error for an expired or mismatched certificate so it says what is wrong ([#1709](https://github.com/azimul-kabir/actua/pull/1709))
+
 - Fixed slow repeated saves in large budgets ([#1702](https://github.com/azimul-kabir/actua/pull/1702))
 
 - Fixed bulk duplicate, categorize, move and label leaving some transactions changed when one failed ([#1703](https://github.com/azimul-kabir/actua/pull/1703))
