@@ -216,19 +216,15 @@ Optional and cosmetic, unlockable in the Google Play version for now: choose an 
 
 Actua requires **Android 9 or newer**.
 
-**Recommended: [Get Actua on Google Play](https://play.google.com/store/apps/details?id=com.azimulkabir.actua).** You get automatic updates, receipt scanning and the optional Support Actua purchases (once or monthly), which also unlock cosmetic Supporter extras in Settings → Supporter extras (budgeting always stays free).
+**Recommended: [Get Actua on Google Play](https://play.google.com/store/apps/details?id=com.azimulkabir.actua).** You get automatic updates, receipt scanning and optional Support Actua purchases, which unlock cosmetic Supporter extras (budgeting always stays free).
 
-Other ways to install, from [GitHub Releases](https://github.com/azimul-kabir/actua/releases):
+Or install from [GitHub Releases](https://github.com/azimul-kabir/actua/releases):
 
-- `Actua-v<version>.apk`: Direct Full build, including on-device receipt scanning. Website purchase activation is being tested in sandbox builds; live website sales are not enabled.
-- `Actua-v<version>-full.apk`: the Google Play build (with Google Play Billing), also with on-device receipt scanning, for devices without the Play Store. It is signed with the same key as the other GitHub APK.
-- [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua): update notifications and in-place upgrades from GitHub Releases. It lists both APKs, so use its APK filter (a regular expression) to pick one, for example `-full` for the full build.
+- `Actua-v<version>.apk`: the Direct Full build, with receipt scanning. Website purchases are not open yet.
+- `Actua-v<version>-full.apk`: the Google Play build, for devices without the Play Store.
+- [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua): update notifications and in-place upgrades. Use its APK filter (for example `-full`) to pick one APK.
 
-**Google Play vs GitHub.** Both are the full app, but supporter purchases work only in the Play version for now, and they are signed differently. Google re-signs the Play version with its own key, while the two GitHub APKs carry Actua's release key. Android only updates an app with a build signed by the same key, so:
-
-- `Actua-v<version>.apk` and `Actua-v<version>-full.apk` update each other.
-- The Play version updates only from Google Play, and a GitHub APK cannot be installed over it (or the reverse).
-- To move between Play and GitHub, back up your budget first (an archive, WebDAV or Google Drive), uninstall, install the other build and restore. Uninstalling removes the data on the device, so check the backup before you do it. Supporter status bought through Google Play is tied to the Play version.
+The two GitHub APKs update each other. The Google Play version is signed with a different key, so neither can be installed over the other. To switch between Play and GitHub, back up your budget (an archive, WebDAV or Google Drive), uninstall, install the other build and restore; supporter status bought on Google Play stays with the Play version. See [docs/DIRECT_FULL.md](docs/DIRECT_FULL.md).
 
 Don't have an Actual server handy? Open **Manage → Connection & Data → Try demo budget** to explore Actua using a completely local sample budget.
 
