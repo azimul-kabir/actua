@@ -66,6 +66,8 @@ class ActualBudgetDatabase private constructor(
     private var localMerkle: LocalMerkle? = null
     private var transactionFailed = false
     private var localWriteDepth = 0
+    private var batchDepth = 0
+    private val batchInserted = mutableListOf<CrdtMessage>()
 
     data class BankSyncAccount(
         val id: String,
@@ -2429,8 +2431,9 @@ class ActualBudgetDatabase private constructor(
             )
             if (result != -1L) inserted += message
         }
-        if (localWriteDepth > 0) finishLocalMessages(inserted)
-        else if (inserted.isNotEmpty()) localMerkle = null
+        if (localWriteDepth > 0) {
+            if (batchDepth > 0) batchInserted += inserted else finishLocalMessages(inserted)
+        } else if (inserted.isNotEmpty()) localMerkle = null
         return inserted
     }
 
@@ -2524,6 +2527,28 @@ class ActualBudgetDatabase private constructor(
             block()
         } finally {
             localWriteDepth--
+        }
+    }
+
+    /**
+     * Runs [block] as one SQLite transaction in which every local write is applied as usual but the
+     * clock and Merkle tree are saved once, for all inserted messages, when the outermost batch
+     * ends. A failure rolls back every row of the batch.
+     */
+    @Synchronized
+    internal fun <T> batchLocalWrite(block: () -> T): T = localWrite {
+        val outermost = batchDepth == 0
+        batchDepth++
+        try {
+            val result = block()
+            if (outermost) {
+                batchDepth--
+                try { finishLocalMessages(batchInserted.toList()) } finally { batchDepth++ }
+            }
+            result
+        } finally {
+            batchDepth--
+            if (outermost) batchInserted.clear()
         }
     }
 

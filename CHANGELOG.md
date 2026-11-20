@@ -25,6 +25,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Fixed slow repeated saves in large budgets ([#1702](https://github.com/azimul-kabir/actua/pull/1702))
 
+- Fixed bulk duplicate, categorize, move and label leaving some transactions changed when one failed ([#1703](https://github.com/azimul-kabir/actua/pull/1703))
+
 - Fixed floating tab bar blur across menus and schedule forms ([#1700](https://github.com/azimul-kabir/actua/pull/1700))
 
 - Fixed supporter status and made locked extras easier to discover ([#1697](https://github.com/azimul-kabir/actua/pull/1697))
