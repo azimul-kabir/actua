@@ -3,6 +3,8 @@ package com.azimulkabir.actua.data.budget
 import android.database.sqlite.SQLiteDatabase
 import com.azimulkabir.actua.R
 import org.json.JSONObject
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -15,20 +17,55 @@ object DemoBudgetManager {
     /** Held by [recreate]; [repairIfNeeded] skips while it is held so a reset is never seeded twice. */
     private val recreateLock = ReentrantLock()
 
+    /** True once this process has confirmed the demo's schema, or built it from scratch in [recreate]. */
+    @Volatile
+    private var schemaChecked = false
+    private val checkInFlight = AtomicBoolean(false)
+    private val checkExecutor by lazy {
+        Executors.newSingleThreadExecutor { task -> Thread(task, "demo-budget-check").apply { isDaemon = true } }
+    }
+
+    fun isSchemaChecked(): Boolean = schemaChecked
+
+    /** Forgets the check, so a demo restored or copied in later is checked again. */
+    internal fun invalidateSchemaCheck() {
+        schemaChecked = false
+    }
+
     /**
      * Beta.6 could create a demo with a schedules table that lacked sort_order,
      * while the schedule read model queried that column during app startup. Repair
      * only that incompatible demo shape so existing fixed demo edits are preserved.
      *
      * Reads of the active budget call this, so it can race a reset. A demo that is being
-     * recreated, cannot be opened, or has no schedules table yet is left alone.
+     * recreated, cannot be opened, or has no schedules table yet is left alone. The check
+     * opens the demo's database, so it runs at most once per process and never on the main
+     * thread: use [repairInBackground] there.
      */
     fun repairIfNeeded(files: BudgetFileManager) {
+        if (schemaChecked) return
         if (!recreateLock.tryLock()) return
         try {
             if (needsRepair(files)) recreate(files)
+            schemaChecked = true
         } finally {
             recreateLock.unlock()
+        }
+    }
+
+    /**
+     * For callers on the main thread, which only need the active budget's id: starts the check on a
+     * background thread and returns at once. [files] is built there too, because creating a
+     * [BudgetFileManager] touches the disk.
+     */
+    fun repairInBackground(files: () -> BudgetFileManager) {
+        if (schemaChecked || !checkInFlight.compareAndSet(false, true)) return
+        checkExecutor.execute {
+            try {
+                runCatching { repairIfNeeded(files()) }
+            } finally {
+                checkInFlight.set(false)
+            }
         }
     }
 
@@ -82,6 +119,7 @@ object DemoBudgetManager {
                 .put("budgetName", labels.budgetName)
                 .put("demo", true)
             files.metadataFile(BUDGET_ID).writeText(metadataJson.toString())
+            schemaChecked = true
             BudgetMetadata.fromJson(metadataJson)
         } catch (error: Exception) {
             directory.deleteRecursively()
