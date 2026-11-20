@@ -259,10 +259,16 @@ object WidgetUpdater {
 
     internal fun execute(update: () -> Unit) { requestExecutor.execute(update) }
 
-    /** Always dispatches, including configuration callbacks that already run in a coroutine. */
+    @Volatile private var refreshContext: Context? = null
+    private val asyncRefresh = CoalescedRunner(requestExecutor) { refreshContext?.let(::refreshAll) }
+
+    /**
+     * Always dispatches, including configuration callbacks that already run in a coroutine. A burst of
+     * calls shares one pass; a call made during a pass queues one more so the final state is shown.
+     */
     fun requestAllAsync(context: Context) {
-        val app = context.applicationContext
-        requestExecutor.execute { refreshAll(app) }
+        refreshContext = context.applicationContext
+        asyncRefresh.request()
     }
 
     fun requestAll(context: Context) {
