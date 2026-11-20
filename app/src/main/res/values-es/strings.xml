@@ -28,5 +28,6 @@
     <string name="settings_language_english">Inglés</string>
     <string name="settings_language_portuguese_brazil">Portugués (Brasil)</string>
     <string name="settings_language_spanish">Español</string>
-    <string name="tile_add_transaction">Añadir transacción</string>
+    <string name="tile_add_transaction">Transacción</string>
+    <string name="tile_add_transaction_description">Añadir transacción</string>
 </resources>

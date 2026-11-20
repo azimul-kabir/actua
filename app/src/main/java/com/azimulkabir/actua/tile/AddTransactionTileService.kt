@@ -8,6 +8,7 @@ import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import com.azimulkabir.actua.MainActivity
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.widget.WidgetActions
 
 /**
@@ -21,6 +22,8 @@ class AddTransactionTileService : TileService() {
         // An action tile, not a toggle: always shown as available.
         qsTile?.apply {
             state = Tile.STATE_INACTIVE
+            // The label is short because the plus icon already says "add"; a screen reader needs the full phrase.
+            contentDescription = getString(R.string.tile_add_transaction_description)
             updateTile()
         }
     }

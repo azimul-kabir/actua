@@ -28,6 +28,22 @@ class AddTransactionTileManifestTest {
     }
 
     @Test
+    fun theTileLabelIsShortAndTheDescriptionSaysAddInEveryLanguage() {
+        // The plus icon already says "add", so the label stays short enough for a half-width tile, while the
+        // description (read by TalkBack) keeps the full phrase.
+        for (folder in listOf("values", "values-es", "values-pt-rBR")) {
+            val strings = File("src/main/res/$folder/strings.xml").readText()
+            fun value(name: String) = Regex("<string name=\"$name\">([^<]*)</string>").find(strings)?.groupValues?.get(1)
+            val label = value("tile_add_transaction")
+            val description = value("tile_add_transaction_description")
+            assertTrue("$folder has a tile label", label != null)
+            assertTrue("$folder has a tile description", description != null)
+            assertTrue("$folder label '$label' fits a half-width tile", label!!.length <= 12)
+            assertTrue("$folder description '$description' is longer than the label", description!!.length > label.length)
+        }
+    }
+
+    @Test
     fun theTileUsesTheAddTransactionActionThatExplainsAMissingBudget() {
         assertTrue(WidgetActions.ADD_EXPENSE in AddTransactionActions)
         assertEquals(
