@@ -217,7 +217,9 @@ class ActualTransactionFormService(
         val offBudget = database.fetchAccounts().filter { it.offBudget }.mapTo(mutableSetOf()) { it.id }
         fun category(leg: ActualTransaction, account: String, other: String): String? =
             if (account !in offBudget && other in offBudget) {
-                if (leg.id == original.id) form.categoryId else leg.categoryId
+                // Saved from the off-budget leg, the form's category is meant for this partner leg.
+                if (leg.id == original.id || (form.accountId in offBudget && form.categoryId != null)) form.categoryId
+                else leg.categoryId
             } else null
         val source = sourceOriginal.copy(
             accountId = form.accountId, date = date(sourceOriginal), amountCents = -plan.amountCents,
@@ -245,13 +247,14 @@ class ActualTransactionFormService(
         val signed = if (original.amountCents < 0) -plan.amountCents else plan.amountCents
         val offBudget = database.fetchAccounts().filter { it.offBudget }.mapTo(mutableSetOf()) { it.id }
         val legCategory = form.categoryId.takeIf { form.accountId !in offBudget && plan.toAccountId in offBudget }
+        val partnerCategory = form.categoryId.takeIf { form.accountId in offBudget && plan.toAccountId !in offBudget }
         val leg = original.copy(
             accountId = form.accountId, date = form.date, amountCents = signed,
             payeeId = otherPayee.id, categoryId = legCategory, notes = notes,
             cleared = form.cleared, transferId = partnerId,
         )
         val (ruledLeg, partner) = withTransferLegRules(leg, baseTransaction(
-            partnerId, plan.toAccountId, form.date, -signed, legPayee.id, null, notes,
+            partnerId, plan.toAccountId, form.date, -signed, legPayee.id, partnerCategory, notes,
             false, transferId = original.id,
         ))
         mutate(updates = listOf(original to ruledLeg), inserts = listOf(partner))
