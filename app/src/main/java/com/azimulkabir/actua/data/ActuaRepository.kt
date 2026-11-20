@@ -152,9 +152,31 @@ class ActuaRepository(context: Context) {
     private val appContext = context.applicationContext
     private val supportPrompt = SupportPromptPreferences(context)
     private val ratingPrompt = RatingPromptPreferences(context)
+    private var syncDeferrals = 0
+    private var syncRequestedWhileDeferred = false
     private val scheduleSync = {
+        if (syncDeferrals > 0) syncRequestedWhileDeferred = true else notifyWrite()
+    }
+
+    private fun notifyWrite() {
         ActualSyncScheduler.scheduleMutation(appContext)
         WidgetUpdater.requestAllAsync(appContext)
+    }
+
+    /** Runs [block] so every writer's `onWrite` inside it collapses into one notification at the end. */
+    private fun <T> deferringSync(block: () -> T): T {
+        syncDeferrals++
+        var succeeded = false
+        try {
+            return block().also { succeeded = true }
+        } finally {
+            syncDeferrals--
+            if (syncDeferrals == 0) {
+                val requested = syncRequestedWhileDeferred
+                syncRequestedWhileDeferred = false
+                if (succeeded && requested) notifyWrite()
+            }
+        }
     }
     private val unopened = mutableListOf<BudgetMetadata>()
     private val openedBudget: Pair<ActualBudgetDatabase, BudgetMetadata>? = BudgetFileManager(context).let { files ->
@@ -2038,7 +2060,36 @@ class ActuaRepository(context: Context) {
     }
 
     /** Saves [transaction]. Returns the id of a newly created ordinary or split transaction, else null. */
-    fun saveTransaction(transaction: Transaction): String? {
+    fun saveTransaction(transaction: Transaction): String? = saveTransactionRow(transaction).also { (db, before) ->
+        if (db != null) learnCategoriesFromSave(db, before)
+    }.third
+
+    /**
+     * Saves [transactions] atomically: one database transaction, one clock save, one sync and widget
+     * notification. Each row writes the same messages as [saveTransaction]; category learning runs once
+     * afterwards over the whole batch. If any row fails nothing is saved. Returns each row's new id, or null.
+     */
+    fun saveTransactions(transactions: List<Transaction>): List<String?> {
+        val writer = actualWriter ?: error("Connect to Actual and download a budget before adding transactions")
+        if (transactions.isEmpty()) return emptyList()
+        return deferringSync {
+            var db: ActualBudgetDatabase? = null
+            var before: String? = null
+            val ids = writer.batch {
+                transactions.mapIndexed { index, transaction ->
+                    val saved = saveTransactionRow(transaction)
+                    if (index == 0) { db = saved.first; before = saved.second }
+                    saved.third
+                }
+            }
+            // Outside the batch: a learning failure must not roll back the saved rows.
+            db?.let { learnCategoriesFromSave(it, before) }
+            ids
+        }
+    }
+
+    /** Saves one row; returns the database, the log position before the save, and the created id. */
+    private fun saveTransactionRow(transaction: Transaction): Triple<ActualBudgetDatabase?, String?, String?> {
         actualDatabase?.let { db ->
             val accounts = db.fetchAccounts().filterNot { it.closed }
             val account = accounts.byIdOrName(transaction.accountId, transaction.account, { it.id }, { it.name })
@@ -2101,12 +2152,11 @@ class ActuaRepository(context: Context) {
                 original = original,
                 applyRules = !transaction.rulesApplied,
             )
-            learnCategoriesFromSave(db, logBeforeSave)
             if (createdId != null) {
                 supportPrompt.recordTransactionAdded()
                 ratingPrompt.recordTransactionAdded()
             }
-            return createdId
+            return Triple(db, logBeforeSave, createdId)
         }
         error("Connect to Actual and download a budget before adding transactions")
     }

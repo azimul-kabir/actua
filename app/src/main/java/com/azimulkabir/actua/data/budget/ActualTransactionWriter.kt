@@ -16,8 +16,39 @@ class ActualTransactionWriter(
     nodeId: String = HybridLogicalClock.generateNodeId(),
     private val idFactory: () -> String = { UUID.randomUUID().toString() },
     nowMillis: () -> Long = System::currentTimeMillis,
-    private val onWrite: () -> Unit = {},
+    onWrite: () -> Unit = {},
 ) {
+    private val notifyWrite = onWrite
+    private var batchDepth = 0
+    private var batchWrote = false
+
+    /** Defers the [onWrite] callback while a [batch] runs, so a batch notifies once. */
+    private fun onWrite() {
+        if (batchDepth > 0) batchWrote = true else notifyWrite()
+    }
+
+    /**
+     * Applies every write made by [block] in one database transaction with one clock save and one
+     * `onWrite`. The messages are the ones the same writes would produce on their own. If [block]
+     * throws, nothing is kept and `onWrite` is not called.
+     */
+    fun <T> batch(block: () -> T): T {
+        batchDepth++
+        var succeeded = false
+        try {
+            val result = database.batchLocalWrite(block)
+            succeeded = true
+            return result
+        } finally {
+            batchDepth--
+            if (batchDepth == 0) {
+                val wrote = batchWrote
+                batchWrote = false
+                if (succeeded && wrote) notifyWrite()
+            }
+        }
+    }
+
     private val clock = HybridLogicalClock(nodeId, nowMillis = nowMillis, highWater = database::messageLogHighWater)
 
     init {

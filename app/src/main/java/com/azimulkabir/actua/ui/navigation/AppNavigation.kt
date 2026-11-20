@@ -1911,7 +1911,7 @@ fun AppNavigation(
                     val duplicates = transactionsToDuplicate.map { it.asDuplicate().asTransferDraft() }
                     val categories = duplicates.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
                     mutateWithImpactCue(R.string.navigation_duplicating_transactions, categories) {
-                        duplicates.forEach { repository.saveTransaction(it) }
+                        repository.saveTransactions(duplicates)
                         duplicates.isNotEmpty()
                     }
                 },
@@ -1944,7 +1944,7 @@ fun AppNavigation(
                     }
                     val categories = (transactionsToCategorize + updated).flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
                     mutateWithImpactCue(R.string.navigation_categorizing_transactions, categories) {
-                        updated.forEach { repository.saveTransaction(it) }
+                        repository.saveTransactions(updated)
                         updated.isNotEmpty()
                     }
                 },
@@ -1956,14 +1956,14 @@ fun AppNavigation(
                     }
                     val categories = transactionsToMove.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
                     mutateWithImpactCue(R.string.navigation_moving_transactions, categories) {
-                        updated.forEach { repository.saveTransaction(it) }
+                        repository.saveTransactions(updated)
                         updated.isNotEmpty()
                     }
                 },
                 onLabelMultiple = { transactionsToLabel, tag ->
                     val updated = transactionsToLabel.mapNotNull { withTagAppended(it, tag)?.asTransferDraft() }
                     mutate(R.string.navigation_labeling_transactions) {
-                        updated.forEach { repository.saveTransaction(it) }
+                        repository.saveTransactions(updated)
                         true
                     }
                 },
@@ -3085,7 +3085,7 @@ fun AppNavigation(
                         val duplicates = transactionsToDuplicate.map { it.asDuplicate().asTransferDraft() }
                         val categories = duplicates.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
                         mutateWithImpactCue(R.string.navigation_duplicating_transactions, categories) {
-                            duplicates.forEach { repository.saveTransaction(it) }
+                            repository.saveTransactions(duplicates)
                             duplicates.isNotEmpty()
                         }
                     },
@@ -3118,7 +3118,7 @@ fun AppNavigation(
                         }
                         val categories = (transactionsToCategorize + updated).flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
                         mutateWithImpactCue(R.string.navigation_categorizing_transactions, categories) {
-                            updated.forEach { repository.saveTransaction(it) }
+                            repository.saveTransactions(updated)
                             updated.isNotEmpty()
                         }
                     },
@@ -3130,14 +3130,14 @@ fun AppNavigation(
                         }
                         val categories = transactionsToMove.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
                         mutateWithImpactCue(R.string.navigation_moving_transactions, categories) {
-                            updated.forEach { repository.saveTransaction(it) }
+                            repository.saveTransactions(updated)
                             updated.isNotEmpty()
                         }
                     },
                     onLabelMultiple = { transactionsToLabel, tag ->
                         val updated = transactionsToLabel.mapNotNull { withTagAppended(it, tag)?.asTransferDraft() }
                         mutate(R.string.navigation_labeling_transactions) {
-                            updated.forEach { repository.saveTransaction(it) }
+                            repository.saveTransactions(updated)
                             true
                         }
                     },
