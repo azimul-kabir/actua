@@ -71,8 +71,7 @@ class BudgetScreenBenchmark {
         iterations = 5,
         setupBlock = { launchToBudget() },
     ) {
-        click(By.text("Groceries"))
-        navigateBack()
+        openCategoryDetailsAndBack()
     }
 
     @Test
@@ -82,7 +81,8 @@ class BudgetScreenBenchmark {
         iterations = 5,
         setupBlock = {
             launchToBudget()
-            click(By.desc("Manage Categories"))
+            click(By.desc("Budget display options"))
+            click(By.text("Manage Categories"))
             click(By.desc("Reorder Groups"))
         },
     ) {

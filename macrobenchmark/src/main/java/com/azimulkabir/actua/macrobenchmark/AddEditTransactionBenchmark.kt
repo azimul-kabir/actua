@@ -29,7 +29,10 @@ class AddEditTransactionBenchmark {
         iterations = 5,
         setupBlock = { launchToBudget() },
     ) {
-        click(By.text("Transaction"))
+        click(By.desc("Add"))
+        // Add opens with the amount keypad already showing; Back closes it and reveals Cancel.
+        awaitVisible(By.text("✓"), "The amount keypad")
+        navigateBack()
         click(By.desc("Cancel"))
     }
 
@@ -38,14 +41,17 @@ class AddEditTransactionBenchmark {
         packageName = PACKAGE_NAME,
         metrics = listOf(FrameTimingMetric()),
         iterations = 5,
-        setupBlock = { launchToBudget(); click(By.text("Transaction")) },
+        setupBlock = { launchToBudget(); click(By.desc("Add")) },
     ) {
-        click(By.descStartsWith("Amount"))
+        // The keypad opens with the screen. "✓" confirms the amount and moves on to the payee picker; Back returns
+        // to Add and Cancel leaves it, so the next iteration starts from the Budget root.
         for (digit in listOf("1", "2", ".", "5", "0")) {
             click(By.text(digit))
         }
         click(By.text("✓"))
+        awaitVisible(By.text("Find or add a payee"), "The payee picker")
         navigateBack()
+        click(By.desc("Cancel"))
     }
 
     companion object {

@@ -29,9 +29,9 @@ class NavigationBenchmark {
         iterations = 5,
         setupBlock = { launchToBudget() },
     ) {
+        // The default tab bar: Budget, Accounts, Add, Reports, Manage (Home and Transactions are hidden by default).
         navigateToTab("Accounts")
-        navigateToTab("Transactions")
-        navigateToTab("Home")
+        navigateToTab("Reports")
         navigateToTab("Manage")
         navigateToTab("Budget")
     }
@@ -43,8 +43,7 @@ class NavigationBenchmark {
         iterations = 5,
         setupBlock = { launchToBudget() },
     ) {
-        click(By.text("Groceries"))
-        navigateBack()
+        openCategoryDetailsAndBack()
     }
 
     companion object {

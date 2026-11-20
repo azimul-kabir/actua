@@ -11,7 +11,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The Transactions tab is the "All Transactions" list from #321's journey list; opening it from
+ * The "All Transactions" list from #321's journey list, opened from the "All accounts" row of Accounts; opening it from
  * a cold Budget landing, scrolling it and searching/filtering it are separately measured here.
  */
 @RunWith(AndroidJUnit4::class)
@@ -28,8 +28,9 @@ class TransactionsScreenBenchmark {
         iterations = 5,
         setupBlock = { launchToBudget() },
     ) {
-        navigateToTab("Transactions")
+        openAllTransactions()
         scrollMainList()
+        navigateBack()
     }
 
     @Test
@@ -37,7 +38,7 @@ class TransactionsScreenBenchmark {
         packageName = PACKAGE_NAME,
         metrics = listOf(FrameTimingMetric()),
         iterations = 5,
-        setupBlock = { launchToBudget(); navigateToTab("Transactions") },
+        setupBlock = { launchToBudget(); openAllTransactions() },
     ) {
         click(By.desc("Search transactions"))
         device.executeShellCommand("input text groceries")
@@ -50,7 +51,7 @@ class TransactionsScreenBenchmark {
         packageName = PACKAGE_NAME,
         metrics = listOf(FrameTimingMetric()),
         iterations = 5,
-        setupBlock = { launchToBudget(); navigateToTab("Transactions") },
+        setupBlock = { launchToBudget(); openAllTransactions() },
     ) {
         click(By.text("Cleared"))
         click(By.text("Uncleared"))

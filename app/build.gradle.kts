@@ -96,6 +96,15 @@ android {
     }
 }
 
+// The benchmark build is installed next to the real app, never over it: same application ID and signing
+// would either fail to install or need an uninstall that deletes the real app's data. :macrobenchmark
+// targets this ID (see its DemoBudgetJourneys.kt).
+androidComponents {
+    onVariants(selector().withBuildType("benchmarkRelease")) { variant ->
+        variant.applicationId.set("com.azimulkabir.actua.benchmark")
+    }
+}
+
 baselineProfile {
     // Skip regenerating the profile on every build; run `:app:generateBaselineProfile`
     // manually (on a connected device/emulator) when app flows change meaningfully.
