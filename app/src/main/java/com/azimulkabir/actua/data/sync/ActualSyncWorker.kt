@@ -340,16 +340,30 @@ object ActualSyncScheduler {
             PERIODIC, ExistingPeriodicWorkPolicy.UPDATE, request)
     }
 
-    /** A short delay coalesces the CRDT cells produced by one user operation. */
+    private val mutationExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
+
+    /**
+     * A short delay coalesces the CRDT cells produced by one user operation. A mutation is only
+     * queued when no sync is waiting to start: a waiting run will read this mutation when it starts
+     * (the write is committed before this is called), while a running one may already have passed it,
+     * so that case still appends one run. A running sync is never cancelled.
+     */
     fun scheduleMutation(context: Context) {
-        val request = OneTimeWorkRequestBuilder<ActualSyncWorker>()
-            .setInputData(workDataOf(
-                ActualSyncWorker.GENERATION_KEY to ActualSyncRunner.workGeneration(context),
-                ActualSyncWorker.REASON_KEY to ActualSyncWorker.REASON_MUTATION,
-            ))
-            .setInitialDelay(1, TimeUnit.SECONDS)
-            .setConstraints(network).setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.SECONDS).build()
-        WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(IMMEDIATE, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
+        val app = context.applicationContext
+        // Off the caller's thread: reading the queue blocks, and callers include the main thread.
+        mutationExecutor.execute {
+            val manager = WorkManager.getInstance(app)
+            val states = manager.getWorkInfosForUniqueWork(IMMEDIATE).get().map { it.state }
+            if (!MutationSyncPolicy.shouldEnqueue(states)) return@execute
+            val request = OneTimeWorkRequestBuilder<ActualSyncWorker>()
+                .setInputData(workDataOf(
+                    ActualSyncWorker.GENERATION_KEY to ActualSyncRunner.workGeneration(app),
+                    ActualSyncWorker.REASON_KEY to ActualSyncWorker.REASON_MUTATION,
+                ))
+                .setInitialDelay(1, TimeUnit.SECONDS)
+                .setConstraints(network).setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.SECONDS).build()
+            manager.enqueueUniqueWork(IMMEDIATE, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
+        }
     }
 
     fun scheduleLocalBackup(context: Context) {
