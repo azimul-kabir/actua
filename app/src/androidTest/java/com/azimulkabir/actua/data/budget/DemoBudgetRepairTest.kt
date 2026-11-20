@@ -17,6 +17,8 @@ class DemoBudgetRepairTest {
 
     @Before @After fun removeDemo() {
         runCatching { files.budgetDirectory(DemoBudgetManager.BUDGET_ID).deleteRecursively() }
+        // The demo's schema is only checked once per process, so each test starts with the check forgotten.
+        DemoBudgetManager.invalidateSchemaCheck()
     }
 
     @Test fun repairRecreatesBeta6DemoWithoutScheduleSortOrder() {
@@ -46,10 +48,14 @@ class DemoBudgetRepairTest {
         DemoBudgetManager.recreate(files)
         val resetting = AtomicBoolean(true)
         val started = CountDownLatch(1)
-        // Mirrors ActiveBudgetStore.budgetId reads arriving while the user resets the demo.
+        // Mirrors the first ActiveBudgetStore.budgetId read of a process arriving while the user resets the demo;
+        // the check is forgotten each time so that every pass can race a reset, as every read used to.
         val reader = thread {
             started.countDown()
-            while (resetting.get()) DemoBudgetManager.repairIfNeeded(files)
+            while (resetting.get()) {
+                DemoBudgetManager.invalidateSchemaCheck()
+                DemoBudgetManager.repairIfNeeded(files)
+            }
         }
         started.await()
         repeat(5) { DemoBudgetManager.recreate(files) }

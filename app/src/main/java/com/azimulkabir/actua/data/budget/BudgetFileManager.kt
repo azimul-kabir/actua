@@ -132,6 +132,7 @@ class BudgetFileManager(context: Context) {
 
     fun deleteBudget(budgetId: String) {
         BudgetOpenProbe.invalidate(databaseFile(budgetId))
+        if (DemoBudgetManager.isDemoBudget(budgetId)) DemoBudgetManager.invalidateSchemaCheck()
         val directory = budgetDirectory(budgetId)
         require(directory.isDirectory) { "Budget no longer exists on this device" }
         check(directory.deleteRecursively()) { "Unable to remove budget from this device" }
