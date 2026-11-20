@@ -47,7 +47,9 @@ class ActuaSnackbarTest {
                 density = androidx.compose.ui.platform.LocalDensity.current.density
                 expectedContainer = MaterialTheme.colorScheme.surfaceContainerHighest
                 inverse = MaterialTheme.colorScheme.inverseSurface
-                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.BottomCenter) {
+                // Centered, not at the bottom: with edge-to-edge and a three-button navigation bar (API 28), the
+                // system's translucent bar scrim is drawn over the bottom of the window and tints the sampled pixel.
+                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
                     ActuaSnackbarHost(host)
                 }
                 androidx.compose.runtime.LaunchedEffect(Unit) {
