@@ -28,19 +28,19 @@ in the main branch ruleset if they should be required for merging.
 Release metadata changes on `main` run the Android Release workflow. It
 builds and validates the persistently signed release APK, creates the version tag and
 GitHub prerelease, copies that version's `CHANGELOG.md` section into the release
-description, and attaches two APKs: `Actua-v<version>.apk` (the `fdroid` flavor) and
-`Actua-v<version>-full.apk` (the `playstore` flavor, with receipt scanning). Never change what
-`Actua-v<version>.apk` is: the F-Droid recipe's `Binaries` line and the F-Droid Verify workflow
-use that exact file. For a stable version (no `-beta.`/`-alpha.`/`-rc.`
+description, and attaches two APKs: `Actua-v<version>.apk` (the `direct` flavor, Direct Full) and
+`Actua-v<version>-full.apk` (the `playstore` flavor, Play Full). Both have receipt scanning. Keep
+the `Actua-v<version>.apk` name stable, because Obtainium and existing download links use it. The
+F-Droid verify workflow is retired; `fdroid/` is historical submission metadata only. For a stable version (no `-beta.`/`-alpha.`/`-rc.`
 suffix) it first uploads the signed `.aab` to Google Play's production track, with that version's
 `changelogs/<versionCode>.txt` as "What's new"; Play publishes it once Google's review passes
 (Managed publishing is off). A failed upload, a missing "What's new" file or a missing
-`PLAY_SERVICE_ACCOUNT_JSON` stops the run before the F-Droid template, the GitHub release or the
+`PLAY_SERVICE_ACCOUNT_JSON` stops the run before the GitHub release or the
 Discord post. The `.aab` is also kept as the `Actua-v<version>-aab` artifact (90 days). Right
 after the upload, the same stable-release run also syncs the Play title, short description and full
 description from `fastlane/metadata/android/en-US/` through the `update-play-listing-text` action
 (it changes nothing when they already match). That step does not stop the release: if it fails, the
-run still publishes the GitHub release, the F-Droid template and the Discord post, and ends with a
+run still publishes the GitHub release and the Discord post, and ends with a
 warning annotation and a job-summary note; run **Google Play Listing Text** with "apply" to retry. To
 re-run a release Play already has, run the workflow manually with "Upload a stable release to
 Google Play" turned off. Update `versionCode`, `versionName`, and `CHANGELOG.md` together for

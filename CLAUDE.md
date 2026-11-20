@@ -56,4 +56,4 @@ Only when asked. Follow `.github/MAINTAINER_NOTES.md` ("Release preparation chec
 7. Add `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt` (500 characters at most, short bullets) and update the store listing text when features change. Refresh store images only when the UI changed noticeably.
 8. Open the release PR linked to the issue. **Merging it publishes to Google Play and GitHub**, so never merge it, and never trigger the release workflow, without my explicit say-so.
 
-Never change what `Actua-v<version>.apk` is: the F-Droid recipe and verify workflow depend on that exact file.
+Keep the `Actua-v<version>.apk` name stable (it is the Direct Full build; Obtainium and download links use it). F-Droid verification is retired.
