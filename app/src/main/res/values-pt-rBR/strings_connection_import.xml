@@ -40,6 +40,9 @@
     <string name="could_not_connect_server">Não foi possível conectar ao servidor.</string>
     <string name="incorrect_server_password">Senha do servidor incorreta.</string>
     <string name="could_not_inspect_certificate">Não foi possível inspecionar o certificado do servidor.</string>
+    <string name="server_certificate_expired_error">O certificado do servidor expirou em %1$s. Renove-o no servidor e tente novamente.</string>
+    <string name="server_certificate_not_yet_valid_error">O certificado do servidor só é válido a partir de %1$s. Verifique o relógio e o certificado do servidor e tente novamente.</string>
+    <string name="server_certificate_host_mismatch_error">O certificado do servidor foi emitido para um host diferente de %1$s. Verifique o endereço e o certificado do servidor.</string>
     <string name="server_certificate_not_trusted_error">O certificado do servidor não é confiável. O Actua não pôde verificar o certificado TLS deste servidor. Verifique se o servidor fornece uma cadeia de certificados válida. Se você usa uma AC privada ou autoassinada, instale essa AC como um certificado confiável neste dispositivo.</string>
     <string name="connected">Conectado</string>
     <string name="disconnected">Desconectado</string>

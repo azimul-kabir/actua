@@ -40,6 +40,9 @@
     <string name="could_not_connect_server">Could not connect to the server.</string>
     <string name="incorrect_server_password">Incorrect server password.</string>
     <string name="could_not_inspect_certificate">Could not inspect the server certificate.</string>
+    <string name="server_certificate_expired_error">The server certificate expired on %1$s. Renew it on the server, then try again.</string>
+    <string name="server_certificate_not_yet_valid_error">The server certificate isn’t valid until %1$s. Check the server’s clock and certificate, then try again.</string>
+    <string name="server_certificate_host_mismatch_error">The server certificate was issued for a different host than %1$s. Check the address and the server certificate.</string>
     <string name="server_certificate_not_trusted_error">Server certificate isn’t trusted. Actua couldn’t verify this server’s TLS certificate. Check that the server provides a valid certificate chain. If you use a private or self-signed CA, install that CA as a trusted certificate on this device.</string>
     <string name="connected">Connected</string>
     <string name="disconnected">Disconnected</string>

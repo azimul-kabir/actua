@@ -75,13 +75,14 @@ internal suspend fun connectWebDav(
     withContext(Dispatchers.IO) { manager.connect(config) }
     WebDavConnectResult.Connected
 } catch (error: WebDavException.Tls) {
-    val info = suspendRunCatching {
+    val inspection = suspendRunCatching {
         withContext(Dispatchers.IO) { inspectServerCertificate(config.serverUrl.trim()) }
-    }.getOrNull()
+    }
+    val info = inspection.getOrNull()
     if (info != null) {
         WebDavConnectResult.NeedsTrust(PendingWebDavTrust(info, certificates.hasTrust(info.host), config))
     } else {
-        WebDavConnectResult.Failed(resources.getString(R.string.could_not_inspect_certificate))
+        WebDavConnectResult.Failed(certificateInspectionErrorMessage(inspection.exceptionOrNull() ?: error, resources))
     }
 } catch (error: kotlinx.coroutines.CancellationException) {
     throw error

@@ -88,7 +88,10 @@ import com.azimulkabir.actua.data.network.LocalNetworkAccess
 import com.azimulkabir.actua.data.network.OidcCallbackPageText
 import com.azimulkabir.actua.data.network.OidcCallbackServer
 import com.azimulkabir.actua.data.network.RemoteBudgetFile
+import com.azimulkabir.actua.data.network.ServerCertificateExpiredException
+import com.azimulkabir.actua.data.network.ServerCertificateHostMismatchException
 import com.azimulkabir.actua.data.network.ServerCertificateInfo
+import com.azimulkabir.actua.data.network.ServerCertificateNotYetValidException
 import com.azimulkabir.actua.data.network.TrustedCertificateStore
 import com.azimulkabir.actua.data.network.UrlConnectionTransport
 import com.azimulkabir.actua.data.network.inspectServerCertificate
@@ -226,6 +229,37 @@ internal fun connectionErrorMessage(error: Throwable, fallback: String, certific
         certificateTrustMessage
     } else {
         error.message ?: fallback
+    }
+}
+
+internal sealed interface CertificateInspectionFailure {
+    data class Expired(val validUntil: java.util.Date) : CertificateInspectionFailure
+    data class NotYetValid(val validFrom: java.util.Date) : CertificateInspectionFailure
+    data class HostMismatch(val host: String) : CertificateInspectionFailure
+}
+
+/** Returns why the certificate probe rejected the server's certificate, or null when the cause is unknown. */
+internal fun certificateInspectionFailure(error: Throwable): CertificateInspectionFailure? =
+    generateSequence(error) { it.cause }.firstNotNullOfOrNull {
+        when (it) {
+            is ServerCertificateExpiredException -> CertificateInspectionFailure.Expired(it.validUntil)
+            is ServerCertificateNotYetValidException -> CertificateInspectionFailure.NotYetValid(it.validFrom)
+            is ServerCertificateHostMismatchException -> CertificateInspectionFailure.HostMismatch(it.host)
+            else -> null
+        }
+    }
+
+/** Explains why the certificate probe failed, falling back to the generic message for anything else. */
+internal fun certificateInspectionErrorMessage(error: Throwable, resources: android.content.res.Resources): String {
+    val dates = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM)
+    return when (val failure = certificateInspectionFailure(error)) {
+        is CertificateInspectionFailure.Expired ->
+            resources.getString(R.string.server_certificate_expired_error, dates.format(failure.validUntil))
+        is CertificateInspectionFailure.NotYetValid ->
+            resources.getString(R.string.server_certificate_not_yet_valid_error, dates.format(failure.validFrom))
+        is CertificateInspectionFailure.HostMismatch ->
+            resources.getString(R.string.server_certificate_host_mismatch_error, failure.host)
+        null -> resources.getString(R.string.could_not_inspect_certificate)
     }
 }
 
@@ -424,7 +458,7 @@ fun ConnectionScreen(
                 )
                 message = null
             }.onFailure {
-                message = resources.getString(R.string.could_not_inspect_certificate)
+                message = certificateInspectionErrorMessage(it, resources)
             }
         }
     }
