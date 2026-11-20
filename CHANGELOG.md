@@ -4,10 +4,11 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [2.8.0] - 2026-11-20
+
 ### Added
 
 - Added scanned receipt photos to encrypted WebDAV backup and restore ([#1693](https://github.com/azimul-kabir/actua/pull/1693))
-
 - Added a Terms of Service link to Settings → About ([#1664](https://github.com/azimul-kabir/actua/pull/1664))
 - Added a confirmation message when you add or remove a budget category or an account from favorites ([#1666](https://github.com/azimul-kabir/actua/pull/1666))
 - Added a Row style choice to the Favourite categories and Account balances widget setup: Highlighted (the amount in a pill) or Simple, which keeps names readable on narrow widgets ([#1669](https://github.com/azimul-kabir/actua/pull/1669))
@@ -17,31 +18,23 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
-- Replaced the F-Droid build with Direct Full, including receipt scanning and sandbox purchase activation ([#1697](https://github.com/azimul-kabir/actua/pull/1697))
-
+- Replaced the F-Droid build with Direct Full, the GitHub APK with receipt scanning and the Supporter extras previews; website purchases are not open yet ([#1697](https://github.com/azimul-kabir/actua/pull/1697))
 - Removed the notes badge from the Budget tab's three-dot menu ([#1673](https://github.com/azimul-kabir/actua/pull/1673))
+- Changed Back from Support Actua to return to the page you came from ([#1719](https://github.com/azimul-kabir/actua/pull/1719))
 - Changed the Favourite categories and Account balances widgets to be placed at 4x3 instead of 2x3 ([#1669](https://github.com/azimul-kabir/actua/pull/1669))
 
 ### Fixed
 
 - Fixed transfers from an off-budget account to an on-budget one not letting you pick a category ([#1714](https://github.com/azimul-kabir/actua/pull/1714))
 - Fixed the server connection error for an expired or mismatched certificate so it says what is wrong ([#1709](https://github.com/azimul-kabir/actua/pull/1709))
-
 - Fixed slow repeated saves in large budgets ([#1702](https://github.com/azimul-kabir/actua/pull/1702))
-
 - Fixed bulk duplicate, categorize, move and label leaving some transactions changed when one failed ([#1703](https://github.com/azimul-kabir/actua/pull/1703))
-
 - Fixed floating tab bar blur across menus and schedule forms ([#1700](https://github.com/azimul-kabir/actua/pull/1700))
-
 - Fixed supporter status and made locked extras easier to discover ([#1697](https://github.com/azimul-kabir/actua/pull/1697))
-
 - Fixed pauses while reordering categories and accounts ([#1695](https://github.com/azimul-kabir/actua/pull/1695))
-
 - Fixed UI pauses when opening schedules and credit-card statements ([#1694](https://github.com/azimul-kabir/actua/pull/1694))
-
 - Fixed background sync racing with disconnect cleanup ([#1691](https://github.com/azimul-kabir/actua/pull/1691))
 - Fixed Home section editing showing an available Greeting toggle for non-supporters ([#1675](https://github.com/azimul-kabir/actua/pull/1675))
-
 - Fixed the greeting's count of transactions to categorize not matching the Budget screen; it now counts this month only ([#1668](https://github.com/azimul-kabir/actua/pull/1668))
 - Fixed the Updated line on list widgets taking a row at 2x3; it now shows from 2x4 ([#1669](https://github.com/azimul-kabir/actua/pull/1669))
 - Fixed merging two transactions losing the receipt photo kept with the one that is removed ([#1667](https://github.com/azimul-kabir/actua/pull/1667))

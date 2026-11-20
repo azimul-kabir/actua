@@ -48,7 +48,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Budgeting, categories and money movement, including one-tap cover for overspent categories, switching budget type between Envelope and Tracking, category group deletion with target reassignment, and Actual's budget actions (3/6/12-month averages, copy last month or to year end, hold income)
 - Transactions, splits (including transfer lines in split transactions), transfers, Make transfer for two existing transactions, merging duplicates and reconciliation, including "Use last synced total" for bank-synced accounts
 - Amount keypad with + − × ÷ arithmetic, a leading minus, and Paste
-- Optional receipt scanning in the Google Play version and the `-full` APK: take or pick a receipt photo and Actua suggests the payee, date and total (and offers the tax and items as split lines) using Google ML Kit, which reads the photo on your phone (the library may send technical diagnostics to Google, never your receipt or budget data); a kept photo stays on the device unless included in an encrypted WebDAV backup (see [PRIVACY.md](PRIVACY.md))
+- Optional receipt scanning in every build (Google Play and both GitHub APKs): take or pick a receipt photo and Actua suggests the payee, date and total (and offers the tax and items as split lines) using Google ML Kit, which reads the photo on your phone (the library may send technical diagnostics to Google, never your receipt or budget data); a kept photo stays on the device unless included in an encrypted WebDAV backup (see [PRIVACY.md](PRIVACY.md))
 - Bank sync through your Actual server (SimpleFIN, GoCardless, Pluggy.ai, Akahu and Enable Banking), with per-account sync settings; newly synced transactions are marked until you view the account
 - Category targets and budget automations, including `#template` notes, checked against Actual's own template engine
 - Scheduled transactions and Bills calendar, with optional reminders before they are due, shown on your own weekend days and holidays when a schedule skips weekends
@@ -63,9 +63,9 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Automatic local backups and restore, with recovery options (try again, re-download, restore a backup or delete) for a budget that can't be opened, plus optional Google Drive backup and restore with client-side authenticated AES-256-GCM encryption
 - Optional encrypted WebDAV backup and restore for Nextcloud, ownCloud and other WebDAV servers, with the same client-side encryption (see [docs/WEBDAV_BACKUPS.md](docs/WEBDAV_BACKUPS.md))
 - Home-screen widgets (budget snapshot, favorite categories, account balances, upcoming schedules, quick transaction, spending trend, income and spending, a report card showing one of your dashboard cards as a single number, and small single-account and single-category widgets, with a Highlighted or Simple row style for the category and account lists) launcher shortcuts and a Quick Settings tile to add a transaction; supporters can restyle every widget as Translucent, Solid dark, Solid light or Accent-tinted
-- Optional Supporter extras in the Google Play version, all cosmetic and found under Settings → Supporter extras: app icons (Dark, Mono, Light), accent colors (Teal, Amber, Rose, Forest, Ocean, Mono), Catppuccin themes (Latte, Frappé, Macchiato and Mocha, with a choice of 14 accents; based on the Catppuccin palette), widget styles, confetti celebrations when Ready to budget reaches zero or you finish a reconciliation, and a friendly greeting with a few counts such as transactions to categorize and bills due this week (never amounts) on your start page, Home and the Support Actua page; budgeting itself always stays free
+- Optional Supporter extras, unlockable in the Google Play version for now (the GitHub APKs show every extra locked until website purchases open), all cosmetic and found under Settings → Supporter extras: app icons (Dark, Mono, Light), accent colors (Teal, Amber, Rose, Forest, Ocean, Mono), Catppuccin themes (Latte, Frappé, Macchiato and Mocha, with a choice of 14 accents; based on the Catppuccin palette), widget styles, confetti celebrations when Ready to budget reaches zero or you finish a reconciliation, and a friendly greeting with a few counts such as transactions to categorize and bills due this week (never amounts) on your start page, Home and the Support Actua page; budgeting itself always stays free
 - Currency (including the symbol before or after the amount), date and number formats that follow your budget's Actual settings or a device override, plus appearance options with an optional Material You dynamic-color mode (Android 12+)
-- Actual tag management, with colored `#tag` rendering, notes autocomplete, a Manage Tags screen, and tap-a-tag transaction filtering
+- Actual tag management, with colored `#tag` rendering, notes autocomplete, a Manage Tags screen (select several tags to hide, show or delete them together), and tap-a-tag transaction filtering
 - Multiple downloaded budgets with a quick switcher in Manage
 - Built-in local demo budget with credit cards, loans, a Debt group, schedules, rules, reports and a year of activity to try
 - Privacy-safe Diagnostics report you can copy, save or email when reporting a problem
@@ -193,7 +193,7 @@ Screenshots use a demo budget and follow your GitHub light or dark theme.
 
 ### Supporter extras
 
-Optional and cosmetic, in the Google Play version: choose an app icon, an accent color or a Catppuccin theme, and a widget style under Settings → Supporter extras. Budgeting always stays free, and Violet and Material You accents are free for everyone.
+Optional and cosmetic, unlockable in the Google Play version for now: choose an app icon, an accent color or a Catppuccin theme, and a widget style under Settings → Supporter extras. Everyone can preview every icon, accent color, Catppuccin theme and widget style there, with the locked ones marked "Supporter"; the GitHub APKs show them locked until website purchases open. Budgeting always stays free, and Violet and Material You accents are free for everyone.
 
 <table>
   <tr>
@@ -241,7 +241,7 @@ Actua requires **Android 9 or newer**.
 Other ways to install, from [GitHub Releases](https://github.com/azimul-kabir/actua/releases):
 
 - `Actua-v<version>.apk`: Direct Full build, including on-device receipt scanning. Website purchase activation is being tested in sandbox builds; live website sales are not enabled.
-- `Actua-v<version>-full.apk`: adds receipt scanning (on-device Google ML Kit) and the other Google Play version features, for devices without the Play Store.
+- `Actua-v<version>-full.apk`: the Google Play build (with Google Play Billing), also with on-device receipt scanning, for devices without the Play Store. It is signed with the same key as the other GitHub APK.
 - [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua): update notifications and in-place upgrades from GitHub Releases. It lists both APKs, so use its APK filter (a regular expression) to pick one, for example `-full` for the full build.
 
 **Google Play vs GitHub.** Both are the full app, but supporter purchases work only in the Play version for now, and they are signed differently. Google re-signs the Play version with its own key, while the two GitHub APKs carry Actua's release key. Android only updates an app with a build signed by the same key, so:

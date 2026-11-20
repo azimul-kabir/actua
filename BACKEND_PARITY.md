@@ -587,7 +587,7 @@ lists what was ported, what was only checked by reading, and what is not ported.
 
 ## Actua-only features (not in Actual)
 
-- **Receipt photos** (scanning in Google Play and `-full.apk` builds): kept photos live outside
+- **Receipt photos** (scanning in every build: Google Play and both GitHub APKs): kept photos live outside
   `db.sqlite` under `files/ReceiptPhotos/<budget id>/<transaction id>.jpg`, or in the optional
   user-selected `Actua receipts/<budget id>/<transaction id>.jpg` folder. Actual has no attachment
   field: no photo enters Actual sync, the message log, standard exports, local or Google Drive

@@ -396,6 +396,16 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] 2.5.0 Bills tab: add Bills in Customize tab bar (hidden by default, within five tabs), open it, add, edit and delete a schedule from it, set up credit cards from it and confirm Back returns correctly.
 - [ ] 2.5.0 Category running total: filter Transactions to one category, turn on Running total of these transactions, and confirm the last row equals the sum of the rows shown, a split adds only its lines in that category, and the account running balance is unchanged.
 
+- [ ] 2.8.0 WebDAV receipt photos: scan a receipt and keep its photo, back up to a real WebDAV server, delete the photo, then restore on a clean install; the photo returns on its transaction, and an older backup without photos still restores.
+- [ ] 2.8.0 Manage Tags: select several tags and hide, show and delete them together; each action applies to every selected tag and the selection clears afterwards.
+- [ ] 2.8.0 Bulk edits: select many transactions and duplicate, categorize, move and label them; all change together or none do, and widgets refresh once at the end.
+- [ ] 2.8.0 Off-budget transfer: transfer from an off-budget account to an on-budget one; the category picker is offered and the chosen category is saved on the on-budget side.
+- [ ] 2.8.0 Favorites: favoriting or unfavoriting a budget category or an account shows a confirmation message.
+- [ ] 2.8.0 Widgets: the Favourite categories and Account balances setup offers a Highlighted or Simple row style; both widgets place at 4x3, and the Updated line shows from 2x4 up.
+- [ ] 2.8.0 Support back navigation: from a locked extra (App icon, Widget style, Accent color or Catppuccin) open Support Actua, then use the back gesture and the on-screen arrow; each returns to the picker, then Supporter extras, then Settings. Opening Support Actua from the Settings list returns to Settings.
+- [ ] 2.8.0 Terms link: Settings → About lists Terms of Service and opens the page.
+- [ ] 2.8.0 Upgrade: install the previous GitHub `Actua-v2.7.0.apk`, add a budget, then install the new release-signed `Actua-v2.8.0.apk` over it and confirm the budget survives. A Play install and a GitHub APK cannot update each other (expected: different signing keys).
+
 ## Release/distribution
 
 - [ ] README version/download badges and release notes match the release being published.
