@@ -165,9 +165,9 @@ NAS):
   forget the address and passwords on your phone; it does not delete backups
   already on your server.
 
-## Receipt scanning (Google Play version only)
+## Receipt scanning
 
-The Google Play version of Actua can read a receipt photo to suggest a payee, date and
+Actua can read a receipt photo to suggest a payee, date and
 total:
 - The photo is read on your phone with Google ML Kit's text recognition, using a model
   that is bundled with the app. Actua does not upload the photo or the text read from it,

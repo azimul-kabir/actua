@@ -1,0 +1,8 @@
+• Receipt photos in WebDAV backups
+• Quick Settings tile: add transaction
+• Select several tags at once
+• Preview all Supporter extras
+• Faster saves in large budgets
+• Safer bulk edits
+• Clearer server certificate errors
+• Off-budget transfers can pick a category
