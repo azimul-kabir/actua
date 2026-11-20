@@ -223,7 +223,8 @@ private fun CatppuccinSection(
                         )
                     }
                 }
-                if (isSupporter) {
+                // A non-supporter sees the same flavors and accents, none selected; a tap opens the Support page.
+                run {
                     Text(stringResource(R.string.settings_catppuccin_dark_flavor), style = MaterialTheme.typography.labelLarge)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         CatppuccinFlavor.dark.forEach { flavor ->
@@ -231,11 +232,15 @@ private fun CatppuccinSection(
                             FlavorTile(
                                 label = flavor.displayName,
                                 swatches = listOf(colors.base, colors.surface1, colors.accents.getValue(accent)),
-                                selected = flavor == darkFlavor,
+                                selected = isSupporter && flavor == darkFlavor,
                                 modifier = Modifier.weight(1f),
                             ) {
-                                darkFlavor = flavor
-                                preferences.catppuccinDarkFlavor = flavor
+                                if (isSupporter) {
+                                    darkFlavor = flavor
+                                    preferences.catppuccinDarkFlavor = flavor
+                                } else {
+                                    onOpenSupport()
+                                }
                             }
                         }
                     }
@@ -252,10 +257,14 @@ private fun CatppuccinSection(
                             AccentDot(
                                 color = palette.accents.getValue(option),
                                 label = option.displayName,
-                                selected = option == accent,
+                                selected = isSupporter && option == accent,
                             ) {
-                                accent = option
-                                preferences.catppuccinAccent = option
+                                if (isSupporter) {
+                                    accent = option
+                                    preferences.catppuccinAccent = option
+                                } else {
+                                    onOpenSupport()
+                                }
                             }
                         }
                     }

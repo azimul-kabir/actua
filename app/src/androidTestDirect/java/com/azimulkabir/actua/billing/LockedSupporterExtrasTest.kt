@@ -21,13 +21,15 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 @RunWith(AndroidJUnit4::class)
 class LockedSupporterExtrasTest {
     @get:Rule val compose = createComposeRule()
-    @Test fun showsGreetingAndNicknameAndSupportActionWithoutGrantingAccess() {
+    @Test fun showsEveryExtraLockedWithoutGrantingAccess() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         var openedSupport = 0
+        var openedIcon = 0
+        var openedWidget = 0
         compose.setContent {
             MaterialTheme {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
-                    SupporterExtras(false, { openedSupport++ }, {}, false, {}, {})
+                    SupporterExtras(false, { openedSupport++ }, { openedIcon++ }, false, {}, { openedWidget++ })
                 }
             }
         }
@@ -39,5 +41,13 @@ class LockedSupporterExtrasTest {
         compose.runOnIdle { assertEquals(1, openedSupport) }
         compose.onNodeWithText(context.getString(R.string.settings_greeting)).performScrollTo().performClick()
         compose.runOnIdle { assertEquals(2, openedSupport) }
+        // The icon and widget rows open their pickers as previews instead of going straight to Support.
+        compose.onNodeWithText(context.getString(R.string.settings_app_icon)).performScrollTo().performClick()
+        compose.onNodeWithText(context.getString(R.string.settings_widget_style)).performScrollTo().performClick()
+        compose.runOnIdle {
+            assertEquals(1, openedIcon)
+            assertEquals(1, openedWidget)
+            assertEquals(2, openedSupport)
+        }
     }
 }

@@ -103,4 +103,15 @@ class AppIconsTest {
         assertTrue(components.enabled.getValue(AppIcon.Default))
         SupporterPerks.clearRegistrations()
     }
+
+    @Test
+    fun onlyTheDefaultIconIsFreeForANonSupporter() {
+        assertFalse(AppIcon.Default.lockedFor(isSupporter = false))
+        AppIcon.entries.filter { it != AppIcon.Default }.forEach { assertTrue(it.lockedFor(isSupporter = false)) }
+    }
+
+    @Test
+    fun noIconIsLockedForASupporter() {
+        AppIcon.entries.forEach { assertFalse(it.lockedFor(isSupporter = true)) }
+    }
 }

@@ -127,7 +127,8 @@ internal enum class SettingsPage(@StringRes val titleRes: Int, val depth: Int) {
     Budget(R.string.settings_page_budget, 2),
     CategoryColors(R.string.settings_page_category_colors, 3),
     Holidays(R.string.settings_page_holidays, 3),
-    Support(R.string.settings_page_support, 2),
+    // Deeper than the pickers that link to it, so opening it from one slides forward and Back slides back.
+    Support(R.string.settings_page_support, 4),
     SupporterExtras(R.string.settings_supporter_extras_section, 2),
     AppIconPicker(R.string.settings_app_icon, 3),
     AccentPicker(R.string.settings_accent_color, 3),
@@ -330,6 +331,8 @@ fun SettingsScreen(
     }
 
     var page by rememberSaveable { mutableStateOf(SettingsPage.Manage) }
+    // Support is opened from the Settings list and from locked extras; Back returns to whichever opened it.
+    var supportReturn by rememberSaveable { mutableStateOf(SettingsPage.General) }
     // The post-purchase thank-you is shown once, on the Support page only.
     LaunchedEffect(page) { if (page != SettingsPage.Support) supportBillingManager.dismissThanks() }
     // One state per page, so a parent page comes back where the user left it and the two pages in a
@@ -338,8 +341,9 @@ fun SettingsScreen(
     fun parentPage(current: SettingsPage): SettingsPage = when (current) {
         SettingsPage.Tags -> SettingsPage.Manage
         SettingsPage.Transactions, SettingsPage.Display, SettingsPage.Privacy, SettingsPage.Budget,
-        SettingsPage.Support, SettingsPage.SupporterExtras, SettingsPage.About,
+        SettingsPage.SupporterExtras, SettingsPage.About,
         -> SettingsPage.General
+        SettingsPage.Support -> supportReturn
         SettingsPage.CategoryColors, SettingsPage.Holidays -> SettingsPage.Budget
         SettingsPage.AppIconPicker, SettingsPage.AccentPicker, SettingsPage.WidgetStylePicker -> SettingsPage.SupporterExtras
         SettingsPage.Diagnostics -> SettingsPage.About
@@ -349,9 +353,14 @@ fun SettingsScreen(
     fun navigateBack() {
         page = parentPage(page)
     }
+    fun openSupport() {
+        supportReturn = page
+        page = SettingsPage.Support
+    }
     LaunchedEffect(openSupportPage) {
         if (openSupportPage) {
             supportBillingManager.start()
+            supportReturn = SettingsPage.General
             page = SettingsPage.Support
             onSupportPageOpened()
         }
@@ -598,7 +607,7 @@ fun SettingsScreen(
                             true,
                             Icons.Outlined.FavoriteBorder,
                         ) {
-                            page = SettingsPage.Support
+                            openSupport()
                         }
                         if (supportPurchaseState.isAvailable && supporterPerksAvailable()) SettingsDivider()
                         if (supporterPerksAvailable()) SettingsRow(
@@ -951,7 +960,7 @@ fun SettingsScreen(
                         if (supportPurchaseState.purchasesRestored) supportPurchaseState.isSupporter else supporterPerks.isSupporter
                     SupporterExtras(
                         isSupporter = isSupporter,
-                        onOpenSupport = { page = SettingsPage.Support },
+                        onOpenSupport = ::openSupport,
                         onOpenAppIcon = { page = SettingsPage.AppIconPicker },
                         useDynamicColor = useDynamicColor,
                         onOpenAccent = { page = SettingsPage.AccentPicker },
@@ -1109,16 +1118,19 @@ fun SettingsScreen(
                     CategoryStatusColorSettings(Modifier.padding(top = Spacing.md))
                 }
                 SettingsPage.Holidays -> HolidaysSettings(holidays, onHolidaysChange)
-                SettingsPage.AppIconPicker -> AppIconSettings()
+                SettingsPage.AppIconPicker -> AppIconSettings(
+                    isSupporter = if (supportPurchaseState.purchasesRestored) supportPurchaseState.isSupporter else supporterPerks.isSupporter,
+                    onOpenSupport = ::openSupport,
+                )
                 SettingsPage.WidgetStylePicker -> WidgetStyleSettings(
                     isSupporter = if (supportPurchaseState.purchasesRestored) supportPurchaseState.isSupporter else supporterPerks.isSupporter,
-                    onOpenSupport = { page = SettingsPage.Support },
+                    onOpenSupport = ::openSupport,
                 )
                 SettingsPage.AccentPicker -> AccentSettings(
                     isSupporter = if (supportPurchaseState.purchasesRestored) supportPurchaseState.isSupporter else supporterPerks.isSupporter,
                     useDynamicColor = useDynamicColor,
                     onUseDynamicColorChange = onUseDynamicColorChange,
-                    onOpenSupport = { page = SettingsPage.Support },
+                    onOpenSupport = ::openSupport,
                 )
                 SettingsPage.Support -> SupportSettings(
                     state = supportPurchaseState,
@@ -1401,8 +1413,8 @@ private fun SupportSettings(
 }
 
 /**
- * The Supporter extras page (Play build only). A non-supporter sees each extra marked "Supporter" and is
- * sent to the Support page when they tap it.
+ * The Supporter extras page. A non-supporter sees each extra marked "Supporter": the icon, accent and widget
+ * style rows open their pickers as previews, and the rest send them to the Support page.
  */
 @Composable
 internal fun SupporterExtras(
@@ -1424,7 +1436,7 @@ internal fun SupporterExtras(
             icon = Icons.Outlined.FavoriteBorder,
             label = stringResource(R.string.settings_app_icon),
             current = if (isSupporter) stringResource(remember { AppIcons(context).current() }.labelRes) else null,
-            onOpen = if (isSupporter) onOpenAppIcon else onOpenSupport,
+            onOpen = onOpenAppIcon,
         )
         SettingsDivider()
         // Material You and Violet are free for everyone, so this row opens the page for non-supporters too.
@@ -1434,7 +1446,7 @@ internal fun SupporterExtras(
             icon = Icons.Outlined.Widgets,
             label = stringResource(R.string.settings_widget_style),
             current = if (isSupporter) stringResource(widgetStyleLabelRes(remember { DisplayPreferences(context).widgetStyle })) else null,
-            onOpen = if (isSupporter) onOpenWidgetStyle else onOpenSupport,
+            onOpen = onOpenWidgetStyle,
         )
         SettingsDivider()
         if (isSupporter) {
