@@ -16,7 +16,7 @@ A new `:macrobenchmark` Gradle module (`com.android.test`, alongside the existin
 | `StartupBenchmark` | Cold / warm / hot startup (`StartupTimingMetric`) |
 | `BudgetScreenBenchmark` | Scroll, category-group expand/collapse, month switching, category-group reorder, opening Category Details |
 | `AccountsScreenBenchmark` | Scroll, section expand/collapse, opening an account and scrolling its transactions |
-| `TransactionsScreenBenchmark` | Opening All Transactions and scrolling, search, status-filter chips |
+| `TransactionsScreenBenchmark` | Opening All Transactions (from the "All accounts" row of Accounts) and scrolling, search, status-filter chips |
 | `AddEditTransactionBenchmark` | Opening/closing Add Transaction, on-screen calculator keypad entry |
 | `NavigationBenchmark` | Bottom-navigation tab switching, back navigation from a detail screen |
 
@@ -41,6 +41,11 @@ release-shaped code — R8, no debuggable — or the numbers mostly reflect debu
 `androidx.baselineprofile` plugin applied to `:app` already creates a `benchmarkRelease` build
 variant automatically for exactly this purpose (release-equivalent, debug-signed, profileable);
 `:macrobenchmark`'s own `benchmark` build type targets it via `matchingFallbacks`.
+
+That variant is given its own application ID, `com.azimulkabir.actua.benchmark` (see `androidComponents` in
+`app/build.gradle.kts`), so it installs next to the released app and never over it, and the journeys only ever
+target that package (`PACKAGE_NAME` in `DemoBudgetJourneys.kt`). They reset and reseed the demo budget of whatever
+they target, so never point them at an installed release build.
 
 ## Running locally
 
@@ -68,6 +73,31 @@ unlocked screen, etc.); suppress those specific checks for local/emulator valida
 ```
 
 Run a single class/method with `-Pandroid.testInstrumentationRunnerArguments.class=<FQCN>[#method]`.
+
+`:app` has `direct` and `playstore` flavors. The benchmark module uses `direct`; pass
+`-Pactua.benchmark.flavor=playstore` to measure the other one.
+
+### Device notes and gotchas
+
+- **Android below 14 reinstalls the app before every test.** Macrobenchmark resets the compiled profile by
+  uninstalling and reinstalling the target there, which deletes the demo budget. The journeys therefore reseed it from
+  their setup whenever the app shows "No budget open" (`ensureDemoSeeded`). The Startup journeys cannot, because
+  Macrobenchmark controls the app's state around their setup block; on those Android versions they measure the first
+  screen without demo data.
+- **Comparing commits.** Installing an older build over a newer one is refused (`INSTALL_FAILED_VERSION_DOWNGRADE`) and
+  the newer build stays installed, so a "before" run can silently measure the wrong app. Uninstall
+  `com.azimulkabir.actua.benchmark` first (never the released app) and check the installed `versionCode` before each run.
+- **Xiaomi/MIUI.** Allow Autostart and "Display pop-up windows while running in the background" for both
+  `com.azimulkabir.actua.benchmark` and the test app `com.azimulkabir.actua.macrobenchmark`, and turn on "Install via
+  USB" in Developer options. Without them the test app's launch is blocked ("Permission Denied Activity" in logcat) and
+  the run hangs or fails. On a Xiaomi running Android 15 the Startup journeys also failed with "The baseline profile
+  install broadcast was not received", which did not happen on a Pixel; the cause on MIUI was not confirmed. Stock
+  Android (for example a Pixel) needs none of the settings above.
+- **Small screens.** The floating tab bar covers the bottom of a list on a short screen, and a tap on a row under it
+  lands on the bar. Use `clickClearOfTabBar` for rows near the bottom.
+- **Results.** Per-iteration frame timings are in `<package>-benchmarkData.json` under
+  `/sdcard/Android/media/com.azimulkabir.actua.macrobenchmark/` on the device (pull it with `adb pull`).
+
 
 Results (including per-iteration frame-timing/startup JSON) land under
 `macrobenchmark/build/outputs/connected_android_test_additional_output/benchmark/` and are also
@@ -133,7 +163,8 @@ or adding a hard CI threshold.
   if a future screen change puts another "Cleared"/"Uncleared" label on the same screen (e.g. a
   balance breakdown), the selector may need to be narrowed (e.g. to a clickable-chip selector).
 - `AddEditTransactionBenchmark#keypadEntry` drives `CalculatorAmountSheet`'s on-screen digit pad,
-  not the IME — the amount field is `readOnly` by design and delegates entry to that sheet.
+  not the IME — the amount field is `readOnly` by design and delegates entry to that sheet. Add opens with the keypad
+  already showing, and its "✓" moves on to the payee picker, so the journey backs out and cancels.
 - Category-group reorder is exercised via the "Move Essentials group up/down" buttons rather than
   a simulated drag gesture (flakier and harder to make deterministic under UiAutomator); this
   still exercises the same move-and-persist code path (`CategoryDragReorder`/
