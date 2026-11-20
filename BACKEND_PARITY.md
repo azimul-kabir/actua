@@ -70,6 +70,9 @@ lists what was ported, what was only checked by reading, and what is not ported.
   decryption) that show an actionable message and are not retried by WorkManager
 - Stored sync clock validation and legacy/epoch recovery from the message-log
   high-water mark, preserving pending edits and Merkle-guided restart recovery
+- Atomic local row/message/clock persistence with log-derived incremental Merkle updates;
+  full reconstruction remains available for sync and recovery, with rollback and
+  cross-connection cache invalidation; see [the measurements and invariants](docs/MERKLE_WRITE_COST.md)
 - Actual schema migrations required by current Android reads; schema, view, tombstone and
   archive parity is audited in [docs/DATABASE_ARCHIVE_PARITY.md](docs/DATABASE_ARCHIVE_PARITY.md);
   a budget last uploaded by an older Actual gets every missing upstream migration in id order in

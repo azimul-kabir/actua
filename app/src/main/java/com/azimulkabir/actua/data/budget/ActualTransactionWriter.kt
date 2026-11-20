@@ -32,8 +32,8 @@ class ActualTransactionWriter(
         val messages = fields("payees", payee.id, linkedMapOf(
             "name" to payee.name, "transfer_acct" to null, "tombstone" to 0,
         )) + fields("payee_mapping", payee.id, linkedMapOf("targetId" to payee.id))
-        database.insertPayee(payee, messages)
-        saveClock()
+        database.localWrite { database.insertPayee(payee, messages) }
+        onWrite()
         return payee
     }
 
@@ -89,8 +89,8 @@ class ActualTransactionWriter(
                 return source
             }
         }
-        database.insertTransactions(listOf(final), fieldsForInsert(final))
-        saveClock()
+        database.localWrite { database.insertTransactions(listOf(final), fieldsForInsert(final)) }
+        onWrite()
         return final
     }
 
@@ -129,8 +129,8 @@ class ActualTransactionWriter(
         require(source.amountCents == -target.amountCents) { "Transfer amounts must balance" }
         require(!source.isParent && !target.isParent && source.parentId == null && target.parentId == null)
         val messages = fieldsForInsert(source) + fieldsForInsert(target)
-        database.insertTransactions(listOf(source, target), messages)
-        saveClock()
+        database.localWrite { database.insertTransactions(listOf(source, target), messages) }
+        onWrite()
     }
 
     /**
@@ -146,8 +146,8 @@ class ActualTransactionWriter(
         }
         val rows = charges + source + partner
         rows.forEach(::validateBase)
-        database.insertTransactions(rows, rows.flatMap(::fieldsForInsert))
-        saveClock()
+        database.localWrite { database.insertTransactions(rows, rows.flatMap(::fieldsForInsert)) }
+        onWrite()
     }
 
     fun createSplit(
@@ -182,17 +182,19 @@ class ActualTransactionWriter(
             finalChildren += child
         }
         val rows = listOf(parent) + finalChildren + partners
-        database.insertTransactions(rows, rows.flatMap(::fieldsForInsert))
-        saveClock()
+        database.localWrite { database.insertTransactions(rows, rows.flatMap(::fieldsForInsert)) }
+        onWrite()
     }
 
     fun updateTransaction(transaction: ActualTransaction, changedFields: Set<String>) {
         validateBase(transaction)
         val unknown = changedFields - mutableTransactionFields
         require(unknown.isEmpty()) { "Unknown transaction fields: ${unknown.sorted().joinToString()}" }
-        database.updateTransaction(transaction, fields("transactions", transaction.id,
-            transactionFields(transaction, changedFields)))
-        saveClock()
+        database.localWrite {
+            database.updateTransaction(transaction, fields("transactions", transaction.id,
+                transactionFields(transaction, changedFields)))
+        }
+        onWrite()
     }
 
     /** Link or unlink a schedule; a transfer's other leg follows, as in loot-core `updateTransfer`. */
@@ -229,8 +231,8 @@ class ActualTransactionWriter(
         val messages = originals.map { message("transactions", it.id, "reconciled", 1) } +
             listOfNotNull(reconciledAt?.let { message("accounts", accountId, "last_reconciled", it.toString()) })
         if (messages.isEmpty()) return 0
-        database.applyLocalMessages(messages)
-        saveClock()
+        database.localWrite { database.applyLocalMessages(messages) }
+        onWrite()
         return originals.size
     }
 
@@ -375,8 +377,8 @@ class ActualTransactionWriter(
             fields("transactions", updated.id, transactionFields(updated, changed))
         } + inserts.flatMap(::fieldsForInsert) +
             tombstoneIds.map { message("transactions", it, "tombstone", 1) }
-        database.mutateTransactions(updates.map { it.second }, inserts, tombstoneIds, messages)
-        saveClock()
+        database.localWrite { database.mutateTransactions(updates.map { it.second }, inserts, tombstoneIds, messages) }
+        onWrite()
     }
 
     /**
@@ -446,8 +448,8 @@ class ActualTransactionWriter(
 
         fun commit() {
             if (messages.isEmpty()) return
-            database.applyLocalMessages(messages.toList())
-            saveClock()
+            database.localWrite { database.applyLocalMessages(messages.toList()) }
+            onWrite()
             messages.clear()
             createdPayees.clear()
         }
@@ -510,11 +512,6 @@ class ActualTransactionWriter(
 
     private fun message(dataset: String, row: String, column: String, value: Any?) =
         CrdtMessage(clock.send(), dataset, row, column, CrdtValue.serialize(value))
-
-    private fun saveClock() {
-        database.saveClock(ActualBudgetDatabase.ClockRecord(clock.current().toString(), database.deriveMerkleFromMessageLog().root))
-        onWrite()
-    }
 
     companion object {
         /** loot-core `TRANSACTION_SORT_INCREMENT`: imported rows get `now - index × increment`. */

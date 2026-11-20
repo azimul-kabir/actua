@@ -231,6 +231,35 @@ class ActualSyncClientTest {
         }
     }
 
+    @Test
+    fun successfulSyncKeepsAConcurrentLocalEditInTheSavedTreeAndSendsItNextTime() {
+        withDatabase { database ->
+            val snapshot = message("2024-01-01T00:00:00.000Z", "aaaaaaaaaaaaaaaa", "acct-1", "S:Checking")
+            val local = message("2024-01-02T00:00:00.000Z", "bbbbbbbbbbbbbbbb", "acct-2", "S:Offline edit")
+            database.insertMessages(listOf(snapshot))
+            val server = FakeSyncServer(listOf(snapshot))
+            var injected = false
+            val interleaving = ActualServerClient { request ->
+                val response = server.client.postSync("https://actual.test", "token", requireNotNull(request.body))
+                if (!injected) {
+                    injected = true
+                    // Commit after the response's tree was computed, before the client saves its clock.
+                    database.localWrite { database.applyLocalMessages(listOf(local)) }
+                }
+                ActualHttpResponse(200, response)
+            }
+
+            client(database, interleaving).sync()
+
+            assertEquals(database.deriveMerkleFromMessageLog().root, database.loadClock()?.merkle)
+            val boundary = HlcTimestamp(snapshot.timestamp.millis, snapshot.timestamp.counter, "cccccccccccccccc")
+            assertEquals(boundary.toString(), database.loadClock()?.timestamp)
+            val outcome = client(database, server.client).sync()
+            assertEquals(1, outcome.sentMessages)
+            assertEquals(server.merkle(), database.deriveMerkleFromMessageLog())
+        }
+    }
+
     private fun client(database: ActualBudgetDatabase, server: ActualServerClient) = ActualSyncClient(
         serverUrl = "https://actual.test",
         token = "token",

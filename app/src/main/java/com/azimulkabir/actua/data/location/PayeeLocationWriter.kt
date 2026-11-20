@@ -58,10 +58,7 @@ class PayeeLocationWriter(
         CrdtMessage(clock.send(), "payee_locations", row, column, CrdtValue.serialize(value))
 
     private fun persist(messages: List<CrdtMessage>) {
-        database.receiveMessages(messages)
-        database.saveClock(ActualBudgetDatabase.ClockRecord(
-            clock.current().toString(), database.deriveMerkleFromMessageLog().root,
-        ))
+        database.localWrite { database.receiveMessages(messages) }
         onWrite()
     }
 }

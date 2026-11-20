@@ -65,6 +65,10 @@ Feature-by-feature audit of the Actual Budget sync behavior Actua depends on, tr
 | Bulk build from the message log | `merkle.ts#L70-L76`, [`U/packages/loot-core/src/server/sync/repair.ts`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/sync/repair.ts) | `MerkleTree.building`, `ActualBudgetDatabase.kt:1402-1413` | Match. Actua rebuilds from the log on every sync pass, the equivalent of upstream `rebuildMerkleHash`. | `SyncCoreFixtureTest.bulkMerkleBuildMatchesIncrementalInsertion` |
 | Server Merkle JSON parse | `JSON.parse` | `data/sync/MerkleJson.kt` | Match for the server's `{"0"/"1"/"2", "hash"}` shape. Actua rejects any other key (`InvalidMerkle`); upstream would ignore it. **Intentional** strictness. | `ActualSyncClientTest` (via fake server) |
 
+The local-write optimization and its recovery rules are documented in
+[MERKLE_WRITE_COST.md](MERKLE_WRITE_COST.md). This preserves the existing upstream
+zero-hash pruning difference described above; no wire fixtures are changed.
+
 ## 5. End-to-end encryption
 
 | Behavior | Actual | Actua | Status | Test evidence |
@@ -91,7 +95,7 @@ Feature-by-feature audit of the Actual Budget sync behavior Actua depends on, tr
 | Behavior | Actual | Actua | Status | Test evidence |
 | --- | --- | --- | --- | --- |
 | `messages_crdt(timestamp, dataset, row, column, value)`, value stored serialized | `sync/index.ts#L357-L365` | `ActualBudgetDatabase.kt:1450-1469` | Match | `ActualBudgetDatabaseSyncTest` |
-| `messages_clock` row `id = 1`, JSON `{timestamp, merkle}`, written in the same transaction as the applied messages | `sync/index.ts#L373-L384`; `timestamp.ts#L49-L77` | `ActualBudgetDatabase.kt:1416-1439` (same JSON shape); written after each writer operation and after a successful sync, outside the message transaction | **Intentional.** On load, Actua treats the log as the source of truth: an invalid, epoch, or behind-the-log clock is recovered from `MAX(timestamp)` and the Merkle tree is re-derived from the log. | `ActualSyncClientTest.blankLegacyClockRecoversFromMessageLog`, `epochClockRecoversFromMessageLog`, `nonzeroLegacy1970ClockRecoversFromMessageLog`, `malformedClockRecoversFromMessageLog`, `invalidClockWithEmptyLogRequestsFullHistory` |
+| `messages_clock` row `id = 1`, JSON `{timestamp, merkle}`, written in the same transaction as the applied messages | `sync/index.ts#L373-L384`; `timestamp.ts#L49-L77` | Production writers use `ActualBudgetDatabase.localWrite`: accepted log rows, row mutations and the clock/tree commit atomically. `saveClockFromMessageLog` saves the successful sync boundary against a current log-derived tree under the SQLite writer lock. JSON and timestamp boundary semantics are unchanged. Raw log/receive APIs retain separate clock handling for sync/recovery. | Match for writer atomicity. **Intentional:** local incremental state starts from a full log rebuild per connection, invalidates on raw/remote inserts, rollback, physical connection replacement or another connection's commit, and never trusts the persisted tree. Sync initialization and each sync pass still rebuild from the log. | `LocalMerklePersistenceTest`; `ActualSyncClientTest.successfulSyncKeepsAConcurrentLocalEditInTheSavedTreeAndSendsItNextTime`; existing legacy/epoch/missing-clock and retry tests |
 
 ## 8. Server and sync error handling
 

@@ -94,7 +94,7 @@ class ActualSyncClient(
             since = HlcTimestamp(divergence.diffTime, 0, "0").toString()
         }
         lastSyncedTimestamp = clock.current().toString()
-        database.saveClock(ActualBudgetDatabase.ClockRecord(lastSyncedTimestamp.orEmpty(), merkle.root))
+        database.saveClockFromMessageLog(lastSyncedTimestamp.orEmpty())
         return SyncOutcome(totals.sent, totals.received, totals.attempts, lastSyncedTimestamp.orEmpty())
     }
 
