@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
@@ -19,6 +20,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
@@ -76,7 +78,9 @@ class NavigationKeepsPlaceTest {
     @Test fun backFromCreditCardsOpenedFromTransactionsSettingsReturnsThere() {
         start()
         openSettingsPage(R.string.settings_page_transactions_accounts)
-        settingsRow(R.string.settings_credit_cards).performScrollTo().performClick()
+        // performScrollTo stops with the row at the viewport edge, which on a small screen is under the
+        // floating Transaction button, so a coordinate click would hit that button instead.
+        settingsRow(R.string.settings_credit_cards).performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
         composeRule.onNodeWithText(text(R.string.fs_payment_reminders)).assertExists()
 
         pressBack()
