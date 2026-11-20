@@ -31,6 +31,9 @@ time rejects the proof. Restart requires reloading/rechecking on a background
 thread. A refund prevents renewal; existing signed proofs may remain valid for
 up to 24 hours. Sandbox and Play supporter caches are separate.
 
+See [DIRECT_FULL_LIVE_CHECKLIST.md](DIRECT_FULL_LIVE_CHECKLIST.md) for what is still
+unverified and what live sales need.
+
 Release Direct builds have no live activation yet and reject sandbox ownership.
 Live keys, live sales, release-device upgrade checks, and physical-device
 Macrobenchmark measurements remain outside the verified sandbox boundary.
