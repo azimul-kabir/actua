@@ -3,8 +3,13 @@
 The `playstore` build uses Google Play Billing. The `direct` build includes the
 same on-device receipt scanner and cosmetic settings, with sandbox website
 purchase activation in debug/instrumented builds only. Both retain the existing
-application ID and configured release signing key. Real installed-release and
-Play App Signing certificate compatibility must be checked before publishing.
+application ID. The two GitHub APKs are signed with the release key (certificate
+SHA-256 `2a37719a0770ce4e03f3c080bd9d780c22300e28db678823b5595c9ad55753cc`, also the
+Play upload key). Google Play re-signs the Play build with its own app signing key
+(`e3a3731c83f4b09aa8da181735379dd7e4ab8993a3d775220e50d8189bc66a21`, checked in Play
+Console), so a Play install and a GitHub APK cannot update each other: Android rejects
+the update, and switching means uninstalling after a backup. This follows from the
+certificates; an actual cross-install was not run.
 
 Existing GitHub asset names remain: `Actua-v<version>.apk` is Direct Full and
 `Actua-v<version>-full.apk` is Play Full. F-Droid verification automation is retired;

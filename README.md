@@ -244,7 +244,11 @@ Other ways to install, from [GitHub Releases](https://github.com/azimul-kabir/ac
 - `Actua-v<version>-full.apk`: adds receipt scanning (on-device Google ML Kit) and the other Google Play version features, for devices without the Play Store.
 - [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua): update notifications and in-place upgrades from GitHub Releases. It lists both APKs, so use its APK filter (a regular expression) to pick one, for example `-full` for the full build.
 
-Both APKs are signed with the same key, so you can switch between them.
+**Google Play vs GitHub.** Both are the full app, but supporter purchases work only in the Play version for now, and they are signed differently. Google re-signs the Play version with its own key, while the two GitHub APKs carry Actua's release key. Android only updates an app with a build signed by the same key, so:
+
+- `Actua-v<version>.apk` and `Actua-v<version>-full.apk` update each other.
+- The Play version updates only from Google Play, and a GitHub APK cannot be installed over it (or the reverse).
+- To move between Play and GitHub, back up your budget first (an archive, WebDAV or Google Drive), uninstall, install the other build and restore. Uninstalling removes the data on the device, so check the backup before you do it. Supporter status bought through Google Play is tied to the Play version.
 
 Don't have an Actual server handy? Open **Manage → Connection & Data → Try demo budget** to explore Actua using a completely local sample budget.
 
