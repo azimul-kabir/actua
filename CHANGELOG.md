@@ -13,6 +13,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added a Row style choice to the Favourite categories and Account balances widget setup: Highlighted (the amount in a pill) or Simple, which keeps names readable on narrow widgets ([#1669](https://github.com/azimul-kabir/actua/pull/1669))
 - Added selecting several tags in Manage Tags to hide, show or delete them together ([#1670](https://github.com/azimul-kabir/actua/pull/1670))
 - Added an Add transaction tile for Quick Settings ([#1671](https://github.com/azimul-kabir/actua/pull/1671))
+- Added previews of every app icon, accent color, Catppuccin theme and widget style to Supporter extras, locked until you support Actua ([#1719](https://github.com/azimul-kabir/actua/pull/1719))
 
 ### Changed
 

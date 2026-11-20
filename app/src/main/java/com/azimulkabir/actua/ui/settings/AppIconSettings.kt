@@ -36,17 +36,21 @@ import androidx.core.content.ContextCompat
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.preferences.AppIcon
 import com.azimulkabir.actua.data.preferences.AppIcons
+import com.azimulkabir.actua.data.preferences.lockedFor
 import com.azimulkabir.actua.ui.theme.Spacing
 
 /**
  * The App icon page (Settings → Display → Supporter extras): a preview of every launcher icon,
- * with the chosen one marked. The launcher icon changes once the user leaves the app.
+ * with the chosen one marked. The launcher icon changes once the user leaves the app. A non-supporter sees
+ * every icon but Default marked "Supporter", and a tap on one opens the Support page.
  */
 @Composable
-internal fun AppIconSettings(modifier: Modifier = Modifier) {
+internal fun AppIconSettings(isSupporter: Boolean, onOpenSupport: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val appIcons = remember { AppIcons(context) }
-    var selected by remember { mutableStateOf(appIcons.current()) }
+    var chosen by remember { mutableStateOf(appIcons.current()) }
+    // A non-supporter's launcher shows the default icon, so that is what is marked for them.
+    val selected = if (isSupporter) chosen else AppIcon.Default
     Column(
         modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -54,13 +58,19 @@ internal fun AppIconSettings(modifier: Modifier = Modifier) {
         AppIcon.entries.chunked(2).forEach { rowIcons ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 rowIcons.forEach { icon ->
+                    val locked = icon.lockedFor(isSupporter)
                     AppIconTile(
                         icon = icon,
                         selected = icon == selected,
+                        locked = locked,
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            selected = icon
-                            appIcons.choose(icon)
+                            if (locked) {
+                                onOpenSupport()
+                            } else {
+                                chosen = icon
+                                appIcons.choose(icon)
+                            }
                         },
                     )
                 }
@@ -76,7 +86,7 @@ internal fun AppIconSettings(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun AppIconTile(icon: AppIcon, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun AppIconTile(icon: AppIcon, selected: Boolean, locked: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val label = stringResource(icon.labelRes)
     Surface(
         modifier = modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
@@ -95,6 +105,13 @@ private fun AppIconTile(icon: AppIcon, selected: Boolean, modifier: Modifier = M
                     Icon(Icons.Outlined.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                 }
                 Text(label, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+            }
+            if (locked) {
+                Text(
+                    stringResource(R.string.settings_supporter_extras_marker),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }

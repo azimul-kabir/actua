@@ -17,6 +17,11 @@ class SettingsNavigationMotionTest {
         assertTrue(isForwardSettingsNavigation(SettingsPage.General, SettingsPage.Budget))
         assertTrue(isForwardSettingsNavigation(SettingsPage.Budget, SettingsPage.CategoryColors))
         assertTrue(isForwardSettingsNavigation(SettingsPage.Budget, SettingsPage.Holidays))
+        assertTrue(isForwardSettingsNavigation(SettingsPage.General, SettingsPage.Support))
+        assertTrue(isForwardSettingsNavigation(SettingsPage.SupporterExtras, SettingsPage.Support))
+        assertTrue(isForwardSettingsNavigation(SettingsPage.AppIconPicker, SettingsPage.Support))
+        assertTrue(isForwardSettingsNavigation(SettingsPage.AccentPicker, SettingsPage.Support))
+        assertTrue(isForwardSettingsNavigation(SettingsPage.WidgetStylePicker, SettingsPage.Support))
     }
 
     @Test
@@ -28,5 +33,8 @@ class SettingsNavigationMotionTest {
         assertFalse(isForwardSettingsNavigation(SettingsPage.About, SettingsPage.General))
         assertFalse(isForwardSettingsNavigation(SettingsPage.General, SettingsPage.Manage))
         assertFalse(isForwardSettingsNavigation(SettingsPage.CategoryColors, SettingsPage.Budget))
+        assertFalse(isForwardSettingsNavigation(SettingsPage.Support, SettingsPage.General))
+        assertFalse(isForwardSettingsNavigation(SettingsPage.Support, SettingsPage.SupporterExtras))
+        assertFalse(isForwardSettingsNavigation(SettingsPage.Support, SettingsPage.AccentPicker))
     }
 }

@@ -19,6 +19,9 @@ enum class AppIcon(val aliasName: String, @StringRes val labelRes: Int, @Drawabl
     Light("LauncherLight", R.string.settings_app_icon_light, R.mipmap.actua_launcher_light),
 }
 
+/** Only the default icon is free; the others are Supporter extras. */
+fun AppIcon.lockedFor(isSupporter: Boolean): Boolean = !isSupporter && this != AppIcon.Default
+
 private const val NAMESPACE = "com.azimulkabir.actua"
 private const val PENDING = "pending"
 
