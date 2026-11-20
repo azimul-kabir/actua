@@ -23,6 +23,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed transfers from an off-budget account to an on-budget one not letting you pick a category ([#1714](https://github.com/azimul-kabir/actua/pull/1714))
 - Fixed the server connection error for an expired or mismatched certificate so it says what is wrong ([#1709](https://github.com/azimul-kabir/actua/pull/1709))
 
 - Fixed slow repeated saves in large budgets ([#1702](https://github.com/azimul-kabir/actua/pull/1702))
