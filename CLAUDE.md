@@ -36,7 +36,7 @@ Say what changed, not how or why. Implementation detail belongs in the PR descri
 
 ## Documentation to keep in sync
 
-- `README.md` feature list when features are added or removed.
+- `README.md` feature summary and the full list in `docs/FEATURES.md` when features are added or removed.
 - `BACKEND_PARITY.md` and the relevant `docs/*_PARITY.md` when the implementation boundary changes.
 - `PRIVACY.md` must stay accurate for the Play Data safety form and permissions. A merge to `main` changes the website's privacy page automatically.
 - `RELEASE_SMOKE_TEST.md` for new user-facing behavior that no existing item covers.

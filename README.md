@@ -37,40 +37,20 @@ Actua is an independent community project and is not affiliated with or endorsed
 
 ## Features
 
-- Native Material You Android interface
-- English, Brazilian Portuguese (pt-BR) and Spanish (es) with in-app language selection
-- Home dashboard with an at-a-glance financial overview (ready to budget, favorite categories and accounts as full-row lists that follow the Budget display settings, upcoming bills, this month, reports and recent activity with cleared and reconciled marks), customizable via show/hide and drag-to-reorder, with sections you can collapse (Actua remembers which), and an optional start day for the This Month summary to match mid-month pay cycles
-- Customizable floating bottom tab bar, blurring what scrolls under it on Android 12 and newer (or opaque, with the blur switched off): show/hide and reorder tabs (Reports and Bills can be added as their own tabs), plus an optional "Add" quick-add tab, and optional hiding while you scroll
-- App-wide favorites for categories, accounts and reports, shared by Home, the Budget favorites filter and the home-screen widgets
-- Password and OpenID/OIDC login
-- Standalone on-device budgets: full envelope budgeting without needing a server, with automated schedule posting, local backups, and export/import compatibility with Actual Budget archives (see [docs/STANDALONE_BUDGETS.md](docs/STANDALONE_BUDGETS.md))
-- Offline budgets with encrypted Actual sync
-- Budgeting, categories and money movement, including one-tap cover for overspent categories, switching budget type between Envelope and Tracking, category group deletion with target reassignment, and Actual's budget actions (3/6/12-month averages, copy last month or to year end, hold income)
-- Transactions, splits (including transfer lines in split transactions), transfers, Make transfer for two existing transactions, merging duplicates and reconciliation, including "Use last synced total" for bank-synced accounts
-- Amount keypad with + − × ÷ arithmetic, a leading minus, and Paste
-- Optional receipt scanning in every build (Google Play and both GitHub APKs): take or pick a receipt photo and Actua suggests the payee, date and total (and offers the tax and items as split lines) using Google ML Kit, which reads the photo on your phone (the library may send technical diagnostics to Google, never your receipt or budget data); a kept photo stays on the device unless included in an encrypted WebDAV backup (see [PRIVACY.md](PRIVACY.md))
-- Bank sync through your Actual server (SimpleFIN, GoCardless, Pluggy.ai, Akahu and Enable Banking), with per-account sync settings; newly synced transactions are marked until you view the account
-- Category targets and budget automations, including `#template` notes, checked against Actual's own template engine
-- Scheduled transactions and Bills calendar, with optional reminders before they are due, shown on your own weekend days and holidays when a schedule skips weekends
-- Accounts with collapsible groups, custom group creation/management, in-place reordering, group totals, flat favorites, credit cards, payment reminders, loan accounts with a payoff planner, and a device-local month start day for monthly summaries, report presets and report cards that can follow your own weekend days and holidays
-- Actual dashboard and custom reports with a report builder, authoring and card/page management, with smooth line, bar, donut, Sankey, calendar, Budget Analysis and Monte Carlo charts, tap-to-open transactions with search and sorting, a full-screen view with a view-only time range and a data table, optional total and average per period, and date/account filtering
-- Rules and automatic categorization, run on manual entry, transfers, imports and bank sync as in Actual, including template, formula and split actions, split rule authoring, live matching preview, and 'Apply rule now' bulk execution
-- CSV, OFX, QFX, QIF, CAMT.053, XLSX, PDF, SMS and notification imports (statement files can also be shared or opened from other apps), plus a [Tasker plugin and intents](docs/TRANSACTION_IMPORTS.md#tasker-and-other-automation-apps); captured transactions wait in a review queue with per-row, remembered and default accounts, optional review notifications, a launcher shortcut, an Accounts tab badge and a Mark as cleared choice remembered per budget
-- CSV export of an account register, of the transactions a filter or search shows, and of every Global Search match, in Actual's account-export layout
-- Payee management (rename, merge, delete, favorite, category learning), with suggested and location-aware payees
-- Global search, and transaction search that also matches amounts and dates
-- Optional app lock (biometrics or the device PIN, with a relock timeout) and a setting that hides Actua in the recents screen and blocks screenshots (see [docs/APP_LOCK.md](docs/APP_LOCK.md))
-- Automatic local backups and restore, with recovery options (try again, re-download, restore a backup or delete) for a budget that can't be opened, plus optional Google Drive backup and restore with client-side authenticated AES-256-GCM encryption
-- Optional encrypted WebDAV backup and restore for Nextcloud, ownCloud and other WebDAV servers, with the same client-side encryption (see [docs/WEBDAV_BACKUPS.md](docs/WEBDAV_BACKUPS.md))
-- Home-screen widgets (budget snapshot, favorite categories, account balances, upcoming schedules, quick transaction, spending trend, income and spending, a report card showing one of your dashboard cards as a single number, and small single-account and single-category widgets, with a Highlighted or Simple row style for the category and account lists) launcher shortcuts and a Quick Settings tile to add a transaction; supporters can restyle every widget as Translucent, Solid dark, Solid light or Accent-tinted
-- Optional Supporter extras, unlockable in the Google Play version for now (the GitHub APKs show every extra locked until website purchases open), all cosmetic and found under Settings → Supporter extras: app icons (Dark, Mono, Light), accent colors (Teal, Amber, Rose, Forest, Ocean, Mono), Catppuccin themes (Latte, Frappé, Macchiato and Mocha, with a choice of 14 accents; based on the Catppuccin palette), widget styles, confetti celebrations when Ready to budget reaches zero or you finish a reconciliation, and a friendly greeting with a few counts such as transactions to categorize and bills due this week (never amounts) on your start page, Home and the Support Actua page; budgeting itself always stays free
-- Currency (including the symbol before or after the amount), date and number formats that follow your budget's Actual settings or a device override, plus appearance options with an optional Material You dynamic-color mode (Android 12+)
-- Actual tag management, with colored `#tag` rendering, notes autocomplete, a Manage Tags screen (select several tags to hide, show or delete them together), and tap-a-tag transaction filtering
-- Multiple downloaded budgets with a quick switcher in Manage
-- Built-in local demo budget with credit cards, loans, a Debt group, schedules, rules, reports and a year of activity to try
-- Privacy-safe Diagnostics report you can copy, save or email when reporting a problem
+- Native Material You interface in English, Brazilian Portuguese and Spanish
+- Connect to your Actual server (password or OpenID) with offline budgets and encrypted sync, or use standalone on-device budgets with no server
+- Envelope and tracking budgets with targets, `#template` automations, one-tap cover for overspent categories and Actual's budget actions
+- Transactions with splits, transfers, merging and reconciliation, plus rules and automatic categorization as in Actual
+- Receipt scanning on your phone with Google ML Kit, in every build
+- Bank sync through your Actual server, and imports from CSV, OFX, QFX, QIF, CAMT.053, XLSX, PDF, SMS and notifications, including a Tasker plugin
+- Scheduled transactions, a Bills calendar with reminders, credit cards, and loans with a payoff planner
+- Dashboards and custom reports with a report builder and tap-through charts
+- A customizable Home, tab bar and favorites, with home-screen widgets, launcher shortcuts and a Quick Settings tile
+- App lock, hiding Actua from recents, and encrypted backups to your device, Google Drive or WebDAV
+- Optional cosmetic Supporter extras (app icons, accent colors, Catppuccin themes, widget styles); budgeting always stays free
+- A built-in demo budget and a privacy-safe Diagnostics report
 
-See [BACKEND_PARITY.md](BACKEND_PARITY.md) for detailed compatibility and implementation status. Actua is reviewed against Actual Budget 26.11, as of 2.4.0 ([details](docs/ACTUAL_26_11_COMPATIBILITY.md)).
+See the [full feature list](docs/FEATURES.md), and [BACKEND_PARITY.md](BACKEND_PARITY.md) for detailed compatibility and implementation status. Actua is reviewed against Actual Budget 26.11, as of 2.4.0 ([details](docs/ACTUAL_26_11_COMPATIBILITY.md)).
 
 ## Watch Actua
 

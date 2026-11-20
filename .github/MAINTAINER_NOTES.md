@@ -68,7 +68,7 @@ Every release follows this sequence:
    feature/fix breakdown, compatibility/safety notes, and a "Since beta N" list of the
    merged PRs, matching the structure of the existing files in that directory.
 5. Sweep every markdown doc in the repo for staleness against what actually shipped, not
-   just the version files above. `README.md`'s feature list and `BACKEND_PARITY.md`'s
+   just the version files above. `README.md`'s feature summary, `docs/FEATURES.md`'s full feature list and `BACKEND_PARITY.md`'s
    implementation-boundary tracking (required by AGENTS.md whenever the implementation
    boundary changes) are the most commonly missed spots.
 6. Add or update `RELEASE_SMOKE_TEST.md` checklist items for any new user-facing behavior
