@@ -24,3 +24,9 @@ The Google Play listing uses eight of the light screenshots, copied to
 `fastlane/metadata/android/en-US/images/phoneScreenshots/`, and `featureGraphic.png` there, a
 1024 × 500 version of the light hero without its Google Play buttons (store graphics must not
 carry calls to action). Run the **Google Play Listing Images** workflow after changing them.
+
+# Promo images
+
+`promo/` holds social and announcement images, each in a 16:9 and a square version at two sizes:
+`supporter-extras-*` for the Supporter extras, and `release-2.8.0-*` for the 2.8.0 release. They are not used by the
+app or the Play listing. The release images use the demo budget's icons and drawn illustrations, never real data.
