@@ -439,6 +439,44 @@ class TransactionParityTest {
     }
 
     @Test
+    fun categoryPickedOnTheOffBudgetLegLandsOnTheOnBudgetPartner() = withDatabase { database ->
+        val brokerage = offBudgetAccount(database)
+        val service = formService(database, "mixed-from-off")
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "40", transferToAccountId = brokerage, categoryId = "grocery", date = 20260910,
+        ))
+        val onBudget = database.fetchTransactions("checking").single { it.transferId != null }
+        val offBudgetLeg = requireNotNull(database.fetchTransaction(requireNotNull(onBudget.transferId)))
+
+        service.save(ActualTransactionForm(
+            accountId = brokerage, type = ActualTransactionType.TRANSFER,
+            amount = "40", transferToAccountId = "checking", categoryId = "rent", date = 20260910,
+        ), offBudgetLeg)
+        assertEquals("rent", database.fetchTransaction(onBudget.id)?.categoryId)
+        assertNull(database.fetchTransaction(offBudgetLeg.id)?.categoryId)
+    }
+
+    @Test
+    fun convertingFromAnOffBudgetAccountCategorizesTheOnBudgetPartner() = withDatabase { database ->
+        val brokerage = offBudgetAccount(database)
+        val service = formService(database, "mixed-convert")
+        service.save(ActualTransactionForm(
+            accountId = brokerage, type = ActualTransactionType.INCOME,
+            amount = "25", payeeName = "Dividend", date = 20260913,
+        ))
+        val original = database.fetchTransactions(brokerage).single { it.date == 20260913 }
+
+        service.save(ActualTransactionForm(
+            accountId = brokerage, type = ActualTransactionType.TRANSFER,
+            amount = "25", transferToAccountId = "checking", categoryId = "rent", date = 20260913,
+        ), original)
+        val offLeg = requireNotNull(database.fetchTransaction(original.id))
+        assertNull(offLeg.categoryId)
+        assertEquals("rent", database.fetchTransaction(requireNotNull(offLeg.transferId))?.categoryId)
+    }
+
+    @Test
     fun uncategorizedFilterIncludesTransfersLeavingTheBudgetOnly() = withDatabase { database ->
         val brokerage = offBudgetAccount(database)
         val service = formService(database, "uncategorized")

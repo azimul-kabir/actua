@@ -223,8 +223,9 @@ fun AddTransactionScreen(
     val transferTarget = transferTargetOf(payee)
     val isTransfer = transferTarget != null
     val isOffBudget = account in offBudgetAccountOptions
-    // Actual's mobile editor: only the on-budget leg of an on/off-budget transfer takes a category.
-    val transferTakesCategory = isTransfer && !isOffBudget && transferTarget in offBudgetAccountOptions
+    // Actual's mobile editor: only the on-budget leg of an on/off-budget transfer takes a category,
+    // whichever direction the money moves.
+    val transferTakesCategory = isTransfer && isOffBudget != (transferTarget in offBudgetAccountOptions)
     LaunchedEffect(isOffBudget, isTransfer) {
         if (isOffBudget && !isTransfer) {
             category = ""
@@ -300,7 +301,7 @@ fun AddTransactionScreen(
         payee = value
         if (target != null) {
             splitLines = emptyList()
-            if (isOffBudget || target !in offBudgetAccountOptions) category = ""
+            if (isOffBudget == (target in offBudgetAccountOptions)) category = ""
         }
         if (editing == null && !isSplit && (target != null || !isOffBudget)) {
             val preview = onPreviewRules(formDraft(category))
