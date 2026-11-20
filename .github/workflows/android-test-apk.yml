@@ -140,7 +140,7 @@ jobs:
           fi
           SAFE_REF="$(printf '%s' "$TARGET_REF" | tr '/:@ ' '----' | tr -cd '[:alnum:]._-')"
           SHORT_SHA="$(git rev-parse --short=8 HEAD)"
-          # The F-Droid name is unchanged; the Play build is "Actua-Test-Play-...".
+          # The Direct name is unchanged; the Play build is "Actua-Test-Play-...".
           ARTIFACT="Actua-Test-${LABEL}${SAFE_REF}-${SHORT_SHA}-run${GITHUB_RUN_NUMBER}"
           echo "name=$ARTIFACT" >> "$GITHUB_OUTPUT"
           cp "app/build/outputs/apk/${FLAVOR_DIR}/release/app-${FLAVOR_DIR}-release.apk" "$RUNNER_TEMP/$ARTIFACT.apk"

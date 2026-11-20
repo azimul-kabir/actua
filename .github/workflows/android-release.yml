@@ -201,7 +201,7 @@ jobs:
             cat release-notes.md
             printf '\n\n---\n\n**Which APK?**\n\n'
             printf -- '- `Actua-v%s.apk`: Direct Full build with on-device receipt scanning; website sales are not yet enabled.\n' "${{ steps.version.outputs.name }}"
-            printf -- '- `Actua-v%s-full.apk`: Play Full build with on-device receipt scanning and Google Play Billing. Same app, same signing key, so you can switch between them.\n' "${{ steps.version.outputs.name }}"
+            printf -- '- `Actua-v%s-full.apk`: Play Full build with on-device receipt scanning and Google Play Billing. Same app ID and release key, but switching between the two builds is not yet verified, so back up your data first.\n' "${{ steps.version.outputs.name }}"
           } > github-release-notes.md
       - name: Upload Play Store bundle artifact
         uses: actions/upload-artifact@v7
