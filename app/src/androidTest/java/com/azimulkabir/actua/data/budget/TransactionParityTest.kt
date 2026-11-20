@@ -443,11 +443,12 @@ class TransactionParityTest {
         val brokerage = offBudgetAccount(database)
         val service = formService(database, "mixed-from-off")
         service.save(ActualTransactionForm(
-            accountId = "checking", type = ActualTransactionType.TRANSFER,
-            amount = "40", transferToAccountId = brokerage, categoryId = "grocery", date = 20260910,
+            accountId = brokerage, type = ActualTransactionType.TRANSFER,
+            amount = "40", transferToAccountId = "checking", date = 20260910,
         ))
-        val onBudget = database.fetchTransactions("checking").single { it.transferId != null }
-        val offBudgetLeg = requireNotNull(database.fetchTransaction(requireNotNull(onBudget.transferId)))
+        val offBudgetLeg = database.fetchTransactions(brokerage).single { it.transferId != null }
+        val onBudget = requireNotNull(database.fetchTransaction(requireNotNull(offBudgetLeg.transferId)))
+        assertNull(onBudget.categoryId)
 
         service.save(ActualTransactionForm(
             accountId = brokerage, type = ActualTransactionType.TRANSFER,
