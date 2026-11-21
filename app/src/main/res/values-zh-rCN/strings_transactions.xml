@@ -238,7 +238,6 @@
     <string name="account_note">备注</string>
     <string name="account_add_note">添加备注</string>
     <string name="account_note_placeholder">账户备注</string>
-    <string name="amount_paste">粘贴</string>
     <string name="amount_paste_description">从剪贴板粘贴金额</string>
     <string name="amount_paste_not_found">剪贴板中未找到金额</string>
     <string name="scan_receipt">扫描收据</string>
@@ -291,8 +290,6 @@
     <string name="receipt_folder_dialog_message">此文件夹中的照片位于 Actua 之外。应用锁不会保护它们，其他有权访问该文件夹的应用可以看到它们，像 Nextcloud 这样同步该文件夹的应用会复制它们。如已配置，Actua 会将可访问的照片包含在加密的 WebDAV 备份中。</string>
     <string name="receipt_folder_dialog_existing">您已保留的照片保持原位，不会被移动。如果您之后改回专用存储，留在该文件夹中的照片将不再在 Actua 中显示。</string>
     <string name="receipt_folder_choose">选择文件夹</string>
-    <string name="amount_clear">清除</string>
     <string name="amount_clear_description">清除金额</string>
-    <string name="amount_undo">撤销</string>
     <string name="amount_undo_description">撤销清除</string>
 </resources>

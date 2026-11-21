@@ -248,7 +248,6 @@
     <string name="account_note">Nota</string>
     <string name="account_add_note">Adicionar nota</string>
     <string name="account_note_placeholder">Nota da conta</string>
-    <string name="amount_paste">Colar</string>
     <string name="amount_paste_description">Colar valor da área de transferência</string>
     <string name="amount_paste_not_found">Nenhum valor encontrado na área de transferência</string>
     <string name="scan_receipt">Escanear recibo</string>
@@ -303,8 +302,6 @@
     <string name="receipt_folder_dialog_message">As fotos nesta pasta ficam fora do Actua. O bloqueio do app não as protege, outros apps com acesso podem vê-las e um app como o Nextcloud pode copiá-las. O Actua inclui fotos acessíveis nos backups WebDAV criptografados quando configurados.</string>
     <string name="receipt_folder_dialog_existing">As fotos que você já guardou continuam onde estão e não são movidas. Se você voltar ao armazenamento privado depois, as fotos deixadas na pasta deixam de aparecer no Actua.</string>
     <string name="receipt_folder_choose">Escolher pasta</string>
-    <string name="amount_clear">Limpar</string>
     <string name="amount_clear_description">Limpar valor</string>
-    <string name="amount_undo">Desfazer</string>
     <string name="amount_undo_description">Desfazer limpeza</string>
 </resources>

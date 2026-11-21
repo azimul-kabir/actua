@@ -50,7 +50,6 @@
     <string name="loan_payment_no_funding">ローンの返済は、開いている予算内の口座から行う必要があります。先に口座を追加してください。</string>
     <string name="loans_category_optional">予算カテゴリ（任意）</string>
     <string name="loans_no_category">カテゴリなし</string>
-    <string name="loan_payment_category_note">返済額の全額がローンのカテゴリに割り当てられ、ローン残高は元本の分だけ減ります。</string>
     <string name="navigation_recording_loan_payment">ローンの返済を記録中</string>
     <string name="account_loan_target">毎月の目標</string>
     <string name="account_loan_target_skipped">今月は目標をスキップ中</string>

@@ -248,7 +248,6 @@
     <string name="account_add_note">Añadir nota</string>
     <string name="account_note_placeholder">Nota de la cuenta</string>
     <string name="transactions_running_total_category">Total acumulado de estas transacciones</string>
-    <string name="amount_paste">Pegar</string>
     <string name="amount_paste_description">Pegar el importe desde el portapapeles</string>
     <string name="amount_paste_not_found">No se encontró ningún importe en el portapapeles</string>
     <string name="scan_receipt">Escanear recibo</string>
@@ -298,9 +297,7 @@
     <string name="receipt_folder_dialog_message">Las fotos de esta carpeta quedan fuera de Actua. El bloqueo de la aplicación no las protege, otras aplicaciones con acceso pueden verlas y una aplicación como Nextcloud puede copiarlas. Actua incluye las fotos accesibles en copias WebDAV cifradas si están configuradas.</string>
     <string name="receipt_folder_dialog_existing">Las fotos que ya conservaste permanecen donde están y no se mueven. Si más adelante vuelves al almacenamiento privado, las fotos que queden en la carpeta ya no se mostrarán en Actua.</string>
     <string name="receipt_folder_choose">Elegir carpeta</string>
-    <string name="amount_clear">Borrar</string>
     <string name="amount_clear_description">Borrar importe</string>
-    <string name="amount_undo">Deshacer</string>
     <string name="amount_undo_description">Deshacer borrado</string>
     <plurals name="receipt_split_items">
         <item quantity="one">Una línea por el artículo encontrado (menos fiable)</item>

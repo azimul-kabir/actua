@@ -50,7 +50,6 @@
     <string name="loan_payment_no_funding">El pago de un préstamo debe salir de una cuenta abierta incluida en el presupuesto. Añade una primero.</string>
     <string name="loans_category_optional">Categoría del presupuesto (opcional)</string>
     <string name="loans_no_category">Sin categoría</string>
-    <string name="loan_payment_category_note">El pago completo se asigna a la categoría del préstamo, mientras que el saldo del préstamo se reduce únicamente por el capital amortizado.</string>
     <string name="navigation_recording_loan_payment">Registrando pago del préstamo</string>
     <string name="account_loan_target">Objetivo mensual</string>
     <string name="account_loan_target_skipped">Objetivo omitido este mes</string>

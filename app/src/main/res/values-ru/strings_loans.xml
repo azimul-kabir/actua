@@ -50,7 +50,6 @@
     <string name="loan_payment_no_funding">Платёж по кредиту должен идти с открытого счёта, входящего в бюджет. Сначала добавьте такой счёт.</string>
     <string name="loans_category_optional">Категория бюджета (необязательно)</string>
     <string name="loans_no_category">Без категории</string>
-    <string name="loan_payment_category_note">Весь платёж относится к категории кредита, а остаток кредита уменьшается только на сумму основного долга.</string>
     <string name="navigation_recording_loan_payment">Запись платежа по кредиту</string>
     <string name="account_loan_target">Ежемесячная цель</string>
     <string name="account_loan_target_skipped">Цель в этом месяце пропущена</string>

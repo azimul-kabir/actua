@@ -50,7 +50,6 @@
     <string name="loan_payment_no_funding">Il pagamento di un prestito deve provenire da un conto aperto e nel budget. Aggiungine prima uno.</string>
     <string name="loans_category_optional">Categoria di budget (facoltativa)</string>
     <string name="loans_no_category">Nessuna categoria</string>
-    <string name="loan_payment_category_note">L’intero pagamento viene assegnato alla categoria del prestito, mentre il saldo del prestito scende solo del capitale.</string>
     <string name="navigation_recording_loan_payment">Registrazione del pagamento del prestito</string>
     <string name="account_loan_target">Obiettivo mensile</string>
     <string name="account_loan_target_skipped">Obiettivo saltato questo mese</string>

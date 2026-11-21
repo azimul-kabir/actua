@@ -23,9 +23,6 @@
     <string name="budget_options_section_page">Página</string>
     <string name="budget_options_section_rows">Cada linha de categoria</string>
     <string name="budget_options_section_categories">Categorias exibidas</string>
-    <string name="budget_options_section_summary">%1$d de %2$d ativados</string>
-    <string name="budget_options_section_expanded">Expandido</string>
-    <string name="budget_options_section_collapsed">Recolhido</string>
     <string name="budget_show_status_dots">Exibir indicadores de status</string>
     <string name="budget_switch_budget">Trocar orçamento</string>
     <string name="budget_type_confirm_title_tracking">Mudar para um orçamento de acompanhamento?</string>
@@ -345,7 +342,6 @@
     <string name="home_open_budget">Abrir orçamento</string>
     <string name="home_available_to_assign">Disponível para atribuir</string>
     <string name="home_open_current_budget">Abrir orçamento atual</string>
-    <string name="home_amount_available">%1$s disponível</string>
     <string name="home_goal_progress">%1$d%% financiado para a meta</string>
     <string name="home_spending_progress">%1$s · %2$d%% gasto</string>
     <string name="home_view_calendar">Ver calendário</string>

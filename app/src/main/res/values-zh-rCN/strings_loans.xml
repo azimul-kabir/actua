@@ -50,7 +50,6 @@
     <string name="loan_payment_no_funding">贷款还款必须来自开放且在预算内的账户。请先添加一个。</string>
     <string name="loans_category_optional">预算类别（可选）</string>
     <string name="loans_no_category">无类别</string>
-    <string name="loan_payment_category_note">整笔还款都分配到该贷款的类别，而贷款余额只减少本金部分。</string>
     <string name="navigation_recording_loan_payment">正在记录贷款还款</string>
     <string name="account_loan_target">每月目标</string>
     <string name="account_loan_target_skipped">本月已跳过目标</string>

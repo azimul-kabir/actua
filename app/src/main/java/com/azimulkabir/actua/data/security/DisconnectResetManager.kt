@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.data.security
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import androidx.work.WorkManager
@@ -50,6 +51,8 @@ class DisconnectResetManager(context: Context) {
         }
     }
 
+    // The app restarts right after the reset, so every write here must already be on disk.
+    @SuppressLint("ApplySharedPref")
     fun resetLocalServerData() = ActualSyncRunner.whileSyncPaused {
         ActualSyncScheduler.cancelForDisconnect(app)
         revokeServerSession()
