@@ -1,9 +1,7 @@
 package com.azimulkabir.actua
 
-import com.azimulkabir.actua.data.preferences.ScreenPrivacyPreferences
 import android.os.Bundle
 import androidx.activity.compose.setContent
-import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.AlertDialog
@@ -25,6 +23,9 @@ import com.azimulkabir.actua.data.security.DisconnectResetManager
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
 import com.azimulkabir.actua.data.sync.SyncRunResult
 import com.azimulkabir.actua.billing.supporterPerksAvailable
+import com.azimulkabir.actua.ui.lock.AppLock
+import com.azimulkabir.actua.ui.lock.AppLockActivity
+import com.azimulkabir.actua.ui.lock.AppLockGate
 import com.azimulkabir.actua.ui.theme.AccentPalette
 import com.azimulkabir.actua.ui.theme.ActuaTheme
 import com.azimulkabir.actua.util.suspendRunCatching
@@ -42,7 +43,7 @@ private class DisconnectUserException(val userMessage: String) : Exception()
  * recreating the application task after the reset. A final sync protects normal
  * Actual data plus Actua-specific CRDT preferences such as credit-card metadata.
  */
-class DisconnectResetActivity : AppCompatActivity() {
+class DisconnectResetActivity : AppLockActivity() {
     private enum class Stage { Confirm, Syncing, SyncFailed }
 
     private var stage by mutableStateOf(Stage.Confirm)
@@ -50,7 +51,6 @@ class DisconnectResetActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ScreenPrivacyPreferences.apply(this)
         setContent {
             ActuaTheme(
                 appearance = DisplayPreferences(this).appearance,
@@ -59,62 +59,64 @@ class DisconnectResetActivity : AppCompatActivity() {
                 customAccent = if (supporterPerksAvailable()) DisplayPreferences(this).customAccentColor else null,
                 catppuccin = if (supporterPerksAvailable()) DisplayPreferences(this).catppuccinTheme() else null,
             ) {
-                when (stage) {
-                    Stage.Confirm -> AlertDialog(
-                        onDismissRequest = ::cancelAndRestore,
-                        title = { Text(stringResource(R.string.disconnect_reset_title)) },
-                        text = {
-                            Text(stringResource(R.string.disconnect_reset_message))
-                        },
-                        confirmButton = {
-                            TextButton(onClick = ::syncThenReset) {
-                                Text(stringResource(R.string.disconnect_reset_action))
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = ::cancelAndRestore) {
-                                Text(stringResource(R.string.widget_action_cancel))
-                            }
-                        },
-                    )
-
-                    Stage.Syncing -> AlertDialog(
-                        onDismissRequest = {},
-                        title = { Text(stringResource(R.string.disconnect_syncing_title)) },
-                        text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                CircularProgressIndicator()
-                                Text(stringResource(R.string.disconnect_syncing_message))
-                            }
-                        },
-                        confirmButton = {},
-                    )
-
-                    Stage.SyncFailed -> AlertDialog(
-                        onDismissRequest = ::cancelAndRestore,
-                        title = { Text(stringResource(R.string.disconnect_sync_failed_title)) },
-                        text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(stringResource(R.string.disconnect_sync_failed_message))
-                                syncFailure?.takeIf { it.isNotBlank() }?.let {
-                                    Text(it, style = MaterialTheme.typography.bodySmall)
+                AppLockGate(locked = AppLock.locked, onUnlocked = AppLock::unlock) {
+                    when (stage) {
+                        Stage.Confirm -> AlertDialog(
+                            onDismissRequest = ::cancelAndRestore,
+                            title = { Text(stringResource(R.string.disconnect_reset_title)) },
+                            text = {
+                                Text(stringResource(R.string.disconnect_reset_message))
+                            },
+                            confirmButton = {
+                                TextButton(onClick = ::syncThenReset) {
+                                    Text(stringResource(R.string.disconnect_reset_action))
                                 }
-                            }
-                        },
-                        confirmButton = {
-                            TextButton(onClick = ::forceReset) {
-                                Text(
-                                    stringResource(R.string.disconnect_anyway),
-                                    color = MaterialTheme.colorScheme.error,
-                                )
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = ::syncThenReset) {
-                                Text(stringResource(R.string.disconnect_try_again))
-                            }
-                        },
-                    )
+                            },
+                            dismissButton = {
+                                TextButton(onClick = ::cancelAndRestore) {
+                                    Text(stringResource(R.string.widget_action_cancel))
+                                }
+                            },
+                        )
+
+                        Stage.Syncing -> AlertDialog(
+                            onDismissRequest = {},
+                            title = { Text(stringResource(R.string.disconnect_syncing_title)) },
+                            text = {
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    CircularProgressIndicator()
+                                    Text(stringResource(R.string.disconnect_syncing_message))
+                                }
+                            },
+                            confirmButton = {},
+                        )
+
+                        Stage.SyncFailed -> AlertDialog(
+                            onDismissRequest = ::cancelAndRestore,
+                            title = { Text(stringResource(R.string.disconnect_sync_failed_title)) },
+                            text = {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(stringResource(R.string.disconnect_sync_failed_message))
+                                    syncFailure?.takeIf { it.isNotBlank() }?.let {
+                                        Text(it, style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
+                            },
+                            confirmButton = {
+                                TextButton(onClick = ::forceReset) {
+                                    Text(
+                                        stringResource(R.string.disconnect_anyway),
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = ::syncThenReset) {
+                                    Text(stringResource(R.string.disconnect_try_again))
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }

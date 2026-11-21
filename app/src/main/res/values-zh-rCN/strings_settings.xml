@@ -194,6 +194,8 @@
     <string name="settings_app_lock">需要身份验证</string>
     <string name="settings_app_lock_description">打开 Actua 时要求验证指纹、面部或设备的 PIN、图案或密码。锁定期间同步和提醒仍会继续运行。</string>
     <string name="settings_app_lock_timeout">离开 Actua 后锁定</string>
+    <string name="settings_app_lock_hide_widget_amounts">隐藏小组件中的金额</string>
+    <string name="settings_app_lock_hide_widget_amounts_description">小组件无法要求验证指纹，因此应用锁开启时，它们会显示 •••• 而不是金额。名称仍会显示。</string>
     <string name="app_lock_timeout_immediately">立即</string>
     <string name="app_lock_timeout_1_minute">1 分钟后</string>
     <string name="app_lock_timeout_5_minutes">5 分钟后</string>

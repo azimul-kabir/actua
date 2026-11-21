@@ -194,6 +194,8 @@
     <string name="settings_app_lock">Требовать аутентификацию</string>
     <string name="settings_app_lock_description">Запрашивать отпечаток пальца, лицо или PIN-код, графический ключ либо пароль устройства для открытия Actua. Синхронизация и напоминания продолжают работать, пока приложение заблокировано.</string>
     <string name="settings_app_lock_timeout">Блокировать после выхода из Actua</string>
+    <string name="settings_app_lock_hide_widget_amounts">Скрывать суммы в виджетах</string>
+    <string name="settings_app_lock_hide_widget_amounts_description">Виджеты не могут запросить отпечаток пальца, поэтому при включённой блокировке они показывают •••• вместо сумм. Названия остаются видимыми.</string>
     <string name="app_lock_timeout_immediately">Сразу</string>
     <string name="app_lock_timeout_1_minute">Через 1 минуту</string>
     <string name="app_lock_timeout_5_minutes">Через 5 минут</string>

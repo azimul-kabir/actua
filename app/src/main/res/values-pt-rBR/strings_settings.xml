@@ -194,6 +194,8 @@
     <string name="settings_app_lock">Exigir autenticação</string>
     <string name="settings_app_lock_description">Peça sua digital, seu rosto ou o PIN, padrão ou senha do dispositivo para abrir o Actua. A sincronização e os lembretes continuam funcionando enquanto ele está bloqueado.</string>
     <string name="settings_app_lock_timeout">Bloquear ao sair do Actua</string>
+    <string name="settings_app_lock_hide_widget_amounts">Ocultar valores nos widgets</string>
+    <string name="settings_app_lock_hide_widget_amounts_description">Os widgets não podem pedir sua digital, então, enquanto o bloqueio estiver ativado, mostram •••• no lugar dos valores. Os nomes continuam visíveis.</string>
     <string name="app_lock_timeout_immediately">Imediatamente</string>
     <string name="app_lock_timeout_1_minute">Após 1 minuto</string>
     <string name="app_lock_timeout_5_minutes">Após 5 minutos</string>

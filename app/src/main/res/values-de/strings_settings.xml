@@ -194,6 +194,8 @@
     <string name="settings_app_lock">Authentifizierung verlangen</string>
     <string name="settings_app_lock_description">Zum Öffnen von Actua nach Fingerabdruck, Gesicht oder PIN, Muster oder Passwort deines Geräts fragen. Synchronisierung und Erinnerungen funktionieren weiter, während die App gesperrt ist.</string>
     <string name="settings_app_lock_timeout">Nach Verlassen von Actua sperren</string>
+    <string name="settings_app_lock_hide_widget_amounts">Beträge in Widgets ausblenden</string>
+    <string name="settings_app_lock_hide_widget_amounts_description">Widgets können nicht nach deinem Fingerabdruck fragen. Solange die Sperre aktiv ist, zeigen sie •••• statt Beträgen. Namen bleiben sichtbar.</string>
     <string name="app_lock_timeout_immediately">Sofort</string>
     <string name="app_lock_timeout_1_minute">Nach 1 Minute</string>
     <string name="app_lock_timeout_5_minutes">Nach 5 Minuten</string>

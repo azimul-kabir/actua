@@ -194,6 +194,8 @@
     <string name="settings_app_lock">認証を必須にする</string>
     <string name="settings_app_lock_description">Actuaを開くときに、指紋、顔、またはデバイスのPIN・パターン・パスワードを求めます。ロック中も同期とリマインダーは動作し続けます。</string>
     <string name="settings_app_lock_timeout">Actuaを離れてからロックするまで</string>
+    <string name="settings_app_lock_hide_widget_amounts">ウィジェットの金額を隠す</string>
+    <string name="settings_app_lock_hide_widget_amounts_description">ウィジェットは指紋認証を求められないため、ロック中は金額の代わりに「••••」を表示します。名前は表示されたままです。</string>
     <string name="app_lock_timeout_immediately">すぐに</string>
     <string name="app_lock_timeout_1_minute">1分後</string>
     <string name="app_lock_timeout_5_minutes">5分後</string>
