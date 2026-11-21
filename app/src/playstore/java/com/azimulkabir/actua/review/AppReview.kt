@@ -13,7 +13,7 @@ private const val TAG = "AppReview"
 private const val PLAY_STORE_PACKAGE = "com.android.vending"
 
 /**
- * Only for installs that came from Google Play: the `-full` APK on GitHub is the same flavor but
+ * Only for installs that came from Google Play: the APK on GitHub is the same build but
  * has no Play listing to rate, so the review sheet would never open for it.
  */
 fun appReviewAvailable(context: Context): Boolean {
