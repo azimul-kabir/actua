@@ -55,7 +55,7 @@ class AccentPaletteTest {
     fun cardSurfacesFollowTheAccentAndStayReadable() {
         for (dark in listOf(false, true)) {
             val base = if (dark) ActuaDarkColorScheme else ActuaLightColorScheme
-            for (accent in AccentPalette.entries - AccentPalette.Violet) {
+            for (accent in AccentPalette.presets) {
                 val scheme = accent.colorScheme(dark)
                 assertTrue(scheme.surfaceContainer != base.surfaceContainer)
                 assertTrue(scheme.surfaceContainerHigh != base.surfaceContainerHigh)
@@ -74,13 +74,31 @@ class AccentPaletteTest {
     fun anAccentKeepsThePageBackgroundAndErrorColors() {
         for (dark in listOf(false, true)) {
             val base = if (dark) ActuaDarkColorScheme else ActuaLightColorScheme
-            for (accent in AccentPalette.entries - AccentPalette.Violet) {
+            for (accent in AccentPalette.presets) {
                 val scheme = accent.colorScheme(dark)
                 assertTrue(scheme.primary != base.primary)
                 assertEquals(base.background, scheme.background)
                 assertEquals(base.surface, scheme.surface)
                 assertEquals(base.error, scheme.error)
             }
+        }
+    }
+
+    @Test
+    fun customWithoutAPickedColorIsViolet() {
+        assertSame(ActuaLightColorScheme, AccentPalette.Custom.colorScheme(darkTheme = false))
+        assertSame(ActuaDarkColorScheme, AccentPalette.Custom.colorScheme(darkTheme = true))
+        assertEquals(AccentPalette.Custom, AccentPalette.fromName("Custom"))
+    }
+
+    @Test
+    fun customAppliesThePickedColorAndKeepsBackgroundAndErrors() {
+        for (dark in listOf(false, true)) {
+            val base = if (dark) ActuaDarkColorScheme else ActuaLightColorScheme
+            val scheme = AccentPalette.Custom.colorScheme(dark, 0xFFC2185B.toInt())
+            assertTrue(scheme.primary != base.primary)
+            assertEquals(base.background, scheme.background)
+            assertEquals(base.error, scheme.error)
         }
     }
 

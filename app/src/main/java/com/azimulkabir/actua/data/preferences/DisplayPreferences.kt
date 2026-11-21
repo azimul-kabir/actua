@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import androidx.compose.material3.ColorScheme
 import com.azimulkabir.actua.ui.theme.AccentPalette
 import com.azimulkabir.actua.ui.theme.CatppuccinAccent
+import com.azimulkabir.actua.ui.theme.CustomAccent
 import com.azimulkabir.actua.ui.theme.CatppuccinFlavor
 import com.azimulkabir.actua.ui.theme.CatppuccinTheme
 import com.azimulkabir.actua.widget.WidgetStyle
@@ -176,6 +177,15 @@ class DisplayPreferences(context: Context) {
         get() = AccentPalette.fromName(preferences.getString(ACCENT, null))
         set(value) { preferences.edit().putString(ACCENT, value.name).apply() }
 
+    /** The ARGB color behind the Custom accent (opaque, device-local), or null until a supporter picks one. */
+    var customAccentColor: Int?
+        get() = if (preferences.contains(CUSTOM_ACCENT_COLOR)) CustomAccent.opaque(preferences.getInt(CUSTOM_ACCENT_COLOR, 0)) else null
+        set(value) {
+            preferences.edit().apply {
+                if (value == null) remove(CUSTOM_ACCENT_COLOR) else putInt(CUSTOM_ACCENT_COLOR, CustomAccent.opaque(value))
+            }.apply()
+        }
+
     /** Whether a supporter has turned on a Catppuccin theme (Play build); off until they do. */
     var catppuccinEnabled: Boolean
         get() = preferences.getBoolean(CATPPUCCIN_ENABLED, false)
@@ -197,7 +207,7 @@ class DisplayPreferences(context: Context) {
         if (catppuccinEnabled) CatppuccinTheme(catppuccinDarkFlavor, catppuccinAccent) else null
 
     /** The scheme the app is drawn from for [night], before Material You: Catppuccin when on, else the accent palette. */
-    fun appColorScheme(night: Boolean): ColorScheme = catppuccinTheme()?.colorScheme(night) ?: accent.colorScheme(night)
+    fun appColorScheme(night: Boolean): ColorScheme = catppuccinTheme()?.colorScheme(night) ?: accent.colorScheme(night, customAccentColor)
 
     /** Calls [onChange] whenever [accent] changes, including from a supporter-status reset. Returns how to stop. */
     fun observeAccent(onChange: (AccentPalette) -> Unit): () -> Unit {
@@ -215,7 +225,7 @@ class DisplayPreferences(context: Context) {
      */
     fun observeAccentSource(onChange: () -> Unit): () -> Unit {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == ACCENT || key == USE_DYNAMIC_COLOR || key in CATPPUCCIN_KEYS) onChange()
+            if (key == ACCENT || key == CUSTOM_ACCENT_COLOR || key == USE_DYNAMIC_COLOR || key in CATPPUCCIN_KEYS) onChange()
         }
         preferences.registerOnSharedPreferenceChangeListener(listener)
         return { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
@@ -378,6 +388,7 @@ class DisplayPreferences(context: Context) {
         const val APPEARANCE = "appearance"
         const val USE_DYNAMIC_COLOR = "use_dynamic_color"
         const val ACCENT = "accent"
+        const val CUSTOM_ACCENT_COLOR = "custom_accent_color"
         const val CATPPUCCIN_ENABLED = "catppuccin_enabled"
         const val CATPPUCCIN_DARK_FLAVOR = "catppuccin_dark_flavor"
         const val CATPPUCCIN_ACCENT = "catppuccin_accent"

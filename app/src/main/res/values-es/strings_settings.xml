@@ -286,6 +286,15 @@
 <string name="settings_accent_forest">Bosque</string>
 <string name="settings_accent_ocean">Océano</string>
 <string name="settings_accent_mono">Monocromo</string>
+<string name="settings_accent_custom">Personalizado</string>
+<string name="settings_accent_custom_title">Color personalizado</string>
+<string name="settings_accent_custom_hex">Color hexadecimal</string>
+<string name="settings_accent_custom_hex_error">Introduce un color como #2E7D6B</string>
+<string name="settings_accent_custom_hue">Tono</string>
+<string name="settings_accent_custom_saturation">Saturación</string>
+<string name="settings_accent_custom_brightness">Brillo</string>
+<string name="settings_accent_custom_adjusted">Ajustado a %1$s para que el texto blanco siga siendo legible.</string>
+<string name="settings_accent_custom_preview">Vista previa del acento %1$s</string>
 <string name="settings_widget_style">Estilo de widgets</string>
 <string name="settings_widget_style_default">Predeterminado</string>
 <string name="settings_widget_style_translucent">Translúcido</string>

@@ -18,7 +18,11 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -57,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.ui.theme.AccentPalette
+import com.azimulkabir.actua.ui.theme.CustomAccent
 import com.azimulkabir.actua.ui.theme.Spacing
 
 @StringRes
@@ -68,6 +73,7 @@ internal fun accentLabelRes(accent: AccentPalette): Int = when (accent) {
     AccentPalette.Forest -> R.string.settings_accent_forest
     AccentPalette.Ocean -> R.string.settings_accent_ocean
     AccentPalette.Mono -> R.string.settings_accent_mono
+    AccentPalette.Custom -> R.string.settings_accent_custom
 }
 
 /** What the Accent color page offers: the device's Material You colors, or one of the palettes. */
@@ -93,6 +99,7 @@ internal fun AccentSettings(
     val context = LocalContext.current
     val preferences = remember { DisplayPreferences(context) }
     var accent by remember { mutableStateOf(preferences.accent) }
+    var customColor by remember { mutableStateOf(preferences.customAccentColor) }
     var catppuccinOn by remember { mutableStateOf(preferences.catppuccinEnabled) }
     val materialYouAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
@@ -110,7 +117,7 @@ internal fun AccentSettings(
                     val scheme = when (choice) {
                         AccentChoice.MaterialYou ->
                             if (materialYouAvailable) materialYouScheme(context, dark) else MaterialTheme.colorScheme
-                        is AccentChoice.Palette -> choice.accent.colorScheme(dark)
+                        is AccentChoice.Palette -> choice.accent.colorScheme(dark, customColor ?: CustomAccent.DEFAULT_SEED)
                     }
                     val locked = choice is AccentChoice.Palette && choice.accent != AccentPalette.Violet && !isSupporter
                     val selected = when (choice) {
@@ -139,6 +146,10 @@ internal fun AccentSettings(
                                 choice is AccentChoice.Palette -> {
                                     accent = choice.accent
                                     preferences.accent = choice.accent
+                                    if (choice.accent == AccentPalette.Custom && customColor == null) {
+                                        customColor = CustomAccent.DEFAULT_SEED
+                                        preferences.customAccentColor = CustomAccent.DEFAULT_SEED
+                                    }
                                     // Choosing one of Actua's palettes turns the Catppuccin theme and Material You off.
                                     catppuccinOn = false
                                     preferences.catppuccinEnabled = false
@@ -156,6 +167,15 @@ internal fun AccentSettings(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = Spacing.xs),
         )
+        if (isSupporter && accent == AccentPalette.Custom && !useDynamicColor && !catppuccinOn) {
+            CustomAccentSection(
+                color = customColor ?: CustomAccent.DEFAULT_SEED,
+                onColorChange = {
+                    customColor = it
+                    preferences.customAccentColor = it
+                },
+            )
+        }
         CatppuccinSection(
             isSupporter = isSupporter,
             enabled = catppuccinOn,
@@ -167,6 +187,89 @@ internal fun AccentSettings(
             },
             preferences = preferences,
             onOpenSupport = onOpenSupport,
+        )
+    }
+}
+
+/**
+ * The Custom accent's picker: a hex field plus hue, saturation and brightness sliders. The app theme follows each
+ * change right away. A color whose white text would fall below WCAG AA is darkened for the light theme, and the
+ * page says so.
+ */
+@Composable
+private fun CustomAccentSection(color: Int, onColorChange: (Int) -> Unit) {
+    val hsv = remember(color) { CustomAccent.toHsv(color) }
+    var hue by remember { mutableStateOf(hsv[0]) }
+    var saturation by remember { mutableStateOf(hsv[1]) }
+    var value by remember { mutableStateOf(hsv[2]) }
+    var hexText by remember { mutableStateOf(CustomAccent.formatHex(color)) }
+    var hexInvalid by remember { mutableStateOf(false) }
+    val derived = remember(color) { CustomAccent.derive(color) }
+    fun publish() {
+        val next = CustomAccent.fromHsv(hue, saturation, value)
+        hexText = CustomAccent.formatHex(next)
+        hexInvalid = false
+        onColorChange(next)
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        ActuaGroupLabel(stringResource(R.string.settings_accent_custom_title))
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                val previewLabel = stringResource(R.string.settings_accent_custom_preview, CustomAccent.formatHex(color))
+                Box(
+                    Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(16.dp))
+                        .background(Color(derived.seed))
+                        .semantics { contentDescription = previewLabel },
+                )
+                OutlinedTextField(
+                    value = hexText,
+                    onValueChange = { text ->
+                        hexText = text
+                        val parsed = CustomAccent.parseHex(text)
+                        hexInvalid = parsed == null
+                        if (parsed != null) {
+                            val next = CustomAccent.toHsv(parsed)
+                            hue = next[0]; saturation = next[1]; value = next[2]
+                            onColorChange(parsed)
+                        }
+                    },
+                    label = { Text(stringResource(R.string.settings_accent_custom_hex)) },
+                    isError = hexInvalid,
+                    supportingText = if (hexInvalid) {
+                        { Text(stringResource(R.string.settings_accent_custom_hex_error)) }
+                    } else null,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                PickerSlider(stringResource(R.string.settings_accent_custom_hue), hue, 0f..360f) { hue = it; publish() }
+                PickerSlider(stringResource(R.string.settings_accent_custom_saturation), saturation, 0f..1f) { saturation = it; publish() }
+                PickerSlider(stringResource(R.string.settings_accent_custom_brightness), value, 0f..1f) { value = it; publish() }
+                if (derived.adjusted) {
+                    val adjustedTo = CustomAccent.formatHex(derived.light.primary.toArgb())
+                    Text(
+                        stringResource(R.string.settings_accent_custom_adjusted, adjustedTo),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PickerSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, onChange: (Float) -> Unit) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelLarge)
+        Slider(
+            value = value.coerceIn(range),
+            onValueChange = onChange,
+            valueRange = range,
+            modifier = Modifier.semantics { contentDescription = label },
         )
     }
 }
