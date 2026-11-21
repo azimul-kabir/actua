@@ -406,6 +406,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] 2.8.0 Terms link: Settings → About lists Terms of Service and opens the page.
 - [ ] 2.8.0 Upgrade: install the previous GitHub `Actua-v2.7.0.apk`, add a budget, then install the new release-signed `Actua-v2.8.0.apk` over it and confirm the budget survives. A Play install and a GitHub APK cannot update each other (expected: different signing keys).
 - [ ] Unreleased French: choose Français under Settings → Display → Language and confirm navigation, Home, Budget, Settings, widgets and notifications switch to French with no English left over and nothing clipped, restart Actua and confirm the choice sticks, then switch back to System default.
+- [ ] Unreleased German: choose Deutsch under Settings → Display → Language and confirm navigation, Home, Budget, Settings, widgets and notifications switch to German with no English left over and nothing clipped (also at large font scale), restart Actua and confirm the choice sticks, then switch back to System default.
 
 ## Release/distribution
 
