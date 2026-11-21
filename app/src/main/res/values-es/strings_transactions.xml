@@ -263,6 +263,10 @@
     <string name="receipt_split_confirm">Dividir</string>
     <string name="receipt_split_not_now">Ahora no</string>
     <string name="receipt_split_tax_note">Impuesto</string>
+    <string name="receipt_edit_title">¿Usar este recibo?</string>
+    <string name="receipt_edit_message">Adjunta la foto a esta transacción o sustituye también su importe, beneficiario y fecha por lo que dice el recibo. Podrás cambiarlo todo antes de guardar.</string>
+    <string name="receipt_edit_attach_only">Solo adjuntar la foto</string>
+    <string name="receipt_edit_replace">Reemplazar los datos</string>
     <string name="receipt_photo_keep">Conservar la foto del recibo</string>
     <string name="receipt_photo_keep_caption">Se conserva en este teléfono. Se incluye en copias WebDAV cifradas si están configuradas.</string>
     <string name="receipt_photo_title">Foto del recibo</string>

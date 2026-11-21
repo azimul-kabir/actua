@@ -273,6 +273,10 @@
     <string name="receipt_split_confirm">Fractionnée</string>
     <string name="receipt_split_not_now">Pas maintenant</string>
     <string name="receipt_split_tax_note">Taxe</string>
+    <string name="receipt_edit_title">Utiliser ce reçu ?</string>
+    <string name="receipt_edit_message">Joignez la photo à cette transaction, ou remplacez aussi son montant, son bénéficiaire et sa date par ceux du reçu. Vous pouvez tout modifier avant d’enregistrer.</string>
+    <string name="receipt_edit_attach_only">Joindre la photo seulement</string>
+    <string name="receipt_edit_replace">Remplacer les détails</string>
     <string name="receipt_photo_keep">Conserver la photo du reçu</string>
     <string name="receipt_photo_keep_caption">Conservée sur ce téléphone. Incluse dans les sauvegardes WebDAV chiffrées lorsqu’elles sont configurées.</string>
     <string name="receipt_photo_title">Photo du reçu</string>

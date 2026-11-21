@@ -267,6 +267,10 @@
     <string name="receipt_split_confirm">Split</string>
     <string name="receipt_split_not_now">Not now</string>
     <string name="receipt_split_tax_note">Tax</string>
+    <string name="receipt_edit_title">Use this receipt?</string>
+    <string name="receipt_edit_message">Attach the photo to this transaction, or also replace its amount, payee and date with what the receipt says. You can still change everything before saving.</string>
+    <string name="receipt_edit_attach_only">Attach photo only</string>
+    <string name="receipt_edit_replace">Replace details</string>
     <string name="receipt_photo_keep">Keep the receipt photo</string>
     <string name="receipt_photo_keep_caption">Kept on this phone. Included in encrypted WebDAV backups when configured.</string>
     <string name="receipt_photo_title">Receipt photo</string>

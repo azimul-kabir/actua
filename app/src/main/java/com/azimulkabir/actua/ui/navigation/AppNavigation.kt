@@ -2086,6 +2086,7 @@ fun AppNavigation(
                 onBack = leaveEditor,
                 onSave = { savedTransaction ->
                     val wasEditing = editingTransaction != null
+                    val editedId = editingTransaction?.id?.takeIf(String::isNotBlank)
                     val wasPlainNewEntry = transactionPrefill == null
                     val impactCategories = budgetCategoriesOf(savedTransaction) +
                         (editingTransaction?.let { budgetCategoriesOf(it) } ?: emptySet())
@@ -2113,11 +2114,13 @@ fun AppNavigation(
                                 val createdId = result.getOrNull()
                                 val outcome = repository.withBackgroundOperation {
                                     // A transfer has no single id to attach a photo to; the cache file goes away.
-                                    val kept = if (!wasEditing && createdId != null) repository.keepReceiptPhoto(createdId, photo) else null
+                                    val photoTargetId = if (wasEditing) editedId else createdId
+                                    val kept = if (photoTargetId != null) repository.keepReceiptPhoto(photoTargetId, photo) else null
                                     photo.delete()
                                     kept
                                 }
                                 keptReceiptPhoto = null
+                                receiptPhotoVersion += 1
                                 val notice = when (outcome) {
                                     ReceiptKeepResult.PRIVATE_FOLDER_UNAVAILABLE -> receiptFolderUnavailableNotice
                                     ReceiptKeepResult.FAILED -> receiptNotKeptNotice
