@@ -10,7 +10,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
-- Fixed values on Accent-tinted widget tiles being hard to read with a bright custom accent in dark mode ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
+- Fixed values on Accent-tinted widget tiles being hard to read with a bright custom accent in dark mode ([#1732](https://github.com/azimul-kabir/actua/pull/1732))
 
 ### Changed
 
