@@ -33,7 +33,7 @@ description, and attaches two APKs: `Actua-v<version>.apk` (the `direct` flavor,
 the `Actua-v<version>.apk` name stable, because Obtainium and existing download links use it. The
 F-Droid verify workflow is retired; `fdroid/` is historical submission metadata only. For a stable version (no `-beta.`/`-alpha.`/`-rc.`
 suffix) it first uploads the signed `.aab` to Google Play's production track, with that version's
-`changelogs/<versionCode>.txt` of every language folder (en-US, fr-FR, de-DE, es-ES, pt-BR) as that language's "What's new"; Play publishes it once Google's review passes
+`changelogs/<versionCode>.txt` of every language folder (en-US, fr-FR, de-DE, it-IT, es-ES, pt-BR) as that language's "What's new"; Play publishes it once Google's review passes
 (Managed publishing is off). A failed upload, a missing "What's new" file in any language or a missing
 `PLAY_SERVICE_ACCOUNT_JSON` stops the run before the GitHub release or the
 Discord post. The `.aab` is also kept as the `Actua-v<version>-aab` artifact (90 days). Right
@@ -74,7 +74,7 @@ Every release follows this sequence:
 6. Add or update `RELEASE_SMOKE_TEST.md` checklist items for any new user-facing behavior
    in the release that isn't already exercised by an existing item.
 7. Add `fastlane/metadata/android/<language>/changelogs/<versionCode>.txt` for **every** language folder
-   (en-US, fr-FR, de-DE, es-ES, pt-BR), the store's "What's new"
+   (en-US, fr-FR, de-DE, it-IT, es-ES, pt-BR), the store's "What's new"
    text (500 characters at most: short bullets, one change each, about six words or fewer, no
    implementation details), and update the store listing descriptions in every language folder when
    features change. The release stops if any language is missing its file. When the UI changes noticeably, refresh `images/phoneScreenshots/` (2–8 PNGs,
