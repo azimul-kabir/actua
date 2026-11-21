@@ -6,7 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
-- Added a Custom accent color for supporters, with a hex field and hue, saturation and brightness sliders ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
+- Added a Custom accent color for supporters, with a hex field and hue, saturation and brightness sliders ([#1729](https://github.com/azimul-kabir/actua/pull/1729))
 
 ### Changed
 
