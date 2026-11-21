@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared cross-screen strings, keyed as upstream PR #424 names them. -->
+    <string name="common_cancel">Annuler</string>
+    <string name="common_none">Aucun</string>
+    <string name="common_search_actua">Rechercher dans Actua</string>
+
+    <!-- Budget toolbar, month picker and display options. -->
+    <string name="budget_choose_month">Choisir le mois</string>
+    <string name="budget_manage_categories">Gérer les catégories</string>
+    <string name="budget_display_options">Options d’affichage du budget</string>
+    <string name="budget_plan_view">Vue du budget</string>
+    <string name="budget_show_overview">Afficher le récapitulatif</string>
+    <string name="budget_show_warnings">Afficher les alertes</string>
+    <string name="budget_show_spending_details">Afficher le détail des dépenses</string>
+    <string name="budget_show_spent_column">Afficher la colonne des dépenses</string>
+    <string name="budget_show_progress_bars">Afficher les barres de progression</string>
+    <string name="budget_show_group_totals">Afficher les totaux des groupes</string>
+    <string name="budget_show_balance_pills">Afficher les pastilles de solde</string>
+    <string name="budget_show_goal_icons">Afficher les icônes d’objectif</string>
+    <string name="budget_display_options_menu">Options d’affichage</string>
+    <string name="budget_display_options_title">Options d’affichage</string>
+    <string name="budget_options_section_page">Page</string>
+    <string name="budget_options_section_rows">Chaque ligne de catégorie</string>
+    <string name="budget_options_section_categories">Catégories affichées</string>
+    <string name="budget_options_section_summary">%1$d sur %2$d activées</string>
+    <string name="budget_options_section_expanded">Développé</string>
+    <string name="budget_options_section_collapsed">Réduit</string>
+    <string name="budget_show_status_dots">Afficher les pastilles d’état</string>
+    <string name="budget_switch_budget">Changer de budget</string>
+    <string name="budget_type_confirm_title_tracking">Passer à un budget de suivi ?</string>
+    <string name="budget_type_confirm_title_envelope">Passer à un budget par enveloppes ?</string>
+    <string name="budget_type_confirm_all_devices">Cela modifie le type de budget sur tous les appareils qui synchronisent ce budget. Vos catégories et vos montants sont conservés.</string>
+    <string name="budget_type_confirm_tracking">Un budget de suivi n’a pas de montant « À budgéter ».</string>
+    <string name="budget_type_confirm_envelope">Un budget par enveloppes alimente les catégories à partir du montant « À budgéter ».</string>
+    <string name="budget_type_confirm_action">Changer</string>
+    <string name="budget_hide_fully_spent">Masquer les catégories entièrement dépensées</string>
+    <string name="budget_show_hidden">Afficher les catégories et groupes masqués</string>
+    <string name="budget_show_filters">Afficher les filtres de catégories</string>
+    <string name="budget_expand_all_groups">Développer tous les groupes</string>
+    <string name="budget_collapse_all_groups">Réduire tous les groupes</string>
+    <string name="budget_copy_last_month">Copier le budget du mois dernier</string>
+    <string name="budget_favorites">Favoris</string>
+    <string name="budget_previous_year">Année précédente</string>
+    <string name="budget_next_year">Année suivante</string>
+    <string name="budget_current_month">Mois en cours</string>
+
+    <!-- Category view filters (BudgetCategoryView). -->
+    <string name="budget_filter_all">Tout</string>
+    <string name="budget_filter_overspent">En dépassement</string>
+    <string name="budget_filter_underfunded">Sous-financé</string>
+    <string name="budget_filter_overfunded">Surfinancé</string>
+    <string name="budget_filter_money_available">Argent disponible</string>
+
+    <!-- Overview, group headers and category rows. -->
+    <string name="budget_ready_to_budget">À budgéter</string>
+    <string name="budget_to_budget">À budgéter</string>
+    <string name="budget_to_budget_endpoint">À budgéter</string>
+    <string name="budget_projected_savings">Épargne prévue</string>
+    <string name="budget_overspent">Dépassement</string>
+    <string name="budget_saved">Épargné</string>
+    <string name="budget_held_for_next_month">%1$s réservés pour le mois prochain</string>
+    <string name="budget_expand_group">Développer %1$s</string>
+    <string name="budget_collapse_group">Réduire %1$s</string>
+    <string name="budget_hidden_name">%1$s · Masqué</string>
+    <string name="budget_budgeted">Budgété</string>
+    <string name="budget_spent">Dépensé</string>
+    <string name="budget_balance">Solde</string>
+    <string name="budget_received_amount">Reçu %1$s</string>
+    <string name="budget_budgeted_amount">Budgété %1$s</string>
+    <string name="budget_spent_amount">Dépensé %1$s</string>
+
+    <!-- Progress-bar states (BudgetProgressState) and their semantic descriptions. -->
+    <string name="budget_progress_goal">Objectif financé à %1$d pour cent</string>
+    <string name="budget_progress_spending">%1$s, %2$d pour cent du disponible dépensé</string>
+    <string name="budget_progress_unassigned">Aucun montant attribué</string>
+    <string name="budget_progress_funded">Financé</string>
+    <string name="budget_progress_partially_spent">Partiellement dépensé</string>
+    <string name="budget_progress_fully_spent">Entièrement dépensé</string>
+    <string name="budget_progress_overspent">Dépassement</string>
+    <string name="budget_progress_goal_in_progress">Objectif en cours</string>
+    <string name="budget_progress_goal_reached">Objectif atteint</string>
+    <string name="budget_progress_goal_overfunded">Objectif dépassé</string>
+
+    <!-- Warnings, the overspent sheet and the budget amount editor. -->
+    <string name="budget_auto_assign">Attribution automatique</string>
+    <string name="budget_move_money">Déplacer de l’argent</string>
+    <string name="budget_move_money_plain">Déplacer de l’argent</string>
+    <string name="budget_fund_goal">Alimenter l’objectif depuis « À budgéter » (%1$s)</string>
+    <string name="budget_details">Détails</string>
+    <string name="budget_no_suggestions">Aucune suggestion disponible</string>
+    <string name="budget_from">De</string>
+    <string name="budget_to">Vers</string>
+    <string name="budget_swap_source_destination">Inverser la source et la destination</string>
+    <string name="budget_available_to_move">Disponible à déplacer : %1$s</string>
+    <string name="budget_amount">Montant</string>
+    <string name="budget_cover_amount">Couvrir %1$s</string>
+    <string name="budget_tap_to_cover">Touchez pour couvrir le dépassement</string>
+    <string name="budget_tap_to_categorize">Touchez pour catégoriser</string>
+    <string name="budget_cover_overspending">Couvrir le dépassement</string>
+    <string name="budget_choose_category_to_cover">Choisissez une catégorie à couvrir</string>
+
+    <!-- To Budget summary sheet. -->
+    <string name="budget_cover_to_budget">Couvrir le montant à budgéter</string>
+    <string name="budget_summary">Récapitulatif du budget</string>
+    <string name="budget_cover_from">Couvrir depuis</string>
+    <string name="budget_move_to_category">Déplacer vers une catégorie</string>
+    <string name="budget_hold_for_next_month">Réserver pour le mois prochain</string>
+    <string name="budget_reset_hold">Annuler la réserve</string>
+    <string name="budget_choose_category_cover">Choisissez une catégorie d’où déplacer l’argent</string>
+    <string name="budget_choose_category_fund">Choisissez une catégorie à financer depuis le montant à budgéter</string>
+    <string name="budget_category">Catégorie</string>
+    <string name="budget_no_categories">Aucune catégorie disponible</string>
+    <string name="budget_up_to">Jusqu’à %1$s</string>
+    <string name="budget_set_aside">Réservez une partie ou la totalité du montant à budgéter au lieu de l’attribuer maintenant</string>
+
+    <!-- Category details, actions sheets and the per-category budget menu. -->
+    <string name="budget_category_options">Options de la catégorie</string>
+    <string name="budget_add_favorite">Ajouter aux favoris</string>
+    <string name="budget_remove_favorite">Retirer des favoris</string>
+    <string name="budget_favorite_added">%1$s ajouté aux favoris</string>
+    <string name="budget_favorite_removed">%1$s retiré des favoris</string>
+    <string name="accounts_favorite_added">%1$s ajouté aux favoris</string>
+    <string name="accounts_favorite_removed">%1$s retiré des favoris</string>
+    <string name="budget_transactions_month">Transactions de ce mois</string>
+    <string name="budget_rename_category">Renommer la catégorie</string>
+    <string name="budget_rename_group">Renommer le groupe</string>
+    <string name="budget_hide_category">Masquer la catégorie</string>
+    <string name="budget_unhide_category">Afficher la catégorie</string>
+    <string name="budget_delete_category">Supprimer la catégorie</string>
+    <string name="budget_budget">Budget</string>
+    <string name="budget_month_note">Note du mois</string>
+    <string name="budget_note">Note</string>
+    <string name="budget_add_note">Ajouter une note</string>
+    <string name="budget_category_note">Note de la catégorie</string>
+    <string name="budget_rollover_overspending">Reporter le dépassement</string>
+    <string name="budget_rollover_description">Reporter le dépassement au mois suivant</string>
+    <string name="budget_recent_activity">Activité récente</string>
+    <string name="budget_view_all">Tout afficher</string>
+    <string name="budget_no_recent_transactions">Aucune transaction récente</string>
+    <string name="budget_unknown_payee">Tiers inconnu</string>
+    <string name="budget_stop_holding_automatically">Arrêter la réserve automatique</string>
+    <string name="budget_hold_automatically_next_month">Réserver automatiquement pour le mois prochain</string>
+    <string name="budget_stop_all_automatic_holds">Arrêter toutes les réserves automatiques ce mois-ci</string>
+    <string name="budget_action_average_3">Définir sur la moyenne des 3 derniers mois</string>
+    <string name="budget_action_average_6">Définir sur la moyenne des 6 derniers mois</string>
+    <string name="budget_action_yearly_average">Définir sur la moyenne annuelle</string>
+    <string name="budget_action_copy_year_end">Copier sur le reste de l’année</string>
+
+    <!-- Target row in category details. -->
+    <string name="budget_notes_managed_target">Objectif géré par les notes</string>
+    <string name="budget_advanced_target">Objectif avancé</string>
+    <string name="budget_managed_notes">Géré depuis les notes de la catégorie</string>
+    <string name="budget_managed_actual">Géré dans Actual Budget</string>
+    <string name="budget_view_target_info">Afficher les informations de l’objectif</string>
+    <string name="budget_balance_has_target">A un objectif</string>
+    <string name="budget_balance_goal_not_started">Objectif non commencé</string>
+    <string name="budget_edit_automation_list">Modifier les automatisations · Appliquer après l’aperçu du budget</string>
+    <string name="budget_set_target">Définir un objectif</string>
+    <string name="budget_plan_amount">Planifier le montant à budgéter</string>
+    <string name="budget_auto_assign_target_hint">L’attribution automatique peut utiliser votre objectif</string>
+    <string name="budget_no_schedule_linked">Aucune échéance associée</string>
+    <string name="budget_refill_balance_cap">Recompléter jusqu’au plafond de solde de la catégorie</string>
+    <string name="budget_capped_amount">plafonné à %1$s %2$s</string>
+    <string name="budget_hold_short">conserver</string>
+    <string name="budget_every_period">Chaque %1$s</string>
+    <string name="budget_every_count_period">Tous les %1$d %2$s</string>
+    <string name="budget_percent_last_month">%1$d %% de %2$s le mois dernier</string>
+    <string name="budget_percent_this_month">%1$d %% de %2$s ce mois-ci</string>
+    <string name="budget_copy_months_ago">Copier d’il y a %1$d mois</string>
+    <string name="budget_daily_cap">Plafond de solde quotidien</string>
+    <string name="budget_weekly_cap">Plafond de solde hebdomadaire</string>
+    <string name="budget_monthly_cap">Plafond de solde mensuel</string>
+    <string name="budget_resets_monthly">Réinitialisé chaque mois</string>
+    <string name="budget_target_month">Mois cible : %1$s</string>
+    <string name="budget_target_date">Date cible</string>
+    <string name="budget_recalculates_monthly">Recalculé chaque mois</string>
+    <string name="budget_target_only">Objectif uniquement</string>
+    <string name="budget_after_other_automations">Après les autres automatisations</string>
+    <string name="budget_at_priority">À cette priorité</string>
+    <string name="budget_schedule_driven">Piloté par l’échéance</string>
+    <string name="budget_due_amount">Échéance de %1$s</string>
+    <string name="budget_no_auto_funding">Ne demande pas automatiquement de financement</string>
+    <string name="budget_no_auto_budgeting">Ne budgète pas automatiquement de fonds</string>
+    <string name="budget_applied_preview">Appliqué dans l’aperçu du budget</string>
+    <string name="budget_schedule_missing">Échéance associée introuvable — touchez pour l’associer à nouveau</string>
+    <string name="budget_auto_assign_amount">Attribution automatique : %1$s</string>
+    <string name="budget_spent_last_month">Dépensé le mois dernier</string>
+    <string name="budget_budgeted_last_month">Budgété le mois dernier</string>
+    <string name="budget_reset_balance_zero">Ramener le solde à zéro</string>
+    <string name="budget_set_budgeted_zero">Ramener le montant budgété à zéro</string>
+    <string name="budget_view_target">Afficher l’objectif</string>
+    <string name="budget_set_automations">Définir les automatisations</string>
+    <string name="budget_edit_automations">Modifier les automatisations</string>
+    <string name="budget_target">Objectif</string>
+    <string name="budget_edit_target">Modifier l’objectif</string>
+
+    <!-- Target type labels (BudgetTarget.Type), keyed as upstream PR #424 names them. -->
+    <string name="target_fixed_label">Montant fixe</string>
+    <string name="target_schedule_label">Couvrir une échéance</string>
+    <string name="target_by_date_label">Épargner avant une date</string>
+    <string name="target_percentage_label">%% des revenus</string>
+    <string name="target_history_label">Selon l’historique</string>
+    <string name="target_refill_label">Recompléter au plafond</string>
+    <string name="target_remainder_label">Tout le reliquat</string>
+    <string name="target_limit_label">Plafond de solde</string>
+    <string name="target_goal_label">Objectif à long terme</string>
+
+    <!-- Period words used by "Every …" target timing, keyed as PR #424 names them. -->
+    <string name="automation_period_day_singular">jour</string>
+    <string name="automation_period_day_plural">jours</string>
+    <string name="automation_period_week_singular">semaine</string>
+    <string name="automation_period_week_plural">semaines</string>
+    <string name="automation_period_month_singular">mois</string>
+    <string name="automation_period_month_plural">mois</string>
+    <string name="automation_period_year_singular">an</string>
+    <string name="automation_period_year_plural">ans</string>
+    <string name="automation_limit_daily">quotidien</string>
+    <string name="automation_limit_weekly">hebdomadaire</string>
+    <string name="automation_limit_monthly">mensuel</string>
+    <string name="automation_weight_summary">Poids %1$d</string>
+
+    <!-- Add-to-budget sheet and the template/cleanup/zero/average previews. -->
+    <string name="budget_add_to_budget">Ajouter au budget</string>
+    <string name="budget_apply_templates">Appliquer les modèles de budget</string>
+    <string name="budget_overwrite_templates">Remplacer avec les modèles de budget</string>
+    <string name="budget_month_end_cleanup">Nettoyage de fin de mois</string>
+    <string name="budget_set_yearly_average">Définir les budgets sur la moyenne annuelle</string>
+    <string name="budget_set_month_average">Définir les budgets sur la moyenne de %1$d mois</string>
+    <string name="budget_set_budgets_zero">Remettre les budgets à zéro</string>
+    <string name="budget_zero_intro">Rien ne change avant l’application de cet aperçu. Le montant budgété de chaque catégorie pour %1$s sera remis à zéro.</string>
+    <string name="budget_zero_up_to_date">Toutes les catégories sont déjà à zéro.</string>
+    <string name="budget_average_intro">Rien ne change avant l’application de cet aperçu. Le budget de chaque catégorie visible pour %1$s sera défini sur son activité moyenne sur %2$d mois au maximum.</string>
+    <string name="budget_average_up_to_date">Toutes les catégories sont déjà à leur moyenne.</string>
+    <string name="budget_copy_year_end_title">Copier sur le reste de l’année ?</string>
+    <string name="budget_copy_year_end_body">Le budget de %1$s, soit %2$s, remplacera son budget de chaque mois après %3$s jusqu’en décembre.</string>
+    <string name="budget_copy">Copier</string>
+    <string name="budget_review_template">Vérifier le modèle de budget</string>
+    <string name="budget_review_template_named">Vérifier le modèle de budget · %1$s</string>
+    <string name="budget_template_overwrite_intro">Rien ne changera avant votre confirmation. Les automatisations prises en charge recalculeront les montants déjà budgétés pour %1$s.</string>
+    <string name="budget_template_apply_intro">Rien ne changera avant l’application de cet aperçu. Les catégories ayant déjà un montant budgété resteront inchangées.</string>
+    <string name="budget_no_unbudgeted_changes">Aucune catégorie non budgétée ne nécessite de modification.</string>
+    <string name="budget_targets_current">Tous les objectifs pris en charge sont déjà à jour.</string>
+    <string name="budget_net_change">Variation nette</string>
+    <string name="budget_group_goal">%1$s · Objectif</string>
+    <string name="budget_unsupported_automations">Non appliqué car ces catégories utilisent des automatisations qu’Actua ne peut pas encore évaluer de façon sûre : %1$s.</string>
+    <string name="budget_available_funds_limited">Fonds disponibles insuffisants pour : %1$s. Les automatisations prioritaires ont été financées en premier.</string>
+    <string name="budget_remainder_caps">Des plafonds de reliquat s’appliquent à : %1$s. L’aperçu tient compte du plafond quotidien, hebdomadaire ou mensuel et du report.</string>
+    <string name="budget_apply_changes">Appliquer les modifications</string>
+    <string name="budget_review_cleanup">Vérifier le nettoyage de fin de mois</string>
+    <string name="budget_cleanup_intro">Rien ne changera avant votre confirmation. Les soldes restants seront déplacés entre les catégories source et destination définies par les notes « #cleanup » pour %1$s.</string>
+    <string name="budget_apply_cleanup">Appliquer le nettoyage</string>
+    <string name="budget_cleanup_current">Aucun groupe de nettoyage ne nécessite de modification.</string>
+    <string name="budget_cleanup_none">Aucune catégorie n’est configurée pour le nettoyage.</string>
+    <string name="budget_goal_reset">%1$s · Réinitialisation de l’objectif</string>
+    <string name="budget_cleanup_unsupported">Laissé inchangé car la définition de nettoyage n’est pas prise en charge : %1$s.</string>
+    <string name="budget_hide_group">Masquer le groupe</string>
+    <string name="budget_unhide_group">Afficher le groupe</string>
+    <string name="budget_budget_details">Détails du budget</string>
+    <string name="budget_edit_budgeted">Modifier le montant budgété</string>
+    <string name="budget_all_transactions">Toutes les transactions</string>
+
+    <plurals name="budget_automation_count">
+        <item quantity="one">%1$d automatisation</item>
+        <item quantity="many">%1$d automatisations</item>
+        <item quantity="other">%1$d automatisations</item>
+    </plurals>
+    <plurals name="budget_average_spent">
+        <item quantity="one">Dépense moyenne (%1$d mois)</item>
+        <item quantity="many">Dépense moyenne (%1$d mois)</item>
+        <item quantity="other">Dépense moyenne (%1$d mois)</item>
+    </plurals>
+    <plurals name="budget_overspent_warning">
+        <item quantity="one">%1$d catégorie en dépassement</item>
+        <item quantity="many">%1$d catégories en dépassement</item>
+        <item quantity="other">%1$d catégories en dépassement</item>
+    </plurals>
+    <plurals name="budget_uncategorized_warning">
+        <item quantity="one">%1$d opération non catégorisée</item>
+        <item quantity="many">%1$d opérations non catégorisées</item>
+        <item quantity="other">%1$d opérations non catégorisées</item>
+    </plurals>
+    <plurals name="budget_targets_already_current">
+        <item quantity="one">%1$d objectif pris en charge est déjà à jour.</item>
+        <item quantity="many">%1$d objectifs pris en charge sont déjà à jour.</item>
+        <item quantity="other">%1$d objectifs pris en charge sont déjà à jour.</item>
+    </plurals>
+    <plurals name="budget_categories_already_current">
+        <item quantity="one">%1$d catégorie est déjà à jour</item>
+        <item quantity="many">%1$d catégories sont déjà à jour</item>
+        <item quantity="other">%1$d catégories sont déjà à jour</item>
+    </plurals>
+    <plurals name="budget_categories_unchanged">
+        <item quantity="one">%1$d catégorie déjà budgétée est restée inchangée.</item>
+        <item quantity="many">%1$d catégories déjà budgétées sont restées inchangées.</item>
+        <item quantity="other">%1$d catégories déjà budgétées sont restées inchangées.</item>
+    </plurals>
+    <plurals name="automation_average_recent_plural">
+        <item quantity="one">Moyenne du dernier mois (%1$d)</item>
+        <item quantity="many">Moyenne des %1$d derniers mois</item>
+        <item quantity="other">Moyenne des %1$d derniers mois</item>
+    </plurals>
+
+    <!-- Home screen, its section titles and Customize Home. -->
+    <string name="home_title">Accueil</string>
+    <string name="home_customize">Personnaliser l’accueil</string>
+    <string name="home_ready_to_budget">À budgéter</string>
+    <string name="home_favorite_categories">Catégories favorites</string>
+    <string name="home_favorite_accounts">Comptes favoris</string>
+    <string name="home_upcoming">À venir</string>
+    <string name="home_this_month">Ce mois-ci</string>
+    <string name="home_reports">Rapports</string>
+    <string name="home_recent_activity">Activité récente</string>
+    <string name="home_no_budget_month">Aucun mois budgétaire sélectionné</string>
+    <string name="home_no_favorite_categories">Aucune catégorie favorite</string>
+    <string name="home_no_favorite_accounts">Aucun compte favori</string>
+    <string name="home_no_upcoming">Aucune facture ni échéance à venir</string>
+    <string name="home_dashboards">Tableaux de bord et analyses financières</string>
+    <string name="home_view_all_reports">Voir tous les rapports</string>
+    <string name="home_income">Revenus</string>
+    <string name="home_spent">Dépensé</string>
+    <string name="home_net">Solde net</string>
+    <string name="home_spending">Dépenses</string>
+    <string name="home_activity">Activité</string>
+    <string name="home_no_recent_activity">Aucune activité récente</string>
+    <string name="home_transaction">Transaction</string>
+    <string name="home_overdue">En retard</string>
+    <string name="home_due_today">Échéance aujourd’hui</string>
+    <string name="home_due_tomorrow">Échéance demain</string>
+    <string name="home_due_date">Échéance le %1$s</string>
+    <string name="home_scheduled">Planifié</string>
+    <string name="home_account_checking">Compte courant</string>
+    <string name="home_account_savings">Épargne</string>
+    <string name="home_account_credit">Carte de crédit</string>
+    <string name="home_account_investment">Placement</string>
+    <string name="home_account_mortgage">Prêt immobilier</string>
+    <string name="home_account_debt">Dette</string>
+    <string name="home_restore_layout">Rétablir la disposition par défaut</string>
+    <string name="home_customize_hint">Faites glisser une poignée pour réorganiser les sections ou utilisez les flèches. « À budgéter » reste toujours en premier.</string>
+    <string name="home_drag_reorder">Faire glisser pour réorganiser %1$s</string>
+    <string name="home_move_up">Déplacer %1$s vers le haut</string>
+    <string name="home_move_down">Déplacer %1$s vers le bas</string>
+    <string name="home_show_section">Afficher %1$s sur l’accueil</string>
+    <string name="home_required">Obligatoire</string>
+    <string name="home_open_budget">Ouvrir le budget</string>
+    <string name="home_available_to_assign">Disponible à affecter</string>
+    <string name="home_open_current_budget">Ouvrir le budget en cours</string>
+    <string name="home_amount_available">%1$s disponible</string>
+    <string name="home_goal_progress">%1$d %% financé pour l’objectif</string>
+    <string name="home_spending_progress">%1$s · %2$d %% dépensé</string>
+    <string name="home_view_calendar">Afficher le calendrier</string>
+    <string name="home_explore_trends">Explorer les tendances de votre budget</string>
+    <string name="home_open_dashboard">Ouvrir le tableau de bord</string>
+    <string name="home_view_all_activity">Afficher toute l’activité</string>
+    <string name="home_summary_start_title">Le mois commence le jour</string>
+    <string name="home_summary_start_earlier">Commencer la période un jour plus tôt</string>
+    <string name="home_summary_start_later">Commencer la période un jour plus tard</string>
+    <string name="home_summary_start_description">Le jour 1 correspond au mois civil. Choisissez un autre jour si vous êtes payé en milieu de mois : le résumé de l’accueil, les périodes prédéfinies des rapports personnalisés (Ce mois-ci, Mois dernier, N derniers mois) et la période par défaut des cartes Résumé, Flux de trésorerie et Sankey vont alors de ce jour à la veille du suivant. Ce réglage ne s’applique qu’à cet appareil ; Actual affiche des mois civils. Les mois courts utilisent leur dernier jour.</string>
+    <string name="home_summary_start_adjustment_title">Si le jour de début tombe un jour de week-end</string>
+    <string name="home_summary_adjustment_none">Conserver ce jour</string>
+    <string name="home_summary_adjustment_previous">Jour ouvré précédent</string>
+    <string name="home_summary_adjustment_next">Jour ouvré suivant</string>
+    <string name="home_summary_weekend_title">Jours de week-end</string>
+    <string name="home_summary_weekend_description">Les jours de week-end sont ignorés lorsque le début du mois est ramené à un jour ouvré ; c’est aussi à ces jours que sont affichés comme échus les échéanciers qui évitent les week-ends. Actual conserve toujours le samedi et le dimanche : cela ne modifie donc que ce que vous voyez sur cet appareil. Les jours fériés que vous listez ci-dessous sont ignorés de la même façon.</string>
+    <string name="settings_holidays_row_title">Jours fériés</string>
+    <string name="settings_holidays_row_none">Aucun</string>
+    <string name="settings_holidays_row_count">%1$d dans la liste</string>
+    <string name="settings_holidays_empty">Aucun jour férié. Ajoutez les dates où votre banque ou votre entreprise est fermée.</string>
+    <string name="settings_holidays_add">Ajouter un jour férié</string>
+    <string name="settings_holidays_label">Nom (facultatif)</string>
+    <string name="settings_holidays_remove">Retirer %1$s</string>
+    <string name="settings_holidays_note">Les jours fériés sont ignorés comme les jours de week-end lorsque le début du mois est ramené à un jour ouvré et lors de l’affichage des échéanciers qui évitent les week-ends. Ce réglage ne s’applique qu’à cet appareil ; Actual conserve le samedi et le dimanche. Les dates passées restent jusqu’à ce que vous les retiriez.</string>
+
+    <plurals name="home_transactions_count">
+        <item quantity="one">%1$d opération</item>
+        <item quantity="many">%1$d opérations</item>
+        <item quantity="other">%1$d opérations</item>
+    </plurals>
+    <string name="home_collapse_section">Réduire %1$s</string>
+    <string name="home_expand_section">Développer %1$s</string>
+    <string name="home_greeting">Message d’accueil</string>
+    <string name="home_greeting_morning">Bonjour</string>
+    <string name="home_greeting_afternoon">Bon après-midi</string>
+    <string name="home_greeting_evening">Bonsoir</string>
+    <string name="home_greeting_morning_named">Bonjour, %1$s</string>
+    <string name="home_greeting_afternoon_named">Bon après-midi, %1$s</string>
+    <string name="home_greeting_evening_named">Bonsoir, %1$s</string>
+    <plurals name="home_greeting_categories">
+        <item quantity="one">%1$d catégorie sur %2$d dans le budget</item>
+        <item quantity="many">%1$d catégories sur %2$d dans le budget</item>
+        <item quantity="other">%1$d catégories sur %2$d dans le budget</item>
+    </plurals>
+    <plurals name="home_greeting_uncategorized">
+        <item quantity="one">%d opération à catégoriser ce mois-ci</item>
+        <item quantity="many">%d opérations à catégoriser ce mois-ci</item>
+        <item quantity="other">%d opérations à catégoriser ce mois-ci</item>
+    </plurals>
+    <plurals name="home_greeting_bills_due">
+        <item quantity="one">%d facture à payer cette semaine</item>
+        <item quantity="many">%d factures à payer cette semaine</item>
+        <item quantity="other">%d factures à payer cette semaine</item>
+    </plurals>
+    <plurals name="home_greeting_added">
+        <item quantity="one">%d opération ajoutée cette semaine</item>
+        <item quantity="many">%d opérations ajoutées cette semaine</item>
+        <item quantity="other">%d opérations ajoutées cette semaine</item>
+    </plurals>
+    <string name="home_greeting_open_home">Ouvrir l’accueil</string>
+    <string name="home_greeting_dismiss">Masquer le message d’accueil</string>
+</resources>

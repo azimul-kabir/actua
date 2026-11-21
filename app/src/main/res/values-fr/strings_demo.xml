@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Demo budget family: seeded display content for the local-only demo budget.
+     The first 36 keys mirror #424's strings_demo.xml (names verbatim); later keys
+     cover demo payees, saved reports and dashboard cards added after #424.
+     Seeded IDs (account/category/payee rows) stay locale-neutral; only display
+     names localize, resolved at seed time via DemoBudgetLabels. -->
+<resources>
+    <string name="demo_budget_name">Budget de démonstration Actua</string>
+
+    <string name="demo_account_checking">Compte courant</string>
+    <string name="demo_account_savings">Épargne de précaution</string>
+    <string name="demo_account_credit">Carte de crédit courante</string>
+    <string name="demo_account_investment">Compte d’investissement</string>
+
+    <string name="demo_group_income">Revenus</string>
+    <string name="demo_group_essentials">Dépenses essentielles</string>
+    <string name="demo_group_lifestyle">Loisirs et sorties</string>
+    <string name="demo_group_goals">Projets</string>
+
+    <string name="demo_category_salary">Salaire</string>
+    <string name="demo_category_starting_balances">Soldes initiaux</string>
+    <string name="demo_category_rent">Loyer</string>
+    <string name="demo_category_groceries">Courses alimentaires</string>
+    <string name="demo_category_utilities">Factures</string>
+    <string name="demo_category_transport">Transports</string>
+    <string name="demo_category_dining_out">Restaurants</string>
+    <string name="demo_category_entertainment">Divertissements</string>
+    <string name="demo_category_emergency_fund">Fonds d’urgence</string>
+    <string name="demo_category_vacation">Vacances</string>
+
+    <string name="demo_payee_employer">Employeur</string>
+    <string name="demo_payee_landlord">Propriétaire</string>
+    <string name="demo_payee_supermarket">Marché du quartier</string>
+    <string name="demo_payee_utilities">Services municipaux</string>
+    <string name="demo_payee_fuel">Station-service</string>
+    <string name="demo_payee_restaurant">Café du quartier</string>
+    <string name="demo_payee_streaming">StreamBox</string>
+    <string name="demo_payee_corner_grocer">Épicerie du coin</string>
+    <string name="demo_payee_big_box_store">Grand Magasin</string>
+    <string name="demo_payee_internet">Fibre Net</string>
+    <string name="demo_payee_mobile">Mobile &amp; Co</string>
+    <string name="demo_payee_transit">Transports de la ville</string>
+    <string name="demo_payee_pizza">Pizzeria Tranche</string>
+    <string name="demo_payee_sushi">Sakura Sushi</string>
+    <string name="demo_payee_cinema">Cinéplex</string>
+    <string name="demo_payee_books">Librairie Tourne-Page</string>
+    <string name="demo_payee_airline">SkyWay Airlines</string>
+    <string name="demo_payee_index_fund">Fonds indiciel</string>
+
+    <string name="demo_note_groceries">Courses alimentaires mensuelles du foyer. Essayez de modifier l’objectif ou de transférer de l’argent vers cette catégorie.</string>
+    <string name="demo_note_checking">Compte courant de démonstration. Il contient des opérations pointées, non pointées et rapprochées.</string>
+
+    <string name="demo_schedule_salary">Salaire mensuel</string>
+    <string name="demo_schedule_rent">Loyer</string>
+    <string name="demo_schedule_streaming">Abonnement au streaming</string>
+    <string name="demo_schedule_card_payment">Paiement de la carte de crédit</string>
+
+    <string name="demo_report_overview">Vue d’ensemble</string>
+    <string name="demo_report_welcome">**Bienvenue dans la démo d’Actua** 👋\n\nCe budget est stocké uniquement sur cet appareil. Essayez les objectifs, les règles, les échéanciers, le rapprochement, les cartes de crédit, les prêts avec un planificateur de remboursement et les rapports.</string>
+    <string name="demo_report_this_month">Ce mois-ci</string>
+    <string name="demo_report_spending_by_category">Dépenses par catégorie</string>
+    <string name="demo_report_monthly_spending">Dépenses mensuelles</string>
+    <string name="demo_report_top_payees">Principaux bénéficiaires</string>
+    <string name="demo_report_spending_trend">Tendance des dépenses</string>
+    <string name="demo_report_net_worth">Valeur nette</string>
+    <string name="demo_report_cash_flow">Flux de trésorerie</string>
+    <string name="demo_report_food_per_month">Alimentation par mois</string>
+    <string name="demo_report_where_the_money_went">Où est passé l’argent</string>
+    <string name="demo_report_budget_analysis">Analyse du budget</string>
+    <string name="demo_report_age_of_money">Ancienneté de l’argent</string>
+    <string name="demo_report_calendar">Calendrier</string>
+
+    <!-- Loans, a second card, the Debt group and wider category coverage (#1630). -->
+    <string name="demo_account_cash">Portefeuille espèces</string>
+    <string name="demo_account_rewards_card">Carte de voyage à points</string>
+    <string name="demo_account_car_loan">Prêt automobile</string>
+    <string name="demo_account_student_loan">Prêt étudiant</string>
+    <string name="demo_group_debt">Dette</string>
+    <string name="demo_category_freelance">Freelance</string>
+    <string name="demo_category_interest_income">Intérêts</string>
+    <string name="demo_category_health">Santé</string>
+    <string name="demo_category_insurance">Assurance</string>
+    <string name="demo_category_shopping">Achats</string>
+    <string name="demo_category_subscriptions">Abonnements</string>
+    <string name="demo_category_gifts">Cadeaux</string>
+    <string name="demo_category_car_loan">Prêt automobile</string>
+    <string name="demo_category_student_loan">Prêt étudiant</string>
+    <string name="demo_category_card_interest">Intérêts de carte de crédit</string>
+    <string name="demo_payee_client">Client freelance</string>
+    <string name="demo_payee_bank_interest">Intérêts d’épargne</string>
+    <string name="demo_payee_pharmacy">Pharmacie du coin</string>
+    <string name="demo_payee_clinic">Clinique familiale</string>
+    <string name="demo_payee_insurance">Assurance Port Sûr</string>
+    <string name="demo_payee_online_store">Boutique en ligne</string>
+    <string name="demo_payee_cloud_storage">CloudVault</string>
+    <string name="demo_payee_music">TuneStream</string>
+    <string name="demo_payee_gift_shop">Galerie cadeaux</string>
+    <string name="demo_payee_market_stall">Étal du marché</string>
+    <string name="demo_payee_rewards_bank">Banque Avantages</string>
+    <string name="demo_note_car_loan">Associée au compte du prêt automobile. Les remboursements du prêt sont des transferts depuis le compte courant qui utilisent cette catégorie : en enregistrer un depuis l’écran du prêt l’impute donc ici.</string>
+    <string name="demo_note_rewards_card">Carte de crédit de démonstration qui porte un solde. Elle a un jour d’échéance fixe, une limite de crédit et des intérêts mensuels.</string>
+    <string name="demo_schedule_rewards_card_payment">Paiement de la carte de voyage à points</string>
+    <string name="demo_schedule_car_loan">Remboursement du prêt automobile</string>
+    <string name="demo_schedule_student_loan">Remboursement du prêt étudiant</string>
+    <string name="demo_schedule_insurance">Assurance</string>
+</resources>
