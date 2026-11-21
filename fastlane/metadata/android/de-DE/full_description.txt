@@ -1,0 +1,52 @@
+Verwalte dein Actual Budget auf Android. Sieh, was noch zu budgetieren ist, verfolge deine Ausgaben und behalte anstehende Rechnungen im Blick. Verbinde dich mit deinem eigenen Actual-Budget-Server oder lege ein eigenständiges Budget an, das komplett offline funktioniert.
+
+MACH DEIN BUDGET ZU DEINEM
+
+Passe die Startseite an und sieh auf einen Blick, was zu budgetieren ist, deine Lieblingskategorien, anstehende Rechnungen und die letzten Aktivitäten. Verfolge den Fortschritt deiner Kategorien, setze Ziele, nutze Budgetvorlagen und ordne deine Konten.
+
+HALTE DEINE TRANSAKTIONEN IN ORDNUNG
+
+▶ Transaktionen hinzufügen, bearbeiten, suchen und filtern.
+▶ Belege scannen, um Transaktionsdetails auszufüllen, und die Fotos auf deinem Telefon behalten.
+▶ Transaktionen aufteilen, Überweisungen anlegen und Konten abgleichen.
+▶ Transaktionen automatisch mit den Regeln von Actual Budget kategorisieren oder aus Tasker und anderen Automatisierungs-Apps in die Warteschlange stellen.
+
+PLANE RECHNUNGEN UND DARLEHEN
+
+Sieh geplante Transaktionen in einem Rechnungskalender und aktiviere Erinnerungen vor Fälligkeiten. Lege eigene Wochenend- und Feiertage für Zahlungszeiträume und Zeitpläne fest. Verfolge Darlehen mit einem Tilgungsplaner für wöchentliche, zweiwöchentliche oder monatliche Zahlungen und sieh, wie deine Kontostände zu deinen Zielen passen.
+
+SIEH, WOHIN DEIN GELD FLIESST
+
+Entdecke Dashboards und Ausgabenberichte. Tippe auf ein Diagramm, um die zugrunde liegenden Transaktionen zu sehen, oder öffne einen Vollbildbericht mit Datentabelle.
+
+IMPORTIEREN, EXPORTIEREN UND SYNCHRONISIEREN
+
+▶ Teile CSV-, OFX-, QFX-, QIF-, CAMT.053-, XLSX- und PDF-Kontoauszüge direkt mit Actua.
+▶ Übernimm Transaktionen aus SMS und unterstützten Bankbenachrichtigungen und prüfe sie vor dem Speichern.
+▶ Exportiere ein Konto, eine gefilterte Transaktionsliste oder Suchergebnisse als CSV.
+▶ Nutze unterstützte Bankverbindungen über deinen Actual-Budget-Server, darunter SimpleFIN, GoCardless, Pluggy.ai, Akahu und Enable Banking.
+
+FÜR ANDROID GEMACHT
+
+Actua ist eine native Android-App mit Material-3-Oberfläche, anpassbarer Navigation und flexiblen Darstellungseinstellungen. Füge Startbildschirm-Widgets für dein Budget, Lieblingskategorien, Kontostände, Rechnungen, Ausgabentrends und Berichte hinzu oder starte direkt über Launcher-Verknüpfungen. Verfügbar auf Englisch, Französisch, Deutsch, brasilianischem Portugiesisch und Spanisch.
+
+DEINE DATEN, DEIN SERVER
+
+Actua verbindet sich direkt mit deinem Actual-Budget-Server und behält eine lokale Kopie für die Offline-Nutzung. Ein separates Actua-Konto ist nicht nötig. Um Actua ohne Server auszuprobieren, öffne die integrierte Demo, lege ein Budget auf dem Gerät an oder importiere ein Actual-Budget-Archiv.
+
+Erstelle und stelle lokale Backups wieder her oder speichere verschlüsselte Backups in deinem eigenen Google Drive oder auf deinem WebDAV-Server. Sperre Actua mit Biometrie oder deiner Geräte-PIN und blende sie in der Android-Übersicht der zuletzt verwendeten Apps aus.
+
+KOSTENLOS UND OPEN SOURCE
+
+Budgetieren ist kostenlos. Optionale Käufe und Abos über Google Play unterstützen die Entwicklung und schalten kosmetische Extras wie App-Symbole, Akzentfarben, Catppuccin-Themes und Widget-Stile frei.
+
+Sieh dir den Quellcode an, melde Probleme oder trage auf GitHub bei.
+https://github.com/azimul-kabir/actua
+
+ÜBER DIESES PROJEKT
+
+Actua ist ein unabhängiger, inoffizieller Client für Actual Budget. Es ist weder mit dem Actual-Budget-Projekt verbunden noch von diesem unterstützt.
+
+Für verbundenes Budgetieren brauchst du Zugriff auf deinen eigenen Actual-Budget-Server. Actua kann Änderungen in dein synchronisiertes Budget schreiben, sichere daher wichtige Daten, bevor du einen neuen Client verbindest.
+
+https://actua.azimulkabir.com
