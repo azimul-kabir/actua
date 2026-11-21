@@ -324,6 +324,8 @@ fun AddTransactionScreen(
     }
 
     var showReceiptScan by remember { mutableStateOf(false) }
+    // A scan of an existing transaction waits here until the user picks what it may change.
+    var pendingEditScan by remember { mutableStateOf<Pair<List<String>, File?>?>(null) }
     var receiptSplitOffer by remember { mutableStateOf<ParsedReceipt?>(null) }
     val scanContext = LocalContext.current
     val scanLocale = LocalConfiguration.current.locales[0]
@@ -392,7 +394,7 @@ fun AddTransactionScreen(
                 .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            if (receiptScanner != null && editing == null && prefill == null) {
+            if (receiptScanner != null && prefill == null) {
                 ActuaSecondaryButton(
                     text = stringResource(R.string.scan_receipt),
                     onClick = { showReceiptScan = true },
@@ -692,7 +694,7 @@ fun AddTransactionScreen(
                 icon = Icons.Outlined.Event,
             )
         }
-        if (editing == null && scannedPhoto != null) {
+        if (scannedPhoto != null) {
             ActuaFormCard {
                 ActuaFormRow(
                     icon = Icons.Outlined.CameraAlt,
@@ -763,7 +765,29 @@ fun AddTransactionScreen(
             scanner = receiptScanner,
             show = showReceiptScan,
             onDismiss = { showReceiptScan = false },
-            onScanned = applyReceipt,
+            onScanned = { rows, photo ->
+                if (editing != null) pendingEditScan = rows to photo else applyReceipt(rows, photo)
+            },
+        )
+    }
+    pendingEditScan?.let { (rows, photo) ->
+        ReceiptEditChoiceDialog(
+            canAttachPhoto = photo != null,
+            onAttachOnly = {
+                scannedPhoto?.delete()
+                scannedPhoto = photo
+                keepScannedPhoto = true
+                pendingEditScan = null
+            },
+            onReplaceDetails = {
+                pendingEditScan = null
+                applyReceipt(rows, photo)
+                keepScannedPhoto = photo != null
+            },
+            onDismiss = {
+                photo?.delete()
+                pendingEditScan = null
+            },
         )
     }
     // The type the keypad's own sign is applied to: the form's type when it opened, flipped by ±.

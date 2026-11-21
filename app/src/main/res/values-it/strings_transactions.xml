@@ -267,6 +267,10 @@
     <string name="receipt_split_confirm">Suddividi</string>
     <string name="receipt_split_not_now">Non ora</string>
     <string name="receipt_split_tax_note">Imposta</string>
+    <string name="receipt_edit_title">Usare questa ricevuta?</string>
+    <string name="receipt_edit_message">Allega la foto a questa transazione oppure sostituisci anche importo, beneficiario e data con quelli della ricevuta. Prima di salvare puoi ancora modificare tutto.</string>
+    <string name="receipt_edit_attach_only">Allega solo la foto</string>
+    <string name="receipt_edit_replace">Sostituisci i dettagli</string>
     <string name="receipt_photo_keep">Conserva la foto della ricevuta</string>
     <string name="receipt_photo_keep_caption">Conservata su questo telefono. Inclusa nei backup WebDAV cifrati se configurati.</string>
     <string name="receipt_photo_title">Foto della ricevuta</string>

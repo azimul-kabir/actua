@@ -279,6 +279,10 @@
     <string name="receipt_split_confirm">Разделить</string>
     <string name="receipt_split_not_now">Не сейчас</string>
     <string name="receipt_split_tax_note">Налог</string>
+    <string name="receipt_edit_title">Использовать этот чек?</string>
+    <string name="receipt_edit_message">Прикрепите фото к этой операции или также замените сумму, получателя и дату данными из чека. Перед сохранением всё можно изменить.</string>
+    <string name="receipt_edit_attach_only">Только прикрепить фото</string>
+    <string name="receipt_edit_replace">Заменить данные</string>
     <string name="receipt_photo_keep">Сохранить фото чека</string>
     <string name="receipt_photo_keep_caption">Хранится на этом телефоне. Включается в зашифрованные резервные копии WebDAV, если они настроены.</string>
     <string name="receipt_photo_title">Фото чека</string>

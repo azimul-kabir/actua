@@ -267,6 +267,10 @@
     <string name="receipt_split_confirm">Aufteilen</string>
     <string name="receipt_split_not_now">Jetzt nicht</string>
     <string name="receipt_split_tax_note">Steuer</string>
+    <string name="receipt_edit_title">Diesen Beleg verwenden?</string>
+    <string name="receipt_edit_message">Hänge das Foto an diese Buchung an oder ersetze zusätzlich Betrag, Empfänger und Datum durch die Angaben des Belegs. Vor dem Speichern kannst du alles noch ändern.</string>
+    <string name="receipt_edit_attach_only">Nur Foto anhängen</string>
+    <string name="receipt_edit_replace">Angaben ersetzen</string>
     <string name="receipt_photo_keep">Belegfoto behalten</string>
     <string name="receipt_photo_keep_caption">Auf diesem Smartphone gespeichert. Enthalten in verschlüsselten WebDAV-Sicherungen, wenn konfiguriert.</string>
     <string name="receipt_photo_title">Belegfoto</string>

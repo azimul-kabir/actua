@@ -261,6 +261,10 @@
     <string name="receipt_split_confirm">拆分</string>
     <string name="receipt_split_not_now">暂不</string>
     <string name="receipt_split_tax_note">税费</string>
+    <string name="receipt_edit_title">使用这张收据？</string>
+    <string name="receipt_edit_message">将照片附加到此交易，或同时用收据内容替换金额、收款方和日期。保存前仍可修改所有内容。</string>
+    <string name="receipt_edit_attach_only">仅附加照片</string>
+    <string name="receipt_edit_replace">替换详情</string>
     <string name="receipt_photo_keep">保留收据照片</string>
     <string name="receipt_photo_keep_caption">保存在此手机上。如已配置，会包含在加密的 WebDAV 备份中。</string>
     <string name="receipt_photo_title">收据照片</string>

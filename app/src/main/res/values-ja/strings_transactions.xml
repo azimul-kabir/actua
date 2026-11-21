@@ -261,6 +261,10 @@
     <string name="receipt_split_confirm">分割</string>
     <string name="receipt_split_not_now">今はしない</string>
     <string name="receipt_split_tax_note">税</string>
+    <string name="receipt_edit_title">このレシートを使いますか？</string>
+    <string name="receipt_edit_message">写真をこの取引に添付するか、金額・支払先・日付もレシートの内容に置き換えます。保存前にすべて変更できます。</string>
+    <string name="receipt_edit_attach_only">写真のみ添付</string>
+    <string name="receipt_edit_replace">内容を置き換える</string>
     <string name="receipt_photo_keep">レシート写真を保持</string>
     <string name="receipt_photo_keep_caption">このスマートフォンに保存されます。設定している場合は、暗号化されたWebDAVバックアップに含まれます。</string>
     <string name="receipt_photo_title">レシート写真</string>
