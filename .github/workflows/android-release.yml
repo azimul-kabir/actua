@@ -205,7 +205,7 @@ jobs:
           {
             cat release-notes.md
             printf '\n\n---\n\n**Which APK?**\n\n'
-            printf -- '- `Actua-v%s.apk`: Direct Full build with on-device receipt scanning; website sales are not yet enabled.\n' "${{ steps.version.outputs.name }}"
+            printf -- '- `Actua-v%s.apk`: Direct Full build with on-device receipt scanning; Supporter extras are available in the Google Play version.\n' "${{ steps.version.outputs.name }}"
             printf -- '- `Actua-v%s-full.apk`: Play Full build with on-device receipt scanning and Google Play Billing. Same release key as the Direct APK, so the two update each other. The Google Play install is signed by Google with a different key; to move between Play and GitHub, back up your budget, uninstall, install the other and restore.\n' "${{ steps.version.outputs.name }}"
           } > github-release-notes.md
       - name: Upload Play Store bundle artifact
