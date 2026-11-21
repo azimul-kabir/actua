@@ -114,4 +114,21 @@ class AppIconsTest {
     fun noIconIsLockedForASupporter() {
         AppIcon.entries.forEach { assertFalse(it.lockedFor(isSupporter = true)) }
     }
+
+    @Test
+    fun everyIconHasAMatchingLauncherAliasInBothFlavorManifests() {
+        for (flavor in listOf("direct", "playstore")) {
+            val manifest = listOf(java.io.File("src/$flavor/AndroidManifest.xml"), java.io.File("app/src/$flavor/AndroidManifest.xml"))
+                .first { it.exists() }.readText()
+            val aliases = Regex("""<activity-alias\b[^>]*?android:name="\.(Launcher\w+)"[^>]*?android:icon="@mipmap/(\w+)"""")
+                .findAll(manifest).associate { it.groupValues[1] to it.groupValues[2] }
+            assertEquals("$flavor aliases", AppIcon.entries.map { it.aliasName }.toSet(), aliases.keys)
+            for (icon in AppIcon.entries) {
+                val mipmap = aliases.getValue(icon.aliasName)
+                val adaptive = listOf(java.io.File("src/main/res/mipmap-anydpi/$mipmap.xml"), java.io.File("app/src/main/res/mipmap-anydpi/$mipmap.xml"))
+                    .first { it.exists() }.readText()
+                assertTrue("$flavor ${icon.name} has a themed icon layer", "<monochrome" in adaptive)
+            }
+        }
+    }
 }
