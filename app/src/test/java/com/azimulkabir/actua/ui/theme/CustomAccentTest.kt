@@ -61,6 +61,19 @@ class CustomAccentTest {
     }
 
     @Test
+    fun containersStayDarkInTheDarkThemeAndLightInTheLightTheme() {
+        for (seed in seeds) {
+            val derived = CustomAccent.derive(seed)
+            for (c in listOf(derived.dark.primaryContainer, derived.dark.secondaryContainer, derived.dark.tertiaryContainer)) {
+                assertTrue("${CustomAccent.formatHex(seed)} dark container", contrast(Color.White, c) >= 7.0)
+            }
+            for (c in listOf(derived.light.primaryContainer, derived.light.secondaryContainer, derived.light.tertiaryContainer)) {
+                assertTrue("${CustomAccent.formatHex(seed)} light container", contrast(Color.Black, c) >= 7.0)
+            }
+        }
+    }
+
+    @Test
     fun aMidColorIsKeptAsThePickedPrimaryInTheLightTheme() {
         val derived = CustomAccent.derive(0xFF2E7D6B.toInt())
         assertFalse(derived.adjusted)
