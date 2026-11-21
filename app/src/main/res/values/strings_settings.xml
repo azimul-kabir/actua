@@ -297,6 +297,15 @@
     <string name="settings_accent_forest">Forest</string>
     <string name="settings_accent_ocean">Ocean</string>
     <string name="settings_accent_mono">Mono</string>
+    <string name="settings_accent_custom">Custom</string>
+    <string name="settings_accent_custom_title">Custom color</string>
+    <string name="settings_accent_custom_hex">Hex color</string>
+    <string name="settings_accent_custom_hex_error">Enter a color like #2E7D6B</string>
+    <string name="settings_accent_custom_hue">Hue</string>
+    <string name="settings_accent_custom_saturation">Saturation</string>
+    <string name="settings_accent_custom_brightness">Brightness</string>
+    <string name="settings_accent_custom_adjusted">Adjusted to %1$s so white text stays readable.</string>
+    <string name="settings_accent_custom_preview">Preview of the %1$s accent</string>
     <string name="settings_widget_style">Widget style</string>
     <string name="settings_widget_style_default">Default</string>
     <string name="settings_widget_style_translucent">Translucent</string>

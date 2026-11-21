@@ -55,7 +55,7 @@ internal object WidgetStyles {
     /** Changes whenever something that alters how a widget looks does, for deciding when previews are stale. */
     fun lookSignature(context: Context): String {
         val preferences = DisplayPreferences(context)
-        return "${activeStyle(context)}:${preferences.accent}:${preferences.catppuccinTheme()}:${preferences.useDynamicColor}"
+        return "${activeStyle(context)}:${preferences.accent}:${preferences.customAccentColor}:${preferences.catppuccinTheme()}:${preferences.useDynamicColor}"
     }
 
     /** The colors a chart drawn into a bitmap uses, so it matches the widget's style and the device theme at this update. */

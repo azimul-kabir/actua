@@ -69,6 +69,7 @@ class MainActivity : AppCompatActivity() {
             var useDynamicColor by remember { mutableStateOf(DisplayPreferences(this).useDynamicColor) }
             val categoryStatusColorState = remember { CategoryStatusColorState(this) }
             var accent by remember { mutableStateOf(DisplayPreferences(this).accent) }
+            var customAccent by remember { mutableStateOf(DisplayPreferences(this).customAccentColor) }
             var catppuccin by remember { mutableStateOf(DisplayPreferences(this).catppuccinTheme()) }
             // Follows the preferences so a pick on the Settings page, or a reset when supporter
             // status lapses, applies right away without recreating the activity.
@@ -76,6 +77,7 @@ class MainActivity : AppCompatActivity() {
                 val display = DisplayPreferences(this@MainActivity)
                 val stopObserving = display.observeAccentSource {
                     accent = display.accent
+                    customAccent = display.customAccentColor
                     catppuccin = display.catppuccinTheme()
                 }
                 onDispose(stopObserving)
@@ -84,6 +86,7 @@ class MainActivity : AppCompatActivity() {
                 appearance = appearance,
                 dynamicColor = useDynamicColor,
                 accent = if (supporterPerksAvailable()) accent else AccentPalette.Violet,
+                customAccent = if (supporterPerksAvailable()) customAccent else null,
                 catppuccin = if (supporterPerksAvailable()) catppuccin else null,
             ) {
                 AppLockGate(locked = AppLock.locked, onUnlocked = AppLock::unlock) {

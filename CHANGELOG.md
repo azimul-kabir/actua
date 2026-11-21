@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added a Custom accent color for supporters, with a hex field and hue, saturation and brightness sliders ([#1729](https://github.com/azimul-kabir/actua/pull/1729))
+
 ### Changed
 
 - Changed the Quick Settings tile label from Add transaction to Transaction ([#1725](https://github.com/azimul-kabir/actua/pull/1725))
