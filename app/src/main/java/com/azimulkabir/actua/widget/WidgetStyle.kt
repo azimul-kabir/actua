@@ -180,9 +180,11 @@ internal fun gradientColors(primary: Int, onPrimary: Int): WidgetStyleColors {
     val text = listOf(onPrimary, 0xFFFFFFFF.toInt(), 0xFF000000.toInt()).firstOrNull { readsOnBoth(it, MIN_TEXT_CONTRAST) }
         ?: listOf(0xFFFFFFFF.toInt(), 0xFF000000.toInt()).maxBy { minOf(contrast(it, start), contrast(it, end)) }
     val lightText = contrast(text, 0xFF000000.toInt()) > contrast(text, 0xFFFFFFFF.toInt())
-    // Tiles and buttons are a veil of the text color over the gradient, so text on them keeps its contrast.
-    val tile = blendArgb(text, start, 0.14f)
-    val tileEnd = blendArgb(text, end, 0.14f)
+    // Tiles and buttons are a veil away from the text color (darker under light text, lighter under dark text), so
+    // text on them only gains contrast.
+    val veil = if (lightText) 0xFF000000.toInt() else 0xFFFFFFFF.toInt()
+    val tile = blendArgb(veil, start, 0.18f)
+    val tileEnd = blendArgb(veil, end, 0.18f)
     var strength = SECONDARY_STRENGTH
     var secondary = text
     while (strength < 1f) {
