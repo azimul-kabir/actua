@@ -194,6 +194,7 @@
 
     <plurals name="navigation_tab_captures_waiting">
         <item quantity="one">%1$s, %2$d transacción capturada pendiente</item>
+        <item quantity="many">%1$s, %2$d transacciones capturadas pendientes</item>
         <item quantity="other">%1$s, %2$d transacciones capturadas pendientes</item>
     </plurals>
     <string name="navigation_unopened_budget_banner">No se pudo abrir “%1$s”. Se conserva en este dispositivo. Toca para ver opciones.</string>
@@ -226,6 +227,7 @@
     <string name="navigation_unopened_budget_delete_failed">No se pudo eliminar este presupuesto.</string>
     <plurals name="navigation_unopened_budget_unsynced">
         <item quantity="one">Este presupuesto tiene %d cambio sin sincronizar con el servidor.</item>
+        <item quantity="many">Este presupuesto tiene %d cambios sin sincronizar con el servidor.</item>
         <item quantity="other">Este presupuesto tiene %d cambios sin sincronizar con el servidor.</item>
     </plurals>
     <string name="navigation_open_budget_to_add">Abre o crea un presupuesto primero y luego añade la transacción.</string>

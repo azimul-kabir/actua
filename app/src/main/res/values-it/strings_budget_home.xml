@@ -262,34 +262,42 @@
 
     <plurals name="budget_automation_count">
         <item quantity="one">%1$d automazione</item>
+        <item quantity="many">%1$d automazioni</item>
         <item quantity="other">%1$d automazioni</item>
     </plurals>
     <plurals name="budget_average_spent">
         <item quantity="one">Media spesa (%1$d mese)</item>
+        <item quantity="many">Media spesa (%1$d mesi)</item>
         <item quantity="other">Media spesa (%1$d mesi)</item>
     </plurals>
     <plurals name="budget_overspent_warning">
         <item quantity="one">%1$d categoria sforata</item>
+        <item quantity="many">%1$d categorie sforate</item>
         <item quantity="other">%1$d categorie sforate</item>
     </plurals>
     <plurals name="budget_uncategorized_warning">
         <item quantity="one">%1$d transazione senza categoria</item>
+        <item quantity="many">%1$d transazioni senza categoria</item>
         <item quantity="other">%1$d transazioni senza categoria</item>
     </plurals>
     <plurals name="budget_targets_already_current">
         <item quantity="one">%1$d obiettivo supportato è già aggiornato.</item>
+        <item quantity="many">%1$d obiettivi supportati sono già aggiornati.</item>
         <item quantity="other">%1$d obiettivi supportati sono già aggiornati.</item>
     </plurals>
     <plurals name="budget_categories_already_current">
         <item quantity="one">%1$d categoria è già aggiornata</item>
+        <item quantity="many">%1$d categorie sono già aggiornate</item>
         <item quantity="other">%1$d categorie sono già aggiornate</item>
     </plurals>
     <plurals name="budget_categories_unchanged">
         <item quantity="one">%1$d categoria già assegnata è stata lasciata invariata.</item>
+        <item quantity="many">%1$d categorie già assegnate sono state lasciate invariate.</item>
         <item quantity="other">%1$d categorie già assegnate sono state lasciate invariate.</item>
     </plurals>
     <plurals name="automation_average_recent_plural">
         <item quantity="one">Media di %1$d mese recente</item>
+        <item quantity="many">Media di %1$d mesi recenti</item>
         <item quantity="other">Media di %1$d mesi recenti</item>
     </plurals>
 
@@ -365,6 +373,7 @@
 
     <plurals name="home_transactions_count">
         <item quantity="one">%1$d transazione</item>
+        <item quantity="many">%1$d transazioni</item>
         <item quantity="other">%1$d transazioni</item>
     </plurals>
     <string name="home_collapse_section">Comprimi %1$s</string>
@@ -378,18 +387,22 @@
     <string name="home_greeting_evening_named">Buonasera, %1$s</string>
     <plurals name="home_greeting_categories">
         <item quantity="one">%1$d di %2$d categoria nel budget</item>
+        <item quantity="many">%1$d di %2$d categorie nel budget</item>
         <item quantity="other">%1$d di %2$d categorie nel budget</item>
     </plurals>
     <plurals name="home_greeting_uncategorized">
         <item quantity="one">%d transazione da categorizzare questo mese</item>
+        <item quantity="many">%d transazioni da categorizzare questo mese</item>
         <item quantity="other">%d transazioni da categorizzare questo mese</item>
     </plurals>
     <plurals name="home_greeting_bills_due">
         <item quantity="one">%d scadenza questa settimana</item>
+        <item quantity="many">%d scadenze questa settimana</item>
         <item quantity="other">%d scadenze questa settimana</item>
     </plurals>
     <plurals name="home_greeting_added">
         <item quantity="one">%d transazione aggiunta questa settimana</item>
+        <item quantity="many">%d transazioni aggiunte questa settimana</item>
         <item quantity="other">%d transazioni aggiunte questa settimana</item>
     </plurals>
     <string name="home_greeting_open_home">Apri la Home</string>

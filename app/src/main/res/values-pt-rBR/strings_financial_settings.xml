@@ -47,7 +47,7 @@
     <string name="fs_date_iso_hint">Data (AAAA-MM-DD)</string>
     <string name="fs_regular_expression">Expressão regular</string>
     <string name="fs_select_values">Selecionar valores</string>
-    <plurals name="fs_values_selected"><item quantity="one">%d selecionado</item><item quantity="other">%d selecionados</item></plurals>
+    <plurals name="fs_values_selected"><item quantity="one">%d selecionado</item><item quantity="many">%d selecionados</item><item quantity="other">%d selecionados</item></plurals>
     <string name="fs_rule_field_imported_payee">Beneficiário importado</string>
     <string name="fs_rule_field_account">Conta</string>
     <string name="fs_rule_field_category">Categoria</string>
@@ -90,18 +90,18 @@
     <string name="fs_boolean_false">falso</string>
     <string name="fs_apply_rule_question">Aplicar regra agora?</string>
     <string name="fs_apply_rule_empty">Nenhuma transação existente corresponde às condições desta regra.</string>
-    <plurals name="fs_apply_rule_matches"><item quantity="one">Isso aplicará as ações da regra a %d transação correspondente.</item><item quantity="other">Isso aplicará as ações da regra a %d transações correspondentes.</item></plurals>
-    <plurals name="fs_apply_rule_reconciled_warning"><item quantity="one">Atenção: %d transação reconciliada será modificada. Transações reconciliadas normalmente ficam bloqueadas.</item><item quantity="other">Atenção: %d transações reconciliadas serão modificadas. Transações reconciliadas normalmente ficam bloqueadas.</item></plurals>
+    <plurals name="fs_apply_rule_matches"><item quantity="one">Isso aplicará as ações da regra a %d transação correspondente.</item><item quantity="many">Isso aplicará as ações da regra a %d transações correspondentes.</item><item quantity="other">Isso aplicará as ações da regra a %d transações correspondentes.</item></plurals>
+    <plurals name="fs_apply_rule_reconciled_warning"><item quantity="one">Atenção: %d transação reconciliada será modificada. Transações reconciliadas normalmente ficam bloqueadas.</item><item quantity="many">Atenção: %d transações reconciliadas serão modificadas. Transações reconciliadas normalmente ficam bloqueadas.</item><item quantity="other">Atenção: %d transações reconciliadas serão modificadas. Transações reconciliadas normalmente ficam bloqueadas.</item></plurals>
     <string name="fs_apply">Aplicar</string>
     <string name="fs_apply_now">Aplicar agora</string>
     <string name="fs_apply_rule_now">Aplicar regra agora</string>
     <string name="fs_rule_applied">Regra aplicada</string>
-    <plurals name="fs_rule_applied_count"><item quantity="one">Regra aplicada a %d transação.</item><item quantity="other">Regra aplicada a %d transações.</item></plurals>
+    <plurals name="fs_rule_applied_count"><item quantity="one">Regra aplicada a %d transação.</item><item quantity="many">Regra aplicada a %d transações.</item><item quantity="other">Regra aplicada a %d transações.</item></plurals>
     <string name="fs_close">Fechar</string>
-    <plurals name="fs_matching_transactions"><item quantity="one">%d transação correspondente</item><item quantity="other">%d transações correspondentes</item></plurals>
+    <plurals name="fs_matching_transactions"><item quantity="one">%d transação correspondente</item><item quantity="many">%d transações correspondentes</item><item quantity="other">%d transações correspondentes</item></plurals>
     <string name="fs_preview">Prévia</string>
     <string name="fs_hide_preview">Ocultar prévia</string>
-    <plurals name="fs_more_matches"><item quantity="one">E mais %d...</item><item quantity="other">E mais %d...</item></plurals>
+    <plurals name="fs_more_matches"><item quantity="one">E mais %d...</item><item quantity="many">E mais %d...</item><item quantity="other">E mais %d...</item></plurals>
     <string name="fs_condition_number">Condição %1$d</string>
     <string name="fs_action_number">Ação %1$d</string>
     <string name="fs_action_label">Ação</string>
@@ -137,7 +137,7 @@
     <string name="fs_no_payee">Nenhum beneficiário</string>
     <string name="fs_create_schedule_hint">Crie um agendamento para acompanhar uma fatura recorrente ou um salário.</string>
     <string name="fs_new_schedule">Novo agendamento</string>
-    <plurals name="fs_completed_schedules_hidden"><item quantity="one">%d agendamento concluído oculto.</item><item quantity="other">%d agendamentos concluídos ocultos.</item></plurals>
+    <plurals name="fs_completed_schedules_hidden"><item quantity="one">%d agendamento concluído oculto.</item><item quantity="many">%d agendamentos concluídos ocultos.</item><item quantity="other">%d agendamentos concluídos ocultos.</item></plurals>
     <string name="fs_delete_schedule_question">Excluir este agendamento?</string>
     <string name="fs_delete_schedule_explanation">As transações já criadas por este agendamento serão mantidas.</string>
     <string name="fs_delete_schedule">Excluir agendamento</string>
@@ -162,7 +162,7 @@
     <string name="fs_schedule_reminders_timing">Os lembretes chegam às 9h para o orçamento aberto, com outro na data de vencimento.</string>
     <string name="fs_reminder_lead_same_day">Na data de vencimento</string>
     <string name="fs_reminder_lead_one_day">1 dia antes</string>
-    <plurals name="fs_reminder_lead_days"><item quantity="one">%d dia antes</item><item quantity="other">%d dias antes</item></plurals>
+    <plurals name="fs_reminder_lead_days"><item quantity="one">%d dia antes</item><item quantity="many">%d dias antes</item><item quantity="other">%d dias antes</item></plurals>
 
     <!-- Schedule editor. -->
     <string name="fs_edit_schedule_title">Editar agendamento</string>
@@ -236,10 +236,10 @@
     <string name="fs_thursday">Quinta</string>
     <string name="fs_friday">Sexta</string>
     <string name="fs_saturday">Sábado</string>
-    <plurals name="fs_interval_days"><item quantity="one">%d dia</item><item quantity="other">%d dias</item></plurals>
-    <plurals name="fs_interval_weeks"><item quantity="one">%d semana</item><item quantity="other">%d semanas</item></plurals>
-    <plurals name="fs_interval_months"><item quantity="one">%d mês</item><item quantity="other">%d meses</item></plurals>
-    <plurals name="fs_interval_years"><item quantity="one">%d ano</item><item quantity="other">%d anos</item></plurals>
+    <plurals name="fs_interval_days"><item quantity="one">%d dia</item><item quantity="many">%d dias</item><item quantity="other">%d dias</item></plurals>
+    <plurals name="fs_interval_weeks"><item quantity="one">%d semana</item><item quantity="many">%d semanas</item><item quantity="other">%d semanas</item></plurals>
+    <plurals name="fs_interval_months"><item quantity="one">%d mês</item><item quantity="many">%d meses</item><item quantity="other">%d meses</item></plurals>
+    <plurals name="fs_interval_years"><item quantity="one">%d ano</item><item quantity="many">%d anos</item><item quantity="other">%d anos</item></plurals>
     <string name="fs_every_interval">A cada %1$s</string>
     <string name="fs_monthly_default_pattern">Repete no dia %1$d do mês. Adicione dias específicos para repetir mais de uma vez.</string>
     <string name="fs_repeats_on">Repete %1$s.</string>
@@ -263,13 +263,13 @@
     <string name="fs_no_repeating_found">Nenhuma transação recorrente foi encontrada no seu histórico.</string>
     <string name="fs_select_repeating">Selecione transações recorrentes para transformá-las em agendamentos.</string>
     <string name="fs_every_day">Todo dia</string>
-    <plurals name="fs_every_days"><item quantity="one">A cada %d dia</item><item quantity="other">A cada %d dias</item></plurals>
+    <plurals name="fs_every_days"><item quantity="one">A cada %d dia</item><item quantity="many">A cada %d dias</item><item quantity="other">A cada %d dias</item></plurals>
     <string name="fs_every_week">Toda semana</string>
-    <plurals name="fs_every_weeks"><item quantity="one">A cada %d semana</item><item quantity="other">A cada %d semanas</item></plurals>
+    <plurals name="fs_every_weeks"><item quantity="one">A cada %d semana</item><item quantity="many">A cada %d semanas</item><item quantity="other">A cada %d semanas</item></plurals>
     <string name="fs_every_month">Todo mês</string>
-    <plurals name="fs_every_months"><item quantity="one">A cada %d mês</item><item quantity="other">A cada %d meses</item></plurals>
+    <plurals name="fs_every_months"><item quantity="one">A cada %d mês</item><item quantity="many">A cada %d meses</item><item quantity="other">A cada %d meses</item></plurals>
     <string name="fs_every_year">Todo ano</string>
-    <plurals name="fs_every_years"><item quantity="one">A cada %d ano</item><item quantity="other">A cada %d anos</item></plurals>
+    <plurals name="fs_every_years"><item quantity="one">A cada %d ano</item><item quantity="many">A cada %d anos</item><item quantity="other">A cada %d anos</item></plurals>
     <string name="fs_last_day">último dia</string>
     <string name="fs_day_number">dia %1$d</string>
     <string name="fs_last_weekday">última %1$s</string>
@@ -288,7 +288,7 @@
     <string name="fs_previous_month">Mês anterior</string>
     <string name="fs_next_month">Próximo mês</string>
     <string name="fs_paid_count">%1$d/%2$d pagos</string>
-    <plurals name="fs_overdue_by_days"><item quantity="one">Vencido há %d dia</item><item quantity="other">Vencido há %d dias</item></plurals>
+    <plurals name="fs_overdue_by_days"><item quantity="one">Vencido há %d dia</item><item quantity="many">Vencido há %d dias</item><item quantity="other">Vencido há %d dias</item></plurals>
     <string name="fs_overdue">Vencido</string>
     <string name="fs_filter_all">Todos</string>
     <string name="fs_filter_upcoming">Próximos</string>
@@ -310,11 +310,11 @@
     <string name="fs_payment_reminders">Lembretes de pagamento</string>
     <string name="fs_payment_reminders_description">Notificar 7, 5, 3 e 1 dias antes do vencimento de um cartão não pago.</string>
     <string name="fs_no_credit_cards">Marque uma conta como cartão de crédito para acompanhar o ciclo de faturamento, os gastos do ciclo, a data de vencimento e o crédito disponível.</string>
-    <plurals name="fs_card_spend_days_left"><item quantity="one">Gastos %1$s · %2$d dia restante</item><item quantity="other">Gastos %1$s · %2$d dias restantes</item></plurals>
+    <plurals name="fs_card_spend_days_left"><item quantity="one">Gastos %1$s · %2$d dia restante</item><item quantity="many">Gastos %1$s · %2$d dias restantes</item><item quantity="other">Gastos %1$s · %2$d dias restantes</item></plurals>
     <string name="fs_available_credit">Crédito disponível %1$s</string>
     <string name="fs_due_today">Vence hoje</string>
     <string name="fs_due_tomorrow">Vence amanhã</string>
-    <plurals name="fs_due_in_days"><item quantity="one">Vence em %d dia</item><item quantity="other">Vence em %d dias</item></plurals>
+    <plurals name="fs_due_in_days"><item quantity="one">Vence em %d dia</item><item quantity="many">Vence em %d dias</item><item quantity="other">Vence em %d dias</item></plurals>
     <string name="fs_due_on_date_days">Vence %1$s (%2$dd)</string>
     <string name="fs_due_in_days_short">Vence em %1$dd</string>
     <string name="fs_overdue_days">Vencida há %1$dd</string>
@@ -369,7 +369,7 @@
     <string name="fs_color">Cor</string>
     <string name="fs_tag_transactions_title">Transações da tag</string>
     <string name="fs_clear_tag_filter">Limpar filtro de tag</string>
-    <plurals name="fs_tag_transaction_count"><item quantity="one">%d transação</item><item quantity="other">%d transações</item></plurals>
+    <plurals name="fs_tag_transaction_count"><item quantity="one">%d transação</item><item quantity="many">%d transações</item><item quantity="other">%d transações</item></plurals>
     <string name="fs_no_tag_transactions">Nenhuma transação usa #%1$s</string>
     <string name="fs_tag_matching_note">A correspondência exata de hashtag é usada. Texto ##%1$s com escape é ignorado.</string>
 
@@ -390,7 +390,7 @@
     <string name="fs_turn_off_category_learning">Desativar aprendizado de categorias</string>
     <string name="fs_turn_on_category_learning">Ativar aprendizado de categorias</string>
     <string name="fs_select">Selecionar</string>
-    <plurals name="fs_selected_count"><item quantity="one">%d selecionado</item><item quantity="other">%d selecionados</item></plurals>
+    <plurals name="fs_selected_count"><item quantity="one">%d selecionado</item><item quantity="many">%d selecionados</item><item quantity="other">%d selecionados</item></plurals>
     <string name="fs_merge">Mesclar</string>
     <string name="fs_selected_payee">Selecionado %1$s</string>
     <string name="fs_not_selected_payee">Não selecionado %1$s</string>
@@ -398,7 +398,7 @@
     <string name="fs_transfer_payees_note">Beneficiários de transferência pertencem à conta deles e não podem ser editados aqui.</string>
     <string name="fs_rename_payee">Renomear beneficiário</string>
     <string name="fs_delete_payee_question">Excluir %1$s?</string>
-    <plurals name="fs_delete_payees_question"><item quantity="one">Excluir %d beneficiário?</item><item quantity="other">Excluir %d beneficiários?</item></plurals>
+    <plurals name="fs_delete_payees_question"><item quantity="one">Excluir %d beneficiário?</item><item quantity="many">Excluir %d beneficiários?</item><item quantity="other">Excluir %d beneficiários?</item></plurals>
     <string name="fs_delete_payees_message_this">As transações mantêm seus valores e categorias, mas não exibirão beneficiário. Regras que mencionam este beneficiário permanecem como estão.</string>
     <string name="fs_delete_payees_message_these">As transações mantêm seus valores e categorias, mas não exibirão beneficiário. Regras que mencionam estes beneficiários permanecem como estão.</string>
     <string name="fs_merge_payees_title">Mesclar %1$d beneficiários</string>
@@ -489,6 +489,6 @@
     <string name="fs_show_tags">Mostrar</string>
     <string name="fs_selected_tag">Selecionada #%1$s</string>
     <string name="fs_not_selected_tag">Não selecionada #%1$s</string>
-    <plurals name="fs_delete_tags_question"><item quantity="one">Excluir %d tag?</item><item quantity="other">Excluir %d tags?</item></plurals>
+    <plurals name="fs_delete_tags_question"><item quantity="one">Excluir %d tag?</item><item quantity="many">Excluir %d tags?</item><item quantity="other">Excluir %d tags?</item></plurals>
     <string name="fs_delete_tags_message">Isso exclui os metadados das tags gerenciadas. As hashtags existentes em notas de transações antigas permanecerão como hashtags não gerenciadas.</string>
 </resources>
