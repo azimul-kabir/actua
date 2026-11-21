@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Income and spending with room for the bars: title, what is left, income and spending, and a chart drawn into a bitmap. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background">
+    <!-- The inner weights give the autosized text and chart a bounded height; wrap_content would break the autosizing. -->
     <LinearLayout
+        tools:ignore="NestedWeights"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
