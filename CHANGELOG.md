@@ -22,6 +22,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Changed GitHub releases to ship one APK, the Google Play build, as `Actua-v<version>.apk`; the separate Direct Full build is gone and earlier GitHub installs update in place ([#1751](https://github.com/azimul-kabir/actua/pull/1751))
 - Changed the Quick Settings tile label from Add transaction to Transaction ([#1725](https://github.com/azimul-kabir/actua/pull/1725))
 
 ## [2.8.0] - 2026-11-20

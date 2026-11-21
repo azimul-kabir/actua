@@ -81,8 +81,8 @@ locking and baseline validation: **it is not an optimized transaction-save measu
 The log grows by nine messages during each size's save samples.
 
 ```sh
-./gradlew :app:assembleDirectInstrumented :app:assembleDirectInstrumentedAndroidTest
-./gradlew :app:connectedDirectInstrumentedAndroidTest \
+./gradlew :app:assemblePlaystoreInstrumented :app:assemblePlaystoreInstrumentedAndroidTest
+./gradlew :app:connectedPlaystoreInstrumentedAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.azimulkabir.actua.data.budget.MerkleWriteCostBenchmarkTest \
   -Pandroid.testInstrumentationRunnerArguments.merkleWriteBenchmark=true
 ```

@@ -34,7 +34,7 @@ still happens on the newest version.
 
 In scope:
 
-- the Actua Android app, in every build (Google Play and the GitHub APKs),
+- the Actua Android app, in every build (Google Play and the GitHub APK),
 - how Actua stores and protects credentials, encryption keys, backups and local data,
 - the sandbox-only website purchase service in the [actua-website](https://github.com/azimul-kabir/actua-website) repository,
   including checkout, recovery and entitlement checks (website sales are not planned for now),

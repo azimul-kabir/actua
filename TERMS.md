@@ -64,11 +64,10 @@ stops future renewals, and your Supporter extras stay available until the end
 of the period you've already paid for. If we ever change the subscription
 price, Google Play will tell you before the new price applies.
 
-### Direct-download versions
+### Where purchases are sold
 
-Supporter extras are sold only through the Google Play version. We don't sell
-them on our website or anywhere else. The direct-download APKs on GitHub let you
-preview every extra, but can't unlock them.
+Supporter extras are sold only in the Google Play version, installed from
+Google Play. We don't sell them on our website or anywhere else.
 
 ### Refunds
 

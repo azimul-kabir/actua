@@ -253,11 +253,4 @@ fun createSupportBillingManager(context: Context): SupportBillingManager = PlayS
 
 fun supporterPerksAvailable(): Boolean = true
 
-@androidx.compose.runtime.Composable
-fun WebsiteActivation() = Unit
-
-fun websiteEntitlementValid(context: Context): Boolean = true
-
-fun supporterRefreshDue(): Boolean = false
-
 fun supporterPreferencesName(): String = "supporter_perks"

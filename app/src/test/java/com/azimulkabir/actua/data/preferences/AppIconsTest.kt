@@ -116,8 +116,8 @@ class AppIconsTest {
     }
 
     @Test
-    fun everyIconHasAMatchingLauncherAliasInBothFlavorManifests() {
-        for (flavor in listOf("direct", "playstore")) {
+    fun everyIconHasAMatchingLauncherAliasInTheManifest() {
+        for (flavor in listOf("playstore")) {
             val manifest = listOf(java.io.File("src/$flavor/AndroidManifest.xml"), java.io.File("app/src/$flavor/AndroidManifest.xml"))
                 .first { it.exists() }.readText()
             val aliases = Regex("""<activity-alias\b[^>]*?android:name="\.(Launcher\w+)"[^>]*?android:icon="@mipmap/(\w+)"""")

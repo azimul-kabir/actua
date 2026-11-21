@@ -230,7 +230,7 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
-    // The fdroid flavor's manager never reports isAvailable, so the Support row stays hidden there.
+    // The manager reports isAvailable only once Play answers, so the Support row stays hidden until then.
     val supportBillingManager = remember { createSupportBillingManager(context) }
     val supportPurchaseState by supportBillingManager.state.collectAsState()
     DisposableEffect(supportBillingManager) {
@@ -1369,8 +1369,6 @@ private fun SupportSettings(
     onPurchase: (SupportProduct) -> Unit,
     onManageSubscription: () -> Unit,
 ) {
-    com.azimulkabir.actua.billing.WebsiteActivation()
-    if (com.azimulkabir.actua.BuildConfig.FLAVOR == "direct") return
     SettingsNote(stringResource(R.string.settings_support_intro))
     if (state.isSupporter || state.showThanks) {
         SettingsGroup {
@@ -1723,6 +1721,5 @@ private fun AboutRow(title: String, detail: String, onClick: (() -> Unit)? = nul
 @StringRes
 internal fun supporterDescriptionRes(state: SupportPurchaseState): Int = when {
     state.isSupporter -> R.string.settings_support_thank_you
-    state.websiteAvailable -> R.string.settings_support_intro
     else -> R.string.settings_support_description
 }

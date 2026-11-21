@@ -106,8 +106,8 @@ only to reach that server.
 Actua does not include analytics, crash reporting, advertising or other third-party
 tracking SDKs, and does not collect usage data about you.
 
-The one exception is receipt scanning in the Google Play version and in both GitHub
-Release APKs (`Actua-v<version>.apk` and `Actua-v<version>-full.apk`). It uses Google ML Kit, which can send technical
+The one exception is receipt scanning in the Google Play version and in the GitHub
+Release APK (`Actua-v<version>.apk`). It uses Google ML Kit, which can send technical
 diagnostics to Google (see Receipt scanning below). Actua itself still shows no ads,
 collects no usage data and sends no analytics of its own.
 
@@ -189,8 +189,8 @@ total:
 - The camera app (not Actua) takes the photo, so Actua does not ask for camera permission.
 - Latin, Chinese, Japanese, Korean and Devanagari scripts are read. Receipts in Cyrillic,
   Arabic, Hebrew, Thai, Greek or Bangla may be read badly or not at all.
-- Receipt scanning is in the Google Play version and in both GitHub Releases APKs
-  (`Actua-v<version>.apk`, Direct Full, and `Actua-v<version>-full.apk`, Play Full).
+- Receipt scanning is in the Google Play version and in the GitHub Releases APK
+  (`Actua-v<version>.apk`).
 
 ### Keeping a receipt photo
 

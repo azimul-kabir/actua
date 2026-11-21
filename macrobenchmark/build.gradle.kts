@@ -17,12 +17,8 @@ android {
         minSdk = 28
         targetSdk = 37
 
-        // :app has `direct` and `playstore` flavors; pick one so the benchmark build type resolves.
-        // Override with -Pactua.benchmark.flavor=playstore.
-        missingDimensionStrategy(
-            "distribution",
-            providers.gradleProperty("actua.benchmark.flavor").getOrElse("direct"),
-        )
+        // :app has one flavor, `playstore`; name it so the benchmark build type resolves.
+        missingDimensionStrategy("distribution", "playstore")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

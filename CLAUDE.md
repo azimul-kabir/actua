@@ -19,10 +19,10 @@ The global rules in `~/.claude/CLAUDE.md` apply too (commit identity, no AI trac
 Run before proposing a change (see AGENTS.md for details and narrowing):
 
 ```sh
-./gradlew assembleDebug testDirectInstrumentedUnitTest testPlaystoreInstrumentedUnitTest lintDirectDebug lintPlaystoreDebug
+./gradlew assembleDebug testPlaystoreInstrumentedUnitTest lintPlaystoreDebug
 ```
 
-Instrumented tests need an emulator or device (`./gradlew connectedDirectInstrumentedAndroidTest`). If you cannot run something, say so rather than implying it passed. Documentation-only changes need format and link checks, not the full suite.
+Instrumented tests need an emulator or device (`./gradlew connectedPlaystoreInstrumentedAndroidTest`). If you cannot run something, say so rather than implying it passed. Documentation-only changes need format and link checks, not the full suite.
 
 ## Changelog
 
@@ -56,4 +56,4 @@ Only when asked. Follow `.github/MAINTAINER_NOTES.md` ("Release preparation chec
 7. Add `fastlane/metadata/android/<language>/changelogs/<versionCode>.txt` for every language folder (en-US, fr-FR, de-DE, it-IT, ja-JP, ru-RU, zh-CN, es-ES, pt-BR; 500 characters at most, short bullets) and update the store listing text in every language when features change. The release fails if a language is missing. Refresh store images only when the UI changed noticeably.
 8. Open the release PR linked to the issue. **Merging it publishes to Google Play and GitHub**, so never merge it, and never trigger the release workflow, without my explicit say-so.
 
-Keep the `Actua-v<version>.apk` name stable (it is the Direct Full build; Obtainium and download links use it). F-Droid verification is retired.
+Keep the `Actua-v<version>.apk` name stable (it is the Google Play build published on GitHub; Obtainium and download links use it). F-Droid verification is retired.
