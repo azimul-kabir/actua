@@ -28,7 +28,7 @@ IMPORTIEREN, EXPORTIEREN UND SYNCHRONISIEREN
 
 FÜR ANDROID GEMACHT
 
-Actua ist eine native Android-App mit Material-3-Oberfläche, anpassbarer Navigation und flexiblen Darstellungseinstellungen. Füge Startbildschirm-Widgets für dein Budget, Lieblingskategorien, Kontostände, Rechnungen, Ausgabentrends und Berichte hinzu oder starte direkt über Launcher-Verknüpfungen. Verfügbar auf Englisch, Französisch, Deutsch, Italienisch, Japanisch, brasilianischem Portugiesisch und Spanisch.
+Actua ist eine native Android-App mit Material-3-Oberfläche, anpassbarer Navigation und flexiblen Darstellungseinstellungen. Füge Startbildschirm-Widgets für dein Budget, Lieblingskategorien, Kontostände, Rechnungen, Ausgabentrends und Berichte hinzu oder starte direkt über Launcher-Verknüpfungen. Verfügbar auf Englisch, Französisch, Deutsch, Italienisch, Japanisch, Russisch, brasilianischem Portugiesisch und Spanisch.
 
 DEINE DATEN, DEIN SERVER
 

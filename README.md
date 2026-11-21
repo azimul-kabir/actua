@@ -37,7 +37,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 
 ## Features
 
-- Native Material You interface in English, French, German, Italian, Japanese, Japanese, Brazilian Portuguese and Spanish
+- Native Material You interface in English, French, German, Italian, Japanese, Russian, Brazilian Portuguese and Spanish
 - Connect to your Actual server (password or OpenID) with offline budgets and encrypted sync, or use standalone on-device budgets with no server
 - Envelope and tracking budgets with targets, `#template` automations, one-tap cover for overspent categories and Actual's budget actions
 - Transactions with splits, transfers, merging and reconciliation, plus rules and automatic categorization as in Actual

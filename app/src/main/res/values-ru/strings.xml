@@ -1,0 +1,36 @@
+<resources>
+    <string name="widget_budget_snapshot">Сводка бюджета</string>
+    <string name="widget_favourite_categories">Избранные категории</string>
+    <string name="widget_quick_transaction">Быстрая транзакция</string>
+    <string name="widget_account_balances">Остатки на счетах</string>
+    <string name="widget_ready">Готово к распределению</string>
+    <string name="widget_budgeted">Запланировано</string>
+    <string name="widget_balance">Остаток</string>
+    <string name="widget_expense">− Расход</string>
+    <string name="widget_income">+ Доход</string>
+    <string name="widget_transfer">⇄ Перевод</string>
+    <string name="widget_no_budget">Откройте Actua, чтобы выбрать бюджет</string>
+    <string name="widget_no_categories">Нет доступных категорий</string>
+    <string name="widget_no_accounts">Нет доступных счетов</string>
+    <string name="widget_upcoming_schedules">Ближайшие расписания</string>
+    <string name="widget_no_schedules">Нет ближайших запланированных транзакций</string>
+    <string name="shortcut_add_expense">Добавить расход</string>
+    <string name="tasker_queue_transaction">Поставить транзакцию в очередь</string>
+    <string name="shortcut_add_income">Добавить доход</string>
+    <string name="shortcut_add_transfer">Добавить перевод</string>
+    <string name="shortcut_search">Поиск</string>
+    <string name="shortcut_review_captured">Проверить записанные</string>
+    <string name="shortcut_unavailable">Откройте Actua, чтобы использовать это действие</string>
+    <string name="settings_language">Язык</string>
+    <string name="settings_language_system">Как в системе</string>
+    <string name="settings_language_english">Английский</string>
+    <string name="settings_language_portuguese_brazil">Português (Brasil)</string>
+    <string name="settings_language_spanish">Español</string>
+    <string name="settings_language_french">Français</string>
+    <string name="settings_language_german">Deutsch</string>
+    <string name="settings_language_italian">Italiano</string>
+    <string name="settings_language_japanese">日本語</string>
+    <string name="settings_language_russian">Русский</string>
+    <string name="tile_add_transaction">Транзакция</string>
+    <string name="tile_add_transaction_description">Добавить транзакцию</string>
+</resources>

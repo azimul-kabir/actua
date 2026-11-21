@@ -715,6 +715,7 @@ fun SettingsScreen(
                                 SettingsChoiceOption("de", stringResource(R.string.settings_language_german)),
                                 SettingsChoiceOption("it", stringResource(R.string.settings_language_italian)),
                                 SettingsChoiceOption("ja", stringResource(R.string.settings_language_japanese)),
+                                SettingsChoiceOption("ru", stringResource(R.string.settings_language_russian)),
                             ),
                             onChange = onLanguageChange,
                         )
