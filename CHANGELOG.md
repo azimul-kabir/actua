@@ -6,7 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
-- Added a widget style pack for supporters: Gradient accent, Outline and Midnight styles, corner radius and background opacity, for all widgets or each widget on its own ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
+- Added a widget style pack for supporters: Gradient accent, Outline and Midnight styles, corner radius and background opacity, for all widgets or each widget on its own ([#1733](https://github.com/azimul-kabir/actua/pull/1733))
 - Added a Custom accent color for supporters, with a hex field and hue, saturation and brightness sliders ([#1729](https://github.com/azimul-kabir/actua/pull/1729))
 
 ### Fixed
