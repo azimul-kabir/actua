@@ -31,6 +31,13 @@ object CustomAccent {
     const val DEFAULT_SEED: Int = 0xFF2E7D6B.toInt()
 
     private const val TEXT = 4.5
+
+    /**
+     * How far a container keeps from the far extreme: a dark theme's container at least this far from white, a light
+     * theme's from black. A bright hue such as yellow is still a mid tone at a low HSL lightness, and text then only just
+     * reads on the container itself, not on surfaces drawn over it, such as a widget's tiles.
+     */
+    private const val CONTAINER = 7.0
     private const val ICON = 3.0
 
     /** Keeps only the RGB of [argb] and makes it opaque. */
@@ -154,11 +161,11 @@ object CustomAccent {
         val containerSat = min(sat, 0.9)
         return if (dark) {
             val color = hsl(hue, sat, 0.78)
-            val container = hsl(hue, containerSat, 0.28)
+            val container = readable(hsl(hue, containerSat, 0.28), Color.White, CONTAINER)
             Role(color, readable(hsl(hue, sat, 0.12), color, TEXT), container, readable(hsl(hue, sat, 0.92), container, TEXT))
         } else {
             val color = primary ?: readable(hsl(hue, sat, 0.38), Color.White, TEXT)
-            val container = hsl(hue, containerSat, 0.90)
+            val container = readable(hsl(hue, containerSat, 0.90), Color.Black, CONTAINER)
             Role(color, Color.White, container, readable(hsl(hue, sat, 0.15), container, TEXT))
         }
     }

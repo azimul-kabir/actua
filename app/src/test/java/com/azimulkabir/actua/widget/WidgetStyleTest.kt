@@ -93,6 +93,18 @@ class WidgetStyleTest {
     }
 
     @Test
+    fun accentTintedIsReadableForCustomAccentsInLightAndDark() {
+        // Very light, very dark, grey and bright custom colors; yellow once gave a dark-theme container too light for tiles.
+        for (seed in listOf(0xFFFFEB3B, 0xFFFFFF00, 0xFF101010, 0xFF9E9E9E, 0xFFE0F7FA, 0xFF00BCD4, 0xFFC2185B).map { it.toInt() }) {
+            for (dark in listOf(false, true)) {
+                val colors = WidgetStyle.AccentTinted.colors(dark, AccentPalette.Custom.colorScheme(dark, seed))!!
+                assertReadable("AccentTinted custom %06X ${if (dark) "dark" else "light"}".format(seed and 0xFFFFFF), colors, backdrop = 0xFFFFFFFF.toInt())
+                assertStatusTonesAreClear("AccentTinted custom %06X night=$dark".format(seed and 0xFFFFFF), colors, backdrop = 0xFFFFFFFF.toInt())
+            }
+        }
+    }
+
+    @Test
     fun accentTintedWithoutAnAccentChangesNothing() {
         assertNull(WidgetStyle.AccentTinted.colors(night = false, accent = null))
         assertNotNull(WidgetStyle.AccentTinted.colors(night = false, accent = AccentPalette.Teal.colorScheme(false)))
