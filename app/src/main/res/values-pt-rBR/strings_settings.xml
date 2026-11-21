@@ -288,6 +288,11 @@
     <string name="settings_app_icon_dark">Escuro</string>
     <string name="settings_app_icon_mono">Monocromático</string>
     <string name="settings_app_icon_light">Claro</string>
+    <string name="settings_app_icon_latte">Latte</string>
+    <string name="settings_app_icon_mocha">Mocha</string>
+    <string name="settings_app_icon_gradient">Gradiente</string>
+    <string name="settings_app_icon_midnight">Meia-noite</string>
+    <string name="settings_app_icon_paper">Papel</string>
     <string name="settings_app_icon_note">Escolha o ícone exibido na tela inicial e na gaveta de apps. Ele muda quando você sai do Actua, e alguns launchers demoram um pouco para atualizá-lo.</string>
     <string name="settings_accent_color">Cor de destaque</string>
     <string name="settings_accent_violet">Violeta (padrão)</string>
