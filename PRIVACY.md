@@ -83,7 +83,10 @@ prompt: Actua only learns whether it succeeded and never receives, stores or
 transmits your biometric data or device credential. For this Actua declares
 Android's `USE_BIOMETRIC` (and `USE_FINGERPRINT` on older versions)
 permissions, which are normal permissions that show no prompt. The setting and
-its timeout are stored on your device only. A separate setting hides Actua's
+its timeout, and an optional "Hide widget amounts" choice (which hides amounts on
+home-screen widgets while the lock is on) are stored on your device only. The
+lock also applies when Actua is opened from a widget, a notification, the share
+sheet or the Tasker setup screen. A separate setting hides Actua's
 screens from the recents list and blocks screenshots and screen recording.
 
 ## Notifications

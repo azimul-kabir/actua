@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added the app lock to widget taps, notifications, the share sheet and the Tasker setup screen, and a Hide widget amounts option that masks widget amounts while the lock is on ([#1755](https://github.com/azimul-kabir/actua/pull/1755))
 - Added Scan receipt when editing an existing transaction, to attach a receipt photo or also replace its amount, payee and date ([#1754](https://github.com/azimul-kabir/actua/pull/1754))
 - Added a note on the Support page, when Google Play can't sell supporter purchases, that they are made through Google Play, with an Open Google Play button ([#1751](https://github.com/azimul-kabir/actua/pull/1751))
 - Added French as an app language, selectable under Settings → Display → Language ([#1734](https://github.com/azimul-kabir/actua/pull/1734))

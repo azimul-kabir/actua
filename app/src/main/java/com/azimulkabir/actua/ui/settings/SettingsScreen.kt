@@ -99,6 +99,7 @@ import com.azimulkabir.actua.ui.home.GreetingCard
 import com.azimulkabir.actua.ui.home.GreetingFigure
 import com.azimulkabir.actua.ui.home.GreetingNickname
 import com.azimulkabir.actua.data.security.AppLockPreferences
+import com.azimulkabir.actua.widget.WidgetUpdater
 import com.azimulkabir.actua.data.security.AppLockTimeout
 import com.azimulkabir.actua.ui.lock.AppLock
 import com.azimulkabir.actua.ui.lock.AppLockAuthenticator
@@ -247,6 +248,7 @@ fun SettingsScreen(
     val appLockPreferences = remember { AppLockPreferences(context) }
     var appLockEnabled by remember { mutableStateOf(appLockPreferences.enabled) }
     var appLockTimeout by remember { mutableStateOf(appLockPreferences.timeout) }
+    var hideWidgetAmounts by remember { mutableStateOf(appLockPreferences.hideWidgetAmounts) }
     var appLockMessage by remember { mutableStateOf<String?>(null) }
     val appLockEnableTitle = stringResource(R.string.app_lock_prompt_enable_title)
     val appLockDisableTitle = stringResource(R.string.app_lock_prompt_disable_title)
@@ -269,6 +271,7 @@ fun SettingsScreen(
             appLockPreferences.enabled = false
             appLockEnabled = false
             AppLock.onSettingChanged()
+            WidgetUpdater.requestAllAsync(context)
             return
         }
         AppLockAuthenticator.authenticate(
@@ -281,6 +284,8 @@ fun SettingsScreen(
                     appLockPreferences.enabled = enable
                     appLockEnabled = enable
                     AppLock.onSettingChanged()
+                    // Widget amounts are hidden only while the lock is on, so redraw them either way.
+                    WidgetUpdater.requestAllAsync(context)
                 }
                 is AppLockAuthenticator.Result.Error -> if (!result.cancelled) appLockMessage = result.message
             }
@@ -1017,6 +1022,16 @@ fun SettingsScreen(
                                     appLockPreferences.timeout = appLockTimeout
                                 },
                             )
+                            SettingsDivider()
+                            SettingsToggle(
+                                stringResource(R.string.settings_app_lock_hide_widget_amounts),
+                                stringResource(R.string.settings_app_lock_hide_widget_amounts_description),
+                                hideWidgetAmounts,
+                            ) { hide ->
+                                hideWidgetAmounts = hide
+                                appLockPreferences.hideWidgetAmounts = hide
+                                WidgetUpdater.requestAllAsync(context)
+                            }
                         }
                     }
                     appLockMessage?.let { SettingsNote(it) }

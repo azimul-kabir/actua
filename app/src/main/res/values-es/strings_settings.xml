@@ -187,6 +187,8 @@
 <string name="settings_app_lock">Requerir autenticación</string>
 <string name="settings_app_lock_description">Solicita tu huella digital, reconocimiento facial o el PIN, patrón o contraseña del dispositivo para abrir Actua. La sincronización y los recordatorios seguirán funcionando mientras esté bloqueado.</string>
 <string name="settings_app_lock_timeout">Bloquear después de salir de Actua</string>
+<string name="settings_app_lock_hide_widget_amounts">Ocultar importes en los widgets</string>
+<string name="settings_app_lock_hide_widget_amounts_description">Los widgets no pueden pedir tu huella digital, así que mientras el bloqueo esté activado muestran •••• en lugar de los importes. Los nombres siguen visibles.</string>
 <string name="app_lock_timeout_immediately">Inmediatamente</string>
 <string name="app_lock_timeout_1_minute">Después de 1 minuto</string>
 <string name="app_lock_timeout_5_minutes">Después de 5 minutos</string>

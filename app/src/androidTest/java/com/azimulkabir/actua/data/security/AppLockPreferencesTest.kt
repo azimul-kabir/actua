@@ -45,4 +45,22 @@ class AppLockPreferencesTest {
         assertEquals(AppLockTimeout.IMMEDIATELY, AppLockPreferences(context).timeout)
         clear()
     }
+
+    @Test
+    fun widgetAmountsAreHiddenOnlyWhenTheOptionAndTheLockAreBothOn() {
+        clear()
+        val preferences = AppLockPreferences(context)
+        assertFalse(preferences.hideWidgetAmounts)
+        assertFalse(preferences.widgetAmountsHidden)
+
+        preferences.hideWidgetAmounts = true
+        assertFalse("the option does nothing while the lock is off", preferences.widgetAmountsHidden)
+
+        preferences.enabled = true
+        assertTrue(AppLockPreferences(context).widgetAmountsHidden)
+
+        preferences.hideWidgetAmounts = false
+        assertFalse("balances stay visible when the option is skipped", AppLockPreferences(context).widgetAmountsHidden)
+        clear()
+    }
 }

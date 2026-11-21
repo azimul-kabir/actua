@@ -194,6 +194,8 @@
     <string name="settings_app_lock">Richiedi l’autenticazione</string>
     <string name="settings_app_lock_description">Chiedi l’impronta, il volto oppure il PIN, la sequenza o la password del dispositivo per aprire Actua. Sincronizzazione e promemoria continuano a funzionare mentre è bloccata.</string>
     <string name="settings_app_lock_timeout">Blocca dopo l’uscita da Actua</string>
+    <string name="settings_app_lock_hide_widget_amounts">Nascondi gli importi nei widget</string>
+    <string name="settings_app_lock_hide_widget_amounts_description">I widget non possono chiedere la tua impronta, quindi mentre il blocco è attivo mostrano •••• al posto degli importi. I nomi restano visibili.</string>
     <string name="app_lock_timeout_immediately">Subito</string>
     <string name="app_lock_timeout_1_minute">Dopo 1 minuto</string>
     <string name="app_lock_timeout_5_minutes">Dopo 5 minuti</string>

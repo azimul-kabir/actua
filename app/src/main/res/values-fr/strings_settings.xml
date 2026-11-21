@@ -194,6 +194,8 @@
     <string name="settings_app_lock">Exiger une authentification</string>
     <string name="settings_app_lock_description">Demande votre empreinte, votre visage ou le code PIN, le schéma ou le mot de passe de votre appareil pour ouvrir Actua. La synchronisation et les rappels continuent de fonctionner pendant le verrouillage.</string>
     <string name="settings_app_lock_timeout">Verrouiller après avoir quitté Actua</string>
+    <string name="settings_app_lock_hide_widget_amounts">Masquer les montants des widgets</string>
+    <string name="settings_app_lock_hide_widget_amounts_description">Les widgets ne peuvent pas demander votre empreinte : tant que le verrouillage est activé, ils affichent •••• à la place des montants. Les noms restent visibles.</string>
     <string name="app_lock_timeout_immediately">Immédiatement</string>
     <string name="app_lock_timeout_1_minute">Après 1 minute</string>
     <string name="app_lock_timeout_5_minutes">Après 5 minutes</string>

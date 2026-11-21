@@ -194,6 +194,8 @@
     <string name="settings_app_lock">Require authentication</string>
     <string name="settings_app_lock_description">Ask for your fingerprint, face or your device PIN, pattern or password to open Actua. Sync and reminders keep working while it is locked.</string>
     <string name="settings_app_lock_timeout">Lock after leaving Actua</string>
+    <string name="settings_app_lock_hide_widget_amounts">Hide widget amounts</string>
+    <string name="settings_app_lock_hide_widget_amounts_description">Widgets can\'t ask for your fingerprint, so while the lock is on they show •••• instead of amounts. Names stay visible.</string>
     <string name="app_lock_timeout_immediately">Immediately</string>
     <string name="app_lock_timeout_1_minute">After 1 minute</string>
     <string name="app_lock_timeout_5_minutes">After 5 minutes</string>

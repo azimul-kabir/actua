@@ -1,12 +1,10 @@
 package com.azimulkabir.actua.tasker
 
-import com.azimulkabir.actua.data.preferences.ScreenPrivacyPreferences
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,13 +27,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.lifecycleScope
 import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.importing.AutomationIntent
 import com.azimulkabir.actua.data.importing.importHintAccountNames
@@ -45,20 +43,21 @@ import com.azimulkabir.actua.ui.components.ActuaFormCard
 import com.azimulkabir.actua.ui.components.ActuaMenuRow
 import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
+import com.azimulkabir.actua.ui.lock.AppLock
+import com.azimulkabir.actua.ui.lock.AppLockActivity
+import com.azimulkabir.actua.ui.lock.AppLockGate
 import com.azimulkabir.actua.ui.theme.ActuaTheme
 import com.azimulkabir.actua.ui.theme.Spacing
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
  * Tasker's edit screen for the "Queue transaction" plugin action (#1040). Saving returns the
  * fields and the current automation token to the app that opened it, which is named on screen.
  */
-class TaskerEditActivity : AppCompatActivity() {
+class TaskerEditActivity : AppLockActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ScreenPrivacyPreferences.apply(this)
         // Only a host that asked for a result (Tasker) can receive the bundle and its token.
         val caller = callingPackage ?: run { finish(); return }
         setResult(Activity.RESULT_CANCELED)
@@ -70,40 +69,43 @@ class TaskerEditActivity : AppCompatActivity() {
             packageManager.getApplicationLabel(packageManager.getApplicationInfo(caller, 0)).toString()
         }.getOrDefault(caller)
         val preferences = NotificationImportPreferences(this)
-        var accountNames by mutableStateOf(emptyList<String>())
-        lifecycleScope.launch {
-            accountNames = withContext(Dispatchers.IO) {
-                runCatching {
-                    val repository = ActuaRepository(this@TaskerEditActivity)
-                    try { importHintAccountNames(repository.accounts()) } finally { repository.close() }
-                }.getOrDefault(emptyList())
-            }
-        }
         enableEdgeToEdge()
         setContent {
             ActuaTheme {
-                TaskerQueueTransactionScreen(
-                    initial = initial,
-                    callerLabel = callerLabel,
-                    accountNames = accountNames,
-                    integrationOn = { preferences.automationEnabled && preferences.automationToken != null },
-                    onTurnOn = { preferences.automationEnabled = true },
-                    onCancel = ::finish,
-                    onSave = { fields ->
-                        val token = preferences.automationToken ?: return@TaskerQueueTransactionScreen
-                        val values = TaskerPlugin.bundleValues(fields, token)
-                        val bundle = Bundle().apply {
-                            values.forEach { (key, value) -> putString(key, value) }
-                            putString(TaskerPlugin.KEY_VARIABLE_REPLACE, TaskerPlugin.replaceKeys(values))
+                // The account names are read only once unlocked, and the screen is not composed before.
+                AppLockGate(locked = AppLock.locked, onUnlocked = AppLock::unlock) {
+                    var accountNames by remember { mutableStateOf(emptyList<String>()) }
+                    LaunchedEffect(Unit) {
+                        accountNames = withContext(Dispatchers.IO) {
+                            runCatching {
+                                val repository = ActuaRepository(this@TaskerEditActivity)
+                                try { importHintAccountNames(repository.accounts()) } finally { repository.close() }
+                            }.getOrDefault(emptyList())
                         }
-                        val result = Intent()
-                            .putExtra(TaskerPlugin.EXTRA_BUNDLE, bundle)
-                            .putExtra(TaskerPlugin.EXTRA_BLURB, TaskerPlugin.blurb(fields))
-                        if (synchronous) result.putExtra(TaskerPlugin.EXTRA_REQUESTED_TIMEOUT, TaskerPlugin.REQUESTED_TIMEOUT_MS)
-                        setResult(Activity.RESULT_OK, result)
-                        finish()
-                    },
-                )
+                    }
+                    TaskerQueueTransactionScreen(
+                        initial = initial,
+                        callerLabel = callerLabel,
+                        accountNames = accountNames,
+                        integrationOn = { preferences.automationEnabled && preferences.automationToken != null },
+                        onTurnOn = { preferences.automationEnabled = true },
+                        onCancel = ::finish,
+                        onSave = { fields ->
+                            val token = preferences.automationToken ?: return@TaskerQueueTransactionScreen
+                            val values = TaskerPlugin.bundleValues(fields, token)
+                            val bundle = Bundle().apply {
+                                values.forEach { (key, value) -> putString(key, value) }
+                                putString(TaskerPlugin.KEY_VARIABLE_REPLACE, TaskerPlugin.replaceKeys(values))
+                            }
+                            val result = Intent()
+                                .putExtra(TaskerPlugin.EXTRA_BUNDLE, bundle)
+                                .putExtra(TaskerPlugin.EXTRA_BLURB, TaskerPlugin.blurb(fields))
+                            if (synchronous) result.putExtra(TaskerPlugin.EXTRA_REQUESTED_TIMEOUT, TaskerPlugin.REQUESTED_TIMEOUT_MS)
+                            setResult(Activity.RESULT_OK, result)
+                            finish()
+                        },
+                    )
+                }
             }
         }
     }

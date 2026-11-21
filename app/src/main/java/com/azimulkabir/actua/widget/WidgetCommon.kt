@@ -15,6 +15,7 @@ import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.withAppLanguage
+import com.azimulkabir.actua.data.security.AppLockPreferences
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.categoryKey
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
@@ -269,7 +270,12 @@ internal fun loadBudgetFormats(repository: ActuaRepository) {
     budgetFormats = repository.budgetDisplayFormats()
 }
 
-internal fun balancesHidden(context: Context): Boolean = DisplayPreferences(context).resolve(budgetFormats).hideBalances
+/**
+ * Whether widgets leave amounts out: the budget's or device's hide-balances setting, or the app lock's
+ * "hide widget amounts" option (a widget can't prompt for authentication, so the lock can't cover it).
+ */
+internal fun balancesHidden(context: Context): Boolean =
+    DisplayPreferences(context).resolve(budgetFormats).hideBalances || AppLockPreferences(context).widgetAmountsHidden
 
 /** [cents] formatted for TalkBack, or null when balances are hidden: the dots on screen are never read out. */
 internal fun spoken(context: Context, cents: Long): String? =
@@ -279,5 +285,5 @@ internal fun money(context: Context, cents: Long): String {
     val formats = DisplayPreferences(context).resolve(budgetFormats)
     applyDisplayFormats(formats)
     return formatMoneyCents(cents, formats.hideDecimals,
-        respectBalanceVisibility = false).let { if (formats.hideBalances) "••••" else it }
+        respectBalanceVisibility = false).let { if (formats.hideBalances || AppLockPreferences(context).widgetAmountsHidden) "••••" else it }
 }
