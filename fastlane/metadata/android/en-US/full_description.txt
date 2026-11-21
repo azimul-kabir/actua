@@ -28,7 +28,7 @@ IMPORT, EXPORT, AND SYNC
 
 MADE FOR ANDROID
 
-Actua is a native Android app with a Material 3 interface, customizable navigation, and flexible appearance settings. Add home-screen widgets for your budget, favorite categories, balances, bills, spending trends, and reports, or jump in with launcher shortcuts. Available in English, French, German, Japanese, Brazilian Portuguese, and Spanish.
+Actua is a native Android app with a Material 3 interface, customizable navigation, and flexible appearance settings. Add home-screen widgets for your budget, favorite categories, balances, bills, spending trends, and reports, or jump in with launcher shortcuts. Available in English, French, German, Italian, Japanese, Japanese, Brazilian Portuguese, and Spanish.
 
 YOUR DATA, YOUR SERVER
 

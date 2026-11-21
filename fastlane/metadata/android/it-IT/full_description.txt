@@ -1,0 +1,52 @@
+Gestisci il tuo Actual Budget su Android. Guarda cosa resta da assegnare, tieni d’occhio le spese e anticipa le prossime scadenze. Connettiti al tuo server Actual Budget oppure crea un budget autonomo che funziona interamente offline.
+
+FAI DEL BUDGET IL TUO
+
+Personalizza la Home per vedere a colpo d’occhio quanto resta da assegnare, le categorie preferite, le scadenze in arrivo e l’attività recente. Segui l’avanzamento delle categorie, imposta obiettivi, usa i modelli di budget e organizza i tuoi conti.
+
+TIENI IN ORDINE LE TRANSAZIONI
+
+▶ Aggiungi, modifica, cerca e filtra le transazioni.
+▶ Scansiona le ricevute per compilare i dettagli della transazione e conserva le foto sul tuo telefono.
+▶ Suddividi le transazioni, fai trasferimenti e riconcilia i conti.
+▶ Categorizza le transazioni automaticamente con le regole di Actual Budget, oppure mettile in coda da Tasker e da altre app di automazione.
+
+PIANIFICA SCADENZE E PRESTITI
+
+Vedi le transazioni pianificate in un calendario delle scadenze e attiva i promemoria prima dei pagamenti. Scegli i tuoi fine settimana e le tue festività per i periodi di pagamento e le pianificazioni. Segui i prestiti con un piano di rimborso per pagamenti settimanali, quindicinali o mensili e guarda come i tuoi saldi si confrontano con i tuoi obiettivi.
+
+VEDI DOVE VANNO I TUOI SOLDI
+
+Esplora dashboard e report delle spese. Tocca un grafico per vedere le transazioni che lo compongono, oppure apri un report a schermo intero con tabella dei dati.
+
+IMPORTA, ESPORTA E SINCRONIZZA
+
+▶ Condividi estratti conto CSV, OFX, QFX, QIF, CAMT.053, XLSX e PDF direttamente con Actua.
+▶ Acquisisci transazioni da SMS e notifiche bancarie supportate, poi rivedile prima di salvarle.
+▶ Esporta in CSV un conto, un elenco di transazioni filtrato o i risultati di una ricerca.
+▶ Usa le connessioni bancarie supportate tramite il tuo server Actual Budget, tra cui SimpleFIN, GoCardless, Pluggy.ai, Akahu ed Enable Banking.
+
+PENSATA PER ANDROID
+
+Actua è un’app Android nativa con interfaccia Material 3, navigazione personalizzabile e impostazioni di aspetto flessibili. Aggiungi widget alla schermata Home per il tuo budget, le categorie preferite, i saldi, le scadenze, l’andamento delle spese e i report, oppure parti subito con le scorciatoie del launcher. Disponibile in inglese, francese, tedesco, italiano, giapponese, portoghese brasiliano e spagnolo.
+
+I TUOI DATI, IL TUO SERVER
+
+Actua si connette direttamente al tuo server Actual Budget e mantiene una copia locale per l’uso offline. Non serve un account Actua separato. Per provare Actua senza un server, apri la demo integrata, crea un budget sul dispositivo o importa un archivio di Actual Budget.
+
+Crea e ripristina backup locali, oppure salva backup cifrati sul tuo Google Drive o sul tuo server WebDAV. Blocca Actua con la biometria o il PIN del dispositivo e nascondila dalla schermata delle app recenti di Android.
+
+GRATUITA E OPEN SOURCE
+
+Fare il budget è gratis. Acquisti e abbonamenti facoltativi su Google Play sostengono lo sviluppo e sbloccano extra estetici come icone dell’app, colori d’accento, temi Catppuccin e stili dei widget.
+
+Consulta il codice sorgente, segnala problemi o contribuisci su GitHub.
+https://github.com/azimul-kabir/actua
+
+INFORMAZIONI SU QUESTO PROGETTO
+
+Actua è un client indipendente e non ufficiale per Actual Budget. Non è affiliato né approvato dal progetto Actual Budget.
+
+Il budget connesso richiede l’accesso al tuo server Actual Budget. Actua può scrivere modifiche nel tuo budget sincronizzato, quindi fai un backup dei dati importanti prima di connettere un nuovo client.
+
+https://actua.azimulkabir.com
