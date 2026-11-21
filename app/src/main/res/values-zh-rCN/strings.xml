@@ -1,0 +1,36 @@
+<resources>
+    <string name="widget_budget_snapshot">预算概览</string>
+    <string name="widget_favourite_categories">收藏的类别</string>
+    <string name="widget_quick_transaction">快速记账</string>
+    <string name="widget_account_balances">账户余额</string>
+    <string name="widget_ready">待预算</string>
+    <string name="widget_budgeted">已预算</string>
+    <string name="widget_balance">余额</string>
+    <string name="widget_expense">− 支出</string>
+    <string name="widget_income">+ 收入</string>
+    <string name="widget_transfer">⇄ 转账</string>
+    <string name="widget_no_budget">打开 Actua 以选择预算</string>
+    <string name="widget_no_categories">没有可用类别</string>
+    <string name="widget_no_accounts">没有可用账户</string>
+    <string name="widget_upcoming_schedules">即将到期的计划</string>
+    <string name="widget_no_schedules">没有即将到期的计划交易</string>
+    <string name="shortcut_add_expense">添加支出</string>
+    <string name="tasker_queue_transaction">加入交易队列</string>
+    <string name="shortcut_add_income">添加收入</string>
+    <string name="shortcut_add_transfer">添加转账</string>
+    <string name="shortcut_search">搜索</string>
+    <string name="shortcut_review_captured">查看已捕获</string>
+    <string name="shortcut_unavailable">打开 Actua 以使用此操作</string>
+    <string name="settings_language">语言</string>
+    <string name="settings_language_system">跟随系统</string>
+    <string name="settings_language_english">英语</string>
+    <string name="settings_language_portuguese_brazil">Português (Brasil)</string>
+    <string name="settings_language_spanish">Español</string>
+    <string name="settings_language_french">Français</string>
+    <string name="settings_language_german">Deutsch</string>
+    <string name="settings_language_italian">Italiano</string>
+    <string name="settings_language_japanese">日本語</string>
+    <string name="settings_language_chinese_simplified">简体中文</string>
+    <string name="tile_add_transaction">交易</string>
+    <string name="tile_add_transaction_description">添加交易</string>
+</resources>

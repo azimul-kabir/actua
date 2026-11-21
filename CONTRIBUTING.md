@@ -71,7 +71,7 @@ need to run everything locally. Please say in the pull request what you did run.
   compatible with Actual.
 - **Use synthetic fixtures.** Do not commit real budgets, credentials, keys, tokens or keystores.
 - **Follow the existing style** in the code you touch: names, structure, libraries and the localized string
-  resources (English, French, German, Italian, Japanese, Japanese, Brazilian Portuguese and Spanish; see [docs/LOCALIZATION.md](docs/LOCALIZATION.md)).
+  resources (English, French, German, Italian, Japanese, Japanese, Simplified Chinese, Brazilian Portuguese and Spanish; see [docs/LOCALIZATION.md](docs/LOCALIZATION.md)).
 - **Ask before adding a dependency.** Say what it is for and why existing code is not enough. It must be
   GPL-3.0-compatible and must not add tracking or unapproved network calls.
 - **Don't change `versionCode` or `versionName`.** A version bump on `main` triggers a signed release, a Google Play

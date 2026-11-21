@@ -1,6 +1,6 @@
 # Localization in Actua
 
-Actua ships in English, French (fr), German (de), Italian (it), Japanese (ja), Brazilian Portuguese (pt-BR) and Spanish (es). This document defines the conventions every string change must follow so both catalogs stay complete, in parity, and in the same voice as Actual Budget (refs #1225).
+Actua ships in English, French (fr), German (de), Italian (it), Japanese (ja), Simplified Chinese (zh-CN), Brazilian Portuguese (pt-BR) and Spanish (es). This document defines the conventions every string change must follow so both catalogs stay complete, in parity, and in the same voice as Actual Budget (refs #1225).
 
 ## Purpose
 
@@ -8,7 +8,7 @@ Actua localizes structurally like the Actual Budget Android effort (#424): the s
 
 ## How Actua localizes
 
-- `values/` is the default (English) catalog. Each locale gets a sibling resource directory: `values-pt-rBR/` for pt-BR, `values-es/` for Spanish, `values-fr/` for French, `values-de/` for German and `values-it/` for Italian.
+- `values/` is the default (English) catalog. Each locale gets a sibling resource directory: `values-pt-rBR/` for pt-BR, `values-es/` for Spanish, `values-fr/` for French, `values-de/` for German, `values-it/` for Italian, `values-ja/` for Japanese and `values-zh-rCN/` for Simplified Chinese.
 - Strings live in per-feature files mirroring #424: `strings_navigation.xml`, `strings_budget_home.xml`, `strings_widgets.xml`, `strings_transactions.xml`, `strings_settings.xml`, `strings_financial_settings.xml`, `strings_connection_import.xml`, `strings_demo.xml`. A plain `strings.xml` holds cross-feature strings (app name, widgets, shortcuts, settings labels). The extraction phases land these files incrementally — `values*/` currently holds `strings.xml`, `strings_navigation.xml`, `strings_budget_home.xml` and `strings_widgets.xml` — but the eight-file layout is the fixed target: once a feature's file exists it must exist in every locale, even while empty.
 - Per-file self-containment intentionally duplicates a few cross-feature labels (e.g. `navigation_cancel` alongside `common_cancel`), mirroring #424 — duplication is accepted to keep files self-contained.
 - Key naming: `^[a-z][a-z0-9_]*$` (lower snake case) with a per-file prefix: `strings_navigation.xml` → `navigation_`; `strings_budget_home.xml` → `budget_`, `home_`, `common_`; `strings_widgets.xml` → `widget_`, `disconnect_`, `credit_card_due_`, `credit_card_notification_`, `notification_`. The remaining feature files take matching feature prefixes as they fill in. Cross-feature keys live in `strings.xml` with their own prefixes — `widget_`, `shortcut_`, `tasker_`, `settings_` today; those keys stay in `strings.xml` for good, matching #424's end state, and only new widget-family strings land in `strings_widgets.xml`. One key, one meaning; never reuse a key for two screens.
@@ -20,7 +20,7 @@ Actua localizes structurally like the Actual Budget Android effort (#424): the s
 - Plurals receive the count automatically: use bare `%d` (or `%1$d`); any additional arguments stay positional.
 - A literal percent sign is written `%%`.
 - Apostrophes: curly `’` needs no escaping; a straight `'` must be written `\'` or the build fails.
-- Every plural defines both `one` and `other` quantities, in every locale, except languages with a single plural form (Japanese defines only `other`, as Android lint expects).
+- Every plural defines both `one` and `other` quantities, in every locale, except languages with a single plural form (Japanese and Simplified Chinese define only `other`, as Android lint expects).
 - Translate complete sentences as units. Never concatenate translated fragments; if the same idea needs different wording in two places, add a second key.
 - Never-translated strings are marked `translatable="false"` and exist only in the default catalog (currently `app_name`). Every translatable key must exist in every locale — no gaps.
 - Values persisted in preferences or sent to the sync server are locale-neutral tokens (BCP-47 tags such as `pt-BR`, currency codes, setting enums), never translated display text. Localize at render time only.
@@ -28,16 +28,16 @@ Actua localizes structurally like the Actual Budget Android effort (#424): the s
 
 ## Terminology
 
-Actual Budget's pt-BR glossary, maintained on Weblate via [actualbudget/translations](https://github.com/actualbudget/translations), is authoritative. When a concept exists there, use its pt-BR term verbatim (e.g. *orçamento* for budget, *gasto*/*receita* for expense/income); coin a new term only when the glossary has no match, and follow its spelling and register. French (`fr`) follows the same rule with Actual's French glossary: transactions are *opérations*, schedules *échéanciers*, payees *bénéficiaires*, "To Budget" *À budgéter*. German (`de`) follows Actual's German glossary with the informal *du* register: transactions are *Transaktionen*, schedules *Zeitpläne*, payees *Zahlungsempfänger*, "To Budget" *Zu budgetieren*. Italian (`it`) follows Actual's Italian glossary with the informal *tu* register: transactions are *transazioni*, schedules *pianificazioni*, payees *beneficiari*, "To Budget" *Da assegnare*. Japanese (`ja`) follows Actual's Japanese glossary in the polite です/ます register: transactions are *取引*, schedules *スケジュール*, payees *支払先*, "To Budget" *未割り当て*.
+Actual Budget's pt-BR glossary, maintained on Weblate via [actualbudget/translations](https://github.com/actualbudget/translations), is authoritative. When a concept exists there, use its pt-BR term verbatim (e.g. *orçamento* for budget, *gasto*/*receita* for expense/income); coin a new term only when the glossary has no match, and follow its spelling and register. French (`fr`) follows the same rule with Actual's French glossary: transactions are *opérations*, schedules *échéanciers*, payees *bénéficiaires*, "To Budget" *À budgéter*. German (`de`) follows Actual's German glossary with the informal *du* register: transactions are *Transaktionen*, schedules *Zeitpläne*, payees *Zahlungsempfänger*, "To Budget" *Zu budgetieren*. Italian (`it`) follows Actual's Italian glossary with the informal *tu* register: transactions are *transazioni*, schedules *pianificazioni*, payees *beneficiari*, "To Budget" *Da assegnare*. Japanese (`ja`) follows Actual's Japanese glossary in the polite です/ます register: transactions are *取引*, schedules *スケジュール*, payees *支払先*, "To Budget" *未割り当て*. Simplified Chinese (`zh-CN`) follows Actual's Simplified Chinese glossary: transactions are *交易*, schedules *计划*, payees *收款人*, "To Budget" *待预算*.
 
 ## Language selection
 
 - Default is the system locale: the resource system resolves `values-pt-rBR/` on its own.
 - Users can override per app under **Settings → Display → Language**: System default, English, Português (Brasil), Español, Français. The picker (`SettingsScreen.kt`, wired through `AppNavigation.kt`) stores the choice with the AppCompat per-app locales API, `AppCompatDelegate.setApplicationLocales` — framework-backed on API 33+, backported to this app's minSdk 28.
-- The supported set is declared in `app/src/main/res/xml/locales_config.xml` (`en`, `pt-BR`, `es`, `fr`, `de`, `it`, `ja`), referenced by `AndroidManifest.xml` via `android:localeConfig` so the OS settings page matches the in-app picker.
+- The supported set is declared in `app/src/main/res/xml/locales_config.xml` (`en`, `pt-BR`, `es`, `fr`, `de`, `it`, `ja`, `zh-CN`), referenced by `AndroidManifest.xml` via `android:localeConfig` so the OS settings page matches the in-app picker.
 - Activities receive the locale automatically through AppCompat. Receivers, workers, and any non-activity context must wrap themselves with `Context.withAppLanguage()` (`app/src/main/java/com/azimulkabir/actua/data/preferences/AppLanguage.kt`), as the widgets do.
 - `app/build.gradle.kts` sets `bundle { language { enableSplit = false } }`, shipping every locale in a single artifact so switching in-app never triggers a Play Store download.
-- `androidResources { localeFilters += listOf("en", "pt-rBR", "es", "fr", "de", "it", "ja") }` strips dependency-library locales Actua does not translate. Add a new language to this list (and to `locales_config.xml`) when shipping it.
+- `androidResources { localeFilters += listOf("en", "pt-rBR", "es", "fr", "de", "it", "ja", "zh-rCN") }` strips dependency-library locales Actua does not translate. Add a new language to this list (and to `locales_config.xml`) when shipping it.
 - Manifest shortcut labels are resolved by the launcher and follow the system — not the in-app — language below API 33.
 
 ## Adding a language

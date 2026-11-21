@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared cross-screen strings, keyed as upstream PR #424 names them. -->
+    <string name="common_cancel">取消</string>
+    <string name="common_none">无</string>
+    <string name="common_search_actua">搜索 Actua</string>
+
+    <!-- Budget toolbar, month picker and display options. -->
+    <string name="budget_choose_month">选择月份</string>
+    <string name="budget_manage_categories">管理类别</string>
+    <string name="budget_display_options">预算显示选项</string>
+    <string name="budget_plan_view">规划视图</string>
+    <string name="budget_show_overview">显示概览</string>
+    <string name="budget_show_warnings">显示警告</string>
+    <string name="budget_show_spending_details">显示支出详情</string>
+    <string name="budget_show_spent_column">显示已花费列</string>
+    <string name="budget_show_progress_bars">显示进度条</string>
+    <string name="budget_show_group_totals">显示分组合计</string>
+    <string name="budget_show_balance_pills">显示余额标签</string>
+    <string name="budget_show_goal_icons">显示目标图标</string>
+    <string name="budget_display_options_menu">显示选项</string>
+    <string name="budget_display_options_title">显示选项</string>
+    <string name="budget_options_section_page">页面</string>
+    <string name="budget_options_section_rows">每个类别行</string>
+    <string name="budget_options_section_categories">显示的类别</string>
+    <string name="budget_options_section_summary">已开启 %1$d 项，共 %2$d 项</string>
+    <string name="budget_options_section_expanded">已展开</string>
+    <string name="budget_options_section_collapsed">已收起</string>
+    <string name="budget_show_status_dots">显示状态圆点</string>
+    <string name="budget_switch_budget">切换预算</string>
+    <string name="budget_type_confirm_title_tracking">切换为跟踪预算？</string>
+    <string name="budget_type_confirm_title_envelope">切换为信封预算？</string>
+    <string name="budget_type_confirm_all_devices">这会更改同步此预算的所有设备上的预算类型。您的类别和金额将保留。</string>
+    <string name="budget_type_confirm_tracking">跟踪预算没有“待预算”金额。</string>
+    <string name="budget_type_confirm_envelope">信封预算从“待预算”为各类别分配资金。</string>
+    <string name="budget_type_confirm_action">切换</string>
+    <string name="budget_hide_fully_spent">隐藏已全部花完的类别</string>
+    <string name="budget_show_hidden">显示隐藏的类别和分组</string>
+    <string name="budget_show_filters">显示类别筛选</string>
+    <string name="budget_expand_all_groups">展开所有分组</string>
+    <string name="budget_collapse_all_groups">收起所有分组</string>
+    <string name="budget_copy_last_month">复制上个月的预算</string>
+    <string name="budget_favorites">收藏</string>
+    <string name="budget_previous_year">上一年</string>
+    <string name="budget_next_year">下一年</string>
+    <string name="budget_current_month">当前月份</string>
+
+    <!-- Category view filters (BudgetCategoryView). -->
+    <string name="budget_filter_all">全部</string>
+    <string name="budget_filter_overspent">已超支</string>
+    <string name="budget_filter_underfunded">资金不足</string>
+    <string name="budget_filter_overfunded">资金过剩</string>
+    <string name="budget_filter_money_available">有可用资金</string>
+
+    <!-- Overview, group headers and category rows. -->
+    <string name="budget_ready_to_budget">待预算</string>
+    <string name="budget_to_budget">待预算</string>
+    <string name="budget_to_budget_endpoint">待预算</string>
+    <string name="budget_projected_savings">预计结余</string>
+    <string name="budget_overspent">超支</string>
+    <string name="budget_saved">已节省</string>
+    <string name="budget_held_for_next_month">已为下月预留 %1$s</string>
+    <string name="budget_expand_group">展开 %1$s</string>
+    <string name="budget_collapse_group">收起 %1$s</string>
+    <string name="budget_hidden_name">%1$s · 已隐藏</string>
+    <string name="budget_budgeted">已预算</string>
+    <string name="budget_spent">已花费</string>
+    <string name="budget_balance">余额</string>
+    <string name="budget_received_amount">已收到 %1$s</string>
+    <string name="budget_budgeted_amount">已预算 %1$s</string>
+    <string name="budget_spent_amount">已花费 %1$s</string>
+
+    <!-- Progress-bar states (BudgetProgressState) and their semantic descriptions. -->
+    <string name="budget_progress_goal">已为目标筹集百分之 %1$d</string>
+    <string name="budget_progress_spending">%1$s，已花费可用金额的百分之 %2$d</string>
+    <string name="budget_progress_unassigned">未分配资金</string>
+    <string name="budget_progress_funded">已充足</string>
+    <string name="budget_progress_partially_spent">部分花费</string>
+    <string name="budget_progress_fully_spent">已全部花完</string>
+    <string name="budget_progress_overspent">已超支</string>
+    <string name="budget_progress_goal_in_progress">目标进行中</string>
+    <string name="budget_progress_goal_reached">已达成目标</string>
+    <string name="budget_progress_goal_overfunded">已超出目标</string>
+
+    <!-- Warnings, the overspent sheet and the budget amount editor. -->
+    <string name="budget_auto_assign">自动分配</string>
+    <string name="budget_move_money">转移资金</string>
+    <string name="budget_move_money_plain">转移资金</string>
+    <string name="budget_fund_goal">从“待预算”为目标注资 (%1$s)</string>
+    <string name="budget_details">详情</string>
+    <string name="budget_no_suggestions">没有可用建议</string>
+    <string name="budget_from">从</string>
+    <string name="budget_to">到</string>
+    <string name="budget_swap_source_destination">互换来源和目标</string>
+    <string name="budget_available_to_move">可转移：%1$s</string>
+    <string name="budget_amount">金额</string>
+    <string name="budget_cover_amount">补足 %1$s</string>
+    <string name="budget_tap_to_cover">点按以补足超支</string>
+    <string name="budget_tap_to_categorize">点按以分类</string>
+    <string name="budget_cover_overspending">补足超支</string>
+    <string name="budget_choose_category_to_cover">选择要补足的类别</string>
+
+    <!-- To Budget summary sheet. -->
+    <string name="budget_cover_to_budget">从“待预算”补足</string>
+    <string name="budget_summary">预算摘要</string>
+    <string name="budget_cover_from">补足来源</string>
+    <string name="budget_move_to_category">转移到类别</string>
+    <string name="budget_hold_for_next_month">为下月预留</string>
+    <string name="budget_reset_hold">重置预留</string>
+    <string name="budget_choose_category_cover">选择要转出资金的类别</string>
+    <string name="budget_choose_category_fund">选择要从“待预算”注资的类别</string>
+    <string name="budget_category">类别</string>
+    <string name="budget_no_categories">没有可用类别</string>
+    <string name="budget_up_to">最多 %1$s</string>
+    <string name="budget_set_aside">预留部分或全部“待预算”金额，而不是立即分配</string>
+
+    <!-- Category details, actions sheets and the per-category budget menu. -->
+    <string name="budget_category_options">类别选项</string>
+    <string name="budget_add_favorite">添加到收藏</string>
+    <string name="budget_remove_favorite">从收藏中移除</string>
+    <string name="budget_favorite_added">已将 %1$s 添加到收藏</string>
+    <string name="budget_favorite_removed">已将 %1$s 从收藏中移除</string>
+    <string name="accounts_favorite_added">已将 %1$s 添加到收藏</string>
+    <string name="accounts_favorite_removed">已将 %1$s 从收藏中移除</string>
+    <string name="budget_transactions_month">本月交易</string>
+    <string name="budget_rename_category">重命名类别</string>
+    <string name="budget_rename_group">重命名分组</string>
+    <string name="budget_hide_category">隐藏类别</string>
+    <string name="budget_unhide_category">取消隐藏类别</string>
+    <string name="budget_delete_category">删除类别</string>
+    <string name="budget_budget">预算</string>
+    <string name="budget_month_note">月度备注</string>
+    <string name="budget_note">备注</string>
+    <string name="budget_add_note">添加备注</string>
+    <string name="budget_category_note">类别备注</string>
+    <string name="budget_rollover_overspending">结转超支</string>
+    <string name="budget_rollover_description">将超支额结转到下个月</string>
+    <string name="budget_recent_activity">最近活动</string>
+    <string name="budget_view_all">查看全部</string>
+    <string name="budget_no_recent_transactions">没有最近的交易</string>
+    <string name="budget_unknown_payee">未知收款人</string>
+    <string name="budget_stop_holding_automatically">停止自动预留</string>
+    <string name="budget_hold_automatically_next_month">自动为下月预留</string>
+    <string name="budget_stop_all_automatic_holds">停止本月所有自动预留</string>
+    <string name="budget_action_average_3">设为 3 个月平均值</string>
+    <string name="budget_action_average_6">设为 6 个月平均值</string>
+    <string name="budget_action_yearly_average">设为年度平均值</string>
+    <string name="budget_action_copy_year_end">复制到今年剩余月份</string>
+
+    <!-- Target row in category details. -->
+    <string name="budget_notes_managed_target">备注管理的目标</string>
+    <string name="budget_advanced_target">高级目标</string>
+    <string name="budget_managed_notes">由类别备注管理</string>
+    <string name="budget_managed_actual">在 Actual Budget 中管理</string>
+    <string name="budget_view_target_info">查看目标信息</string>
+    <string name="budget_balance_has_target">已设目标</string>
+    <string name="budget_balance_goal_not_started">目标尚未开始</string>
+    <string name="budget_edit_automation_list">编辑自动化列表 · 在整个预算预览后应用</string>
+    <string name="budget_set_target">设置目标</string>
+    <string name="budget_plan_amount">规划预算金额</string>
+    <string name="budget_auto_assign_target_hint">自动分配可使用您的目标</string>
+    <string name="budget_no_schedule_linked">未关联计划</string>
+    <string name="budget_refill_balance_cap">补充至该类别的余额上限</string>
+    <string name="budget_capped_amount">上限 %1$s %2$s</string>
+    <string name="budget_hold_short">预留</string>
+    <string name="budget_every_period">每%1$s</string>
+    <string name="budget_every_count_period">每 %1$d %2$s</string>
+    <string name="budget_percent_last_month">上月%2$s的 %1$d%%</string>
+    <string name="budget_percent_this_month">本月%2$s的 %1$d%%</string>
+    <string name="budget_copy_months_ago">复制 %1$d 个月前</string>
+    <string name="budget_daily_cap">每日余额上限</string>
+    <string name="budget_weekly_cap">每周余额上限</string>
+    <string name="budget_monthly_cap">每月余额上限</string>
+    <string name="budget_resets_monthly">每月重置</string>
+    <string name="budget_target_month">目标月份 %1$s</string>
+    <string name="budget_target_date">目标日期</string>
+    <string name="budget_recalculates_monthly">每月重新计算</string>
+    <string name="budget_target_only">仅目标</string>
+    <string name="budget_after_other_automations">在其他自动化之后</string>
+    <string name="budget_at_priority">按此优先级</string>
+    <string name="budget_schedule_driven">由计划驱动</string>
+    <string name="budget_due_amount">%1$s 内到期</string>
+    <string name="budget_no_auto_funding">不会自动申请资金</string>
+    <string name="budget_no_auto_budgeting">不会自动预算资金</string>
+    <string name="budget_applied_preview">已在整个预算预览中应用</string>
+    <string name="budget_schedule_missing">找不到关联的计划 — 点按以重新关联</string>
+    <string name="budget_auto_assign_amount">自动分配 %1$s</string>
+    <string name="budget_spent_last_month">上月已花费</string>
+    <string name="budget_budgeted_last_month">上月已预算</string>
+    <string name="budget_reset_balance_zero">将余额重置为零</string>
+    <string name="budget_set_budgeted_zero">将预算设为零</string>
+    <string name="budget_view_target">查看目标</string>
+    <string name="budget_set_automations">设置自动化</string>
+    <string name="budget_edit_automations">编辑自动化</string>
+    <string name="budget_target">目标</string>
+    <string name="budget_edit_target">编辑目标</string>
+
+    <!-- Target type labels (BudgetTarget.Type), keyed as upstream PR #424 names them. -->
+    <string name="target_fixed_label">固定金额</string>
+    <string name="target_schedule_label">覆盖计划</string>
+    <string name="target_by_date_label">按日期储蓄</string>
+    <string name="target_percentage_label">收入的 %%</string>
+    <string name="target_history_label">根据历史</string>
+    <string name="target_refill_label">补充至上限</string>
+    <string name="target_remainder_label">所有剩余资金</string>
+    <string name="target_limit_label">余额上限</string>
+    <string name="target_goal_label">长期目标</string>
+
+    <!-- Period words used by "Every …" target timing, keyed as PR #424 names them. -->
+    <string name="automation_period_day_singular">天</string>
+    <string name="automation_period_day_plural">天</string>
+    <string name="automation_period_week_singular">周</string>
+    <string name="automation_period_week_plural">周</string>
+    <string name="automation_period_month_singular">个月</string>
+    <string name="automation_period_month_plural">个月</string>
+    <string name="automation_period_year_singular">年</string>
+    <string name="automation_period_year_plural">年</string>
+    <string name="automation_limit_daily">每日</string>
+    <string name="automation_limit_weekly">每周</string>
+    <string name="automation_limit_monthly">每月</string>
+    <string name="automation_weight_summary">权重 %1$d</string>
+
+    <!-- Add-to-budget sheet and the template/cleanup/zero/average previews. -->
+    <string name="budget_add_to_budget">添加到预算</string>
+    <string name="budget_apply_templates">应用预算模板</string>
+    <string name="budget_overwrite_templates">覆盖预算模板</string>
+    <string name="budget_month_end_cleanup">月末清理</string>
+    <string name="budget_set_yearly_average">将预算设为年度平均值</string>
+    <string name="budget_set_month_average">将预算设为 %1$d 个月平均值</string>
+    <string name="budget_set_budgets_zero">将预算设为零</string>
+    <string name="budget_zero_intro">在您应用此预览之前不会有任何更改。%1$s 中每个类别的预算金额都将重置为零。</string>
+    <string name="budget_zero_up_to_date">所有类别已为零。</string>
+    <string name="budget_average_intro">在您应用此预览之前不会有任何更改。%1$s 中每个可见类别的预算将设为其最多 %2$d 个月的平均活动额。</string>
+    <string name="budget_average_up_to_date">所有类别已是平均值。</string>
+    <string name="budget_copy_year_end_title">复制到今年剩余月份？</string>
+    <string name="budget_copy_year_end_body">%1$s 的预算 %2$s 将替换其在 %3$s 之后至 12 月每个月的预算。</string>
+    <string name="budget_copy">复制</string>
+    <string name="budget_review_template">查看预算模板</string>
+    <string name="budget_review_template_named">查看预算模板 · %1$s</string>
+    <string name="budget_template_overwrite_intro">在您确认之前不会有任何更改。受支持的自动化将重新计算 %1$s 中已有的预算金额。</string>
+    <string name="budget_template_apply_intro">在您应用此预览之前不会有任何更改。已有预算金额的类别将保持不变。</string>
+    <string name="budget_no_unbudgeted_changes">没有需要更改的未预算类别。</string>
+    <string name="budget_targets_current">所有受支持的目标均已是最新。</string>
+    <string name="budget_net_change">净变化</string>
+    <string name="budget_group_goal">%1$s · 目标</string>
+    <string name="budget_unsupported_automations">未应用，因为这些类别使用了 Actua 暂时无法安全计算的自动化类型：%1$s。</string>
+    <string name="budget_available_funds_limited">可用资金有限：%1$s。优先级较高的自动化已优先注资。</string>
+    <string name="budget_remainder_caps">余额上限适用于：%1$s。预览包含每日、每周或每月上限及结转行为。</string>
+    <string name="budget_apply_changes">应用更改</string>
+    <string name="budget_review_cleanup">查看月末清理</string>
+    <string name="budget_cleanup_intro">在您确认之前不会有任何更改。这会在 %1$s 的“#cleanup”备注所定义的来源类别和目标类别之间转移剩余余额。</string>
+    <string name="budget_apply_cleanup">应用清理</string>
+    <string name="budget_cleanup_current">没有需要更改的清理分组。</string>
+    <string name="budget_cleanup_none">没有配置用于清理的类别。</string>
+    <string name="budget_goal_reset">%1$s · 目标重置</string>
+    <string name="budget_cleanup_unsupported">未处理，因为其清理定义不受支持：%1$s。</string>
+    <string name="budget_hide_group">隐藏分组</string>
+    <string name="budget_unhide_group">取消隐藏分组</string>
+    <string name="budget_budget_details">预算详情</string>
+    <string name="budget_edit_budgeted">编辑预算金额</string>
+    <string name="budget_all_transactions">所有交易</string>
+
+    <plurals name="budget_automation_count">
+        <item quantity="other">%1$d 项自动化</item>
+    </plurals>
+    <plurals name="budget_average_spent">
+        <item quantity="other">平均花费（%1$d 个月）</item>
+    </plurals>
+    <plurals name="budget_overspent_warning">
+        <item quantity="other">%1$d 个类别超支</item>
+    </plurals>
+    <plurals name="budget_uncategorized_warning">
+        <item quantity="other">%1$d 笔交易未分类</item>
+    </plurals>
+    <plurals name="budget_targets_already_current">
+        <item quantity="other">%1$d 个受支持的目标已是最新。</item>
+    </plurals>
+    <plurals name="budget_categories_already_current">
+        <item quantity="other">%1$d 个类别已是最新</item>
+    </plurals>
+    <plurals name="budget_categories_unchanged">
+        <item quantity="other">%1$d 个已有预算的类别保持不变。</item>
+    </plurals>
+    <plurals name="automation_average_recent_plural">
+        <item quantity="other">最近 %1$d 个月的平均值</item>
+    </plurals>
+
+    <!-- Home screen, its section titles and Customize Home. -->
+    <string name="home_title">主页</string>
+    <string name="home_customize">自定义主页</string>
+    <string name="home_ready_to_budget">待预算</string>
+    <string name="home_favorite_categories">收藏的类别</string>
+    <string name="home_favorite_accounts">收藏的账户</string>
+    <string name="home_upcoming">即将到期</string>
+    <string name="home_this_month">本月</string>
+    <string name="home_reports">报表</string>
+    <string name="home_recent_activity">最近活动</string>
+    <string name="home_no_budget_month">未选择预算月份</string>
+    <string name="home_no_favorite_categories">还没有收藏的类别</string>
+    <string name="home_no_favorite_accounts">还没有收藏的账户</string>
+    <string name="home_no_upcoming">没有即将到期的账单或计划</string>
+    <string name="home_dashboards">仪表盘和财务洞察</string>
+    <string name="home_view_all_reports">查看所有报表</string>
+    <string name="home_income">收入</string>
+    <string name="home_spent">已花费</string>
+    <string name="home_net">净额</string>
+    <string name="home_spending">支出</string>
+    <string name="home_activity">活动</string>
+    <string name="home_no_recent_activity">没有最近活动</string>
+    <string name="home_transaction">交易</string>
+    <string name="home_overdue">已逾期</string>
+    <string name="home_due_today">今天到期</string>
+    <string name="home_due_tomorrow">明天到期</string>
+    <string name="home_due_date">%1$s 到期</string>
+    <string name="home_scheduled">已计划</string>
+    <string name="home_account_checking">支票账户</string>
+    <string name="home_account_savings">储蓄账户</string>
+    <string name="home_account_credit">信用卡</string>
+    <string name="home_account_investment">投资</string>
+    <string name="home_account_mortgage">房贷</string>
+    <string name="home_account_debt">债务</string>
+    <string name="home_restore_layout">恢复默认布局</string>
+    <string name="home_customize_hint">拖动手柄可重新排序，也可使用上下箭头。“待预算”始终排在第一位。</string>
+    <string name="home_drag_reorder">拖动以重新排序 %1$s</string>
+    <string name="home_move_up">上移 %1$s</string>
+    <string name="home_move_down">下移 %1$s</string>
+    <string name="home_show_section">在主页上显示 %1$s</string>
+    <string name="home_required">必需</string>
+    <string name="home_open_budget">打开预算</string>
+    <string name="home_available_to_assign">可分配</string>
+    <string name="home_open_current_budget">打开当前预算</string>
+    <string name="home_amount_available">可用 %1$s</string>
+    <string name="home_goal_progress">已为目标筹集 %1$d%%</string>
+    <string name="home_spending_progress">%1$s · 已花费 %2$d%%</string>
+    <string name="home_view_calendar">查看日历</string>
+    <string name="home_explore_trends">探索预算趋势</string>
+    <string name="home_open_dashboard">打开仪表盘</string>
+    <string name="home_view_all_activity">查看所有活动</string>
+    <string name="home_summary_start_title">每月起始日</string>
+    <string name="home_summary_start_earlier">将周期起始日提前一天</string>
+    <string name="home_summary_start_later">将周期起始日推后一天</string>
+    <string name="home_summary_start_description">第 1 天即日历月。如果您在月中发薪，请选择其他日期；这样主页摘要、自定义报表的月份预设（本月、上月、最近 N 个月）以及“摘要”“现金流”和“桑基图”卡片的默认范围，就会从该日起算到下一周期起始日的前一天。此设置仅适用于本设备；Actual 显示的是日历月。天数较少的月份使用其最后一天。</string>
+    <string name="home_summary_start_adjustment_title">如果起始日是周末</string>
+    <string name="home_summary_adjustment_none">保持该日期</string>
+    <string name="home_summary_adjustment_previous">上一个工作日</string>
+    <string name="home_summary_adjustment_next">下一个工作日</string>
+    <string name="home_summary_weekend_title">周末日</string>
+    <string name="home_summary_weekend_description">将月初调整到工作日时会跳过周末日，跳过周末的计划也会在这些日期显示为到期。Actual 本身以周六和周日为周末，因此这只会改变您在本设备上看到的内容。您在下方列出的假日也会以同样方式跳过。</string>
+    <string name="settings_holidays_row_title">假日</string>
+    <string name="settings_holidays_row_none">未列出</string>
+    <string name="settings_holidays_row_count">已列出 %1$d 个</string>
+    <string name="settings_holidays_empty">未列出假日。请添加您的银行或办公室休息的日期。</string>
+    <string name="settings_holidays_add">添加假日</string>
+    <string name="settings_holidays_label">名称（可选）</string>
+    <string name="settings_holidays_remove">移除 %1$s</string>
+    <string name="settings_holidays_note">在将月初调整到工作日以及显示跳过周末的计划时，假日会像周末日一样被跳过。此设置仅适用于本设备；Actual 以周六和周日为周末。过去的日期会保留，直到您将其移除。</string>
+
+    <plurals name="home_transactions_count">
+        <item quantity="other">%1$d 笔交易</item>
+    </plurals>
+    <string name="home_collapse_section">收起 %1$s</string>
+    <string name="home_expand_section">展开 %1$s</string>
+    <string name="home_greeting">问候语</string>
+    <string name="home_greeting_morning">早上好</string>
+    <string name="home_greeting_afternoon">下午好</string>
+    <string name="home_greeting_evening">晚上好</string>
+    <string name="home_greeting_morning_named">早上好，%1$s</string>
+    <string name="home_greeting_afternoon_named">下午好，%1$s</string>
+    <string name="home_greeting_evening_named">晚上好，%1$s</string>
+    <plurals name="home_greeting_categories">
+        <item quantity="other">%2$d 个类别中有 %1$d 个在预算内</item>
+    </plurals>
+    <plurals name="home_greeting_uncategorized">
+        <item quantity="other">本月有 %d 笔交易需要分类</item>
+    </plurals>
+    <plurals name="home_greeting_bills_due">
+        <item quantity="other">本周有 %d 笔账单到期</item>
+    </plurals>
+    <plurals name="home_greeting_added">
+        <item quantity="other">本周新增了 %d 笔交易</item>
+    </plurals>
+    <string name="home_greeting_open_home">打开主页</string>
+    <string name="home_greeting_dismiss">关闭问候语</string>
+</resources>
