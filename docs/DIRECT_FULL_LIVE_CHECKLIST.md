@@ -1,8 +1,8 @@
 # Direct Full: sandbox and go-live checklist
 
-> **On hold (2026-11-21).** Website sales are not planned for now, and the Paddle
-> live application was declined. Keep this checklist for reference only; going live
-> would need a new seller-of-record provider and fresh legal copy first.
+> **On hold (2026-11-21).** Website sales are not planned for now. Keep this
+> checklist for reference only; going live would need a seller-of-record provider
+> and fresh legal copy first.
 
 Website purchase activation is sandbox-only. This lists what is still unverified
 and what must be done before live sales. See [DIRECT_FULL.md](DIRECT_FULL.md) for
