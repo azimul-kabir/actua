@@ -288,6 +288,11 @@
     <string name="settings_app_icon_dark">Dark</string>
     <string name="settings_app_icon_mono">Mono</string>
     <string name="settings_app_icon_light">Light</string>
+    <string name="settings_app_icon_latte">Latte</string>
+    <string name="settings_app_icon_mocha">Mocha</string>
+    <string name="settings_app_icon_gradient">Gradient</string>
+    <string name="settings_app_icon_midnight">Midnight</string>
+    <string name="settings_app_icon_paper">Paper</string>
     <string name="settings_app_icon_note">Choose the icon shown on your home screen and app drawer. It changes when you leave Actua, and some launchers take a moment to update it.</string>
     <string name="settings_accent_color">Accent color</string>
     <string name="settings_accent_violet">Violet (default)</string>

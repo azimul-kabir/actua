@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added ten new app icons for supporters: Teal, Amber, Rose, Forest, Ocean, Latte, Mocha, Gradient, Midnight and Paper ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
+
 ### Changed
 
 - Changed the Quick Settings tile label from Add transaction to Transaction ([#1725](https://github.com/azimul-kabir/actua/pull/1725))

@@ -17,6 +17,16 @@ enum class AppIcon(val aliasName: String, @StringRes val labelRes: Int, @Drawabl
     Dark("LauncherDark", R.string.settings_app_icon_dark, R.mipmap.actua_launcher_dark),
     Mono("LauncherMono", R.string.settings_app_icon_mono, R.mipmap.actua_launcher_mono),
     Light("LauncherLight", R.string.settings_app_icon_light, R.mipmap.actua_launcher_light),
+    Teal("LauncherTeal", R.string.settings_accent_teal, R.mipmap.actua_launcher_teal),
+    Amber("LauncherAmber", R.string.settings_accent_amber, R.mipmap.actua_launcher_amber),
+    Rose("LauncherRose", R.string.settings_accent_rose, R.mipmap.actua_launcher_rose),
+    Forest("LauncherForest", R.string.settings_accent_forest, R.mipmap.actua_launcher_forest),
+    Ocean("LauncherOcean", R.string.settings_accent_ocean, R.mipmap.actua_launcher_ocean),
+    Latte("LauncherLatte", R.string.settings_app_icon_latte, R.mipmap.actua_launcher_latte),
+    Mocha("LauncherMocha", R.string.settings_app_icon_mocha, R.mipmap.actua_launcher_mocha),
+    Gradient("LauncherGradient", R.string.settings_app_icon_gradient, R.mipmap.actua_launcher_gradient),
+    Midnight("LauncherMidnight", R.string.settings_app_icon_midnight, R.mipmap.actua_launcher_midnight),
+    Paper("LauncherPaper", R.string.settings_app_icon_paper, R.mipmap.actua_launcher_paper),
 }
 
 /** Only the default icon is free; the others are Supporter extras. */
