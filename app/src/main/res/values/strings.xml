@@ -2,7 +2,6 @@
     <string name="app_name" translatable="false">Actua</string>
     <string name="widget_budget_snapshot">Budget snapshot</string>
     <string name="widget_favourite_categories">Favourite categories</string>
-    <string name="widget_quick_transaction">Quick transaction</string>
     <string name="widget_account_balances">Account balances</string>
     <string name="widget_ready">Ready to budget</string>
     <string name="widget_budgeted">Budgeted</string>

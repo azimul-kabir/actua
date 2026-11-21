@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.data.security
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -35,7 +36,8 @@ class CredentialStore(context: Context) {
         get() {
             preferences.getString(LEGACY_HEADERS, null)?.let { legacy ->
                 val headers = runCatching { parseHeaders(legacy) }.getOrDefault(emptyMap())
-                writeHeaders(headers, preferences.edit()).commit()
+                // Asynchronous is enough: if the process dies first, the plaintext copy is migrated again.
+                writeHeaders(headers, preferences.edit()).apply()
                 return headers
             }
             val encrypted = preferences.getString(HEADERS, null) ?: return emptyMap()
@@ -65,6 +67,7 @@ class CredentialStore(context: Context) {
      * Forgets only the rejected token, like Actual removing `user-token`. The server addresses,
      * headers, downloaded budgets, their encryption keys and unsynced changes are kept for re-sign-in.
      */
+    @SuppressLint("ApplySharedPref") // The token removal must reach disk before the next request or process death.
     fun expireSession() {
         preferences.edit().remove("token").remove("token_iv").putBoolean(SESSION_EXPIRED, true).commit()
     }
@@ -85,6 +88,7 @@ class CredentialStore(context: Context) {
         })
     }
 
+    @SuppressLint("ApplySharedPref") // Credentials must be gone from disk before the process restarts.
     internal fun clearCredentialsNow() {
         preferences.edit().clear().commit()
     }

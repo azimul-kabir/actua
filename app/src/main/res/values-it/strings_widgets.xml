@@ -26,6 +26,7 @@
     <string name="widget_schedule_period_prompt">Mostra le transazioni pianificate in scadenza entro:</string>
     <plurals name="widget_period_days">
         <item quantity="one">%d giorno</item>
+        <item quantity="many">%d giorni</item>
         <item quantity="other">%d giorni</item>
     </plurals>
     <!-- Spoken descriptions for TalkBack. A row is one announcement; hidden balances are never read out. -->
@@ -85,6 +86,7 @@
     <string name="widget_sample_report_card">Patrimonio netto</string>
     <plurals name="widget_report_card_days">
         <item quantity="one">%d giorno</item>
+        <item quantity="many">%d giorni</item>
         <item quantity="other">%d giorni</item>
     </plurals>
     <string name="widget_report_card_years">%1$s anni</string>
@@ -97,10 +99,12 @@
     <string name="widget_due_tomorrow">Domani</string>
     <plurals name="widget_due_in_days">
         <item quantity="one">Tra %d giorno</item>
+        <item quantity="many">Tra %d giorni</item>
         <item quantity="other">Tra %d giorni</item>
     </plurals>
     <plurals name="widget_days_overdue">
         <item quantity="one">%d giorno di ritardo</item>
+        <item quantity="many">%d giorni di ritardo</item>
         <item quantity="other">%d giorni di ritardo</item>
     </plurals>
 
@@ -109,6 +113,7 @@
     <string name="credit_card_due_tomorrow">domani</string>
     <plurals name="credit_card_due_in_days">
         <item quantity="one">tra %d giorno</item>
+        <item quantity="many">tra %d giorni</item>
         <item quantity="other">tra %d giorni</item>
     </plurals>
     <string name="credit_card_notification_title">Pagamento %1$s in scadenza %2$s</string>

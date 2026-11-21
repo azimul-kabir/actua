@@ -238,7 +238,6 @@
     <string name="account_note">メモ</string>
     <string name="account_add_note">メモを追加</string>
     <string name="account_note_placeholder">口座のメモ</string>
-    <string name="amount_paste">貼り付け</string>
     <string name="amount_paste_description">クリップボードから金額を貼り付けます</string>
     <string name="amount_paste_not_found">クリップボードに金額が見つかりません</string>
     <string name="scan_receipt">レシートをスキャン</string>
@@ -287,8 +286,6 @@
     <string name="receipt_folder_dialog_message">このフォルダ内の写真はActuaの外にあります。アプリロックでは保護されず、フォルダにアクセスできる他のアプリから見ることができ、Nextcloudなどフォルダを同期するアプリがコピーします。Actuaは、設定している場合、アクセス可能な写真を暗号化されたWebDAVバックアップに含めます。</string>
     <string name="receipt_folder_dialog_existing">すでに保持している写真は元の場所に残り、移動されません。後でプライベートストレージに戻した場合、フォルダに残った写真はActuaに表示されなくなります。</string>
     <string name="receipt_folder_choose">フォルダを選択</string>
-    <string name="amount_clear">クリア</string>
     <string name="amount_clear_description">金額をクリア</string>
-    <string name="amount_undo">元に戻す</string>
     <string name="amount_undo_description">クリアを元に戻す</string>
 </resources>

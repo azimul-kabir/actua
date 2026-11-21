@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.data.sync
 
 import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.SystemClock
 import androidx.work.BackoffPolicy
@@ -69,6 +70,7 @@ object ActualSyncRunner {
     internal fun workGeneration(context: Context): Long = context.applicationContext
         .getSharedPreferences("actua-sync-work", Context.MODE_PRIVATE).getLong("generation", 0L)
 
+    @SuppressLint("ApplySharedPref") // The new generation must be on disk before queued work can run after process death.
     @Synchronized
     internal fun invalidateScheduledWork(context: Context) {
         check(context.applicationContext.getSharedPreferences("actua-sync-work", Context.MODE_PRIVATE)
