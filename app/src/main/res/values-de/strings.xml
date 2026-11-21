@@ -1,0 +1,33 @@
+<resources>
+    <string name="widget_budget_snapshot">Budgetübersicht</string>
+    <string name="widget_favourite_categories">Lieblingskategorien</string>
+    <string name="widget_quick_transaction">Schnelltransaktion</string>
+    <string name="widget_account_balances">Kontostände</string>
+    <string name="widget_ready">Zu budgetieren</string>
+    <string name="widget_budgeted">Budgetiert</string>
+    <string name="widget_balance">Saldo</string>
+    <string name="widget_expense">− Ausgabe</string>
+    <string name="widget_income">+ Einnahme</string>
+    <string name="widget_transfer">⇄ Überweisung</string>
+    <string name="widget_no_budget">Öffne Actua, um ein Budget auszuwählen</string>
+    <string name="widget_no_categories">Keine Kategorien verfügbar</string>
+    <string name="widget_no_accounts">Keine Konten verfügbar</string>
+    <string name="widget_upcoming_schedules">Anstehende Zeitpläne</string>
+    <string name="widget_no_schedules">Keine anstehenden geplanten Transaktionen</string>
+    <string name="shortcut_add_expense">Ausgabe hinzufügen</string>
+    <string name="tasker_queue_transaction">Transaktion in die Warteschlange stellen</string>
+    <string name="shortcut_add_income">Einnahme hinzufügen</string>
+    <string name="shortcut_add_transfer">Überweisung hinzufügen</string>
+    <string name="shortcut_search">Suchen</string>
+    <string name="shortcut_review_captured">Erfasste prüfen</string>
+    <string name="shortcut_unavailable">Öffne Actua, um diese Aktion zu nutzen</string>
+    <string name="settings_language">Sprache</string>
+    <string name="settings_language_system">Systemstandard</string>
+    <string name="settings_language_english">Englisch</string>
+    <string name="settings_language_portuguese_brazil">Português (Brasil)</string>
+    <string name="settings_language_spanish">Español</string>
+    <string name="settings_language_french">Français</string>
+    <string name="settings_language_german">Deutsch</string>
+    <string name="tile_add_transaction">Transaktion</string>
+    <string name="tile_add_transaction_description">Transaktion hinzufügen</string>
+</resources>

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Demo budget family: seeded display content for the local-only demo budget.
+     The first 36 keys mirror #424's strings_demo.xml (names verbatim); later keys
+     cover demo payees, saved reports and dashboard cards added after #424.
+     Seeded IDs (account/category/payee rows) stay locale-neutral; only display
+     names localize, resolved at seed time via DemoBudgetLabels. -->
+<resources>
+    <string name="demo_budget_name">Actua-Demo-Budget</string>
+
+    <string name="demo_account_checking">Alltags-Girokonto</string>
+    <string name="demo_account_savings">Notfall-Sparkonto</string>
+    <string name="demo_account_credit">Alltags-Kreditkarte</string>
+    <string name="demo_account_investment">Anlagekonto</string>
+
+    <string name="demo_group_income">Einnahmen</string>
+    <string name="demo_group_essentials">Grundbedarf</string>
+    <string name="demo_group_lifestyle">Lebensstil</string>
+    <string name="demo_group_goals">Ziele</string>
+
+    <string name="demo_category_salary">Gehalt</string>
+    <string name="demo_category_starting_balances">Anfangssalden</string>
+    <string name="demo_category_rent">Miete</string>
+    <string name="demo_category_groceries">Lebensmittel</string>
+    <string name="demo_category_utilities">Nebenkosten</string>
+    <string name="demo_category_transport">Verkehr</string>
+    <string name="demo_category_dining_out">Auswärts essen</string>
+    <string name="demo_category_entertainment">Unterhaltung</string>
+    <string name="demo_category_emergency_fund">Notfallfonds</string>
+    <string name="demo_category_vacation">Urlaub</string>
+
+    <string name="demo_payee_employer">Arbeitgeber</string>
+    <string name="demo_payee_landlord">Vermieter</string>
+    <string name="demo_payee_supermarket">Frischmarkt</string>
+    <string name="demo_payee_utilities">Stadtwerke</string>
+    <string name="demo_payee_fuel">Tankstelle</string>
+    <string name="demo_payee_restaurant">Café um die Ecke</string>
+    <string name="demo_payee_streaming">StreamBox</string>
+    <string name="demo_payee_corner_grocer">Tante-Emma-Laden</string>
+    <string name="demo_payee_big_box_store">Großmarkt</string>
+    <string name="demo_payee_internet">Glasfaser-Netz</string>
+    <string name="demo_payee_mobile">Mobilfunk &amp; Co</string>
+    <string name="demo_payee_transit">Stadtverkehr</string>
+    <string name="demo_payee_pizza">Pizzahaus</string>
+    <string name="demo_payee_sushi">Sakura Sushi</string>
+    <string name="demo_payee_cinema">Kinopolis</string>
+    <string name="demo_payee_books">Buchhandlung Seitenwender</string>
+    <string name="demo_payee_airline">SkyWay Airlines</string>
+    <string name="demo_payee_index_fund">Indexfonds</string>
+
+    <string name="demo_note_groceries">Monatliche Lebensmittel für den Haushalt. Ändere das Ziel oder verschiebe Geld in diese Kategorie.</string>
+    <string name="demo_note_checking">Demo-Girokonto. Es enthält verbuchte, nicht verbuchte und abgeglichene Transaktionen.</string>
+
+    <string name="demo_schedule_salary">Monatliches Gehalt</string>
+    <string name="demo_schedule_rent">Miete</string>
+    <string name="demo_schedule_streaming">Streaming-Abo</string>
+    <string name="demo_schedule_card_payment">Kreditkartenzahlung</string>
+
+    <string name="demo_report_overview">Übersicht</string>
+    <string name="demo_report_welcome">**Willkommen bei der Actua-Demo** 👋\n\nDieses Budget wird nur auf diesem Gerät gespeichert. Probiere Ziele, Regeln, Zeitpläne, Kontoabgleich, Kreditkarten, Kredite mit Tilgungsplaner und Berichte aus.</string>
+    <string name="demo_report_this_month">Dieser Monat</string>
+    <string name="demo_report_spending_by_category">Ausgaben nach Kategorie</string>
+    <string name="demo_report_monthly_spending">Monatliche Ausgaben</string>
+    <string name="demo_report_top_payees">Wichtigste Zahlungsempfänger</string>
+    <string name="demo_report_spending_trend">Ausgabentrend</string>
+    <string name="demo_report_net_worth">Nettovermögen</string>
+    <string name="demo_report_cash_flow">Cashflow</string>
+    <string name="demo_report_food_per_month">Essen pro Monat</string>
+    <string name="demo_report_where_the_money_went">Wohin das Geld geflossen ist</string>
+    <string name="demo_report_budget_analysis">Budgetanalyse</string>
+    <string name="demo_report_age_of_money">Alter des Geldes</string>
+    <string name="demo_report_calendar">Kalender</string>
+
+    <!-- Loans, a second card, the Debt group and wider category coverage (#1630). -->
+    <string name="demo_account_cash">Bargeld-Geldbörse</string>
+    <string name="demo_account_rewards_card">Reise-Bonuskarte</string>
+    <string name="demo_account_car_loan">Autokredit</string>
+    <string name="demo_account_student_loan">Studienkredit</string>
+    <string name="demo_group_debt">Schulden</string>
+    <string name="demo_category_freelance">Freiberuflich</string>
+    <string name="demo_category_interest_income">Zinsen</string>
+    <string name="demo_category_health">Gesundheit</string>
+    <string name="demo_category_insurance">Versicherung</string>
+    <string name="demo_category_shopping">Einkäufe</string>
+    <string name="demo_category_subscriptions">Abonnements</string>
+    <string name="demo_category_gifts">Geschenke</string>
+    <string name="demo_category_car_loan">Autokredit</string>
+    <string name="demo_category_student_loan">Studienkredit</string>
+    <string name="demo_category_card_interest">Kreditkartenzinsen</string>
+    <string name="demo_payee_client">Freiberuflicher Kunde</string>
+    <string name="demo_payee_bank_interest">Sparzinsen</string>
+    <string name="demo_payee_pharmacy">Apotheke um die Ecke</string>
+    <string name="demo_payee_clinic">Familienpraxis</string>
+    <string name="demo_payee_insurance">Sicherer Hafen Versicherung</string>
+    <string name="demo_payee_online_store">Online-Markt</string>
+    <string name="demo_payee_cloud_storage">CloudVault</string>
+    <string name="demo_payee_music">TuneStream</string>
+    <string name="demo_payee_gift_shop">Geschenkgalerie</string>
+    <string name="demo_payee_market_stall">Marktstand</string>
+    <string name="demo_payee_rewards_bank">Bonusbank</string>
+    <string name="demo_note_car_loan">Gehört zum Konto des Autokredits. Kreditzahlungen sind Überweisungen vom Girokonto, die diese Kategorie nutzen; wenn du eine auf dem Kreditbildschirm erfasst, wird sie hier budgetiert.</string>
+    <string name="demo_note_rewards_card">Demo-Kreditkarte mit offenem Saldo. Sie hat einen festen Fälligkeitstag, ein Kreditlimit und monatliche Zinsen.</string>
+    <string name="demo_schedule_rewards_card_payment">Zahlung der Reise-Bonuskarte</string>
+    <string name="demo_schedule_car_loan">Autokredit-Rate</string>
+    <string name="demo_schedule_student_loan">Studienkredit-Rate</string>
+    <string name="demo_schedule_insurance">Versicherung</string>
+</resources>
