@@ -50,7 +50,6 @@
     <string name="loan_payment_no_funding">Un paiement de prêt doit provenir d’un compte ouvert et inclus dans le budget. Ajoutez-en un d’abord.</string>
     <string name="loans_category_optional">Catégorie de budget (facultatif)</string>
     <string name="loans_no_category">Aucune catégorie</string>
-    <string name="loan_payment_category_note">La totalité du paiement est affectée à la catégorie du prêt, tandis que le solde du prêt ne baisse que du capital.</string>
     <string name="navigation_recording_loan_payment">Enregistrement du paiement du prêt</string>
     <string name="account_loan_target">Objectif mensuel</string>
     <string name="account_loan_target_skipped">Objectif ignoré ce mois-ci</string>

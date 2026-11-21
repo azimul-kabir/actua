@@ -50,7 +50,6 @@
     <string name="loan_payment_no_funding">A loan payment has to come from an open, on-budget account. Add one first.</string>
     <string name="loans_category_optional">Budget category (optional)</string>
     <string name="loans_no_category">No category</string>
-    <string name="loan_payment_category_note">The whole payment is assigned to the loan\'s category, while the loan balance drops by the principal alone.</string>
     <string name="navigation_recording_loan_payment">Recording loan payment</string>
     <string name="account_loan_target">Monthly target</string>
     <string name="account_loan_target_skipped">Target skipped this month</string>

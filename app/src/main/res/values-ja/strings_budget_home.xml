@@ -23,9 +23,6 @@
     <string name="budget_options_section_page">ページ</string>
     <string name="budget_options_section_rows">各カテゴリ行</string>
     <string name="budget_options_section_categories">表示するカテゴリ</string>
-    <string name="budget_options_section_summary">%2$d件中%1$d件がオン</string>
-    <string name="budget_options_section_expanded">展開</string>
-    <string name="budget_options_section_collapsed">折りたたみ</string>
     <string name="budget_show_status_dots">ステータスドットを表示</string>
     <string name="budget_switch_budget">予算を切り替え</string>
     <string name="budget_type_confirm_title_tracking">トラッキング予算に切り替えますか？</string>
@@ -329,7 +326,6 @@
     <string name="home_open_budget">予算を開く</string>
     <string name="home_available_to_assign">割り当て可能額</string>
     <string name="home_open_current_budget">現在の予算を開く</string>
-    <string name="home_amount_available">%1$s利用可能</string>
     <string name="home_goal_progress">目標に対して%1$d%%充足</string>
     <string name="home_spending_progress">%1$s · %2$d%%支出</string>
     <string name="home_view_calendar">カレンダーを表示</string>

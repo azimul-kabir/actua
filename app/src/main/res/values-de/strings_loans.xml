@@ -50,7 +50,6 @@
     <string name="loan_payment_no_funding">Eine Kreditzahlung muss von einem offenen Konto im Budget kommen. Füge zuerst eines hinzu.</string>
     <string name="loans_category_optional">Budgetkategorie (optional)</string>
     <string name="loans_no_category">Keine Kategorie</string>
-    <string name="loan_payment_category_note">Die gesamte Zahlung wird der Kategorie des Kredits zugeordnet, während der Kreditsaldo nur um die Tilgung sinkt.</string>
     <string name="navigation_recording_loan_payment">Kreditzahlung wird erfasst</string>
     <string name="account_loan_target">Monatsziel</string>
     <string name="account_loan_target_skipped">Ziel in diesem Monat übersprungen</string>

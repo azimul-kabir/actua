@@ -23,9 +23,6 @@
     <string name="budget_options_section_page">页面</string>
     <string name="budget_options_section_rows">每个类别行</string>
     <string name="budget_options_section_categories">显示的类别</string>
-    <string name="budget_options_section_summary">已开启 %1$d 项，共 %2$d 项</string>
-    <string name="budget_options_section_expanded">已展开</string>
-    <string name="budget_options_section_collapsed">已收起</string>
     <string name="budget_show_status_dots">显示状态圆点</string>
     <string name="budget_switch_budget">切换预算</string>
     <string name="budget_type_confirm_title_tracking">切换为跟踪预算？</string>
@@ -329,7 +326,6 @@
     <string name="home_open_budget">打开预算</string>
     <string name="home_available_to_assign">可分配</string>
     <string name="home_open_current_budget">打开当前预算</string>
-    <string name="home_amount_available">可用 %1$s</string>
     <string name="home_goal_progress">已为目标筹集 %1$d%%</string>
     <string name="home_spending_progress">%1$s · 已花费 %2$d%%</string>
     <string name="home_view_calendar">查看日历</string>

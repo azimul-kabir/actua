@@ -248,7 +248,6 @@
     <string name="account_note">Nota</string>
     <string name="account_add_note">Aggiungi nota</string>
     <string name="account_note_placeholder">Nota del conto</string>
-    <string name="amount_paste">Incolla</string>
     <string name="amount_paste_description">Incolla l’importo dagli appunti</string>
     <string name="amount_paste_not_found">Nessun importo trovato negli appunti</string>
     <string name="scan_receipt">Scansiona ricevuta</string>
@@ -299,8 +298,6 @@
     <string name="receipt_folder_dialog_message">Le foto in questa cartella sono fuori da Actua. Il blocco dell’app non le protegge, altre app con accesso alla cartella possono vederle e un’app che sincronizza la cartella, come Nextcloud, le copierà. Actua include le foto accessibili nei backup WebDAV cifrati se configurati.</string>
     <string name="receipt_folder_dialog_existing">Le foto già conservate restano dove sono e non vengono spostate. Se in seguito torni all’archiviazione privata, le foto rimaste nella cartella non vengono più mostrate in Actua.</string>
     <string name="receipt_folder_choose">Scegli cartella</string>
-    <string name="amount_clear">Cancella</string>
     <string name="amount_clear_description">Cancella importo</string>
-    <string name="amount_undo">Annulla</string>
     <string name="amount_undo_description">Annulla la cancellazione</string>
 </resources>

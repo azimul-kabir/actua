@@ -1,7 +1,6 @@
 <resources>
     <string name="widget_budget_snapshot">Сводка бюджета</string>
     <string name="widget_favourite_categories">Избранные категории</string>
-    <string name="widget_quick_transaction">Быстрая транзакция</string>
     <string name="widget_account_balances">Остатки на счетах</string>
     <string name="widget_ready">Готово к распределению</string>
     <string name="widget_budgeted">Запланировано</string>
