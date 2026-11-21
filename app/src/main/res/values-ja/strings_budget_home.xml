@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared cross-screen strings, keyed as upstream PR #424 names them. -->
+    <string name="common_cancel">キャンセル</string>
+    <string name="common_none">なし</string>
+    <string name="common_search_actua">Actuaを検索</string>
+
+    <!-- Budget toolbar, month picker and display options. -->
+    <string name="budget_choose_month">月を選択</string>
+    <string name="budget_manage_categories">カテゴリを管理</string>
+    <string name="budget_display_options">予算の表示オプション</string>
+    <string name="budget_plan_view">計画ビュー</string>
+    <string name="budget_show_overview">概要を表示</string>
+    <string name="budget_show_warnings">警告を表示</string>
+    <string name="budget_show_spending_details">支出の詳細を表示</string>
+    <string name="budget_show_spent_column">支出列を表示</string>
+    <string name="budget_show_progress_bars">進捗バーを表示</string>
+    <string name="budget_show_group_totals">グループ合計を表示</string>
+    <string name="budget_show_balance_pills">残高ピルを表示</string>
+    <string name="budget_show_goal_icons">目標アイコンを表示</string>
+    <string name="budget_display_options_menu">表示オプション</string>
+    <string name="budget_display_options_title">表示オプション</string>
+    <string name="budget_options_section_page">ページ</string>
+    <string name="budget_options_section_rows">各カテゴリ行</string>
+    <string name="budget_options_section_categories">表示するカテゴリ</string>
+    <string name="budget_options_section_summary">%2$d件中%1$d件がオン</string>
+    <string name="budget_options_section_expanded">展開</string>
+    <string name="budget_options_section_collapsed">折りたたみ</string>
+    <string name="budget_show_status_dots">ステータスドットを表示</string>
+    <string name="budget_switch_budget">予算を切り替え</string>
+    <string name="budget_type_confirm_title_tracking">トラッキング予算に切り替えますか？</string>
+    <string name="budget_type_confirm_title_envelope">封筒式予算に切り替えますか？</string>
+    <string name="budget_type_confirm_all_devices">この予算を同期しているすべてのデバイスで予算タイプが変わります。カテゴリと金額は保持されます。</string>
+    <string name="budget_type_confirm_tracking">トラッキング予算には「未割り当て」の金額がありません。</string>
+    <string name="budget_type_confirm_envelope">封筒式予算では、「未割り当て」からカテゴリに資金を割り当てます。</string>
+    <string name="budget_type_confirm_action">切り替える</string>
+    <string name="budget_hide_fully_spent">使い切ったものを非表示</string>
+    <string name="budget_show_hidden">非表示のカテゴリとグループを表示</string>
+    <string name="budget_show_filters">カテゴリフィルターを表示</string>
+    <string name="budget_expand_all_groups">すべてのグループを展開</string>
+    <string name="budget_collapse_all_groups">すべてのグループを折りたたむ</string>
+    <string name="budget_copy_last_month">先月の予算をコピー</string>
+    <string name="budget_favorites">お気に入り</string>
+    <string name="budget_previous_year">前年</string>
+    <string name="budget_next_year">翌年</string>
+    <string name="budget_current_month">今月</string>
+
+    <!-- Category view filters (BudgetCategoryView). -->
+    <string name="budget_filter_all">すべて</string>
+    <string name="budget_filter_overspent">超過</string>
+    <string name="budget_filter_underfunded">資金不足</string>
+    <string name="budget_filter_overfunded">資金過剰</string>
+    <string name="budget_filter_money_available">利用可能な資金</string>
+
+    <!-- Overview, group headers and category rows. -->
+    <string name="budget_ready_to_budget">未割り当て</string>
+    <string name="budget_to_budget">未割り当て</string>
+    <string name="budget_to_budget_endpoint">未割り当て</string>
+    <string name="budget_projected_savings">予想貯蓄額</string>
+    <string name="budget_overspent">超過</string>
+    <string name="budget_saved">貯蓄済み</string>
+    <string name="budget_held_for_next_month">来月に%1$s保留</string>
+    <string name="budget_expand_group">%1$sを展開</string>
+    <string name="budget_collapse_group">%1$sを折りたたむ</string>
+    <string name="budget_hidden_name">%1$s · 非表示</string>
+    <string name="budget_budgeted">割り当て済み</string>
+    <string name="budget_spent">支出</string>
+    <string name="budget_balance">残高</string>
+    <string name="budget_received_amount">受取 %1$s</string>
+    <string name="budget_budgeted_amount">割り当て %1$s</string>
+    <string name="budget_spent_amount">支出 %1$s</string>
+
+    <!-- Progress-bar states (BudgetProgressState) and their semantic descriptions. -->
+    <string name="budget_progress_goal">目標に対して%1$dパーセント充足</string>
+    <string name="budget_progress_spending">%1$s、利用可能額の%2$dパーセントを支出</string>
+    <string name="budget_progress_unassigned">資金が割り当てられていません</string>
+    <string name="budget_progress_funded">充足済み</string>
+    <string name="budget_progress_partially_spent">一部支出済み</string>
+    <string name="budget_progress_fully_spent">使い切り</string>
+    <string name="budget_progress_overspent">超過</string>
+    <string name="budget_progress_goal_in_progress">目標進行中</string>
+    <string name="budget_progress_goal_reached">目標達成</string>
+    <string name="budget_progress_goal_overfunded">目標を超えて充足</string>
+
+    <!-- Warnings, the overspent sheet and the budget amount editor. -->
+    <string name="budget_auto_assign">自動割り当て</string>
+    <string name="budget_move_money">資金を移動</string>
+    <string name="budget_move_money_plain">資金を移動</string>
+    <string name="budget_fund_goal">「未割り当て」から目標に資金を割り当て (%1$s)</string>
+    <string name="budget_details">詳細</string>
+    <string name="budget_no_suggestions">提案はありません</string>
+    <string name="budget_from">移動元</string>
+    <string name="budget_to">移動先</string>
+    <string name="budget_swap_source_destination">移動元と移動先を入れ替え</string>
+    <string name="budget_available_to_move">移動可能額: %1$s</string>
+    <string name="budget_amount">金額</string>
+    <string name="budget_cover_amount">%1$sを補填</string>
+    <string name="budget_tap_to_cover">タップして超過分を補填</string>
+    <string name="budget_tap_to_categorize">タップして分類</string>
+    <string name="budget_cover_overspending">超過分を補填</string>
+    <string name="budget_choose_category_to_cover">補填するカテゴリを選択</string>
+
+    <!-- To Budget summary sheet. -->
+    <string name="budget_cover_to_budget">「未割り当て」を補填</string>
+    <string name="budget_summary">予算サマリー</string>
+    <string name="budget_cover_from">補填元</string>
+    <string name="budget_move_to_category">カテゴリへ移動</string>
+    <string name="budget_hold_for_next_month">来月に保留</string>
+    <string name="budget_reset_hold">保留をリセット</string>
+    <string name="budget_choose_category_cover">資金の移動元カテゴリを選択</string>
+    <string name="budget_choose_category_fund">「未割り当て」から資金を割り当てるカテゴリを選択</string>
+    <string name="budget_category">カテゴリ</string>
+    <string name="budget_no_categories">利用できるカテゴリがありません</string>
+    <string name="budget_up_to">最大%1$s</string>
+    <string name="budget_set_aside">「未割り当て」の一部または全部を、今は割り当てずに取り置く</string>
+
+    <!-- Category details, actions sheets and the per-category budget menu. -->
+    <string name="budget_category_options">カテゴリのオプション</string>
+    <string name="budget_add_favorite">お気に入りに追加</string>
+    <string name="budget_remove_favorite">お気に入りから削除</string>
+    <string name="budget_favorite_added">%1$sをお気に入りに追加しました</string>
+    <string name="budget_favorite_removed">%1$sをお気に入りから削除しました</string>
+    <string name="accounts_favorite_added">%1$sをお気に入りに追加しました</string>
+    <string name="accounts_favorite_removed">%1$sをお気に入りから削除しました</string>
+    <string name="budget_transactions_month">今月の取引</string>
+    <string name="budget_rename_category">カテゴリ名を変更</string>
+    <string name="budget_rename_group">グループ名を変更</string>
+    <string name="budget_hide_category">カテゴリを非表示</string>
+    <string name="budget_unhide_category">カテゴリを再表示</string>
+    <string name="budget_delete_category">カテゴリを削除</string>
+    <string name="budget_budget">予算</string>
+    <string name="budget_month_note">月のメモ</string>
+    <string name="budget_note">メモ</string>
+    <string name="budget_add_note">メモを追加</string>
+    <string name="budget_category_note">カテゴリのメモ</string>
+    <string name="budget_rollover_overspending">超過分を繰り越す</string>
+    <string name="budget_rollover_description">超過分を翌月に繰り越します</string>
+    <string name="budget_recent_activity">最近のアクティビティ</string>
+    <string name="budget_view_all">すべて表示</string>
+    <string name="budget_no_recent_transactions">最近の取引はありません</string>
+    <string name="budget_unknown_payee">不明な支払先</string>
+    <string name="budget_stop_holding_automatically">自動保留を停止</string>
+    <string name="budget_hold_automatically_next_month">来月に自動で保留</string>
+    <string name="budget_stop_all_automatic_holds">今月のすべての自動保留を停止</string>
+    <string name="budget_action_average_3">3か月平均に設定</string>
+    <string name="budget_action_average_6">6か月平均に設定</string>
+    <string name="budget_action_yearly_average">年間平均に設定</string>
+    <string name="budget_action_copy_year_end">年末までの残りの月にコピー</string>
+
+    <!-- Target row in category details. -->
+    <string name="budget_notes_managed_target">メモで管理される目標</string>
+    <string name="budget_advanced_target">詳細な目標</string>
+    <string name="budget_managed_notes">カテゴリのメモで管理</string>
+    <string name="budget_managed_actual">Actual Budgetで管理</string>
+    <string name="budget_view_target_info">目標の情報を表示</string>
+    <string name="budget_balance_has_target">目標あり</string>
+    <string name="budget_balance_goal_not_started">目標未開始</string>
+    <string name="budget_edit_automation_list">自動化リストを編集 · 予算全体のプレビュー後に適用</string>
+    <string name="budget_set_target">目標を設定</string>
+    <string name="budget_plan_amount">割り当て額を計画</string>
+    <string name="budget_auto_assign_target_hint">自動割り当てで目標を利用できます</string>
+    <string name="budget_no_schedule_linked">スケジュールが関連付けられていません</string>
+    <string name="budget_refill_balance_cap">カテゴリの残高上限まで補充</string>
+    <string name="budget_capped_amount">上限 %1$s %2$s</string>
+    <string name="budget_hold_short">保留</string>
+    <string name="budget_every_period">%1$sごと</string>
+    <string name="budget_every_count_period">%1$d %2$sごと</string>
+    <string name="budget_percent_last_month">先月の%2$sの%1$d%%</string>
+    <string name="budget_percent_this_month">今月の%2$sの%1$d%%</string>
+    <string name="budget_copy_months_ago">%1$dか月前をコピー</string>
+    <string name="budget_daily_cap">日次の残高上限</string>
+    <string name="budget_weekly_cap">週次の残高上限</string>
+    <string name="budget_monthly_cap">月次の残高上限</string>
+    <string name="budget_resets_monthly">毎月リセット</string>
+    <string name="budget_target_month">目標月 %1$s</string>
+    <string name="budget_target_date">目標日</string>
+    <string name="budget_recalculates_monthly">毎月再計算</string>
+    <string name="budget_target_only">目標のみ</string>
+    <string name="budget_after_other_automations">他の自動化の後</string>
+    <string name="budget_at_priority">この優先度で</string>
+    <string name="budget_schedule_driven">スケジュール連動</string>
+    <string name="budget_due_amount">%1$s後に期限</string>
+    <string name="budget_no_auto_funding">自動では資金を要求しません</string>
+    <string name="budget_no_auto_budgeting">自動では資金を割り当てません</string>
+    <string name="budget_applied_preview">予算全体のプレビューに適用済み</string>
+    <string name="budget_schedule_missing">関連付けたスケジュールが見つかりません — タップして再関連付け</string>
+    <string name="budget_auto_assign_amount">自動割り当て %1$s</string>
+    <string name="budget_spent_last_month">先月の支出</string>
+    <string name="budget_budgeted_last_month">先月の割り当て</string>
+    <string name="budget_reset_balance_zero">残高をゼロにリセット</string>
+    <string name="budget_set_budgeted_zero">割り当てをゼロに設定</string>
+    <string name="budget_view_target">目標を表示</string>
+    <string name="budget_set_automations">自動化を設定</string>
+    <string name="budget_edit_automations">自動化を編集</string>
+    <string name="budget_target">目標</string>
+    <string name="budget_edit_target">目標を編集</string>
+
+    <!-- Target type labels (BudgetTarget.Type), keyed as upstream PR #424 names them. -->
+    <string name="target_fixed_label">固定額</string>
+    <string name="target_schedule_label">スケジュールを補填</string>
+    <string name="target_by_date_label">期日までに貯める</string>
+    <string name="target_percentage_label">収入の%%</string>
+    <string name="target_history_label">履歴から</string>
+    <string name="target_refill_label">上限まで補充</string>
+    <string name="target_remainder_label">残り全額</string>
+    <string name="target_limit_label">残高上限</string>
+    <string name="target_goal_label">長期目標</string>
+
+    <!-- Period words used by "Every …" target timing, keyed as PR #424 names them. -->
+    <string name="automation_period_day_singular">日</string>
+    <string name="automation_period_day_plural">日</string>
+    <string name="automation_period_week_singular">週間</string>
+    <string name="automation_period_week_plural">週間</string>
+    <string name="automation_period_month_singular">か月</string>
+    <string name="automation_period_month_plural">か月</string>
+    <string name="automation_period_year_singular">年</string>
+    <string name="automation_period_year_plural">年</string>
+    <string name="automation_limit_daily">日次</string>
+    <string name="automation_limit_weekly">週次</string>
+    <string name="automation_limit_monthly">月次</string>
+    <string name="automation_weight_summary">重み %1$d</string>
+
+    <!-- Add-to-budget sheet and the template/cleanup/zero/average previews. -->
+    <string name="budget_add_to_budget">予算に追加</string>
+    <string name="budget_apply_templates">予算テンプレートを適用</string>
+    <string name="budget_overwrite_templates">予算テンプレートで上書き</string>
+    <string name="budget_month_end_cleanup">月末の整理</string>
+    <string name="budget_set_yearly_average">予算を年間平均に設定</string>
+    <string name="budget_set_month_average">予算を%1$dか月平均に設定</string>
+    <string name="budget_set_budgets_zero">予算をゼロに設定</string>
+    <string name="budget_zero_intro">このプレビューを適用するまで何も変更されません。%1$sのすべてのカテゴリの割り当て額がゼロにリセットされます。</string>
+    <string name="budget_zero_up_to_date">すべてのカテゴリはすでにゼロです。</string>
+    <string name="budget_average_intro">このプレビューを適用するまで何も変更されません。%1$sの表示中の各カテゴリの予算は、最大%2$dか月分の平均アクティビティに設定されます。</string>
+    <string name="budget_average_up_to_date">すべてのカテゴリはすでに平均額です。</string>
+    <string name="budget_copy_year_end_title">年末までの残りの月にコピーしますか？</string>
+    <string name="budget_copy_year_end_body">%1$sの予算%2$sが、%3$s以降12月までのすべての月の予算に置き換わります。</string>
+    <string name="budget_copy">コピー</string>
+    <string name="budget_review_template">予算テンプレートを確認</string>
+    <string name="budget_review_template_named">予算テンプレートを確認 · %1$s</string>
+    <string name="budget_template_overwrite_intro">確認するまで何も変更されません。対応する自動化が%1$sの既存の割り当て額を再計算します。</string>
+    <string name="budget_template_apply_intro">このプレビューを適用するまで何も変更されません。すでに割り当て額があるカテゴリは変更されません。</string>
+    <string name="budget_no_unbudgeted_changes">変更が必要な未割り当てのカテゴリはありません。</string>
+    <string name="budget_targets_current">対応しているすべての目標はすでに最新です。</string>
+    <string name="budget_net_change">差し引きの変動</string>
+    <string name="budget_group_goal">%1$s · 目標</string>
+    <string name="budget_unsupported_automations">これらのカテゴリはActuaがまだ安全に評価できない自動化タイプを使っているため、適用されませんでした: %1$s。</string>
+    <string name="budget_available_funds_limited">利用可能な資金が限られています: %1$s。優先度の高い自動化から先に資金が割り当てられました。</string>
+    <string name="budget_remainder_caps">残り全額の上限は次に適用されます: %1$s。プレビューには日次・週次・月次の上限と繰り越しの動作が含まれます。</string>
+    <string name="budget_apply_changes">変更を適用</string>
+    <string name="budget_review_cleanup">月末の整理を確認</string>
+    <string name="budget_cleanup_intro">確認するまで何も変更されません。%1$sの「#cleanup」メモで定義された移動元と移動先のカテゴリの間で、残りの残高を移動します。</string>
+    <string name="budget_apply_cleanup">整理を適用</string>
+    <string name="budget_cleanup_current">変更が必要な整理グループはありません。</string>
+    <string name="budget_cleanup_none">整理用に設定されたカテゴリはありません。</string>
+    <string name="budget_goal_reset">%1$s · 目標をリセット</string>
+    <string name="budget_cleanup_unsupported">整理の定義に対応していないため、変更されませんでした: %1$s。</string>
+    <string name="budget_hide_group">グループを非表示</string>
+    <string name="budget_unhide_group">グループを再表示</string>
+    <string name="budget_budget_details">予算の詳細</string>
+    <string name="budget_edit_budgeted">割り当て額を編集</string>
+    <string name="budget_all_transactions">すべての取引</string>
+
+    <plurals name="budget_automation_count">
+        <item quantity="other">%1$d件の自動化</item>
+    </plurals>
+    <plurals name="budget_average_spent">
+        <item quantity="other">平均支出 (%1$dか月)</item>
+    </plurals>
+    <plurals name="budget_overspent_warning">
+        <item quantity="other">%1$d件のカテゴリが超過</item>
+    </plurals>
+    <plurals name="budget_uncategorized_warning">
+        <item quantity="other">未分類の取引が%1$d件</item>
+    </plurals>
+    <plurals name="budget_targets_already_current">
+        <item quantity="other">対応している目標%1$d件はすでに最新です。</item>
+    </plurals>
+    <plurals name="budget_categories_already_current">
+        <item quantity="other">%1$d件のカテゴリはすでに最新です</item>
+    </plurals>
+    <plurals name="budget_categories_unchanged">
+        <item quantity="other">割り当て済みの%1$d件のカテゴリは変更されませんでした。</item>
+    </plurals>
+    <plurals name="automation_average_recent_plural">
+        <item quantity="other">直近%1$dか月の平均</item>
+    </plurals>
+
+    <!-- Home screen, its section titles and Customize Home. -->
+    <string name="home_title">ホーム</string>
+    <string name="home_customize">ホームをカスタマイズ</string>
+    <string name="home_ready_to_budget">未割り当て</string>
+    <string name="home_favorite_categories">お気に入りカテゴリ</string>
+    <string name="home_favorite_accounts">お気に入り口座</string>
+    <string name="home_upcoming">今後の予定</string>
+    <string name="home_this_month">今月</string>
+    <string name="home_reports">レポート</string>
+    <string name="home_recent_activity">最近のアクティビティ</string>
+    <string name="home_no_budget_month">予算の月が選択されていません</string>
+    <string name="home_no_favorite_categories">お気に入りカテゴリはまだありません</string>
+    <string name="home_no_favorite_accounts">お気に入り口座はまだありません</string>
+    <string name="home_no_upcoming">今後の請求やスケジュールはありません</string>
+    <string name="home_dashboards">ダッシュボードと財務インサイト</string>
+    <string name="home_view_all_reports">すべてのレポートを表示</string>
+    <string name="home_income">収入</string>
+    <string name="home_spent">支出</string>
+    <string name="home_net">差引</string>
+    <string name="home_spending">支出</string>
+    <string name="home_activity">アクティビティ</string>
+    <string name="home_no_recent_activity">最近のアクティビティはありません</string>
+    <string name="home_transaction">取引</string>
+    <string name="home_overdue">期限超過</string>
+    <string name="home_due_today">今日が期限</string>
+    <string name="home_due_tomorrow">明日が期限</string>
+    <string name="home_due_date">期限 %1$s</string>
+    <string name="home_scheduled">予定済み</string>
+    <string name="home_account_checking">普通預金</string>
+    <string name="home_account_savings">貯蓄</string>
+    <string name="home_account_credit">クレジットカード</string>
+    <string name="home_account_investment">投資</string>
+    <string name="home_account_mortgage">住宅ローン</string>
+    <string name="home_account_debt">債務</string>
+    <string name="home_restore_layout">デフォルトのレイアウトに戻す</string>
+    <string name="home_customize_hint">ハンドルをドラッグして並べ替えるか、上下の矢印を使います。「未割り当て」は常に先頭です。</string>
+    <string name="home_drag_reorder">ドラッグして%1$sを並べ替え</string>
+    <string name="home_move_up">%1$sを上に移動</string>
+    <string name="home_move_down">%1$sを下に移動</string>
+    <string name="home_show_section">ホームに%1$sを表示</string>
+    <string name="home_required">必須</string>
+    <string name="home_open_budget">予算を開く</string>
+    <string name="home_available_to_assign">割り当て可能額</string>
+    <string name="home_open_current_budget">現在の予算を開く</string>
+    <string name="home_amount_available">%1$s利用可能</string>
+    <string name="home_goal_progress">目標に対して%1$d%%充足</string>
+    <string name="home_spending_progress">%1$s · %2$d%%支出</string>
+    <string name="home_view_calendar">カレンダーを表示</string>
+    <string name="home_explore_trends">予算全体の傾向を見る</string>
+    <string name="home_open_dashboard">ダッシュボードを開く</string>
+    <string name="home_view_all_activity">すべてのアクティビティを表示</string>
+    <string name="home_summary_start_title">月の開始日</string>
+    <string name="home_summary_start_earlier">期間の開始を1日早める</string>
+    <string name="home_summary_start_later">期間の開始を1日遅らせる</string>
+    <string name="home_summary_start_description">1日はカレンダー上の月です。給与が月の途中で支払われる場合は別の日を選んでください。ホームのサマリー、カスタムレポートの月プリセット（今月、先月、直近N か月）、およびサマリー、キャッシュフロー、サンキーの各カードの既定の期間は、その日から次の開始日の前日までになります。この設定はこのデバイスにのみ適用されます。Actualではカレンダー上の月が表示されます。日数の少ない月では最終日が使われます。</string>
+    <string name="home_summary_start_adjustment_title">開始日が週末の場合</string>
+    <string name="home_summary_adjustment_none">その日のままにする</string>
+    <string name="home_summary_adjustment_previous">前の営業日</string>
+    <string name="home_summary_adjustment_next">次の営業日</string>
+    <string name="home_summary_weekend_title">週末の曜日</string>
+    <string name="home_summary_weekend_description">月の開始日を営業日に移すときには週末の曜日が除外され、週末を除外するスケジュールでは、その曜日が期限として表示されます。Actual自体は土曜と日曜のままなので、この設定はこのデバイスでの表示のみを変更します。下に登録した祝日も同様に除外されます。</string>
+    <string name="settings_holidays_row_title">祝日</string>
+    <string name="settings_holidays_row_none">登録なし</string>
+    <string name="settings_holidays_row_count">%1$d件登録済み</string>
+    <string name="settings_holidays_empty">祝日が登録されていません。銀行や職場が休みの日を追加してください。</string>
+    <string name="settings_holidays_add">祝日を追加</string>
+    <string name="settings_holidays_label">名前（任意）</string>
+    <string name="settings_holidays_remove">%1$sを削除</string>
+    <string name="settings_holidays_note">月の開始日を営業日に移すとき、および週末を除外するスケジュールを表示するときには、祝日も週末の曜日と同じように除外されます。この設定はこのデバイスにのみ適用されます。Actualでは土曜と日曜のままです。過去の日付は削除するまで残ります。</string>
+
+    <plurals name="home_transactions_count">
+        <item quantity="other">%1$d件の取引</item>
+    </plurals>
+    <string name="home_collapse_section">%1$sを折りたたむ</string>
+    <string name="home_expand_section">%1$sを展開</string>
+    <string name="home_greeting">あいさつ</string>
+    <string name="home_greeting_morning">おはようございます</string>
+    <string name="home_greeting_afternoon">こんにちは</string>
+    <string name="home_greeting_evening">こんばんは</string>
+    <string name="home_greeting_morning_named">おはようございます、%1$sさん</string>
+    <string name="home_greeting_afternoon_named">こんにちは、%1$sさん</string>
+    <string name="home_greeting_evening_named">こんばんは、%1$sさん</string>
+    <plurals name="home_greeting_categories">
+        <item quantity="other">%2$d件のカテゴリのうち%1$d件が予算内</item>
+    </plurals>
+    <plurals name="home_greeting_uncategorized">
+        <item quantity="other">今月は分類が必要な取引が%d件</item>
+    </plurals>
+    <plurals name="home_greeting_bills_due">
+        <item quantity="other">今週期限の請求が%d件</item>
+    </plurals>
+    <plurals name="home_greeting_added">
+        <item quantity="other">今週追加した取引が%d件</item>
+    </plurals>
+    <string name="home_greeting_open_home">ホームを開く</string>
+    <string name="home_greeting_dismiss">あいさつを閉じる</string>
+</resources>

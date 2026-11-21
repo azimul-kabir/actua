@@ -2,7 +2,7 @@ name: Google Play Listing Text
 
 # Updates the store listing's title, short description and full description on Google Play
 # from fastlane/metadata/android/<language>/{title,short_description,full_description}.txt for every
-# language folder (en-US, fr-FR, de-DE, it-IT, ru-RU, es-ES, pt-BR). It never
+# language folder (en-US, fr-FR, de-DE, it-IT, ja-JP, ru-RU, es-ES, pt-BR). It never
 # touches the screenshots, feature graphic, icon, video, release notes or any release. Run it
 # manually after changing those files. By default it only compares the files with the live
 # listing and shows what would change; turn on "apply" to publish.
