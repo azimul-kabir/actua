@@ -53,7 +53,7 @@ Only when asked. Follow `.github/MAINTAINER_NOTES.md` ("Release preparation chec
 4. Add `docs/releases/<version>.md`, matching the structure of the existing files.
 5. Sweep every markdown doc for staleness, especially `README.md` and `BACKEND_PARITY.md`.
 6. Update `RELEASE_SMOKE_TEST.md` for new behavior.
-7. Add `fastlane/metadata/android/<language>/changelogs/<versionCode>.txt` for every language folder (en-US, fr-FR, de-DE, it-IT, es-ES, pt-BR; 500 characters at most, short bullets) and update the store listing text in every language when features change. The release fails if a language is missing. Refresh store images only when the UI changed noticeably.
+7. Add `fastlane/metadata/android/<language>/changelogs/<versionCode>.txt` for every language folder (en-US, fr-FR, de-DE, it-IT, ja-JP, es-ES, pt-BR; 500 characters at most, short bullets) and update the store listing text in every language when features change. The release fails if a language is missing. Refresh store images only when the UI changed noticeably.
 8. Open the release PR linked to the issue. **Merging it publishes to Google Play and GitHub**, so never merge it, and never trigger the release workflow, without my explicit say-so.
 
 Keep the `Actua-v<version>.apk` name stable (it is the Direct Full build; Obtainium and download links use it). F-Droid verification is retired.

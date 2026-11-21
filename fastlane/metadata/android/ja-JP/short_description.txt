@@ -1,0 +1,1 @@
+Actual Budgetの非公式Androidクライアント。お金を計画し、管理しましょう。

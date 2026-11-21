@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_listener_label">銀行取引のインポート</string>
+    <string name="disconnect_reset_title">切断してリセットしますか？</string>
+    <string name="disconnect_reset_message">Actuaは、ダウンロード済みのすべてのサーバー予算を同期してから、ダウンロード済みのサーバー予算、ローカルバックアップ、暗号化キー、接続データをこのデバイスから削除します。Actualサーバー上の予算は削除されません。デバイスの表示設定とローカルのデモ予算は保持されます。</string>
+    <string name="disconnect_reset_action">切断してリセット</string>
+    <string name="widget_action_cancel">キャンセル</string>
+    <string name="disconnect_syncing_title">切断前に同期中</string>
+    <string name="disconnect_syncing_message">ローカルデータを削除する前に、ダウンロード済みのすべてのサーバー予算について、ActualとActuaの最新の変更を保存しています。</string>
+    <string name="disconnect_sync_failed_title">最新の変更を同期できませんでした</string>
+    <string name="disconnect_sync_failed_message">Actuaはローカルの予算データを何も削除していません。このまま切断すると、Actualサーバーに届いていない変更が完全に失われる可能性があります。</string>
+    <string name="disconnect_anyway">それでも切断</string>
+    <string name="disconnect_try_again">もう一度試す</string>
+    <string name="disconnect_error_sync_failed">同期に失敗しました。</string>
+    <string name="disconnect_error_session_expired">サーバーのセッションが期限切れのため、変更を同期できません。キャンセルして「接続とデータ」で再度サインインするか、それでも切断してください。</string>
+    <string name="disconnect_error_missing_server_identity">%1$sにはサーバーの識別情報がなく、同期後に安全に削除することはできません。</string>
+    <string name="disconnect_error_not_configured">%1$sはサーバー同期用に設定されていません。</string>
+    <string name="disconnect_error_encryption_locked">%1$sは暗号化されていてロックされています。切断する前にロックを解除するか、それでも切断してください。</string>
+    <string name="disconnect_error_reset_failed">Actuaのローカルデータをリセットできませんでした。</string>
+
+    <string name="widget_off_budget">予算外</string>
+    <string name="widget_add">ウィジェットを追加</string>
+    <string name="widget_choose_categories">共有のお気に入りに追加するカテゴリを、最大8個まで選んでください。</string>
+    <string name="widget_choose_accounts">口座を最大8個まで選んでください。</string>
+    <string name="widget_no_available_items">開いている予算に利用できる項目がありません。</string>
+    <string name="widget_schedule_period_prompt">次の期間内に期限が来るスケジュール済みの取引を表示:</string>
+    <plurals name="widget_period_days">
+        <item quantity="other">%d日</item>
+    </plurals>
+    <!-- Spoken descriptions for TalkBack. A row is one announcement; hidden balances are never read out. -->
+    <string name="widget_cd_add_expense">支出を追加</string>
+    <string name="widget_cd_add_income">収入を追加</string>
+    <string name="widget_cd_add_transfer">振替を追加</string>
+    <string name="widget_cd_hidden">非表示</string>
+    <string name="widget_cd_category_row">%1$s、残高%2$s、%3$d%%支出済み</string>
+    <string name="widget_cd_account_row">%1$s、残高%2$s</string>
+    <string name="widget_cd_schedule_row">%1$s、%2$s、%3$s</string>
+    <string name="widget_cd_budget_snapshot">%1$s、%2$s。%3$s: %4$s。%5$s: %6$s。%7$s: %8$s。</string>
+    <string name="widget_updated_at">↻ %1$sに更新</string>
+    <string name="widget_cd_refresh">更新、%1$sに更新済み</string>
+    <string name="widget_refreshed">ウィジェットを更新しました</string>
+    <string name="widget_no_favorites">お気に入りが選ばれていません。タップして選択してください。</string>
+    <!-- One line in the widget picker saying what each widget shows, and sample names for its preview. -->
+    <string name="widget_description_budget_snapshot">今月の未割り当て、割り当て済み、残高。</string>
+    <string name="widget_description_favourite_categories">お気に入りカテゴリの支出の進捗。</string>
+    <string name="widget_description_quick_transaction">支出、収入、振替をワンタップで追加するショートカット。</string>
+    <string name="widget_description_account_balances">口座の現在残高。</string>
+    <string name="widget_description_upcoming_schedules">期限が近いスケジュール済みの取引を、近い順に表示します。</string>
+    <string name="widget_sample_category_1">食料品</string>
+    <string name="widget_sample_category_2">外食</string>
+    <string name="widget_sample_category_3">交通費</string>
+    <string name="widget_sample_account_1">普通預金</string>
+    <string name="widget_sample_account_2">貯蓄</string>
+    <string name="widget_sample_account_3">クレジットカード</string>
+    <string name="widget_sample_schedule_1">家賃</string>
+    <string name="widget_sample_schedule_2">携帯電話</string>
+    <string name="widget_sample_schedule_3">インターネット</string>
+    <string name="widget_search_hint">検索</string>
+    <string name="widget_clear_search">検索をクリア</string>
+    <string name="widget_selected_count">%2$d件中%1$d件を選択</string>
+    <string name="widget_no_matches">「%1$s」の検索結果はありません</string>
+    <string name="widget_single_account">単一の口座</string>
+    <string name="widget_single_category">単一のカテゴリ</string>
+    <string name="widget_description_single_account">1つの口座の残高を、小さなスペースで表示します。</string>
+    <string name="widget_description_single_category">1つのカテゴリの利用可能額と進捗。</string>
+    <string name="widget_single_account_missing">口座が見つかりません。タップして選択してください。</string>
+    <string name="widget_single_category_missing">カテゴリが見つかりません。タップして選択してください。</string>
+    <string name="widget_choose_account">表示する口座を選んでください。</string>
+    <string name="widget_choose_category">表示するカテゴリを選んでください。</string>
+    <string name="widget_spending_trend">支出の推移</string>
+    <string name="widget_description_spending_trend">過去6か月の支出を、今月を強調して表示します。</string>
+    <string name="widget_trend_period_months">過去6か月</string>
+    <string name="widget_trend_period_this_month">今月</string>
+    <string name="widget_trend_no_spending">過去6か月に支出はありません</string>
+    <string name="widget_cd_spending_trend">支出の推移、過去%1$dか月: %2$s。合計%3$s。</string>
+    <string name="widget_cd_spending_trend_hidden">支出の推移。金額は非表示です。</string>
+    <string name="widget_cd_trend_this_month">%1$s（今月）</string>
+    <string name="widget_cd_trend_month">%1$s %2$s</string>
+    <string name="widget_report_card">レポートカード</string>
+    <string name="widget_description_report_card">レポートのダッシュボードのカードの1つを、単一の数値として表示します。</string>
+    <string name="widget_choose_report_card">表示するダッシュボードのカードを選んでください。</string>
+    <string name="widget_report_card_missing">カードが見つかりません。タップして選択してください。</string>
+    <string name="widget_no_report_cards">単一の値を持つダッシュボードのカードがありません</string>
+    <string name="widget_sample_report_card">純資産</string>
+    <plurals name="widget_report_card_days">
+        <item quantity="other">%d日</item>
+    </plurals>
+    <string name="widget_report_card_years">%1$s年</string>
+    <string name="widget_report_card_not_reached">未達成</string>
+    <string name="widget_report_card_unavailable">まだ値がありません</string>
+    <string name="widget_report_card_comparison">%1$s比</string>
+    <string name="widget_cd_report_card">%1$s: %2$s</string>
+    <string name="widget_cd_report_card_compared">%1$s: %2$s、%3$sと比較</string>
+    <string name="widget_due_today">今日</string>
+    <string name="widget_due_tomorrow">明日</string>
+    <plurals name="widget_due_in_days">
+        <item quantity="other">%d日後</item>
+    </plurals>
+    <plurals name="widget_days_overdue">
+        <item quantity="other">%d日超過</item>
+    </plurals>
+
+    <string name="credit_card_due_channel_name">クレジットカードの支払期限</string>
+    <string name="credit_card_due_channel_description">管理中のクレジットカードの支払いのリマインダー</string>
+    <string name="credit_card_due_tomorrow">明日</string>
+    <plurals name="credit_card_due_in_days">
+        <item quantity="other">%d日後</item>
+    </plurals>
+    <string name="credit_card_notification_title">%1$sの支払期限は%2$s</string>
+    <string name="credit_card_notification_statement_body">明細の支払期限は%1$s。支払期限は%2$s。</string>
+    <string name="credit_card_notification_body">現在の残高は%1$s。支払期限は%2$s。</string>
+    <string name="widget_income_spending">収入と支出</string>
+    <string name="widget_description_income_spending">今月の収入、支出、残りの額を、過去6か月の対になった棒グラフとともに表示します。</string>
+    <string name="widget_is_left_label">今月の残り</string>
+    <string name="widget_is_left_rate">今月の残り · %1$d%%を貯蓄</string>
+    <string name="widget_is_income">収入 %1$s</string>
+    <string name="widget_is_spent">支出 %1$s</string>
+    <string name="widget_is_empty">過去6か月に収入も支出もありません</string>
+    <string name="widget_cd_income_spending">収入と支出、過去%1$dか月: %2$s。</string>
+    <string name="widget_cd_income_spending_hidden">収入と支出。金額は非表示です。</string>
+    <string name="widget_cd_is_this_month">%1$s（今月）</string>
+    <string name="widget_cd_is_month">%1$s 収入%2$s、支出%3$s</string>
+    <string name="widget_cd_is_left">今月の残りは%1$sです。</string>
+    <string name="widget_cd_is_rate">貯蓄率は%1$dパーセントです。</string>
+    <string name="widget_row_style">行のスタイル</string>
+    <string name="widget_row_style_simple">シンプル</string>
+    <string name="widget_row_style_highlighted">ハイライト</string>
+</resources>

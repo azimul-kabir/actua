@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Demo budget family: seeded display content for the local-only demo budget.
+     The first 36 keys mirror #424's strings_demo.xml (names verbatim); later keys
+     cover demo payees, saved reports and dashboard cards added after #424.
+     Seeded IDs (account/category/payee rows) stay locale-neutral; only display
+     names localize, resolved at seed time via DemoBudgetLabels. -->
+<resources>
+    <string name="demo_budget_name">Actuaデモ予算</string>
+
+    <string name="demo_account_checking">普段使いの普通預金</string>
+    <string name="demo_account_savings">緊急用の貯蓄</string>
+    <string name="demo_account_credit">普段使いのクレジットカード</string>
+    <string name="demo_account_investment">投資口座</string>
+
+    <string name="demo_group_income">収入</string>
+    <string name="demo_group_essentials">生活必需品</string>
+    <string name="demo_group_lifestyle">ライフスタイル</string>
+    <string name="demo_group_goals">目標</string>
+
+    <string name="demo_category_salary">給与</string>
+    <string name="demo_category_starting_balances">開始残高</string>
+    <string name="demo_category_rent">家賃</string>
+    <string name="demo_category_groceries">食料品</string>
+    <string name="demo_category_utilities">光熱費</string>
+    <string name="demo_category_transport">交通費</string>
+    <string name="demo_category_dining_out">外食</string>
+    <string name="demo_category_entertainment">娯楽</string>
+    <string name="demo_category_emergency_fund">緊急資金</string>
+    <string name="demo_category_vacation">休暇</string>
+
+    <string name="demo_payee_employer">勤務先</string>
+    <string name="demo_payee_landlord">大家</string>
+    <string name="demo_payee_supermarket">フレッシュマーケット</string>
+    <string name="demo_payee_utilities">市営公共サービス</string>
+    <string name="demo_payee_fuel">ガソリンスタンド</string>
+    <string name="demo_payee_restaurant">町の喫茶店</string>
+    <string name="demo_payee_streaming">StreamBox</string>
+    <string name="demo_payee_corner_grocer">角の食料品店</string>
+    <string name="demo_payee_big_box_store">大型量販店</string>
+    <string name="demo_payee_internet">ファイバーネット</string>
+    <string name="demo_payee_mobile">モバイル通信</string>
+    <string name="demo_payee_transit">市営交通</string>
+    <string name="demo_payee_pizza">スライスハウス</string>
+    <string name="demo_payee_sushi">さくら寿司</string>
+    <string name="demo_payee_cinema">シネプレックス</string>
+    <string name="demo_payee_books">ページターナー書店</string>
+    <string name="demo_payee_airline">スカイウェイ航空</string>
+    <string name="demo_payee_index_fund">インデックスファンド</string>
+
+    <string name="demo_note_groceries">毎月の家庭の食料品費です。目標を変えたり、このカテゴリに資金を移したりしてみてください。</string>
+    <string name="demo_note_checking">デモの普通預金口座です。処理済み、未処理、照合済みの取引が含まれています。</string>
+
+    <string name="demo_schedule_salary">毎月の給与</string>
+    <string name="demo_schedule_rent">家賃</string>
+    <string name="demo_schedule_streaming">ストリーミングの定期購読</string>
+    <string name="demo_schedule_card_payment">クレジットカードの支払い</string>
+
+    <string name="demo_report_overview">概要</string>
+    <string name="demo_report_welcome">**Actuaデモへようこそ** 👋\n\nこの予算はこのデバイスにのみ保存されます。目標、ルール、スケジュール、照合、クレジットカード、返済プランナー付きのローン、レポートをお試しください。</string>
+    <string name="demo_report_this_month">今月</string>
+    <string name="demo_report_spending_by_category">カテゴリ別の支出</string>
+    <string name="demo_report_monthly_spending">月別の支出</string>
+    <string name="demo_report_top_payees">支払先ランキング</string>
+    <string name="demo_report_spending_trend">支出の推移</string>
+    <string name="demo_report_net_worth">純資産</string>
+    <string name="demo_report_cash_flow">キャッシュフロー</string>
+    <string name="demo_report_food_per_month">月ごとの食費</string>
+    <string name="demo_report_where_the_money_went">お金の行き先</string>
+    <string name="demo_report_budget_analysis">予算分析</string>
+    <string name="demo_report_age_of_money">お金の年齢</string>
+    <string name="demo_report_calendar">カレンダー</string>
+
+    <!-- Loans, a second card, the Debt group and wider category coverage (#1630). -->
+    <string name="demo_account_cash">現金の財布</string>
+    <string name="demo_account_rewards_card">トラベルリワードカード</string>
+    <string name="demo_account_car_loan">自動車ローン</string>
+    <string name="demo_account_student_loan">奨学金</string>
+    <string name="demo_group_debt">債務</string>
+    <string name="demo_category_freelance">フリーランス</string>
+    <string name="demo_category_interest_income">利息</string>
+    <string name="demo_category_health">健康</string>
+    <string name="demo_category_insurance">保険</string>
+    <string name="demo_category_shopping">ショッピング</string>
+    <string name="demo_category_subscriptions">定期購読</string>
+    <string name="demo_category_gifts">ギフト</string>
+    <string name="demo_category_car_loan">自動車ローン</string>
+    <string name="demo_category_student_loan">奨学金</string>
+    <string name="demo_category_card_interest">クレジットカードの利息</string>
+    <string name="demo_payee_client">フリーランスの取引先</string>
+    <string name="demo_payee_bank_interest">預金利息</string>
+    <string name="demo_payee_pharmacy">角の薬局</string>
+    <string name="demo_payee_clinic">ファミリークリニック</string>
+    <string name="demo_payee_insurance">セーフハーバー保険</string>
+    <string name="demo_payee_online_store">オンラインマート</string>
+    <string name="demo_payee_cloud_storage">CloudVault</string>
+    <string name="demo_payee_music">TuneStream</string>
+    <string name="demo_payee_gift_shop">ギフトギャラリー</string>
+    <string name="demo_payee_market_stall">市場の屋台</string>
+    <string name="demo_payee_rewards_bank">リワードバンク</string>
+    <string name="demo_note_car_loan">自動車ローン口座と対応しています。ローンの支払いは、このカテゴリを使う普通預金からの振替なので、ローン画面で記録するとここに割り当てられます。</string>
+    <string name="demo_note_rewards_card">残高を持つデモ用のクレジットカードです。固定の支払日、利用限度額、毎月の利息があります。</string>
+    <string name="demo_schedule_rewards_card_payment">トラベルリワードカードの支払い</string>
+    <string name="demo_schedule_car_loan">自動車ローンの支払い</string>
+    <string name="demo_schedule_student_loan">奨学金の支払い</string>
+    <string name="demo_schedule_insurance">保険</string>
+</resources>

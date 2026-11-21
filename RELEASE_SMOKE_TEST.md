@@ -408,6 +408,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Unreleased French: choose Français under Settings → Display → Language and confirm navigation, Home, Budget, Settings, widgets and notifications switch to French with no English left over and nothing clipped, restart Actua and confirm the choice sticks, then switch back to System default.
 - [ ] Unreleased German: choose Deutsch under Settings → Display → Language and confirm navigation, Home, Budget, Settings, widgets and notifications switch to German with no English left over and nothing clipped (also at large font scale), restart Actua and confirm the choice sticks, then switch back to System default.
 - [ ] Unreleased Italian: choose Italiano under Settings → Display → Language and confirm navigation, Home, Budget, Settings, widgets and notifications switch to Italian with no English left over and nothing clipped (also at large font scale), restart Actua and confirm the choice sticks, then switch back to System default.
+- [ ] Unreleased Japanese: choose 日本語 under Settings → Display → Language and confirm navigation, Home, Budget, Settings, widgets and notifications switch to Japanese with no English left over, nothing is clipped and no characters show as boxes (also at large font scale), restart Actua and confirm the choice sticks, then switch back to System default.
 
 ## Release/distribution
 

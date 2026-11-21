@@ -1,0 +1,35 @@
+<resources>
+    <string name="widget_budget_snapshot">予算スナップショット</string>
+    <string name="widget_favourite_categories">お気に入りカテゴリ</string>
+    <string name="widget_quick_transaction">クイック取引</string>
+    <string name="widget_account_balances">口座残高</string>
+    <string name="widget_ready">未割り当て</string>
+    <string name="widget_budgeted">割り当て済み</string>
+    <string name="widget_balance">残高</string>
+    <string name="widget_expense">− 支出</string>
+    <string name="widget_income">+ 収入</string>
+    <string name="widget_transfer">⇄ 振替</string>
+    <string name="widget_no_budget">Actuaを開いて予算を選択してください</string>
+    <string name="widget_no_categories">利用できるカテゴリがありません</string>
+    <string name="widget_no_accounts">利用できる口座がありません</string>
+    <string name="widget_upcoming_schedules">今後のスケジュール</string>
+    <string name="widget_no_schedules">今後予定されている取引はありません</string>
+    <string name="shortcut_add_expense">支出を追加</string>
+    <string name="tasker_queue_transaction">取引をキューに追加</string>
+    <string name="shortcut_add_income">収入を追加</string>
+    <string name="shortcut_add_transfer">振替を追加</string>
+    <string name="shortcut_search">検索</string>
+    <string name="shortcut_review_captured">取り込み分を確認</string>
+    <string name="shortcut_unavailable">この操作を使うにはActuaを開いてください</string>
+    <string name="settings_language">言語</string>
+    <string name="settings_language_system">システムのデフォルト</string>
+    <string name="settings_language_english">英語</string>
+    <string name="settings_language_portuguese_brazil">Português (Brasil)</string>
+    <string name="settings_language_spanish">Español</string>
+    <string name="settings_language_french">Français</string>
+    <string name="settings_language_german">Deutsch</string>
+    <string name="settings_language_italian">Italiano</string>
+    <string name="settings_language_japanese">日本語</string>
+    <string name="tile_add_transaction">取引</string>
+    <string name="tile_add_transaction_description">取引を追加</string>
+</resources>
