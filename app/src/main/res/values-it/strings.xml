@@ -1,0 +1,34 @@
+<resources>
+    <string name="widget_budget_snapshot">Riepilogo budget</string>
+    <string name="widget_favourite_categories">Categorie preferite</string>
+    <string name="widget_quick_transaction">Transazione rapida</string>
+    <string name="widget_account_balances">Saldi dei conti</string>
+    <string name="widget_ready">Da assegnare</string>
+    <string name="widget_budgeted">Assegnato</string>
+    <string name="widget_balance">Saldo</string>
+    <string name="widget_expense">− Spesa</string>
+    <string name="widget_income">+ Entrata</string>
+    <string name="widget_transfer">⇄ Trasferimento</string>
+    <string name="widget_no_budget">Apri Actua per scegliere un budget</string>
+    <string name="widget_no_categories">Nessuna categoria disponibile</string>
+    <string name="widget_no_accounts">Nessun conto disponibile</string>
+    <string name="widget_upcoming_schedules">Prossime pianificazioni</string>
+    <string name="widget_no_schedules">Nessuna transazione pianificata in arrivo</string>
+    <string name="shortcut_add_expense">Aggiungi spesa</string>
+    <string name="tasker_queue_transaction">Metti in coda la transazione</string>
+    <string name="shortcut_add_income">Aggiungi entrata</string>
+    <string name="shortcut_add_transfer">Aggiungi trasferimento</string>
+    <string name="shortcut_search">Cerca</string>
+    <string name="shortcut_review_captured">Rivedi acquisite</string>
+    <string name="shortcut_unavailable">Apri Actua per usare questa azione</string>
+    <string name="settings_language">Lingua</string>
+    <string name="settings_language_system">Predefinita del sistema</string>
+    <string name="settings_language_english">Inglese</string>
+    <string name="settings_language_portuguese_brazil">Português (Brasil)</string>
+    <string name="settings_language_spanish">Español</string>
+    <string name="settings_language_french">Français</string>
+    <string name="settings_language_german">Deutsch</string>
+    <string name="settings_language_italian">Italiano</string>
+    <string name="tile_add_transaction">Transazione</string>
+    <string name="tile_add_transaction_description">Aggiungi transazione</string>
+</resources>

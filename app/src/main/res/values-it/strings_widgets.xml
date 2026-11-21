@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_listener_label">Importazione delle transazioni bancarie</string>
+    <string name="disconnect_reset_title">Disconnettere e reimpostare?</string>
+    <string name="disconnect_reset_message">Actua sincronizzerà ogni budget scaricato dal server, poi rimuoverà da questo dispositivo i budget del server scaricati, i backup locali, le chiavi di cifratura e i dati di connessione. I tuoi budget sul server Actual non verranno eliminati. Le impostazioni di visualizzazione del dispositivo e il budget demo locale verranno mantenuti.</string>
+    <string name="disconnect_reset_action">Disconnetti e reimposta</string>
+    <string name="widget_action_cancel">Annulla</string>
+    <string name="disconnect_syncing_title">Sincronizzazione prima della disconnessione</string>
+    <string name="disconnect_syncing_message">Salvataggio delle ultime modifiche di Actual e Actua di ogni budget scaricato dal server prima di rimuovere i dati locali.</string>
+    <string name="disconnect_sync_failed_title">Impossibile sincronizzare le ultime modifiche</string>
+    <string name="disconnect_sync_failed_message">Actua non ha rimosso alcun dato locale del budget. Disconnettersi comunque potrebbe scartare in modo permanente modifiche che non hanno raggiunto il tuo server Actual.</string>
+    <string name="disconnect_anyway">Disconnetti comunque</string>
+    <string name="disconnect_try_again">Riprova</string>
+    <string name="disconnect_error_sync_failed">Sincronizzazione non riuscita.</string>
+    <string name="disconnect_error_session_expired">La sessione sul server è scaduta, quindi non è possibile sincronizzare le modifiche. Annulla e accedi di nuovo in Connessione e dati, oppure disconnetti comunque.</string>
+    <string name="disconnect_error_missing_server_identity">%1$s non ha un’identità del server e non può essere rimosso in sicurezza dopo la sincronizzazione.</string>
+    <string name="disconnect_error_not_configured">%1$s non è configurato per la sincronizzazione con il server.</string>
+    <string name="disconnect_error_encryption_locked">%1$s è cifrato e bloccato. Sbloccalo prima di disconnetterti, oppure disconnetti comunque.</string>
+    <string name="disconnect_error_reset_failed">Impossibile reimpostare i dati locali di Actua.</string>
+
+    <string name="widget_off_budget">Fuori budget</string>
+    <string name="widget_add">Aggiungi widget</string>
+    <string name="widget_choose_categories">Scegli fino a otto categorie da aggiungere ai tuoi preferiti condivisi.</string>
+    <string name="widget_choose_accounts">Scegli fino a otto conti.</string>
+    <string name="widget_no_available_items">Nessun elemento disponibile nel budget aperto.</string>
+    <string name="widget_schedule_period_prompt">Mostra le transazioni pianificate in scadenza entro:</string>
+    <plurals name="widget_period_days">
+        <item quantity="one">%d giorno</item>
+        <item quantity="other">%d giorni</item>
+    </plurals>
+    <!-- Spoken descriptions for TalkBack. A row is one announcement; hidden balances are never read out. -->
+    <string name="widget_cd_add_expense">Aggiungi spesa</string>
+    <string name="widget_cd_add_income">Aggiungi entrata</string>
+    <string name="widget_cd_add_transfer">Aggiungi trasferimento</string>
+    <string name="widget_cd_hidden">nascosto</string>
+    <string name="widget_cd_category_row">%1$s, saldo %2$s, speso il %3$d%%</string>
+    <string name="widget_cd_account_row">%1$s, saldo %2$s</string>
+    <string name="widget_cd_schedule_row">%1$s, %2$s, %3$s</string>
+    <string name="widget_cd_budget_snapshot">%1$s, %2$s. %3$s: %4$s. %5$s: %6$s. %7$s: %8$s.</string>
+    <string name="widget_updated_at">↻ Aggiornato %1$s</string>
+    <string name="widget_cd_refresh">Aggiorna, aggiornato %1$s</string>
+    <string name="widget_refreshed">Widget aggiornato</string>
+    <string name="widget_no_favorites">Nessun preferito scelto. Tocca per sceglierli.</string>
+    <!-- One line in the widget picker saying what each widget shows, and sample names for its preview. -->
+    <string name="widget_description_budget_snapshot">Da assegnare, assegnato e saldo di questo mese.</string>
+    <string name="widget_description_favourite_categories">Avanzamento delle spese per le tue categorie preferite.</string>
+    <string name="widget_description_quick_transaction">Scorciatoie a un tocco per aggiungere una spesa, un’entrata o un trasferimento.</string>
+    <string name="widget_description_account_balances">Saldi attuali dei tuoi conti.</string>
+    <string name="widget_description_upcoming_schedules">Transazioni pianificate in scadenza, le più vicine per prime.</string>
+    <string name="widget_sample_category_1">Spesa alimentare</string>
+    <string name="widget_sample_category_2">Ristoranti</string>
+    <string name="widget_sample_category_3">Trasporti</string>
+    <string name="widget_sample_account_1">Conto corrente</string>
+    <string name="widget_sample_account_2">Risparmi</string>
+    <string name="widget_sample_account_3">Carta di credito</string>
+    <string name="widget_sample_schedule_1">Affitto</string>
+    <string name="widget_sample_schedule_2">Telefono</string>
+    <string name="widget_sample_schedule_3">Internet</string>
+    <string name="widget_search_hint">Cerca</string>
+    <string name="widget_clear_search">Cancella ricerca</string>
+    <string name="widget_selected_count">%1$d di %2$d selezionati</string>
+    <string name="widget_no_matches">Nessun risultato per “%1$s”</string>
+    <string name="widget_single_account">Conto singolo</string>
+    <string name="widget_single_category">Categoria singola</string>
+    <string name="widget_description_single_account">Il saldo di un conto, in poco spazio.</string>
+    <string name="widget_description_single_category">Importo disponibile e avanzamento di una categoria.</string>
+    <string name="widget_single_account_missing">Conto non trovato. Tocca per sceglierlo.</string>
+    <string name="widget_single_category_missing">Categoria non trovata. Tocca per sceglierla.</string>
+    <string name="widget_choose_account">Scegli il conto da mostrare.</string>
+    <string name="widget_choose_category">Scegli la categoria da mostrare.</string>
+    <string name="widget_spending_trend">Andamento delle spese</string>
+    <string name="widget_description_spending_trend">Spese degli ultimi sei mesi, con il mese corrente evidenziato.</string>
+    <string name="widget_trend_period_months">Ultimi 6 mesi</string>
+    <string name="widget_trend_period_this_month">Questo mese</string>
+    <string name="widget_trend_no_spending">Nessuna spesa negli ultimi sei mesi</string>
+    <string name="widget_cd_spending_trend">Andamento delle spese, ultimi %1$d mesi: %2$s. Totale %3$s.</string>
+    <string name="widget_cd_spending_trend_hidden">Andamento delle spese. Gli importi sono nascosti.</string>
+    <string name="widget_cd_trend_this_month">%1$s (questo mese)</string>
+    <string name="widget_cd_trend_month">%1$s %2$s</string>
+    <string name="widget_report_card">Scheda report</string>
+    <string name="widget_description_report_card">Una delle schede della dashboard dei Report come numero singolo.</string>
+    <string name="widget_choose_report_card">Scegli la scheda della dashboard da mostrare.</string>
+    <string name="widget_report_card_missing">Scheda non trovata. Tocca per sceglierla.</string>
+    <string name="widget_no_report_cards">Nessuna scheda della dashboard con un valore singolo</string>
+    <string name="widget_sample_report_card">Patrimonio netto</string>
+    <plurals name="widget_report_card_days">
+        <item quantity="one">%d giorno</item>
+        <item quantity="other">%d giorni</item>
+    </plurals>
+    <string name="widget_report_card_years">%1$s anni</string>
+    <string name="widget_report_card_not_reached">Non raggiunto</string>
+    <string name="widget_report_card_unavailable">Ancora nessun valore</string>
+    <string name="widget_report_card_comparison">vs %1$s</string>
+    <string name="widget_cd_report_card">%1$s: %2$s</string>
+    <string name="widget_cd_report_card_compared">%1$s: %2$s, rispetto a %3$s</string>
+    <string name="widget_due_today">Oggi</string>
+    <string name="widget_due_tomorrow">Domani</string>
+    <plurals name="widget_due_in_days">
+        <item quantity="one">Tra %d giorno</item>
+        <item quantity="other">Tra %d giorni</item>
+    </plurals>
+    <plurals name="widget_days_overdue">
+        <item quantity="one">%d giorno di ritardo</item>
+        <item quantity="other">%d giorni di ritardo</item>
+    </plurals>
+
+    <string name="credit_card_due_channel_name">Scadenze delle carte di credito</string>
+    <string name="credit_card_due_channel_description">Promemoria di pagamento per le carte di credito monitorate</string>
+    <string name="credit_card_due_tomorrow">domani</string>
+    <plurals name="credit_card_due_in_days">
+        <item quantity="one">tra %d giorno</item>
+        <item quantity="other">tra %d giorni</item>
+    </plurals>
+    <string name="credit_card_notification_title">Pagamento %1$s in scadenza %2$s</string>
+    <string name="credit_card_notification_statement_body">Estratto conto in scadenza %1$s. Pagamento in scadenza %2$s.</string>
+    <string name="credit_card_notification_body">Saldo attuale %1$s. Pagamento in scadenza %2$s.</string>
+    <string name="widget_income_spending">Entrate e spese</string>
+    <string name="widget_description_income_spending">Entrate, spese e ciò che resta questo mese, con gli ultimi sei mesi come barre affiancate.</string>
+    <string name="widget_is_left_label">Rimasto questo mese</string>
+    <string name="widget_is_left_rate">Rimasto questo mese · %1$d%% risparmiato</string>
+    <string name="widget_is_income">Entrate %1$s</string>
+    <string name="widget_is_spent">Spese %1$s</string>
+    <string name="widget_is_empty">Nessuna entrata o spesa negli ultimi sei mesi</string>
+    <string name="widget_cd_income_spending">Entrate e spese, ultimi %1$d mesi: %2$s.</string>
+    <string name="widget_cd_income_spending_hidden">Entrate e spese. Gli importi sono nascosti.</string>
+    <string name="widget_cd_is_this_month">%1$s (questo mese)</string>
+    <string name="widget_cd_is_month">%1$s entrate %2$s, spese %3$s</string>
+    <string name="widget_cd_is_left">Questo mese, rimasti %1$s.</string>
+    <string name="widget_cd_is_rate">Tasso di risparmio %1$d percento.</string>
+    <string name="widget_row_style">Stile delle righe</string>
+    <string name="widget_row_style_simple">Semplice</string>
+    <string name="widget_row_style_highlighted">Evidenziato</string>
+</resources>
