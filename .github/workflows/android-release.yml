@@ -131,14 +131,19 @@ jobs:
             echo "::error::PLAY_SERVICE_ACCOUNT_JSON is not configured; re-run manually with Google Play upload turned off to skip it"
             exit 1
           fi
-          NOTES="fastlane/metadata/android/en-US/changelogs/${RELEASE_VERSION_CODE}.txt"
-          if [ ! -s "$NOTES" ]; then
-            echo "::error::$NOTES is missing; add the release's Google Play \"What's new\" text"
-            exit 1
-          fi
-          python3 -c 'import sys; n = len(open(sys.argv[1], encoding="utf-8").read().strip()); sys.exit(f"{sys.argv[1]} has {n} characters; Google Play allows 500" if n > 500 else 0)' "$NOTES"
+          # Every language folder under fastlane/metadata/android is a Google Play language, and each
+          # one needs this release's "What's new" so no supported language is left on English.
           mkdir -p "$RUNNER_TEMP/whatsnew"
-          cp "$NOTES" "$RUNNER_TEMP/whatsnew/whatsnew-en-US"
+          for DIR in fastlane/metadata/android/*/; do
+            LANGUAGE="$(basename "$DIR")"
+            NOTES="${DIR}changelogs/${RELEASE_VERSION_CODE}.txt"
+            if [ ! -s "$NOTES" ]; then
+              echo "::error::$NOTES is missing; add the release's Google Play \"What's new\" text for $LANGUAGE"
+              exit 1
+            fi
+            python3 -c 'import sys; n = len(open(sys.argv[1], encoding="utf-8").read().strip()); sys.exit(f"{sys.argv[1]} has {n} characters; Google Play allows 500" if n > 500 else 0)' "$NOTES"
+            cp "$NOTES" "$RUNNER_TEMP/whatsnew/whatsnew-$LANGUAGE"
+          done
           echo "published=true" >> "$GITHUB_OUTPUT"
       - name: Upload to Google Play production
         if: steps.play.outputs.published == 'true'
