@@ -28,6 +28,7 @@
     <string name="settings_language_spanish">Español</string>
     <string name="settings_language_french">Français</string>
     <string name="settings_language_german">Deutsch</string>
+    <string name="settings_language_japanese">日本語</string>
     <string name="tile_add_transaction">Transaktion</string>
     <string name="tile_add_transaction_description">Transaktion hinzufügen</string>
 </resources>
