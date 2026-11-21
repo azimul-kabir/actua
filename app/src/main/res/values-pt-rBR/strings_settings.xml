@@ -302,6 +302,15 @@
     <string name="settings_accent_forest">Floresta</string>
     <string name="settings_accent_ocean">Oceano</string>
     <string name="settings_accent_mono">Monocromático</string>
+    <string name="settings_accent_custom">Personalizada</string>
+    <string name="settings_accent_custom_title">Cor personalizada</string>
+    <string name="settings_accent_custom_hex">Cor hexadecimal</string>
+    <string name="settings_accent_custom_hex_error">Digite uma cor como #2E7D6B</string>
+    <string name="settings_accent_custom_hue">Matiz</string>
+    <string name="settings_accent_custom_saturation">Saturação</string>
+    <string name="settings_accent_custom_brightness">Brilho</string>
+    <string name="settings_accent_custom_adjusted">Ajustada para %1$s para que o texto branco continue legível.</string>
+    <string name="settings_accent_custom_preview">Prévia do destaque %1$s</string>
     <string name="settings_widget_style">Estilo dos widgets</string>
     <string name="settings_widget_style_default">Padrão</string>
     <string name="settings_widget_style_translucent">Translúcido</string>

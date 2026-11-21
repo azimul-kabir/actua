@@ -251,16 +251,29 @@ enum class AccentPalette(private val light: AccentColors?, private val dark: Acc
             Color(0xFF1C1C1C), Color(0xFF242424), Color(0xFF2E2E2E), Color(0xFF383838),
         ),
     ),
+    /** A supporter's own color; the palette is derived from [CustomAccent] at the color stored in preferences. */
+    Custom(null, null),
     ;
 
-    /** [ActuaLightColorScheme] or [ActuaDarkColorScheme] with this palette's accent roles applied. */
-    fun colorScheme(darkTheme: Boolean): ColorScheme {
+    /**
+     * [ActuaLightColorScheme] or [ActuaDarkColorScheme] with this palette's accent roles applied. [customColor] is the
+     * ARGB a supporter picked and is only used by [Custom], which is Violet until one is set.
+     */
+    fun colorScheme(darkTheme: Boolean, customColor: Int? = null): ColorScheme {
         val base = if (darkTheme) ActuaDarkColorScheme else ActuaLightColorScheme
+        if (this == Custom) {
+            val derived = CustomAccent.derive(customColor ?: return base)
+            return applyAccent(base, derived.colors(darkTheme), derived.colors(!darkTheme).primary)
+        }
         val accent = (if (darkTheme) dark else light) ?: return base
+        return applyAccent(base, accent, if (darkTheme) (light ?: return base).primary else (dark ?: return base).primary)
+    }
+
+    private fun applyAccent(base: ColorScheme, accent: AccentColors, inversePrimary: Color): ColorScheme {
         return base.copy(
             primary = accent.primary, onPrimary = accent.onPrimary,
             primaryContainer = accent.primaryContainer, onPrimaryContainer = accent.onPrimaryContainer,
-            inversePrimary = if (darkTheme) (light ?: return base).primary else (dark ?: return base).primary,
+            inversePrimary = inversePrimary,
             secondary = accent.secondary, onSecondary = accent.onSecondary,
             secondaryContainer = accent.secondaryContainer, onSecondaryContainer = accent.onSecondaryContainer,
             surfaceVariant = accent.surfaceVariant, onSurfaceVariant = accent.onSurfaceVariant,
@@ -273,6 +286,9 @@ enum class AccentPalette(private val light: AccentColors?, private val dark: Acc
     }
 
     companion object {
+        /** The fixed palettes: every one but Violet (Actua's own scheme) and Custom (derived from a picked color). */
+        val presets: List<AccentPalette> get() = entries - Violet - Custom
+
         /** The id the accent registers its supporter-status reset under. */
         const val RESET_ID = "accent"
 

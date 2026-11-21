@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Custom accent color for supporters, with a hex field and hue, saturation and brightness sliders ([#1729](https://github.com/azimul-kabir/actua/pull/1729))
 - Added ten new app icons for supporters: Teal, Amber, Rose, Forest, Ocean, Latte, Mocha, Gradient, Midnight and Paper ([#1730](https://github.com/azimul-kabir/actua/pull/1730))
 
 ### Changed

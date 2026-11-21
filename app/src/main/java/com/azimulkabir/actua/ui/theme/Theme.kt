@@ -26,6 +26,8 @@ fun ActuaTheme(
     // A supporter's accent palette. Choosing one in Settings turns Material You off, so the flag
     // alone decides between them.
     accent: AccentPalette = AccentPalette.Violet,
+    // The ARGB a supporter picked for the Custom accent; only used when [accent] is Custom.
+    customAccent: Int? = null,
     // A supporter's Catppuccin theme (Play build). It replaces the accent palette's scheme, and choosing it in
     // Settings turns Material You off like choosing an accent does.
     catppuccin: CatppuccinTheme? = null,
@@ -43,7 +45,7 @@ fun ActuaTheme(
         }
 
         catppuccin != null -> catppuccin.colorScheme(darkTheme)
-        else -> accent.colorScheme(darkTheme)
+        else -> accent.colorScheme(darkTheme, customAccent)
     }
     val activeCatppuccin = catppuccin.takeUnless { dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S }
 
