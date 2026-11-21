@@ -6,7 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
-- Added ten new app icons for supporters: Teal, Amber, Rose, Forest, Ocean, Latte, Mocha, Gradient, Midnight and Paper ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
+- Added ten new app icons for supporters: Teal, Amber, Rose, Forest, Ocean, Latte, Mocha, Gradient, Midnight and Paper ([#1730](https://github.com/azimul-kabir/actua/pull/1730))
 
 ### Changed
 
