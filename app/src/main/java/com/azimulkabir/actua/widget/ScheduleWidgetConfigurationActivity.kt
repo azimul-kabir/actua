@@ -38,6 +38,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.azimulkabir.actua.R
+import com.azimulkabir.actua.ui.settings.WidgetLookSection
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import com.azimulkabir.actua.data.schedules.ScheduleWidgetPeriod
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -62,8 +65,9 @@ class ScheduleWidgetConfigurationActivity : WidgetConfigurationBaseActivity() {
         }
     }
 
-    private fun save(days: Int) {
+    private fun save(days: Int, look: WidgetLookOverride?) {
         ScheduleWidgetPreferences(this).save(widgetId, days)
+        look?.let { WidgetLookPreferences(this).save(widgetId, it) }
         lifecycleScope.launch(Dispatchers.IO) {
             val manager = AppWidgetManager.getInstance(this@ScheduleWidgetConfigurationActivity)
             WidgetUpdater.update(
@@ -79,9 +83,11 @@ class ScheduleWidgetConfigurationActivity : WidgetConfigurationBaseActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ScheduleWidgetConfigurationScreen(widgetId: Int, onCancel: () -> Unit, onSave: (Int) -> Unit) {
+private fun ScheduleWidgetConfigurationScreen(widgetId: Int, onCancel: () -> Unit, onSave: (Int, WidgetLookOverride?) -> Unit) {
     val context = LocalContext.current
     var selected by remember { mutableStateOf(ScheduleWidgetPreferences(context).periodDays(widgetId)) }
+    var look by remember(widgetId) { mutableStateOf(WidgetLookPreferences(context).override(widgetId)) }
+    val lookAvailable = WidgetStyles.accentTintedAvailable()
 
     Scaffold(
         topBar = {
@@ -96,12 +102,13 @@ private fun ScheduleWidgetConfigurationScreen(widgetId: Int, onCancel: () -> Uni
         },
         bottomBar = {
             Button(
-                onClick = { onSave(selected) },
+                onClick = { onSave(selected, look.takeIf { lookAvailable && widgetLookIsSupporter(context) }) },
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
             ) { Text(stringResource(R.string.widget_add)) }
         },
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp, vertical = 12.dp).selectableGroup()) {
+        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp)) {
+          Column(Modifier.selectableGroup()) {
             Text(stringResource(R.string.widget_schedule_period_prompt), style = MaterialTheme.typography.bodyMedium)
             ScheduleWidgetPeriod.entries.forEach { period ->
                 Row(
@@ -116,6 +123,11 @@ private fun ScheduleWidgetConfigurationScreen(widgetId: Int, onCancel: () -> Uni
                         modifier = Modifier.padding(start = 8.dp),
                     )
                 }
+            }
+          }
+            if (lookAvailable) {
+                androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 12.dp))
+                WidgetLookSection(widgetLookIsSupporter(context), look, onLookChange = { look = it })
             }
         }
     }

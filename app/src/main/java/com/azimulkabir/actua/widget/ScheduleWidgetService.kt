@@ -38,7 +38,7 @@ internal class ScheduleWidgetRows(
     override fun getCount(): Int = entries.size
 
     override fun getViewAt(position: Int): RemoteViews? =
-        entries.getOrNull(position)?.let { ScheduledTransactionsWidget.scheduleRow(context, it) }
+        entries.getOrNull(position)?.let { ScheduledTransactionsWidget.scheduleRow(context, it, widgetId) }
 
     override fun getLoadingView(): RemoteViews? = null
 

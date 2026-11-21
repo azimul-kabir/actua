@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gradient accent: white to grey, multiplied by the accent color. The end grey is GRADIENT_SHADE in WidgetStyle.kt. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:inset="@dimen/widget_margin">
+    <shape android:shape="rectangle">
+        <gradient android:angle="315" android:startColor="#FFFFFFFF" android:endColor="#FFB8B8B8" android:type="linear" />
+        <corners android:radius="16dp" />
+    </shape>
+</inset>

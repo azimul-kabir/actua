@@ -130,7 +130,13 @@ internal fun widgetSizeDp(context: Context, manager: AppWidgetManager, widgetId:
 }
 
 /** One account or category in a single-item widget: its name and amount, and a progress bar for a category. */
-internal fun showSingleItem(context: Context, views: RemoteViews, row: WidgetRow, tap: PendingIntent): ProgressStatus {
+internal fun showSingleItem(
+    context: Context,
+    views: RemoteViews,
+    row: WidgetRow,
+    tap: PendingIntent,
+    widgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID,
+): ProgressStatus {
     views.setViewVisibility(R.id.widget_single_message, View.GONE)
     views.setViewVisibility(R.id.widget_single_name, View.VISIBLE)
     views.setViewVisibility(R.id.widget_single_amount, View.VISIBLE)
@@ -139,7 +145,7 @@ internal fun showSingleItem(context: Context, views: RemoteViews, row: WidgetRow
     views.setViewVisibility(R.id.widget_single_progress, if (row.showProgress) View.VISIBLE else View.GONE)
     if (row.showProgress) {
         views.setProgressBar(R.id.widget_single_progress, 100, row.progress, false)
-        WidgetStyles.applyProgressStatus(context, views, R.id.widget_single_progress, row.status)
+        WidgetStyles.applyProgressStatus(context, views, R.id.widget_single_progress, row.status, widgetId)
     }
     val amount = row.spokenAmount ?: context.getString(R.string.widget_cd_hidden)
     views.setContentDescription(
@@ -162,7 +168,12 @@ internal fun showSingleMessage(views: RemoteViews, text: String, tap: PendingInt
     views.setOnClickPendingIntent(R.id.widget_root, tap)
 }
 
-internal fun listRow(context: Context, row: WidgetRow, style: WidgetRowStyle = WidgetRowStyle.Highlighted): RemoteViews {
+internal fun listRow(
+    context: Context,
+    row: WidgetRow,
+    style: WidgetRowStyle = WidgetRowStyle.Highlighted,
+    widgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID,
+): RemoteViews {
     // Rows bind from the RemoteViewsService's application context, which does not follow
     // the app locale on API 28-32; resolve strings through the app-language context.
     val localized = context.withAppLanguage()
@@ -176,7 +187,7 @@ internal fun listRow(context: Context, row: WidgetRow, style: WidgetRowStyle = W
         setViewVisibility(R.id.widget_item_progress, if (row.showProgress) View.VISIBLE else View.GONE)
         if (row.showProgress) {
             setProgressBar(R.id.widget_item_progress, 100, row.progress, false)
-            WidgetStyles.applyProgressStatus(localized, this, R.id.widget_item_progress, row.status)
+            WidgetStyles.applyProgressStatus(localized, this, R.id.widget_item_progress, row.status, widgetId)
         }
         // The whole row is one announcement: name, amount and, for a category, how much is spent.
         val amount = row.spokenAmount ?: localized.getString(R.string.widget_cd_hidden)
@@ -186,7 +197,7 @@ internal fun listRow(context: Context, row: WidgetRow, style: WidgetRowStyle = W
             else localized.getString(R.string.widget_cd_account_row, row.name, amount),
         )
         setOnClickFillInIntent(R.id.widget_item_row, Intent().putExtra(WidgetActions.EXTRA_TARGET, row.target))
-        WidgetStyles.apply(localized, this, if (row.showProgress) row.status else ProgressStatus.Normal)
+        WidgetStyles.apply(localized, this, if (row.showProgress) row.status else ProgressStatus.Normal, widgetId)
     }
 }
 

@@ -40,8 +40,8 @@ internal object AccountBalancesWidget {
                 val views = RemoteViews(
                     context.packageName,
                     when (layout) {
-                        ListLayout.Mini -> WidgetStyles.layout(context, R.layout.widget_account_balances_mini, R.layout.widget_account_balances_mini_styled)
-                        ListLayout.Titled, ListLayout.Full -> WidgetStyles.layout(context, R.layout.widget_account_balances, R.layout.widget_account_balances_styled)
+                        ListLayout.Mini -> WidgetStyles.layout(context, R.layout.widget_account_balances_mini, R.layout.widget_account_balances_mini_styled, widgetId)
+                        ListLayout.Titled, ListLayout.Full -> WidgetStyles.layout(context, R.layout.widget_account_balances, R.layout.widget_account_balances_styled, widgetId)
                     },
                 )
                 views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_account_balances))
@@ -53,7 +53,7 @@ internal object AccountBalancesWidget {
                 bindFreshness(context, manager, views, widgetId, layout == ListLayout.Full, updatedAt)
                 bindItemList(context, views, widgetId, WidgetKind.Accounts, WidgetActions.ACCOUNTS)
                 views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.ACCOUNTS, widgetId))
-                WidgetStyles.apply(context, views)
+                WidgetStyles.apply(context, views, widgetId = widgetId)
                 views
             },
         )

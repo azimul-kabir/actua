@@ -18,7 +18,7 @@ internal object SingleAccountWidget {
     }
 
     fun update(context: Context, manager: AppWidgetManager, widgetId: Int, sharedRepository: ActuaRepository? = null) {
-        val views = RemoteViews(context.packageName, WidgetStyles.layout(context, R.layout.widget_single_account, R.layout.widget_single_account_styled))
+        val views = RemoteViews(context.packageName, WidgetStyles.layout(context, R.layout.widget_single_account, R.layout.widget_single_account_styled, widgetId))
         val repository = sharedRepository ?: ActuaRepository(context)
         try {
             loadBudgetFormats(repository)
@@ -35,6 +35,7 @@ internal object SingleAccountWidget {
                             spokenAmount = spoken(context, choice.item.balanceCents),
                         ),
                         open(context, WidgetActions.ACCOUNTS, widgetId, choice.item.name),
+                        widgetId,
                     )
                     SingleChoice.NotFound -> showSingleMessage(
                         views, context.getString(R.string.widget_single_account_missing),
@@ -45,7 +46,7 @@ internal object SingleAccountWidget {
                     )
                 }
             }
-            WidgetStyles.apply(context, views)
+            WidgetStyles.apply(context, views, widgetId = widgetId)
             manager.updateAppWidget(widgetId, views)
         } finally {
             if (sharedRepository == null) repository.close()

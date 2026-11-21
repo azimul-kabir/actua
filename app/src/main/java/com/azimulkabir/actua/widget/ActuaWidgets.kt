@@ -116,6 +116,7 @@ abstract class ActuaWidgetProvider : AppWidgetProvider() {
 
     override fun onDeleted(context: Context, widgetIds: IntArray) {
         kind?.let { WidgetPreferences(context).remove(it, widgetIds) }
+        WidgetLookPreferences(context).remove(widgetIds)
         widgetIds.forEach(WidgetListSnapshots::remove)
     }
 

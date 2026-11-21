@@ -46,8 +46,8 @@ internal object FavouriteCategoriesWidget {
                 val views = RemoteViews(
                     context.packageName,
                     when (layout) {
-                        ListLayout.Mini -> WidgetStyles.layout(context, R.layout.widget_favourite_categories_mini, R.layout.widget_favourite_categories_mini_styled)
-                        ListLayout.Titled, ListLayout.Full -> WidgetStyles.layout(context, R.layout.widget_favourite_categories, R.layout.widget_favourite_categories_styled)
+                        ListLayout.Mini -> WidgetStyles.layout(context, R.layout.widget_favourite_categories_mini, R.layout.widget_favourite_categories_mini_styled, widgetId)
+                        ListLayout.Titled, ListLayout.Full -> WidgetStyles.layout(context, R.layout.widget_favourite_categories, R.layout.widget_favourite_categories_styled, widgetId)
                     },
                 )
                 views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_favourite_categories))
@@ -68,7 +68,7 @@ internal object FavouriteCategoriesWidget {
                 bindFreshness(context, manager, views, widgetId, layout == ListLayout.Full, updatedAt)
                 bindItemList(context, views, widgetId, WidgetKind.Categories, WidgetActions.CATEGORY)
                 views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.BUDGET, widgetId))
-                WidgetStyles.apply(context, views)
+                WidgetStyles.apply(context, views, widgetId = widgetId)
                 views
             },
         )
