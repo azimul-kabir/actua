@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Demo budget family: seeded display content for the local-only demo budget.
+     The first 36 keys mirror #424's strings_demo.xml (names verbatim); later keys
+     cover demo payees, saved reports and dashboard cards added after #424.
+     Seeded IDs (account/category/payee rows) stay locale-neutral; only display
+     names localize, resolved at seed time via DemoBudgetLabels. -->
+<resources>
+    <string name="demo_budget_name">Демо-бюджет Actua</string>
+
+    <string name="demo_account_checking">Текущий счёт</string>
+    <string name="demo_account_savings">Резервные накопления</string>
+    <string name="demo_account_credit">Кредитная карта на каждый день</string>
+    <string name="demo_account_investment">Инвестиционный счёт</string>
+
+    <string name="demo_group_income">Доходы</string>
+    <string name="demo_group_essentials">Необходимое</string>
+    <string name="demo_group_lifestyle">Образ жизни</string>
+    <string name="demo_group_goals">Цели</string>
+
+    <string name="demo_category_salary">Зарплата</string>
+    <string name="demo_category_starting_balances">Начальные остатки</string>
+    <string name="demo_category_rent">Аренда</string>
+    <string name="demo_category_groceries">Продукты</string>
+    <string name="demo_category_utilities">Коммунальные услуги</string>
+    <string name="demo_category_transport">Транспорт</string>
+    <string name="demo_category_dining_out">Рестораны и кафе</string>
+    <string name="demo_category_entertainment">Развлечения</string>
+    <string name="demo_category_emergency_fund">Резервный фонд</string>
+    <string name="demo_category_vacation">Отпуск</string>
+
+    <string name="demo_payee_employer">Работодатель</string>
+    <string name="demo_payee_landlord">Арендодатель</string>
+    <string name="demo_payee_supermarket">Свежий рынок</string>
+    <string name="demo_payee_utilities">Городские коммунальные службы</string>
+    <string name="demo_payee_fuel">АЗС</string>
+    <string name="demo_payee_restaurant">Кафе по соседству</string>
+    <string name="demo_payee_streaming">СтримБокс</string>
+    <string name="demo_payee_corner_grocer">Магазин на углу</string>
+    <string name="demo_payee_big_box_store">Гипермаркет</string>
+    <string name="demo_payee_internet">Оптика-Нет</string>
+    <string name="demo_payee_mobile">Мобильная связь</string>
+    <string name="demo_payee_transit">Городской транспорт</string>
+    <string name="demo_payee_pizza">Пиццерия «Слайс»</string>
+    <string name="demo_payee_sushi">Суши «Сакура»</string>
+    <string name="demo_payee_cinema">Кинотеатр</string>
+    <string name="demo_payee_books">Книжный «Страница»</string>
+    <string name="demo_payee_airline">Авиакомпания «СкайВэй»</string>
+    <string name="demo_payee_index_fund">Индексный фонд</string>
+
+    <string name="demo_note_groceries">Ежемесячные продукты для дома. Попробуйте изменить цель или переместить деньги в эту категорию.</string>
+    <string name="demo_note_checking">Демо-счёт для повседневных расходов. Он включает проведённые, непроведённые и сверенные транзакции.</string>
+
+    <string name="demo_schedule_salary">Ежемесячная зарплата</string>
+    <string name="demo_schedule_rent">Аренда</string>
+    <string name="demo_schedule_streaming">Подписка на стриминг</string>
+    <string name="demo_schedule_card_payment">Платёж по кредитной карте</string>
+
+    <string name="demo_report_overview">Обзор</string>
+    <string name="demo_report_welcome">**Добро пожаловать в демо Actua** 👋\n\nЭтот бюджет хранится только на этом устройстве. Попробуйте цели, правила, расписания, сверку, кредитные карты, кредиты с планировщиком погашения и отчёты.</string>
+    <string name="demo_report_this_month">Этот месяц</string>
+    <string name="demo_report_spending_by_category">Расходы по категориям</string>
+    <string name="demo_report_monthly_spending">Расходы по месяцам</string>
+    <string name="demo_report_top_payees">Основные получатели</string>
+    <string name="demo_report_spending_trend">Динамика расходов</string>
+    <string name="demo_report_net_worth">Чистый капитал</string>
+    <string name="demo_report_cash_flow">Денежный поток</string>
+    <string name="demo_report_food_per_month">Питание по месяцам</string>
+    <string name="demo_report_where_the_money_went">Куда ушли деньги</string>
+    <string name="demo_report_budget_analysis">Анализ бюджета</string>
+    <string name="demo_report_age_of_money">Возраст денег</string>
+    <string name="demo_report_calendar">Календарь</string>
+
+    <!-- Loans, a second card, the Debt group and wider category coverage (#1630). -->
+    <string name="demo_account_cash">Наличные</string>
+    <string name="demo_account_rewards_card">Карта с бонусами за поездки</string>
+    <string name="demo_account_car_loan">Автокредит</string>
+    <string name="demo_account_student_loan">Образовательный кредит</string>
+    <string name="demo_group_debt">Долги</string>
+    <string name="demo_category_freelance">Фриланс</string>
+    <string name="demo_category_interest_income">Проценты</string>
+    <string name="demo_category_health">Здоровье</string>
+    <string name="demo_category_insurance">Страхование</string>
+    <string name="demo_category_shopping">Покупки</string>
+    <string name="demo_category_subscriptions">Подписки</string>
+    <string name="demo_category_gifts">Подарки</string>
+    <string name="demo_category_car_loan">Автокредит</string>
+    <string name="demo_category_student_loan">Образовательный кредит</string>
+    <string name="demo_category_card_interest">Проценты по кредитной карте</string>
+    <string name="demo_payee_client">Клиент-фрилансер</string>
+    <string name="demo_payee_bank_interest">Проценты по накоплениям</string>
+    <string name="demo_payee_pharmacy">Аптека на углу</string>
+    <string name="demo_payee_clinic">Семейная клиника</string>
+    <string name="demo_payee_insurance">Страховая «Тихая гавань»</string>
+    <string name="demo_payee_online_store">Онлайн-маркет</string>
+    <string name="demo_payee_cloud_storage">ОблакоСейф</string>
+    <string name="demo_payee_music">МузыкаСтрим</string>
+    <string name="demo_payee_gift_shop">Галерея подарков</string>
+    <string name="demo_payee_market_stall">Рыночный прилавок</string>
+    <string name="demo_payee_rewards_bank">Банк «Бонус»</string>
+    <string name="demo_note_car_loan">Связано со счётом автокредита. Платежи по кредиту — это переводы с текущего счёта, использующие эту категорию, поэтому запись платежа на экране кредита учитывает его в бюджете здесь.</string>
+    <string name="demo_note_rewards_card">Демо-кредитная карта с задолженностью. У неё фиксированный день платежа, кредитный лимит и ежемесячные проценты.</string>
+    <string name="demo_schedule_rewards_card_payment">Платёж по карте с бонусами за поездки</string>
+    <string name="demo_schedule_car_loan">Платёж по автокредиту</string>
+    <string name="demo_schedule_student_loan">Платёж по образовательному кредиту</string>
+    <string name="demo_schedule_insurance">Страхование</string>
+</resources>
