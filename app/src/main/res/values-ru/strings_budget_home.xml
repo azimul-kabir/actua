@@ -1,0 +1,423 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared cross-screen strings, keyed as upstream PR #424 names them. -->
+    <string name="common_cancel">Отмена</string>
+    <string name="common_none">Нет</string>
+    <string name="common_search_actua">Поиск в Actua</string>
+
+    <!-- Budget toolbar, month picker and display options. -->
+    <string name="budget_choose_month">Выберите месяц</string>
+    <string name="budget_manage_categories">Управление категориями</string>
+    <string name="budget_display_options">Параметры отображения бюджета</string>
+    <string name="budget_plan_view">Режим планирования</string>
+    <string name="budget_show_overview">Показывать обзор</string>
+    <string name="budget_show_warnings">Показывать предупреждения</string>
+    <string name="budget_show_spending_details">Показывать сведения о расходах</string>
+    <string name="budget_show_spent_column">Показывать столбец «Потрачено»</string>
+    <string name="budget_show_progress_bars">Показывать индикаторы прогресса</string>
+    <string name="budget_show_group_totals">Показывать итоги по группам</string>
+    <string name="budget_show_balance_pills">Показывать метки остатка</string>
+    <string name="budget_show_goal_icons">Показывать значки целей</string>
+    <string name="budget_display_options_menu">Параметры отображения</string>
+    <string name="budget_display_options_title">Параметры отображения</string>
+    <string name="budget_options_section_page">Страница</string>
+    <string name="budget_options_section_rows">Каждая строка категории</string>
+    <string name="budget_options_section_categories">Показанные категории</string>
+    <string name="budget_options_section_summary">Включено: %1$d из %2$d</string>
+    <string name="budget_options_section_expanded">Развёрнуто</string>
+    <string name="budget_options_section_collapsed">Свёрнуто</string>
+    <string name="budget_show_status_dots">Показывать индикаторы состояния</string>
+    <string name="budget_switch_budget">Сменить бюджет</string>
+    <string name="budget_type_confirm_title_tracking">Перейти на бюджет с отслеживанием?</string>
+    <string name="budget_type_confirm_title_envelope">Перейти на конвертный бюджет?</string>
+    <string name="budget_type_confirm_all_devices">Это изменит тип бюджета на каждом устройстве, которое синхронизирует этот бюджет. Ваши категории и суммы сохранятся.</string>
+    <string name="budget_type_confirm_tracking">В бюджете с отслеживанием нет суммы «К распределению».</string>
+    <string name="budget_type_confirm_envelope">В конвертном бюджете категории пополняются из суммы «К распределению».</string>
+    <string name="budget_type_confirm_action">Перейти</string>
+    <string name="budget_hide_fully_spent">Скрыть полностью потраченные</string>
+    <string name="budget_show_hidden">Показать скрытые категории и группы</string>
+    <string name="budget_show_filters">Показать фильтры категорий</string>
+    <string name="budget_expand_all_groups">Развернуть все группы</string>
+    <string name="budget_collapse_all_groups">Свернуть все группы</string>
+    <string name="budget_copy_last_month">Скопировать бюджет прошлого месяца</string>
+    <string name="budget_favorites">Избранное</string>
+    <string name="budget_previous_year">Предыдущий год</string>
+    <string name="budget_next_year">Следующий год</string>
+    <string name="budget_current_month">Текущий месяц</string>
+
+    <!-- Category view filters (BudgetCategoryView). -->
+    <string name="budget_filter_all">Все</string>
+    <string name="budget_filter_overspent">С перерасходом</string>
+    <string name="budget_filter_underfunded">С нехваткой средств</string>
+    <string name="budget_filter_overfunded">С избытком средств</string>
+    <string name="budget_filter_money_available">С доступными средствами</string>
+
+    <!-- Overview, group headers and category rows. -->
+    <string name="budget_ready_to_budget">Готово к распределению</string>
+    <string name="budget_to_budget">К распределению</string>
+    <string name="budget_to_budget_endpoint">К распределению</string>
+    <string name="budget_projected_savings">Прогноз накоплений</string>
+    <string name="budget_overspent">Перерасход</string>
+    <string name="budget_saved">Сэкономлено</string>
+    <string name="budget_held_for_next_month">Отложено на следующий месяц: %1$s</string>
+    <string name="budget_expand_group">Развернуть: %1$s</string>
+    <string name="budget_collapse_group">Свернуть: %1$s</string>
+    <string name="budget_hidden_name">%1$s · Скрыто</string>
+    <string name="budget_budgeted">Запланировано</string>
+    <string name="budget_spent">Потрачено</string>
+    <string name="budget_balance">Остаток</string>
+    <string name="budget_received_amount">Получено: %1$s</string>
+    <string name="budget_budgeted_amount">Запланировано: %1$s</string>
+    <string name="budget_spent_amount">Потрачено: %1$s</string>
+
+    <!-- Progress-bar states (BudgetProgressState) and their semantic descriptions. -->
+    <string name="budget_progress_goal">Накоплено %1$d процентов цели</string>
+    <string name="budget_progress_spending">%1$s, потрачено %2$d процентов от доступного</string>
+    <string name="budget_progress_unassigned">Средства не назначены</string>
+    <string name="budget_progress_funded">Пополнено</string>
+    <string name="budget_progress_partially_spent">Частично потрачено</string>
+    <string name="budget_progress_fully_spent">Полностью потрачено</string>
+    <string name="budget_progress_overspent">Перерасход</string>
+    <string name="budget_progress_goal_in_progress">Цель в процессе</string>
+    <string name="budget_progress_goal_reached">Цель достигнута</string>
+    <string name="budget_progress_goal_overfunded">Цель превышена</string>
+
+    <!-- Warnings, the overspent sheet and the budget amount editor. -->
+    <string name="budget_auto_assign">Автораспределение</string>
+    <string name="budget_move_money">Переместить средства</string>
+    <string name="budget_move_money_plain">Переместить средства</string>
+    <string name="budget_fund_goal">Пополнить цель из «К распределению» (%1$s)</string>
+    <string name="budget_details">Подробности</string>
+    <string name="budget_no_suggestions">Нет доступных предложений</string>
+    <string name="budget_from">Откуда</string>
+    <string name="budget_to">Куда</string>
+    <string name="budget_swap_source_destination">Поменять источник и получателя местами</string>
+    <string name="budget_available_to_move">Доступно для перемещения: %1$s</string>
+    <string name="budget_amount">Сумма</string>
+    <string name="budget_cover_amount">Покрыть: %1$s</string>
+    <string name="budget_tap_to_cover">Нажмите, чтобы покрыть перерасход</string>
+    <string name="budget_tap_to_categorize">Нажмите, чтобы выбрать категорию</string>
+    <string name="budget_cover_overspending">Покрыть перерасход</string>
+    <string name="budget_choose_category_to_cover">Выберите категорию для покрытия</string>
+
+    <!-- To Budget summary sheet. -->
+    <string name="budget_cover_to_budget">Покрыть из «К распределению»</string>
+    <string name="budget_summary">Сводка бюджета</string>
+    <string name="budget_cover_from">Покрыть из</string>
+    <string name="budget_move_to_category">Переместить в категорию</string>
+    <string name="budget_hold_for_next_month">Отложить на следующий месяц</string>
+    <string name="budget_reset_hold">Сбросить отложенное</string>
+    <string name="budget_choose_category_cover">Выберите категорию, из которой переместить средства</string>
+    <string name="budget_choose_category_fund">Выберите категорию для пополнения из «К распределению»</string>
+    <string name="budget_category">Категория</string>
+    <string name="budget_no_categories">Нет доступных категорий</string>
+    <string name="budget_up_to">До %1$s</string>
+    <string name="budget_set_aside">Отложить часть или всю сумму «К распределению» вместо немедленного распределения</string>
+
+    <!-- Category details, actions sheets and the per-category budget menu. -->
+    <string name="budget_category_options">Параметры категории</string>
+    <string name="budget_add_favorite">Добавить в избранное</string>
+    <string name="budget_remove_favorite">Удалить из избранного</string>
+    <string name="budget_favorite_added">«%1$s» добавлена в избранное</string>
+    <string name="budget_favorite_removed">«%1$s» удалена из избранного</string>
+    <string name="accounts_favorite_added">«%1$s» добавлен в избранное</string>
+    <string name="accounts_favorite_removed">«%1$s» удалён из избранного</string>
+    <string name="budget_transactions_month">Транзакции за этот месяц</string>
+    <string name="budget_rename_category">Переименовать категорию</string>
+    <string name="budget_rename_group">Переименовать группу</string>
+    <string name="budget_hide_category">Скрыть категорию</string>
+    <string name="budget_unhide_category">Показать категорию</string>
+    <string name="budget_delete_category">Удалить категорию</string>
+    <string name="budget_budget">Бюджет</string>
+    <string name="budget_month_note">Заметка к месяцу</string>
+    <string name="budget_note">Заметка</string>
+    <string name="budget_add_note">Добавить заметку</string>
+    <string name="budget_category_note">Заметка к категории</string>
+    <string name="budget_rollover_overspending">Перенос перерасхода</string>
+    <string name="budget_rollover_description">Переносить перерасход на следующий месяц</string>
+    <string name="budget_recent_activity">Недавняя активность</string>
+    <string name="budget_view_all">Показать все</string>
+    <string name="budget_no_recent_transactions">Нет недавних транзакций</string>
+    <string name="budget_unknown_payee">Неизвестный получатель</string>
+    <string name="budget_stop_holding_automatically">Прекратить автоматическое откладывание</string>
+    <string name="budget_hold_automatically_next_month">Автоматически откладывать на следующий месяц</string>
+    <string name="budget_stop_all_automatic_holds">Прекратить все автоматические откладывания в этом месяце</string>
+    <string name="budget_action_average_3">Установить среднее за 3 месяца</string>
+    <string name="budget_action_average_6">Установить среднее за 6 месяцев</string>
+    <string name="budget_action_yearly_average">Установить среднее за год</string>
+    <string name="budget_action_copy_year_end">Скопировать на остаток года</string>
+
+    <!-- Target row in category details. -->
+    <string name="budget_notes_managed_target">Цель из заметок</string>
+    <string name="budget_advanced_target">Расширенная цель</string>
+    <string name="budget_managed_notes">Управляется заметками категории</string>
+    <string name="budget_managed_actual">Управляется в Actual Budget</string>
+    <string name="budget_view_target_info">Показать сведения о цели</string>
+    <string name="budget_balance_has_target">Есть цель</string>
+    <string name="budget_balance_goal_not_started">Цель не начата</string>
+    <string name="budget_edit_automation_list">Изменить список автоматизаций · Применить после предпросмотра всего бюджета</string>
+    <string name="budget_set_target">Задать цель</string>
+    <string name="budget_plan_amount">Запланировать сумму бюджета</string>
+    <string name="budget_auto_assign_target_hint">Автораспределение может использовать вашу цель</string>
+    <string name="budget_no_schedule_linked">Расписание не привязано</string>
+    <string name="budget_refill_balance_cap">Пополнять до лимита остатка категории</string>
+    <string name="budget_capped_amount">лимит %1$s %2$s</string>
+    <string name="budget_hold_short">отложить</string>
+    <string name="budget_every_period">Каждые %1$s</string>
+    <string name="budget_every_count_period">Каждые %1$d %2$s</string>
+    <string name="budget_percent_last_month">%1$d%% от суммы «%2$s» за прошлый месяц</string>
+    <string name="budget_percent_this_month">%1$d%% от суммы «%2$s» за этот месяц</string>
+    <string name="budget_copy_months_ago">Скопировать за %1$d мес. назад</string>
+    <string name="budget_daily_cap">Дневной лимит остатка</string>
+    <string name="budget_weekly_cap">Недельный лимит остатка</string>
+    <string name="budget_monthly_cap">Месячный лимит остатка</string>
+    <string name="budget_resets_monthly">Сбрасывается каждый месяц</string>
+    <string name="budget_target_month">Целевой месяц: %1$s</string>
+    <string name="budget_target_date">Целевая дата</string>
+    <string name="budget_recalculates_monthly">Пересчитывается каждый месяц</string>
+    <string name="budget_target_only">Только цель</string>
+    <string name="budget_after_other_automations">После других автоматизаций</string>
+    <string name="budget_at_priority">С этим приоритетом</string>
+    <string name="budget_schedule_driven">По расписанию</string>
+    <string name="budget_due_amount">К оплате: %1$s</string>
+    <string name="budget_no_auto_funding">Не запрашивает средства автоматически</string>
+    <string name="budget_no_auto_budgeting">Не распределяет средства автоматически</string>
+    <string name="budget_applied_preview">Применено в предпросмотре всего бюджета</string>
+    <string name="budget_schedule_missing">Привязанное расписание не найдено — нажмите, чтобы привязать заново</string>
+    <string name="budget_auto_assign_amount">Автораспределение: %1$s</string>
+    <string name="budget_spent_last_month">Потрачено в прошлом месяце</string>
+    <string name="budget_budgeted_last_month">Запланировано в прошлом месяце</string>
+    <string name="budget_reset_balance_zero">Обнулить остаток</string>
+    <string name="budget_set_budgeted_zero">Обнулить запланированную сумму</string>
+    <string name="budget_view_target">Показать цель</string>
+    <string name="budget_set_automations">Настроить автоматизации</string>
+    <string name="budget_edit_automations">Изменить автоматизации</string>
+    <string name="budget_target">Цель</string>
+    <string name="budget_edit_target">Изменить цель</string>
+
+    <!-- Target type labels (BudgetTarget.Type), keyed as upstream PR #424 names them. -->
+    <string name="target_fixed_label">Фиксированная сумма</string>
+    <string name="target_schedule_label">Покрытие расписания</string>
+    <string name="target_by_date_label">Накопить к дате</string>
+    <string name="target_percentage_label">%% от дохода</string>
+    <string name="target_history_label">По истории</string>
+    <string name="target_refill_label">Пополнять до лимита</string>
+    <string name="target_remainder_label">Всё, что осталось</string>
+    <string name="target_limit_label">Лимит остатка</string>
+    <string name="target_goal_label">Долгосрочная цель</string>
+
+    <!-- Period words used by "Every …" target timing, keyed as PR #424 names them. -->
+    <string name="automation_period_day_singular">день</string>
+    <string name="automation_period_day_plural">дней</string>
+    <string name="automation_period_week_singular">неделя</string>
+    <string name="automation_period_week_plural">недель</string>
+    <string name="automation_period_month_singular">месяц</string>
+    <string name="automation_period_month_plural">месяцев</string>
+    <string name="automation_period_year_singular">год</string>
+    <string name="automation_period_year_plural">лет</string>
+    <string name="automation_limit_daily">дневной</string>
+    <string name="automation_limit_weekly">недельный</string>
+    <string name="automation_limit_monthly">месячный</string>
+    <string name="automation_weight_summary">Вес: %1$d</string>
+
+    <!-- Add-to-budget sheet and the template/cleanup/zero/average previews. -->
+    <string name="budget_add_to_budget">Добавить в бюджет</string>
+    <string name="budget_apply_templates">Применить шаблоны бюджета</string>
+    <string name="budget_overwrite_templates">Перезаписать шаблоны бюджета</string>
+    <string name="budget_month_end_cleanup">Очистка в конце месяца</string>
+    <string name="budget_set_yearly_average">Установить бюджеты по среднему за год</string>
+    <string name="budget_set_month_average">Установить бюджеты по среднему за %1$d мес.</string>
+    <string name="budget_set_budgets_zero">Обнулить бюджеты</string>
+    <string name="budget_zero_intro">Ничего не изменится, пока вы не примените этот предпросмотр. Запланированная сумма каждой категории за %1$s будет обнулена.</string>
+    <string name="budget_zero_up_to_date">Во всех категориях уже ноль.</string>
+    <string name="budget_average_intro">Ничего не изменится, пока вы не примените этот предпросмотр. Бюджет каждой видимой категории за %1$s будет установлен по средней активности максимум за %2$d мес.</string>
+    <string name="budget_average_up_to_date">Все категории уже на уровне среднего.</string>
+    <string name="budget_copy_year_end_title">Скопировать на остаток года?</string>
+    <string name="budget_copy_year_end_body">Бюджет категории «%1$s» на сумму %2$s заменит её бюджет в каждом месяце после %3$s до декабря включительно.</string>
+    <string name="budget_copy">Скопировать</string>
+    <string name="budget_review_template">Проверка шаблона бюджета</string>
+    <string name="budget_review_template_named">Проверка шаблона бюджета · %1$s</string>
+    <string name="budget_template_overwrite_intro">Ничего не изменится, пока вы не подтвердите. Поддерживаемые автоматизации пересчитают существующие запланированные суммы за %1$s.</string>
+    <string name="budget_template_apply_intro">Ничего не изменится, пока вы не примените этот предпросмотр. Категории, в которых уже есть запланированная сумма, останутся без изменений.</string>
+    <string name="budget_no_unbudgeted_changes">Нет категорий без бюджета, требующих изменений.</string>
+    <string name="budget_targets_current">Все поддерживаемые цели уже актуальны.</string>
+    <string name="budget_net_change">Чистое изменение</string>
+    <string name="budget_group_goal">%1$s · Цель</string>
+    <string name="budget_unsupported_automations">Не применено, потому что эти категории используют типы автоматизации, которые Actua пока не может безопасно вычислить: %1$s.</string>
+    <string name="budget_available_funds_limited">Доступные средства ограничены: %1$s. Автоматизации с более высоким приоритетом пополнены первыми.</string>
+    <string name="budget_remainder_caps">Лимиты остатка действуют для: %1$s. Предпросмотр учитывает дневной, недельный или месячный лимит и перенос остатка.</string>
+    <string name="budget_apply_changes">Применить изменения</string>
+    <string name="budget_review_cleanup">Проверка очистки в конце месяца</string>
+    <string name="budget_cleanup_intro">Ничего не изменится, пока вы не подтвердите. Остатки будут перемещены между категориями-источниками и приёмниками, заданными заметками «#cleanup», за %1$s.</string>
+    <string name="budget_apply_cleanup">Применить очистку</string>
+    <string name="budget_cleanup_current">Нет групп, требующих очистки.</string>
+    <string name="budget_cleanup_none">Нет категорий, настроенных для очистки.</string>
+    <string name="budget_goal_reset">%1$s · Сброс цели</string>
+    <string name="budget_cleanup_unsupported">Не затронуто, потому что их определение очистки не поддерживается: %1$s.</string>
+    <string name="budget_hide_group">Скрыть группу</string>
+    <string name="budget_unhide_group">Показать группу</string>
+    <string name="budget_budget_details">Сведения о бюджете</string>
+    <string name="budget_edit_budgeted">Изменить запланированную сумму</string>
+    <string name="budget_all_transactions">Все транзакции</string>
+
+    <plurals name="budget_automation_count">
+        <item quantity="one">%1$d автоматизация</item>
+        <item quantity="few">%1$d автоматизации</item>
+        <item quantity="many">%1$d автоматизаций</item>
+        <item quantity="other">%1$d автоматизации</item>
+    </plurals>
+    <plurals name="budget_average_spent">
+        <item quantity="one">Среднее потрачено (%1$d месяц)</item>
+        <item quantity="few">Среднее потрачено (%1$d месяца)</item>
+        <item quantity="many">Среднее потрачено (%1$d месяцев)</item>
+        <item quantity="other">Среднее потрачено (%1$d месяца)</item>
+    </plurals>
+    <plurals name="budget_overspent_warning">
+        <item quantity="one">Перерасход в %1$d категории</item>
+        <item quantity="few">Перерасход в %1$d категориях</item>
+        <item quantity="many">Перерасход в %1$d категориях</item>
+        <item quantity="other">Перерасход в %1$d категории</item>
+    </plurals>
+    <plurals name="budget_uncategorized_warning">
+        <item quantity="one">%1$d транзакция без категории</item>
+        <item quantity="few">%1$d транзакции без категории</item>
+        <item quantity="many">%1$d транзакций без категории</item>
+        <item quantity="other">%1$d транзакции без категории</item>
+    </plurals>
+    <plurals name="budget_targets_already_current">
+        <item quantity="one">%1$d поддерживаемая цель уже актуальна.</item>
+        <item quantity="few">%1$d поддерживаемые цели уже актуальны.</item>
+        <item quantity="many">%1$d поддерживаемых целей уже актуальны.</item>
+        <item quantity="other">%1$d поддерживаемой цели уже актуальны.</item>
+    </plurals>
+    <plurals name="budget_categories_already_current">
+        <item quantity="one">%1$d категория уже актуальна</item>
+        <item quantity="few">%1$d категории уже актуальны</item>
+        <item quantity="many">%1$d категорий уже актуальны</item>
+        <item quantity="other">%1$d категории уже актуальны</item>
+    </plurals>
+    <plurals name="budget_categories_unchanged">
+        <item quantity="one">%1$d категория с уже заданным бюджетом оставлена без изменений.</item>
+        <item quantity="few">%1$d категории с уже заданным бюджетом оставлены без изменений.</item>
+        <item quantity="many">%1$d категорий с уже заданным бюджетом оставлены без изменений.</item>
+        <item quantity="other">%1$d категории с уже заданным бюджетом оставлены без изменений.</item>
+    </plurals>
+    <plurals name="automation_average_recent_plural">
+        <item quantity="one">Среднее за %1$d последний месяц</item>
+        <item quantity="few">Среднее за %1$d последних месяца</item>
+        <item quantity="many">Среднее за %1$d последних месяцев</item>
+        <item quantity="other">Среднее за %1$d последнего месяца</item>
+    </plurals>
+
+    <!-- Home screen, its section titles and Customize Home. -->
+    <string name="home_title">Главная</string>
+    <string name="home_customize">Настроить главный экран</string>
+    <string name="home_ready_to_budget">Готово к распределению</string>
+    <string name="home_favorite_categories">Избранные категории</string>
+    <string name="home_favorite_accounts">Избранные счета</string>
+    <string name="home_upcoming">Ближайшее</string>
+    <string name="home_this_month">Этот месяц</string>
+    <string name="home_reports">Отчёты</string>
+    <string name="home_recent_activity">Недавняя активность</string>
+    <string name="home_no_budget_month">Месяц бюджета не выбран</string>
+    <string name="home_no_favorite_categories">Пока нет избранных категорий</string>
+    <string name="home_no_favorite_accounts">Пока нет избранных счетов</string>
+    <string name="home_no_upcoming">Нет ближайших платежей и расписаний</string>
+    <string name="home_dashboards">Панели и финансовая аналитика</string>
+    <string name="home_view_all_reports">Показать все отчёты</string>
+    <string name="home_income">Доход</string>
+    <string name="home_spent">Потрачено</string>
+    <string name="home_net">Итого</string>
+    <string name="home_spending">Расходы</string>
+    <string name="home_activity">Активность</string>
+    <string name="home_no_recent_activity">Нет недавней активности</string>
+    <string name="home_transaction">Транзакция</string>
+    <string name="home_overdue">Просрочено</string>
+    <string name="home_due_today">К оплате сегодня</string>
+    <string name="home_due_tomorrow">К оплате завтра</string>
+    <string name="home_due_date">К оплате: %1$s</string>
+    <string name="home_scheduled">По расписанию</string>
+    <string name="home_account_checking">Текущий счёт</string>
+    <string name="home_account_savings">Накопительный счёт</string>
+    <string name="home_account_credit">Кредитная карта</string>
+    <string name="home_account_investment">Инвестиции</string>
+    <string name="home_account_mortgage">Ипотека</string>
+    <string name="home_account_debt">Долг</string>
+    <string name="home_restore_layout">Восстановить макет по умолчанию</string>
+    <string name="home_customize_hint">Перетащите маркер, чтобы изменить порядок, или используйте стрелки вверх и вниз. «Готово к распределению» всегда остаётся первым.</string>
+    <string name="home_drag_reorder">Перетащите, чтобы изменить порядок: %1$s</string>
+    <string name="home_move_up">Переместить «%1$s» вверх</string>
+    <string name="home_move_down">Переместить «%1$s» вниз</string>
+    <string name="home_show_section">Показывать «%1$s» на главном экране</string>
+    <string name="home_required">Обязательно</string>
+    <string name="home_open_budget">Открыть бюджет</string>
+    <string name="home_available_to_assign">Доступно для распределения</string>
+    <string name="home_open_current_budget">Открыть текущий бюджет</string>
+    <string name="home_amount_available">Доступно: %1$s</string>
+    <string name="home_goal_progress">Накоплено %1$d%% цели</string>
+    <string name="home_spending_progress">%1$s · потрачено %2$d%%</string>
+    <string name="home_view_calendar">Показать календарь</string>
+    <string name="home_explore_trends">Изучите тенденции по вашему бюджету</string>
+    <string name="home_open_dashboard">Открыть панель</string>
+    <string name="home_view_all_activity">Показать всю активность</string>
+    <string name="home_summary_start_title">Месяц начинается с числа</string>
+    <string name="home_summary_start_earlier">Начать период на день раньше</string>
+    <string name="home_summary_start_later">Начать период на день позже</string>
+    <string name="home_summary_start_description">День 1 соответствует календарному месяцу. Выберите другое число, если вы получаете зарплату в середине месяца: сводка на главном экране, пресеты месяцев в пользовательских отчётах («Этот месяц», «Прошлый месяц», «Последние N месяцев») и диапазон по умолчанию в карточках «Сводка», «Денежный поток» и «Санки» будут тогда идти от этого дня до дня перед следующим. Это действует только на этом устройстве; Actual показывает календарные месяцы. В коротких месяцах используется их последний день.</string>
+    <string name="home_summary_start_adjustment_title">Если день начала выпадает на выходной</string>
+    <string name="home_summary_adjustment_none">Оставить этот день</string>
+    <string name="home_summary_adjustment_previous">Предыдущий рабочий день</string>
+    <string name="home_summary_adjustment_next">Следующий рабочий день</string>
+    <string name="home_summary_weekend_title">Выходные дни</string>
+    <string name="home_summary_weekend_description">Выходные дни пропускаются при переносе начала месяца на рабочий день, и именно в эти дни отображаются платежи по расписаниям, которые пропускают выходные. Сам Actual считает выходными субботу и воскресенье, поэтому это меняет только то, что вы видите на этом устройстве. Праздники, перечисленные ниже, пропускаются так же.</string>
+    <string name="settings_holidays_row_title">Праздники</string>
+    <string name="settings_holidays_row_none">Не указаны</string>
+    <string name="settings_holidays_row_count">Указано: %1$d</string>
+    <string name="settings_holidays_empty">Праздники не указаны. Добавьте даты, когда ваш банк или офис закрыт.</string>
+    <string name="settings_holidays_add">Добавить праздник</string>
+    <string name="settings_holidays_label">Название (необязательно)</string>
+    <string name="settings_holidays_remove">Удалить: %1$s</string>
+    <string name="settings_holidays_note">Праздники пропускаются так же, как выходные дни, при переносе начала месяца на рабочий день и при показе расписаний, которые пропускают выходные. Это действует только на этом устройстве; Actual считает выходными субботу и воскресенье. Прошедшие даты остаются, пока вы их не удалите.</string>
+
+    <plurals name="home_transactions_count">
+        <item quantity="one">%1$d транзакция</item>
+        <item quantity="few">%1$d транзакции</item>
+        <item quantity="many">%1$d транзакций</item>
+        <item quantity="other">%1$d транзакции</item>
+    </plurals>
+    <string name="home_collapse_section">Свернуть: %1$s</string>
+    <string name="home_expand_section">Развернуть: %1$s</string>
+    <string name="home_greeting">Приветствие</string>
+    <string name="home_greeting_morning">Доброе утро</string>
+    <string name="home_greeting_afternoon">Добрый день</string>
+    <string name="home_greeting_evening">Добрый вечер</string>
+    <string name="home_greeting_morning_named">Доброе утро, %1$s</string>
+    <string name="home_greeting_afternoon_named">Добрый день, %1$s</string>
+    <string name="home_greeting_evening_named">Добрый вечер, %1$s</string>
+    <plurals name="home_greeting_categories">
+        <item quantity="one">%1$d из %2$d категории в рамках бюджета</item>
+        <item quantity="few">%1$d из %2$d категорий в рамках бюджета</item>
+        <item quantity="many">%1$d из %2$d категорий в рамках бюджета</item>
+        <item quantity="other">%1$d из %2$d категории в рамках бюджета</item>
+    </plurals>
+    <plurals name="home_greeting_uncategorized">
+        <item quantity="one">%d транзакцию нужно категоризировать в этом месяце</item>
+        <item quantity="few">%d транзакции нужно категоризировать в этом месяце</item>
+        <item quantity="many">%d транзакций нужно категоризировать в этом месяце</item>
+        <item quantity="other">%d транзакции нужно категоризировать в этом месяце</item>
+    </plurals>
+    <plurals name="home_greeting_bills_due">
+        <item quantity="one">%d платёж к оплате на этой неделе</item>
+        <item quantity="few">%d платежа к оплате на этой неделе</item>
+        <item quantity="many">%d платежей к оплате на этой неделе</item>
+        <item quantity="other">%d платежа к оплате на этой неделе</item>
+    </plurals>
+    <plurals name="home_greeting_added">
+        <item quantity="one">%d транзакция добавлена на этой неделе</item>
+        <item quantity="few">%d транзакции добавлены на этой неделе</item>
+        <item quantity="many">%d транзакций добавлено на этой неделе</item>
+        <item quantity="other">%d транзакции добавлены на этой неделе</item>
+    </plurals>
+    <string name="home_greeting_open_home">Открыть главный экран</string>
+    <string name="home_greeting_dismiss">Закрыть приветствие</string>
+</resources>

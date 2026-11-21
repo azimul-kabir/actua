@@ -28,7 +28,7 @@ IMPORTEZ, EXPORTEZ ET SYNCHRONISEZ
 
 CONÇUE POUR ANDROID
 
-Actua est une application Android native avec une interface Material 3, une navigation personnalisable et des réglages d’apparence flexibles. Ajoutez des widgets d’écran d’accueil pour votre budget, vos catégories favorites, vos soldes, vos factures, vos tendances de dépenses et vos rapports, ou utilisez les raccourcis du lanceur. Disponible en anglais, français, allemand, italien, japonais, chinois simplifié, portugais brésilien et espagnol.
+Actua est une application Android native avec une interface Material 3, une navigation personnalisable et des réglages d’apparence flexibles. Ajoutez des widgets d’écran d’accueil pour votre budget, vos catégories favorites, vos soldes, vos factures, vos tendances de dépenses et vos rapports, ou utilisez les raccourcis du lanceur. Disponible en anglais, français, allemand, italien, japonais, russe, chinois simplifié, portugais brésilien et espagnol.
 
 VOS DONNÉES, VOTRE SERVEUR
 
