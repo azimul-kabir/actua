@@ -93,6 +93,7 @@
     <string name="transaction_make_one_time_schedule_message">A transação salva será substituída por um agendamento que a lança em %1$s. As alterações deste formulário que não foram salvas não são incluídas.</string>
     <plurals name="transaction_one_time_schedule_beyond_window">
         <item quantity="one">Esta transação é daqui a %1$d dia, além da sua janela de próximos de %2$d dias. O agendamento só aparecerá como próximo até lá.</item>
+        <item quantity="many">Esta transação é daqui a %1$d dias, além da sua janela de próximos de %2$d dias. O agendamento só aparecerá como próximo até lá.</item>
         <item quantity="other">Esta transação é daqui a %1$d dias, além da sua janela de próximos de %2$d dias. O agendamento só aparecerá como próximo até lá.</item>
     </plurals>
     <string name="transaction_make_one_time_schedule_confirm">Criar agendamento</string>
@@ -111,6 +112,7 @@
     <string name="transactions_tap_to_select">Toque nas transações para selecionar</string>
     <plurals name="transactions_selected">
         <item quantity="one">%1$d selecionada</item>
+        <item quantity="many">%1$d selecionadas</item>
         <item quantity="other">%1$d selecionadas</item>
     </plurals>
     <string name="transactions_categorize">Categorizar</string>
@@ -135,6 +137,7 @@
     <string name="transactions_filter_reconciled">Reconciliadas</string>
     <plurals name="transactions_count">
         <item quantity="one">%1$d transação</item>
+        <item quantity="many">%1$d transações</item>
         <item quantity="other">%1$d transações</item>
     </plurals>
     <string name="transactions_empty_uncategorized">Nenhuma transação sem categoria</string>
@@ -150,6 +153,7 @@
     <string name="transactions_new_from_bank_sync">Nova da sincronização bancária</string>
     <plurals name="transactions_delete_count_question">
         <item quantity="one">Excluir %1$d transação?</item>
+        <item quantity="many">Excluir %1$d transações?</item>
         <item quantity="other">Excluir %1$d transações?</item>
     </plurals>
     <string name="transactions_delete_multiple_message">Estas transações serão excluídas.</string>
@@ -185,6 +189,7 @@
     <string name="reconcile_no_uncleared_review">Nenhuma transação não confirmada para revisar</string>
     <plurals name="reconcile_review_uncleared">
         <item quantity="one">Revisar %1$d transação não confirmada</item>
+        <item quantity="many">Revisar %1$d transações não confirmadas</item>
         <item quantity="other">Revisar %1$d transações não confirmadas</item>
     </plurals>
     <string name="reconcile_create_adjustment">Criar transação de ajuste</string>
@@ -262,6 +267,7 @@
     <string name="receipt_split_tax">Imposto %1$s em uma linha separada</string>
     <plurals name="receipt_split_items">
         <item quantity="one">Uma linha para o %1$d item encontrado (menos confiável)</item>
+        <item quantity="many">Uma linha para cada um dos %1$d itens encontrados (menos confiável)</item>
         <item quantity="other">Uma linha para cada um dos %1$d itens encontrados (menos confiável)</item>
     </plurals>
     <string name="receipt_split_confirm">Dividir</string>

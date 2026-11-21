@@ -422,46 +422,57 @@
 
     <plurals name="seconds_ago">
         <item quantity="one">%1$d sec fa</item>
+        <item quantity="many">%1$d sec fa</item>
         <item quantity="other">%1$d sec fa</item>
     </plurals>
     <plurals name="minutes_ago">
         <item quantity="one">%1$d min fa</item>
+        <item quantity="many">%1$d min fa</item>
         <item quantity="other">%1$d min fa</item>
     </plurals>
     <plurals name="hours_ago">
         <item quantity="one">%1$d h fa</item>
+        <item quantity="many">%1$d h fa</item>
         <item quantity="other">%1$d h fa</item>
     </plurals>
     <plurals name="days_ago">
         <item quantity="one">%1$d giorno fa</item>
+        <item quantity="many">%1$d giorni fa</item>
         <item quantity="other">%1$d giorni fa</item>
     </plurals>
     <plurals name="review_captured">
         <item quantity="one">Rivedi acquisite (%1$d)</item>
+        <item quantity="many">Rivedi acquisite (%1$d)</item>
         <item quantity="other">Rivedi acquisite (%1$d)</item>
     </plurals>
     <plurals name="selected_apps">
         <item quantity="one">%1$d selezionata</item>
+        <item quantity="many">%1$d selezionate</item>
         <item quantity="other">%1$d selezionate</item>
     </plurals>
     <plurals name="malformed_rows_excluded">
         <item quantity="one">%1$d riga malformata è stata esclusa.</item>
+        <item quantity="many">%1$d righe malformate sono state escluse.</item>
         <item quantity="other">%1$d righe malformate sono state escluse.</item>
     </plurals>
     <plurals name="imported_transactions">
         <item quantity="one">Importata %1$d transazione.</item>
+        <item quantity="many">Importate %1$d transazioni.</item>
         <item quantity="other">Importate %1$d transazioni.</item>
     </plurals>
     <plurals name="still_need_account">
         <item quantity="one">%1$d richiede ancora un conto.</item>
+        <item quantity="many">%1$d richiedono ancora un conto.</item>
         <item quantity="other">%1$d richiedono ancora un conto.</item>
     </plurals>
     <plurals name="approve_and_import">
         <item quantity="one">Approva e importa %1$d</item>
+        <item quantity="many">Approva e importa %1$d</item>
         <item quantity="other">Approva e importa %1$d</item>
     </plurals>
     <plurals name="clear_import_history">
         <item quantity="one">Cancella cronologia importazioni (%1$d)</item>
+        <item quantity="many">Cancella cronologia importazioni (%1$d)</item>
         <item quantity="other">Cancella cronologia importazioni (%1$d)</item>
     </plurals>
 
@@ -469,6 +480,7 @@
     <string name="sync_reset_title">Scaricare di nuovo questo budget?</string>
     <plurals name="sync_reset_unsynced">
         <item quantity="one">%d modifica su questo dispositivo non è stata sincronizzata e non verrà trasferita nel nuovo file del server.</item>
+        <item quantity="many">%d modifiche su questo dispositivo non sono state sincronizzate e non verranno trasferite nel nuovo file del server.</item>
         <item quantity="other">%d modifiche su questo dispositivo non sono state sincronizzate e non verranno trasferite nel nuovo file del server.</item>
     </plurals>
     <string name="sync_reset_unsynced_unknown">Questo dispositivo non può sapere se ogni modifica è stata sincronizzata. Le modifiche non sincronizzate non verranno trasferite nel nuovo file del server.</string>

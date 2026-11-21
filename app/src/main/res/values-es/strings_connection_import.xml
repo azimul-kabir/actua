@@ -422,46 +422,57 @@
 
     <plurals name="seconds_ago">
         <item quantity="one">hace %1$d segundo</item>
+        <item quantity="many">hace %1$d segundos</item>
         <item quantity="other">hace %1$d segundos</item>
     </plurals>
     <plurals name="minutes_ago">
         <item quantity="one">hace %1$d minuto</item>
+        <item quantity="many">hace %1$d minutos</item>
         <item quantity="other">hace %1$d minutos</item>
     </plurals>
     <plurals name="hours_ago">
         <item quantity="one">hace %1$d hora</item>
+        <item quantity="many">hace %1$d horas</item>
         <item quantity="other">hace %1$d horas</item>
     </plurals>
     <plurals name="days_ago">
         <item quantity="one">hace %1$d día</item>
+        <item quantity="many">hace %1$d días</item>
         <item quantity="other">hace %1$d días</item>
     </plurals>
     <plurals name="review_captured">
         <item quantity="one">Revisar capturadas (%1$d)</item>
+        <item quantity="many">Revisar capturadas (%1$d)</item>
         <item quantity="other">Revisar capturadas (%1$d)</item>
     </plurals>
     <plurals name="selected_apps">
         <item quantity="one">%1$d seleccionada</item>
+        <item quantity="many">%1$d seleccionadas</item>
         <item quantity="other">%1$d seleccionadas</item>
     </plurals>
     <plurals name="malformed_rows_excluded">
         <item quantity="one">Se excluyó %1$d fila con errores.</item>
+        <item quantity="many">Se excluyeron %1$d filas con errores.</item>
         <item quantity="other">Se excluyeron %1$d filas con errores.</item>
     </plurals>
     <plurals name="imported_transactions">
         <item quantity="one">Se importó %1$d transacción.</item>
+        <item quantity="many">Se importaron %1$d transacciones.</item>
         <item quantity="other">Se importaron %1$d transacciones.</item>
     </plurals>
     <plurals name="still_need_account">
         <item quantity="one">%1$d todavía necesita una cuenta.</item>
+        <item quantity="many">%1$d todavía necesitan una cuenta.</item>
         <item quantity="other">%1$d todavía necesitan una cuenta.</item>
     </plurals>
     <plurals name="approve_and_import">
         <item quantity="one">Aprobar e importar %1$d</item>
+        <item quantity="many">Aprobar e importar %1$d</item>
         <item quantity="other">Aprobar e importar %1$d</item>
     </plurals>
     <plurals name="clear_import_history">
         <item quantity="one">Borrar historial de importaciones (%1$d)</item>
+        <item quantity="many">Borrar historial de importaciones (%1$d)</item>
         <item quantity="other">Borrar historial de importaciones (%1$d)</item>
     </plurals>
 
@@ -469,6 +480,7 @@
     <string name="sync_reset_title">¿Volver a descargar este presupuesto?</string>
     <plurals name="sync_reset_unsynced">
         <item quantity="one">%d cambio de este dispositivo no se ha sincronizado y no se transferirá al nuevo archivo del servidor.</item>
+        <item quantity="many">%d cambios de este dispositivo no se han sincronizado y no se transferirán al nuevo archivo del servidor.</item>
         <item quantity="other">%d cambios de este dispositivo no se han sincronizado y no se transferirán al nuevo archivo del servidor.</item>
     </plurals>
     <string name="sync_reset_unsynced_unknown">Este dispositivo no puede determinar si todos los cambios se han sincronizado. Los cambios pendientes no se transferirán al nuevo archivo del servidor.</string>
