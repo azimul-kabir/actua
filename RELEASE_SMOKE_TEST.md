@@ -405,6 +405,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] 2.8.0 Support back navigation: from a locked extra (App icon, Widget style, Accent color or Catppuccin) open Support Actua, then use the back gesture and the on-screen arrow; each returns to the picker, then Supporter extras, then Settings. Opening Support Actua from the Settings list returns to Settings.
 - [ ] 2.8.0 Terms link: Settings → About lists Terms of Service and opens the page.
 - [ ] 2.8.0 Upgrade: install the previous GitHub `Actua-v2.7.0.apk`, add a budget, then install the new release-signed `Actua-v2.8.0.apk` over it and confirm the budget survives. A Play install and a GitHub APK cannot update each other (expected: different signing keys).
+- [ ] Unreleased French: choose Français under Settings → Display → Language and confirm navigation, Home, Budget, Settings, widgets and notifications switch to French with no English left over and nothing clipped, restart Actua and confirm the choice sticks, then switch back to System default.
 
 ## Release/distribution
 
