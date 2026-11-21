@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
@@ -60,6 +61,9 @@ import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.widget.WidgetStyle
 import com.azimulkabir.actua.widget.WidgetStyles
 import com.azimulkabir.actua.widget.WidgetUpdater
+
+/** Test tag on the Widget style page's group of style tiles. */
+internal const val WIDGET_STYLE_TILES_TAG = "widget_style_tiles"
 
 @StringRes
 internal fun widgetStyleLabelRes(style: WidgetStyle): Int = when (style) {
@@ -102,31 +106,36 @@ internal fun WidgetStyleSettings(isSupporter: Boolean, onOpenSupport: () -> Unit
     val selected = if (isSupporter) chosen else WidgetStyle.Default
     val styles = availableWidgetStyles()
     Column(
-        // The tiles are one set of radio choices, so a screen reader announces them as a group.
-        modifier.selectableGroup().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
+        modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        styles.chunked(2).forEach { rowStyles ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                rowStyles.forEach { style ->
-                    val locked = !isSupporter && style != WidgetStyle.Default
-                    WidgetStyleTile(
-                        style = style,
-                        selected = style == selected,
-                        locked = locked,
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            if (locked) {
-                                onOpenSupport()
-                            } else {
-                                chosen = style
-                                preferences.widgetStyle = style
-                                WidgetUpdater.requestAll(context)
-                            }
-                        },
-                    )
+        // The tiles are one set of radio choices, so a screen reader announces them as a group.
+        Column(
+            Modifier.selectableGroup().testTag(WIDGET_STYLE_TILES_TAG),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            styles.chunked(2).forEach { rowStyles ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    rowStyles.forEach { style ->
+                        val locked = !isSupporter && style != WidgetStyle.Default
+                        WidgetStyleTile(
+                            style = style,
+                            selected = style == selected,
+                            locked = locked,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                if (locked) {
+                                    onOpenSupport()
+                                } else {
+                                    chosen = style
+                                    preferences.widgetStyle = style
+                                    WidgetUpdater.requestAll(context)
+                                }
+                            },
+                        )
+                    }
+                    if (rowStyles.size == 1) Box(Modifier.weight(1f))
                 }
-                if (rowStyles.size == 1) Box(Modifier.weight(1f))
             }
         }
         Text(
