@@ -92,9 +92,9 @@ class StringResourceParityTest {
         pluralsOf("values").forEach { (name, items) ->
             assertEquals(
                 "placeholder tokens of plural '$name' (all quantities) differ between locales",
-                items.flatMap { (_, text) -> tokens(text) }.sorted(),
+                items.flatMap { (_, text) -> tokens(text) }.distinct().sorted(),
                 pluralsOf("values-pt-rBR").getValue(name)
-                    .flatMap { (_, text) -> tokens(text) }.sorted(),
+                    .flatMap { (_, text) -> tokens(text) }.distinct().sorted(),
             )
         }
     }
@@ -105,6 +105,16 @@ class StringResourceParityTest {
             val quantities = items.map { it.first }.toSet()
             assertTrue("values-pt-rBR plural '$name' lacks 'one' (has $quantities)", "one" in quantities)
             assertTrue("values-pt-rBR plural '$name' lacks 'other' (has $quantities)", "other" in quantities)
+        }
+    }
+
+    @Test
+    fun spanishItalianAndPortuguesePluralsDefineMany() {
+        listOf("values-es", "values-it", "values-pt-rBR").forEach { dir ->
+            pluralsOf(dir).forEach { (name, items) ->
+                val quantities = items.map { it.first }.toSet()
+                assertTrue("$dir plural '$name' lacks 'many' (has $quantities)", "many" in quantities)
+            }
         }
     }
 
