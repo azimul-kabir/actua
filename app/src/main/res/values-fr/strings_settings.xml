@@ -280,6 +280,8 @@
     <string name="settings_supporter_thanks">Merci de soutenir Actua !</string>
     <string name="settings_supporter_description">Un remerciement ponctuel qui vous donne un badge de supporter permanent.</string>
     <string name="settings_support_free">La gestion de budget reste toujours gratuite. Les supporters obtiennent aussi des extras esthétiques dans Paramètres → Extras supporter, comme des icônes d’application, des thèmes d’accent, des styles de widgets et des célébrations.</string>
+    <string name="settings_support_play_only">Les achats de supporter se font via Google Play. Installez Actua depuis Google Play pour devenir supporter.</string>
+    <string name="settings_support_open_play">Ouvrir Google Play</string>
     <string name="settings_supporter_extras_section">Extras supporter</string>
     <string name="settings_supporter_extras_description">Icône d’application, couleur d’accent, style de widget, message d’accueil et célébrations</string>
     <string name="settings_supporter_extras_marker">Supporter</string>

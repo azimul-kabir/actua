@@ -1150,6 +1150,9 @@ fun SettingsScreen(
                                 "${SupportProduct.MonthlySupporter.productId}&package=${context.packageName}",
                         )
                     },
+                    onOpenGooglePlay = {
+                        uriHandler.openUri("https://play.google.com/store/apps/details?id=${context.packageName}")
+                    },
                 )
                 SettingsPage.About -> {
                     SettingsGroup {
@@ -1368,8 +1371,18 @@ private fun SupportSettings(
     greetingNickname: String,
     onPurchase: (SupportProduct) -> Unit,
     onManageSubscription: () -> Unit,
+    onOpenGooglePlay: () -> Unit,
 ) {
     SettingsNote(stringResource(R.string.settings_support_intro))
+    if (showGooglePlayOnlyNote(state)) {
+        SettingsNote(stringResource(R.string.settings_support_play_only))
+        Button(
+            onClick = onOpenGooglePlay,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
+        ) {
+            Text(stringResource(R.string.settings_support_open_play))
+        }
+    }
     if (state.isSupporter || state.showThanks) {
         SettingsGroup {
             ActuaFormRow(
@@ -1415,6 +1428,9 @@ private fun SupportSettings(
     }
     SettingsNote(stringResource(R.string.settings_support_free))
 }
+
+/** Shown only once Play has answered that it can't sell here, so it never flashes while the options load. */
+internal fun showGooglePlayOnlyNote(state: SupportPurchaseState): Boolean = state.playUnavailable && !state.isSupporter
 
 /**
  * The Supporter extras page. A non-supporter sees each extra marked "Supporter": the icon, accent and widget

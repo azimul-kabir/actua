@@ -280,6 +280,8 @@
     <string name="settings_supporter_thanks">Danke, dass du Actua unterstützt!</string>
     <string name="settings_supporter_description">Ein einmaliges Dankeschön, das dir ein dauerhaftes Unterstützer-Abzeichen gibt.</string>
     <string name="settings_support_free">Das Budgetieren bleibt immer kostenlos. Unterstützer erhalten außerdem kosmetische Extras unter Einstellungen → Unterstützer-Extras, etwa App-Symbole, Akzentdesigns, Widget-Stile und Feiereffekte.</string>
+    <string name="settings_support_play_only">Unterstützer-Käufe laufen über Google Play. Installiere Actua aus Google Play, um Unterstützer zu werden.</string>
+    <string name="settings_support_open_play">Google Play öffnen</string>
     <string name="settings_supporter_extras_section">Unterstützer-Extras</string>
     <string name="settings_supporter_extras_description">App-Symbol, Akzentfarbe, Widget-Stil, Begrüßung und Feiereffekte</string>
     <string name="settings_supporter_extras_marker">Unterstützer</string>

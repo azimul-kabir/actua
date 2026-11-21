@@ -280,6 +280,8 @@
     <string name="settings_supporter_thanks">Grazie per sostenere Actua!</string>
     <string name="settings_supporter_description">Un ringraziamento una tantum che ti dà un badge da sostenitore permanente.</string>
     <string name="settings_support_free">Fare il budget resta sempre gratis. I sostenitori ricevono anche extra estetici in Impostazioni → Extra per sostenitori, come icone dell’app, temi con colore d’accento, stili dei widget e celebrazioni.</string>
+    <string name="settings_support_play_only">Gli acquisti da sostenitore avvengono tramite Google Play. Installa Actua da Google Play per diventare sostenitore.</string>
+    <string name="settings_support_open_play">Apri Google Play</string>
     <string name="settings_supporter_extras_section">Extra per sostenitori</string>
     <string name="settings_supporter_extras_description">Icona dell’app, colore d’accento, stile dei widget, saluto e celebrazioni</string>
     <string name="settings_supporter_extras_marker">Sostenitore</string>

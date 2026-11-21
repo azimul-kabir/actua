@@ -51,6 +51,8 @@ data class SupportPurchaseState(
     val showThanks: Boolean = false,
     /** True once Play has answered both purchase queries, so [isSupporter] can be trusted. */
     val purchasesRestored: Boolean = false,
+    /** True once Play has answered and can't sell here: billing is unavailable or it offered no products. */
+    val playUnavailable: Boolean = false,
 ) {
     val isAvailable: Boolean get() = options.isNotEmpty()
     val isProcessing: Boolean get() = processingProduct != null

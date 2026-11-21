@@ -280,6 +280,8 @@
     <string name="settings_supporter_thanks">感谢您支持 Actua！</string>
     <string name="settings_supporter_description">一次性的感谢，可获得永久的支持者徽章。</string>
     <string name="settings_support_free">预算功能始终免费。支持者还可在“设置”→“支持者专属”中获得外观类的额外内容，例如应用图标、强调色主题、小组件样式和庆祝效果。</string>
+    <string name="settings_support_play_only">支持者购买通过 Google Play 进行。请从 Google Play 安装 Actua 以成为支持者。</string>
+    <string name="settings_support_open_play">打开 Google Play</string>
     <string name="settings_supporter_extras_section">支持者专属</string>
     <string name="settings_supporter_extras_description">应用图标、强调色、小组件样式、问候语和庆祝效果</string>
     <string name="settings_supporter_extras_marker">支持者</string>
