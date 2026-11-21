@@ -1,6 +1,6 @@
 # Privacy Policy
 
-_Last updated: 2026-11-20_
+_Last updated: 2026-11-21_
 
 Actua is an independent, community-built Android client for [Actual
 Budget](https://actualbudget.org/). It is not affiliated with or endorsed by
@@ -232,36 +232,6 @@ off by default.
   storage instead and Actua tells you; transactions always open.
 - Photos enter encrypted WebDAV backups only, never Actual sync, local or Google Drive backups, or standard exports.
 
-## Website purchases (direct-download version, when available)
-
-Website purchases of Supporter Extras are not open yet. This is what they will
-involve, so you can see it before you buy. None of this applies to the Google
-Play version, where Google Play handles purchases, or to anything you do
-without buying.
-
-- **Paddle** is the seller of record. It collects your payment details, name,
-  email and billing address as it needs to take payment, work out taxes and
-  send your receipt, under [Paddle's privacy
-  notice](https://www.paddle.com/legal/privacy). Actua never sees your payment
-  details.
-- **What we keep.** Our purchase service stores, for each purchase, Paddle's
-  transaction and customer IDs, the product and price, when it completed, and any
-  refund record. It does not store your payment details or budget data.
-- **Recovery email.** If you ask for a new recovery code by email, you enter your
-  email address on our recovery page. It is encrypted while the request is
-  processed, used to find your purchase in Paddle, and erased when the request
-  completes, fails or expires. We send the one-time code with our email provider,
-  [Resend](https://resend.com/legal/privacy-policy). Rate limits use keyed hashes
-  of your IP address and email, not the raw values.
-- **Bot checks and hosting.** The checkout and recovery pages use Cloudflare
-  Turnstile, and the website and purchase service run on Cloudflare.
-- **On your device.** Actua stores your recovery code and the signed proof of
-  purchase encrypted with the Android Keystore, in storage that is excluded from
-  Android backup and device transfer. They are not part of budget sync or backups.
-- **Purchase checks.** To confirm a purchase, Actua sends your recovery code to
-  our purchase service over HTTPS from time to time and receives a signed proof
-  that lasts up to 24 hours.
-
 ## Other on-device data
 
 Actua keeps app settings, which bank-synced transactions you haven't viewed
@@ -271,8 +241,7 @@ Actua on Google Play), whether Google Play last reported you as
 an Actua Supporter and when it was last checked (so the Google Play version can
 show cosmetic Supporter extras), the optional nickname you can give the Supporter
 greeting and the date it last appeared, and similar display state on your device.
-None of it is sent anywhere, apart from the website purchase check described under
-Website purchases.
+None of it is sent anywhere.
 Support Actua purchases and subscriptions are paid and managed by Google Play;
 Actua never sees your payment details.
 The rating request in the Google Play version uses Google's in-app review sheet, which

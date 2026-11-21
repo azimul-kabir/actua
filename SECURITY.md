@@ -36,15 +36,15 @@ In scope:
 
 - the Actua Android app, in every build (Google Play and the GitHub APKs),
 - how Actua stores and protects credentials, encryption keys, backups and local data,
-- the website purchase service in the [actua-website](https://github.com/azimul-kabir/actua-website) repository,
-  including checkout, recovery and entitlement checks,
+- the sandbox-only website purchase service in the [actua-website](https://github.com/azimul-kabir/actua-website) repository,
+  including checkout, recovery and entitlement checks (website sales are not planned for now),
 - this repository's build and release workflows, where they could expose secrets or ship a tampered build.
 
 Out of scope:
 
 - vulnerabilities in the Actual server or its protocol: please report those to the
   [Actual Budget project](https://github.com/actualbudget/actual/security),
-- vulnerabilities in Google Play, Android, Paddle or other third-party services,
+- vulnerabilities in Google Play, Android or other third-party services,
 - attacks that need physical access to an unlocked device, a rooted device or a device the attacker already controls,
 - missing hardening that has no demonstrated impact, and reports from automated scanners without a working scenario.
 

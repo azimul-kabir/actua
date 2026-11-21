@@ -173,7 +173,7 @@ Screenshots use a demo budget and follow your GitHub light or dark theme.
 
 ### Supporter extras
 
-Optional and cosmetic, unlockable in the Google Play version for now (the GitHub APKs show them locked until website purchases open). Under Settings → Supporter extras, everyone can preview every app icon, accent color, Catppuccin theme and widget style, with the locked ones marked "Supporter". Budgeting always stays free, and Violet and Material You accents are free for everyone. The Custom accent lets a supporter pick any color, with a full light and dark palette derived from it and kept readable. The widget style pack adds Gradient accent, Outline and Midnight looks, corner radius and background opacity, for all widgets or one at a time.
+Optional and cosmetic, unlockable only in the Google Play version (the GitHub APKs show them as previews and can't unlock them). Under Settings → Supporter extras, everyone can preview every app icon, accent color, Catppuccin theme and widget style, with the locked ones marked "Supporter". Budgeting always stays free, and Violet and Material You accents are free for everyone. The Custom accent lets a supporter pick any color, with a full light and dark palette derived from it and kept readable. The widget style pack adds Gradient accent, Outline and Midnight looks, corner radius and background opacity, for all widgets or one at a time.
 
 <table>
   <tr>
@@ -220,7 +220,7 @@ Actua requires **Android 9 or newer**.
 
 Or install from [GitHub Releases](https://github.com/azimul-kabir/actua/releases):
 
-- `Actua-v<version>.apk`: the Direct Full build, with receipt scanning. Website purchases are not open yet.
+- `Actua-v<version>.apk`: the Direct Full build, with receipt scanning. Supporter extras can be previewed but not unlocked.
 - `Actua-v<version>-full.apk`: the Google Play build, for devices without the Play Store.
 - [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua): update notifications and in-place upgrades. Use its APK filter (for example `-full`) to pick one APK.
 

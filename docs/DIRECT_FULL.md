@@ -1,5 +1,10 @@
 # Full distributions
 
+> **Website sales are on hold.** Supporter extras are sold only through Google Play
+> for now, and no live website checkout is planned. The sandbox activation described
+> below stays in debug/instrumented builds for reference; release Direct builds show
+> every extra as a locked preview.
+
 The `playstore` build uses Google Play Billing. The `direct` build includes the
 same on-device receipt scanner and cosmetic settings, with sandbox website
 purchase activation in debug/instrumented builds only. Both retain the existing

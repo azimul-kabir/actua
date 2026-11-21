@@ -1,9 +1,9 @@
 # Terms of Service
 
-_Last updated: 2026-11-20_
+_Last updated: 2026-11-21_
 
 These terms cover your use of Actua and any Support Actua purchase you make in
-the Google Play version or, once it is available, on our website. By installing or using Actua you agree to them. If you
+the Google Play version. By installing or using Actua you agree to them. If you
 don't agree, please don't use the app.
 
 ## Who we are
@@ -64,41 +64,22 @@ stops future renewals, and your Supporter extras stay available until the end
 of the period you've already paid for. If we ever change the subscription
 price, Google Play will tell you before the new price applies.
 
-### Website purchases
+### Direct-download versions
 
-Website purchases are not open yet. When they are, they work like this:
-
-- **One purchase, no subscription.** Supporter Extras can be bought once on our
-  website for the price shown at checkout, including any taxes. It unlocks the
-  same cosmetic Supporter extras as above in compatible direct-download builds
-  of Actua (the GitHub release APKs).
-- **Paddle is the seller of record.** The purchase is processed by
-  [Paddle](https://www.paddle.com/), which charges you, collects any taxes and
-  issues your receipt, under [Paddle's checkout buyer
-  terms](https://www.paddle.com/legal/buyer-terms). We never see your
-  payment details.
-- **Your recovery code is your licence.** After purchase you save a private
-  recovery code, which you enter in Actua to activate the extras. Keep it
-  private: anyone who has it can use the purchase. If you lose it, you can
-  request a new one by email, which replaces the old code.
-- **Separate from Google Play.** A website purchase and a Google Play purchase
-  are separate. One does not unlock the other, and Actua does not move purchases
-  between them.
-- **Checks and offline use.** Actua checks your purchase with our server from
-  time to time. Extras keep working offline for up to 24 hours after the last
-  successful check.
+Supporter extras are sold only through the Google Play version. We don't sell
+them on our website or anywhere else. The direct-download APKs on GitHub let you
+preview every extra, but can't unlock them.
 
 ### Refunds
 
 Refunds for Google Play purchases are handled by Google Play under its [refund
 policy](https://support.google.com/googleplay/answer/2479637). You can request
-one from your Google Play order history. Website purchases can be refunded
-within 14 days under our [Refund Policy](https://actua.azimulkabir.com/refund). If you have a problem
-with a purchase, email us and we'll try to help.
+one from your Google Play order history. See also our [Refund
+Policy](https://actua.azimulkabir.com/refund). If you have a problem with a
+purchase, email us and we'll try to help.
 
 If a purchase is refunded or reversed, the Supporter extras it unlocked are
-removed. For a website purchase, Actua stops renewing access after the refund,
-and extras already checked on your device can last up to 24 hours more.
+removed.
 
 Nothing in these terms limits any rights you have under the consumer
 protection laws of the country where you live.
@@ -107,7 +88,7 @@ protection laws of the country where you live.
 
 Don't use Actua to break the law, to access servers or accounts you aren't
 allowed to use, or to interfere with an Actual server. Don't try to obtain
-Supporter extras without paying for them through Google Play or our website. You're free to
+Supporter extras without paying for them through Google Play. You're free to
 build and share your own copies of the app under the GPL.
 
 ## No warranty
