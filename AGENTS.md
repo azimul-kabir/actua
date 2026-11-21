@@ -88,18 +88,17 @@ Use the committed Gradle wrapper. The daemon toolchain is JDK 25 in
 which is not the Gradle runtime requirement. Install Android SDK 37; minSdk is
 28. Dependency versions live in `gradle/libs.versions.toml`.
 
-The app has two Full product flavors: `direct` (GitHub downloads with receipt
-scanning and sandbox website activation in debug/test builds) and `playstore`
-(Google Play Billing and receipt scanning). Both use the existing application ID
-and release signing configuration. Unit-test and lint tasks must name the flavor
-explicitly. Test both flavors when changing shared supporter behavior.
+The app has one product flavor, `playstore` (Google Play Billing and receipt
+scanning). Its release APK is also published on GitHub as `Actua-v<version>.apk`,
+signed with the release key. Unit-test, lint and connected-test tasks must name
+the flavor explicitly.
 
 ```sh
-./gradlew assembleDebug testDirectInstrumentedUnitTest testPlaystoreInstrumentedUnitTest lintDirectDebug lintPlaystoreDebug
+./gradlew assembleDebug testPlaystoreInstrumentedUnitTest lintPlaystoreDebug
 # With an emulator/device connected (the test build type is "instrumented"):
-./gradlew connectedDirectInstrumentedAndroidTest
+./gradlew connectedPlaystoreInstrumentedAndroidTest
 # Narrow a JVM regression run where appropriate:
-./gradlew testDirectInstrumentedUnitTest --tests '*SyncCoreFixtureTest'
+./gradlew testPlaystoreInstrumentedUnitTest --tests '*SyncCoreFixtureTest'
 ```
 
 Add meaningful regression coverage for changed behavior. Keep pure logic tests

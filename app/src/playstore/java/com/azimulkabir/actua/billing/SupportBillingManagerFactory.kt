@@ -24,6 +24,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 
 private const val TAG = "SupportBilling"
@@ -76,11 +77,17 @@ private class PlayStoreSupportBillingManager(context: Context) : SupportBillingM
         billingClient.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(billingResult: BillingResult) {
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    scope.launch { loadOneTimeProducts() }
-                    scope.launch { loadSubscriptions() }
+                    scope.launch {
+                        val oneTime = launch { loadOneTimeProducts() }
+                        val subscriptions = launch { loadSubscriptions() }
+                        joinAll(oneTime, subscriptions)
+                        // Play answered but offered nothing, e.g. an install it doesn't know about.
+                        _state.update { it.copy(playUnavailable = it.options.isEmpty()) }
+                    }
                     scope.launch { restorePurchases() }
                 } else {
                     Log.w(TAG, "Billing setup failed: ${billingResult.debugMessage}")
+                    _state.update { it.copy(playUnavailable = true) }
                 }
             }
 
@@ -252,12 +259,5 @@ private class PlayStoreSupportBillingManager(context: Context) : SupportBillingM
 fun createSupportBillingManager(context: Context): SupportBillingManager = PlayStoreSupportBillingManager(context)
 
 fun supporterPerksAvailable(): Boolean = true
-
-@androidx.compose.runtime.Composable
-fun WebsiteActivation() = Unit
-
-fun websiteEntitlementValid(context: Context): Boolean = true
-
-fun supporterRefreshDue(): Boolean = false
 
 fun supporterPreferencesName(): String = "supporter_perks"

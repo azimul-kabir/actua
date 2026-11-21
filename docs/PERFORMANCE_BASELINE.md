@@ -74,8 +74,7 @@ unlocked screen, etc.); suppress those specific checks for local/emulator valida
 
 Run a single class/method with `-Pandroid.testInstrumentationRunnerArguments.class=<FQCN>[#method]`.
 
-`:app` has `direct` and `playstore` flavors. The benchmark module uses `direct`; pass
-`-Pactua.benchmark.flavor=playstore` to measure the other one.
+`:app` has one flavor, `playstore`, which the benchmark module uses.
 
 ### Device notes and gotchas
 

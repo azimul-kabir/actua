@@ -280,6 +280,8 @@
     <string name="settings_supporter_thanks">Спасибо, что поддерживаете Actua!</string>
     <string name="settings_supporter_description">Разовая благодарность, которая даёт постоянный значок сторонника.</string>
     <string name="settings_support_free">Ведение бюджета всегда остаётся бесплатным. Сторонники также получают косметические дополнения в разделе «Настройки» → «Дополнения для сторонников»: значки приложения, акцентные темы, стили виджетов и праздничные эффекты.</string>
+    <string name="settings_support_play_only">Покупки для сторонников совершаются через Google Play. Установите Actua из Google Play, чтобы стать сторонником.</string>
+    <string name="settings_support_open_play">Открыть Google Play</string>
     <string name="settings_supporter_extras_section">Дополнения для сторонников</string>
     <string name="settings_supporter_extras_description">Значок приложения, акцентный цвет, стиль виджетов, приветствие и праздничные эффекты</string>
     <string name="settings_supporter_extras_marker">Для сторонников</string>

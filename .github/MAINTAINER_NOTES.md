@@ -28,9 +28,13 @@ in the main branch ruleset if they should be required for merging.
 Release metadata changes on `main` run the Android Release workflow. It
 builds and validates the persistently signed release APK, creates the version tag and
 GitHub prerelease, copies that version's `CHANGELOG.md` section into the release
-description, and attaches two APKs: `Actua-v<version>.apk` (the `direct` flavor, Direct Full) and
-`Actua-v<version>-full.apk` (the `playstore` flavor, Play Full). Both have receipt scanning. Keep
-the `Actua-v<version>.apk` name stable, because Obtainium and existing download links use it. The
+description, and attaches one APK: `Actua-v<version>.apk`, the `playstore` build signed with the
+release key (certificate SHA-256 `2a37719a0770ce4e03f3c080bd9d780c22300e28db678823b5595c9ad55753cc`).
+Releases up to 2.8.0 also shipped a Direct Full build under that name with the same key, so those
+installs update in place. Keep the `Actua-v<version>.apk` name stable, because Obtainium and
+existing download links use it. Google Play re-signs its install with its own key
+(`e3a3731c83f4b09aa8da181735379dd7e4ab8993a3d775220e50d8189bc66a21`), so a Play install and a GitHub
+APK cannot update each other. The
 F-Droid verify workflow is retired; `fdroid/` is historical submission metadata only. For a stable version (no `-beta.`/`-alpha.`/`-rc.`
 suffix) it first uploads the signed `.aab` to Google Play's production track, with that version's
 `changelogs/<versionCode>.txt` of every language folder (en-US, fr-FR, de-DE, it-IT, ja-JP, ru-RU, zh-CN, es-ES, pt-BR) as that language's "What's new"; Play publishes it once Google's review passes

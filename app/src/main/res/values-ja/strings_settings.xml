@@ -280,6 +280,8 @@
     <string name="settings_supporter_thanks">Actuaを応援していただきありがとうございます！</string>
     <string name="settings_supporter_description">1回限りのお礼として、サポーターバッジが永続的に付与されます。</string>
     <string name="settings_support_free">予算管理は常に無料です。サポーターには、設定 → サポーター特典で、アプリアイコン、アクセントテーマ、ウィジェットスタイル、お祝い演出などの見た目の特典もあります。</string>
+    <string name="settings_support_play_only">サポーターの購入は Google Play で行います。サポーターになるには、Google Play から Actua をインストールしてください。</string>
+    <string name="settings_support_open_play">Google Play を開く</string>
     <string name="settings_supporter_extras_section">サポーター特典</string>
     <string name="settings_supporter_extras_description">アプリアイコン、アクセントカラー、ウィジェットスタイル、あいさつ、お祝い演出</string>
     <string name="settings_supporter_extras_marker">サポーター</string>

@@ -179,11 +179,9 @@ jobs:
           force-avd-creation: false
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none${{ matrix.api_level == 28 && ' -no-snapshot-load' || '' }}
-          # AGP doesn't provide a flavor-aggregating task for connected tests (unlike
-          # assemble/bundle), so this must name one flavor explicitly. The "direct" and
-          # "playstore" flavors only differ in the Play Billing wrapper, so direct's coverage
-          # applies to both.
-          script: ./gradlew --no-daemon --stacktrace connectedDirectInstrumentedAndroidTest
+          # AGP doesn't provide a flavor-aggregating task for connected tests, so this names
+          # the app's one flavor explicitly.
+          script: ./gradlew --no-daemon --stacktrace connectedPlaystoreInstrumentedAndroidTest
 
       - name: Upload compatibility test reports
         if: ${{ always() }}

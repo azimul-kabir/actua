@@ -6,13 +6,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SupporterDescriptionTest {
-    @Test fun activatedWebsitePurchaseShowsThanks() {
-        assertEquals(R.string.settings_support_thank_you, supporterDescriptionRes(
-            SupportPurchaseState(websiteAvailable = true, websiteSupporter = true, purchasesRestored = true)))
-    }
-    @Test fun unactivatedWebsitePurchaseShowsIntroduction() {
-        assertEquals(R.string.settings_support_intro, supporterDescriptionRes(
-            SupportPurchaseState(websiteAvailable = true)))
+    @Test fun nonSupporterShowsDescription() {
+        assertEquals(R.string.settings_support_description, supporterDescriptionRes(
+            SupportPurchaseState(purchasesRestored = true)))
     }
     @Test fun playSubscriberShowsThanks() {
         assertEquals(R.string.settings_support_thank_you, supporterDescriptionRes(

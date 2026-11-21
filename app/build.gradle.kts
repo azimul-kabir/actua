@@ -31,12 +31,9 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    // Full builds for Google Play and direct download share package identity and signing.
+    // One distribution: the Google Play build, also published on GitHub as Actua-v<version>.apk.
     flavorDimensions += "distribution"
     productFlavors {
-        create("direct") {
-            dimension = "distribution"
-        }
         create("playstore") {
             dimension = "distribution"
         }
@@ -136,15 +133,10 @@ dependencies {
     // On-device receipt text recognition (bundled models for Latin, Chinese, Japanese, Korean and Devanagari
     // scripts; nothing is sent anywhere); playstore only.
     add("playstoreImplementation", libs.mlkit.text.recognition)
-    add("directImplementation", libs.mlkit.text.recognition)
     add("playstoreImplementation", libs.mlkit.text.recognition.chinese)
-    add("directImplementation", libs.mlkit.text.recognition.chinese)
     add("playstoreImplementation", libs.mlkit.text.recognition.devanagari)
-    add("directImplementation", libs.mlkit.text.recognition.devanagari)
     add("playstoreImplementation", libs.mlkit.text.recognition.japanese)
-    add("directImplementation", libs.mlkit.text.recognition.japanese)
     add("playstoreImplementation", libs.mlkit.text.recognition.korean)
-    add("directImplementation", libs.mlkit.text.recognition.korean)
     testImplementation(libs.junit)
     testImplementation(libs.okhttp.mockwebserver)
     // Real org.json impl for JVM unit tests — the Android stub jar throws on use.

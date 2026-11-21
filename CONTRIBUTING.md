@@ -42,20 +42,19 @@ they come from contributors.
 Use the committed Gradle wrapper (`./gradlew`). You need the Android SDK 37; `minSdk` is 28. The Gradle daemon
 toolchain and dependency versions are set in `gradle/gradle-daemon-jvm.properties` and `gradle/libs.versions.toml`.
 
-There are two flavors, `direct` (the GitHub downloads) and `playstore` (Google Play). Test and lint tasks name the
-flavor explicitly:
+There is one flavor, `playstore`, and test and lint tasks name it explicitly:
 
 ```sh
-./gradlew assembleDebug testDirectInstrumentedUnitTest testPlaystoreInstrumentedUnitTest lintDirectDebug lintPlaystoreDebug
+./gradlew assembleDebug testPlaystoreInstrumentedUnitTest lintPlaystoreDebug
 ```
 
 With an emulator or device connected:
 
 ```sh
-./gradlew connectedDirectInstrumentedAndroidTest
+./gradlew connectedPlaystoreInstrumentedAndroidTest
 ```
 
-Narrow a run while you work, for example `./gradlew testDirectInstrumentedUnitTest --tests '*SyncCoreFixtureTest'`.
+Narrow a run while you work, for example `./gradlew testPlaystoreInstrumentedUnitTest --tests '*SyncCoreFixtureTest'`.
 GitHub Actions runs the full matrix on every pull request, including API 28 and API 35 emulators, so you do not
 need to run everything locally. Please say in the pull request what you did run.
 

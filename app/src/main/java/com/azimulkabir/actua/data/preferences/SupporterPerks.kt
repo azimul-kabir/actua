@@ -39,13 +39,10 @@ private class SharedPreferencesSupporterPerksStore(context: Context) : Supporter
  * extra back to its default.
  */
 class SupporterPerks(private val store: SupporterPerksStore) {
-    private var websiteValidity: () -> Boolean = { true }
-    constructor(context: Context) : this(SharedPreferencesSupporterPerksStore(context)) {
-        websiteValidity = { com.azimulkabir.actua.billing.websiteEntitlementValid(context) }
-    }
+    constructor(context: Context) : this(SharedPreferencesSupporterPerksStore(context))
 
     /** The last status Play confirmed. False until the first check, and always false on fdroid. */
-    val isSupporter: Boolean get() = store.isSupporter && websiteValidity()
+    val isSupporter: Boolean get() = store.isSupporter
 
     /** Whether the last check is old enough that the app-start check should run again. */
     fun isCheckDue(nowMillis: Long = System.currentTimeMillis()): Boolean =

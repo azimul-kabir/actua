@@ -1165,15 +1165,6 @@ fun AppNavigation(
 
     LaunchedEffect(launchRequest?.nonce) {
         val request = launchRequest ?: return@LaunchedEffect
-        if (request.action == com.azimulkabir.actua.SUPPORTER_RETURN_ACTION) {
-            tabSwitchJob?.cancel()
-            openSupportPage = true
-            selectedTab = MainDestination.Manage
-            destination = MainDestination.Manage
-            detail = DetailDestination.Main
-            onLaunchRequestConsumed()
-            return@LaunchedEffect
-        }
         if (!repository.isUsingActualBudget) {
             destination = MainDestination.Manage
             detail = DetailDestination.Connection

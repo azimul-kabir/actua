@@ -44,7 +44,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 data class AppLaunchRequest(val action: String, val target: String?, val nonce: Long = System.nanoTime())
-const val SUPPORTER_RETURN_ACTION = "com.azimulkabir.actua.SUPPORTER_RETURN"
 const val SHARED_IMPORT_ACTION = "com.azimulkabir.actua.IMPORT_SHARED_TEXT"
 const val SHARED_IMPORT_FILE_ACTION = "com.azimulkabir.actua.IMPORT_SHARED_FILE"
 
@@ -151,9 +150,6 @@ class MainActivity : AppCompatActivity() {
     private fun Intent.toLaunchRequest(allowSharedFile: Boolean = true): AppLaunchRequest? = action?.takeIf {
         it.startsWith("com.azimulkabir.actua.widget.")
     }?.let { AppLaunchRequest(it, getStringExtra(WidgetActions.EXTRA_TARGET)) }
-        ?: takeIf { action == Intent.ACTION_VIEW && com.azimulkabir.actua.billing.website.SandboxSupportReturn.accepts(
-            dataString, BuildConfig.FLAVOR == "direct", BuildConfig.DEBUG) }
-            ?.let { AppLaunchRequest(SUPPORTER_RETURN_ACTION, null) }
         ?: takeIf { action == CreditCardDueLaunch.ACTION }
             ?.let { AppLaunchRequest(CreditCardDueLaunch.ACTION, getStringExtra(CreditCardDueLaunch.EXTRA_ACCOUNT_ID)) }
         ?: takeIf { action == ScheduleReminderLaunch.ACTION }

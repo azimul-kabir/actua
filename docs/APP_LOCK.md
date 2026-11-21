@@ -10,7 +10,7 @@ pattern or password before Actua shows any budget data. **Settings → Privacy �
   device has no screen lock (the setting says to set one up first).
 - Authenticators: a strong biometric or the device credential on Android 11+; a weak biometric or the
   device credential on Android 9–10, where the platform can't combine a strong biometric with the
-  credential. Uses `androidx.biometric` only (no Play Services), so it works in the Direct build.
+  credential. Uses `androidx.biometric` only (no Play Services), so it works on devices without Google Play.
 - **Relock timeout** (Immediately, 1, 5 or 15 minutes after leaving Actua; default Immediately). An
   unreadable stored value falls back to Immediately, never to "off".
 - A **new process always starts locked**, so an app that was killed and restored asks again. A
