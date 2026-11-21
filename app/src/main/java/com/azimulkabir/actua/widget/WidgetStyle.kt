@@ -25,6 +25,11 @@ class WidgetStyleColors(
      * softer bars are blended from it and have to remain a clear shape.
      */
     val accent: Int = primary,
+    /**
+     * Where a [WidgetStyle.GradientAccent] background ends: [background] darkened by the gradient drawable's shade. Every
+     * other style is flat, so it is [background]. Text has to read on both ends.
+     */
+    val backgroundEnd: Int = background,
 ) {
     /** The color a category's progress bar is filled with for [status]. */
     internal fun progressFill(status: ProgressStatus): Int = when (status) {
@@ -47,10 +52,22 @@ enum class WidgetStyle {
 
     /** Tinted with the app's accent color; needs Android 12 to tint the rounded background. */
     AccentTinted,
+
+    /** A diagonal gradient of the app's accent color with light text; needs Android 12. */
+    GradientAccent,
+
+    /** The Translucent scrim with an outline, following the device theme; needs Android 12. */
+    Outline,
+
+    /** Pure black for AMOLED screens, with soft violet values; needs Android 12. */
+    Midnight,
     ;
 
     /** Whether this style is drawn from the app's accent, so a new accent has to reach the widgets. */
-    val followsAccent: Boolean get() = this == AccentTinted
+    val followsAccent: Boolean get() = this == AccentTinted || this == GradientAccent
+
+    /** Styles that tint the widget's background, which RemoteViews can only do from Android 12. */
+    val needsAndroid12: Boolean get() = this == AccentTinted || this == GradientAccent || this == Outline || this == Midnight
 
     /**
      * The colors for this style, or null for [Default], which changes nothing. [night] is the device's
@@ -88,6 +105,16 @@ enum class WidgetStyle {
             progressTrack = 0xFFDFE4FF.toInt(), tile = 0xFFDFE4FF.toInt(),
             warning = LIGHT_WARNING, danger = LIGHT_DANGER,
         )
+        Outline -> Translucent.colors(night, accent, status)
+        Midnight -> WidgetStyleColors(
+            background = 0xFF000000.toInt(), onBackground = 0xFFF2EEF7.toInt(), secondary = 0xFFB9B3C2.toInt(),
+            primary = 0xFFC9B8FF.toInt(), button = 0xFF2A2238.toInt(), buttonText = 0xFFC9B8FF.toInt(),
+            progressTrack = 0xFF2A2238.toInt(), tile = 0xFF17131F.toInt(),
+            warning = DARK_WARNING, danger = DARK_DANGER,
+        )
+        // Always drawn from the light scheme's primary, a saturated tone, in both device themes: the gradient
+        // only darkens it, so the text is chosen to read on both ends.
+        GradientAccent -> accent?.let { scheme -> gradientColors(scheme.primary.toArgb(), scheme.onPrimary.toArgb()) }
         AccentTinted -> accent?.let { scheme ->
             val background = scheme.primaryContainer.toArgb()
             val onBackground = scheme.onPrimaryContainer.toArgb()
@@ -131,6 +158,48 @@ enum class WidgetStyle {
     companion object {
         fun fromName(name: String?): WidgetStyle = entries.firstOrNull { it.name == name } ?: Default
     }
+}
+
+/**
+ * How far a [WidgetStyle.GradientAccent] background darkens from corner to corner: the grey its drawable ends on, out of
+ * 255, which the launcher multiplies with the accent. Kept in step with `widget_gradient_*.xml` by WidgetLookTest.
+ */
+internal const val GRADIENT_SHADE = 0xB8
+
+/** [color] multiplied by [GRADIENT_SHADE], as the launcher draws the far end of the gradient. */
+internal fun gradientEnd(color: Int): Int {
+    fun channel(shift: Int) = (((color shr shift) and 0xFF) * GRADIENT_SHADE / 255) shl shift
+    return (0xFF shl 24) or channel(16) or channel(8) or channel(0)
+}
+
+/** The Gradient accent colors on [primary]: text that reads on both ends of the gradient, with tiles and bars from it. */
+internal fun gradientColors(primary: Int, onPrimary: Int): WidgetStyleColors {
+    val start = primary or (0xFF shl 24)
+    val end = gradientEnd(start)
+    fun readsOnBoth(color: Int, min: Double) = contrast(color, start) >= min && contrast(color, end) >= min
+    val text = listOf(onPrimary, 0xFFFFFFFF.toInt(), 0xFF000000.toInt()).firstOrNull { readsOnBoth(it, MIN_TEXT_CONTRAST) }
+        ?: listOf(0xFFFFFFFF.toInt(), 0xFF000000.toInt()).maxBy { minOf(contrast(it, start), contrast(it, end)) }
+    val lightText = contrast(text, 0xFF000000.toInt()) > contrast(text, 0xFFFFFFFF.toInt())
+    // Tiles and buttons are a veil away from the text color (darker under light text, lighter under dark text), so
+    // text on them only gains contrast.
+    val veil = if (lightText) 0xFF000000.toInt() else 0xFFFFFFFF.toInt()
+    val tile = blendArgb(veil, start, 0.18f)
+    val tileEnd = blendArgb(veil, end, 0.18f)
+    var strength = SECONDARY_STRENGTH
+    var secondary = text
+    while (strength < 1f) {
+        val tone = blendArgb(text, start, strength)
+        if (listOf(start, end, tile, tileEnd).all { contrast(tone, it) >= MIN_TEXT_CONTRAST }) { secondary = tone; break }
+        strength += 0.02f
+    }
+    val warning = statusTone(LIGHT_WARNING, DARK_WARNING, end).let { if (contrast(it, start) >= MIN_STATUS_CONTRAST) it else statusTone(LIGHT_WARNING, DARK_WARNING, start) }
+    val danger = statusTone(LIGHT_DANGER, DARK_DANGER, end).let { if (contrast(it, start) >= MIN_STATUS_CONTRAST) it else statusTone(LIGHT_DANGER, DARK_DANGER, start) }
+    return WidgetStyleColors(
+        background = start, onBackground = text, secondary = secondary, primary = text,
+        button = tile, buttonText = text,
+        progressTrack = blendArgb(text, start, if (lightText) 0.3f else 0.25f), tile = tile,
+        warning = warning, danger = danger, backgroundEnd = end,
+    )
 }
 
 // Progress bar tones for the amber and red states: the deeper pair for light backgrounds, the lighter for dark.

@@ -98,6 +98,14 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".widget.WidgetLookActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Actua">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+        <activity
             android:name=".data.budget.gdrive.GoogleDriveAuthCallbackActivity"
             android:exported="true"
             android:launchMode="singleTask"

@@ -6,6 +6,9 @@ import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.SupporterPerks
 import com.azimulkabir.actua.ui.theme.AccentPalette
 import com.azimulkabir.actua.ui.theme.CatppuccinTheme
+import com.azimulkabir.actua.widget.WidgetCornerRadius
+import com.azimulkabir.actua.widget.WidgetLook
+import com.azimulkabir.actua.widget.WidgetLookPreferences
 import com.azimulkabir.actua.widget.WidgetStyle
 import com.azimulkabir.actua.widget.WidgetUpdater
 import kotlinx.coroutines.flow.first
@@ -20,7 +23,13 @@ fun registerSupporterExtras(context: Context) {
     val appContext = context.applicationContext
     SupporterPerks.register(AppIcons.RESET_ID) { AppIcons(appContext).resetToDefault() }
     SupporterPerks.register(WIDGET_STYLE_RESET_ID) {
-        DisplayPreferences(appContext).widgetStyle = WidgetStyle.Default
+        // Every widget back to the default look: style, corner radius, opacity and each widget's own look.
+        DisplayPreferences(appContext).apply {
+            widgetStyle = WidgetStyle.Default
+            widgetCornerRadius = WidgetCornerRadius.System
+            widgetOpacity = WidgetLook.FULL_OPACITY
+        }
+        WidgetLookPreferences(appContext).clear()
         WidgetUpdater.requestAll(appContext)
     }
     // The widget style is drawn only for a confirmed supporter, so widgets chosen before the first

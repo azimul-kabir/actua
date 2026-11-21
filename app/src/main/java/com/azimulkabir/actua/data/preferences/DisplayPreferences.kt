@@ -236,6 +236,17 @@ class DisplayPreferences(context: Context) {
         get() = WidgetStyle.fromName(preferences.getString(WIDGET_STYLE, null))
         set(value) { preferences.edit().putString(WIDGET_STYLE, value.name).apply() }
 
+    /** The corner radius of every widget (supporter extra, Android 12+); the launcher's own until one is chosen. */
+    var widgetCornerRadius: com.azimulkabir.actua.widget.WidgetCornerRadius
+        get() = com.azimulkabir.actua.widget.WidgetCornerRadius.fromName(preferences.getString(WIDGET_CORNER_RADIUS, null))
+            ?: com.azimulkabir.actua.widget.WidgetCornerRadius.System
+        set(value) { preferences.edit().putString(WIDGET_CORNER_RADIUS, value.name).apply() }
+
+    /** The background opacity of every widget in percent (supporter extra, Android 12+); fully opaque until chosen. */
+    var widgetOpacity: Int
+        get() = preferences.getInt(WIDGET_OPACITY, com.azimulkabir.actua.widget.WidgetLook.FULL_OPACITY)
+        set(value) { preferences.edit().putInt(WIDGET_OPACITY, value).apply() }
+
     /** Whether a supporter wants the confetti celebrations (Play build); on until they turn it off. */
     var celebrationsEnabled: Boolean
         get() = preferences.getBoolean(CELEBRATIONS, true)
@@ -394,6 +405,8 @@ class DisplayPreferences(context: Context) {
         const val CATPPUCCIN_ACCENT = "catppuccin_accent"
         val CATPPUCCIN_KEYS = setOf(CATPPUCCIN_ENABLED, CATPPUCCIN_DARK_FLAVOR, CATPPUCCIN_ACCENT)
         const val WIDGET_STYLE = "widget_style"
+        const val WIDGET_CORNER_RADIUS = "widget_corner_radius"
+        const val WIDGET_OPACITY = "widget_opacity"
         const val CELEBRATIONS = "celebrations"
         const val GREETING_ENABLED = "greeting_enabled"
         const val GREETING_NICKNAME = "greeting_nickname"

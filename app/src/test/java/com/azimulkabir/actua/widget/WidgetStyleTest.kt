@@ -289,8 +289,8 @@ class WidgetStyleTest {
     }
 
     @Test
-    fun onlyAccentTintedFollowsTheAccent() {
-        assertEquals(listOf(WidgetStyle.AccentTinted), WidgetStyle.entries.filter { it.followsAccent })
+    fun onlyTheAccentStylesFollowTheAccent() {
+        assertEquals(listOf(WidgetStyle.AccentTinted, WidgetStyle.GradientAccent), WidgetStyle.entries.filter { it.followsAccent })
     }
 
     @Test

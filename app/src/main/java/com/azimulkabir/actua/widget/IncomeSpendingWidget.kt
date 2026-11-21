@@ -64,8 +64,8 @@ internal object IncomeSpendingWidget {
         val small = layout == TrendLayout.Small
         val views = RemoteViews(
             context.packageName,
-            if (small) WidgetStyles.layout(context, R.layout.widget_income_spending_small, R.layout.widget_income_spending_small_styled)
-            else WidgetStyles.layout(context, R.layout.widget_income_spending, R.layout.widget_income_spending_styled),
+            if (small) WidgetStyles.layout(context, R.layout.widget_income_spending_small, R.layout.widget_income_spending_small_styled, widgetId)
+            else WidgetStyles.layout(context, R.layout.widget_income_spending, R.layout.widget_income_spending_styled, widgetId),
         )
         views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_income_spending))
         val series = data.series
@@ -94,7 +94,7 @@ internal object IncomeSpendingWidget {
                 R.id.widget_root,
                 open(context, if (data.usingBudget) WidgetActions.REPORTS else WidgetActions.BUDGET, widgetId),
             )
-            WidgetStyles.apply(context, views)
+            WidgetStyles.apply(context, views, widgetId = widgetId)
             return views
         }
 
@@ -122,14 +122,14 @@ internal object IncomeSpendingWidget {
             shown,
             widthPx = (chartWidthDp * density).toInt().coerceAtMost(MAX_CHART_PX),
             heightPx = (chartHeightDp * density).toInt().coerceAtMost(MAX_CHART_PX),
-            colors = WidgetStyles.chartColors(context),
+            colors = WidgetStyles.chartColors(context, widgetId),
             metrics = context.resources.displayMetrics,
             locale = context.resources.configuration.locales[0],
         )
         views.setImageViewBitmap(R.id.widget_is_chart, bitmap)
         views.setContentDescription(R.id.widget_is_chart, incomeSpendingDescription(context, shown, now, hidden))
         views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.REPORTS, widgetId))
-        WidgetStyles.apply(context, views)
+        WidgetStyles.apply(context, views, widgetId = widgetId)
         return views
     }
 

@@ -54,6 +54,7 @@ import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.preferences.FavoritePreferences
+import com.azimulkabir.actua.ui.settings.WidgetLookSection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -88,7 +89,7 @@ class WidgetConfigurationActivity : WidgetConfigurationBaseActivity() {
                     kind = kind,
                     widgetId = widgetId,
                     onCancel = ::finish,
-                    onSave = { selected, style -> save(kind, selected, style) },
+                    onSave = { selected, style, look -> save(kind, selected, style, look) },
                     loadChoices = { loadChoices(kind) },
                 )
             }
@@ -131,7 +132,8 @@ class WidgetConfigurationActivity : WidgetConfigurationBaseActivity() {
         }
     }
 
-    private fun save(kind: WidgetKind, selected: Set<String>, style: WidgetRowStyle) {
+    private fun save(kind: WidgetKind, selected: Set<String>, style: WidgetRowStyle, look: WidgetLookOverride?) {
+        look?.let { WidgetLookPreferences(this).save(widgetId, it) }
         if (kind == WidgetKind.Categories) {
             val budgetId = ActiveBudgetStore(this).budgetId ?: "no-budget"
             FavoritePreferences(this).replace(budgetId, FavoritePreferences.Type.CATEGORY, selected)
@@ -176,7 +178,7 @@ private fun WidgetConfigurationScreen(
     kind: WidgetKind,
     widgetId: Int,
     onCancel: () -> Unit,
-    onSave: (Set<String>, WidgetRowStyle) -> Unit,
+    onSave: (Set<String>, WidgetRowStyle, WidgetLookOverride?) -> Unit,
     loadChoices: suspend () -> List<WidgetChoice>,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -192,6 +194,8 @@ private fun WidgetConfigurationScreen(
         mutableStateOf(existing)
     }
     var rowStyle by remember(kind, widgetId) { mutableStateOf(WidgetPreferences(context).rowStyle(kind, widgetId)) }
+    var look by remember(widgetId) { mutableStateOf(WidgetLookPreferences(context).override(widgetId)) }
+    val lookAvailable = WidgetStyles.accentTintedAvailable()
     LaunchedEffect(kind) { choices = loadChoices() }
 
     Scaffold(
@@ -217,7 +221,7 @@ private fun WidgetConfigurationScreen(
         },
         bottomBar = {
             Button(
-                onClick = { onSave(selected, rowStyle) },
+                onClick = { onSave(selected, rowStyle, look.takeIf { lookAvailable && widgetLookIsSupporter(context) }) },
                 enabled = selected.isNotEmpty(),
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
             ) { Text(stringResource(R.string.widget_add)) }
@@ -286,6 +290,13 @@ private fun WidgetConfigurationScreen(
                     )
                 } else {
                     LazyColumn(Modifier.fillMaxSize().selectableGroup()) {
+                        if (lookAvailable) {
+                            item(key = "widget_look") {
+                                Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+                                    WidgetLookSection(widgetLookIsSupporter(context), look, onLookChange = { look = it })
+                                }
+                            }
+                        }
                         items(visible, key = { it.id }) { choice ->
                             val checked = choice.id in selected
                             if (kind.isSingle) {

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The Outline widget style: the dark Translucent scrim (WidgetStyle.Translucent) and a lavender border. -->
+    <color name="widget_outline_fill">#CC101014</color>
+    <color name="widget_outline_stroke">#FFB9A2FF</color>
+</resources>

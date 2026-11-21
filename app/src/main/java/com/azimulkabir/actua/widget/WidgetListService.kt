@@ -47,7 +47,7 @@ internal class WidgetListRows(
     override fun getCount(): Int = rows.size
 
     override fun getViewAt(position: Int): RemoteViews? =
-        rows.getOrNull(position)?.let { listRow(context, it, style) }
+        rows.getOrNull(position)?.let { listRow(context, it, style, widgetId) }
 
     override fun getLoadingView(): RemoteViews? = null
 

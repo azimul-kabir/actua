@@ -80,8 +80,8 @@ internal object ReportCardWidget {
         val views = RemoteViews(
             context.packageName,
             when (layout) {
-                ReportCardLayout.Small -> WidgetStyles.layout(context, R.layout.widget_report_card_small, R.layout.widget_report_card_small_styled)
-                ReportCardLayout.Tall -> WidgetStyles.layout(context, R.layout.widget_report_card, R.layout.widget_report_card_styled)
+                ReportCardLayout.Small -> WidgetStyles.layout(context, R.layout.widget_report_card_small, R.layout.widget_report_card_small_styled, widgetId)
+                ReportCardLayout.Tall -> WidgetStyles.layout(context, R.layout.widget_report_card, R.layout.widget_report_card_styled, widgetId)
             },
         )
         when (state) {
@@ -111,7 +111,7 @@ internal object ReportCardWidget {
                 views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.REPORTS, widgetId))
             }
         }
-        WidgetStyles.apply(context, views)
+        WidgetStyles.apply(context, views, widgetId = widgetId)
         return views
     }
 }

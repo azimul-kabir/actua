@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Outline: the Translucent scrim with a border, both following the device theme. Tinted white only for its opacity. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:inset="@dimen/widget_margin">
+    <shape android:shape="rectangle">
+        <solid android:color="@color/widget_outline_fill" />
+        <stroke android:width="2dp" android:color="@color/widget_outline_stroke" />
+        <corners android:radius="16dp" />
+    </shape>
+</inset>

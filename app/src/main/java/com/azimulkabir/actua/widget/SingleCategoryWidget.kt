@@ -23,7 +23,7 @@ internal object SingleCategoryWidget {
     }
 
     fun update(context: Context, manager: AppWidgetManager, widgetId: Int, sharedRepository: ActuaRepository? = null) {
-        val views = RemoteViews(context.packageName, WidgetStyles.layout(context, R.layout.widget_single_category, R.layout.widget_single_category_styled))
+        val views = RemoteViews(context.packageName, WidgetStyles.layout(context, R.layout.widget_single_category, R.layout.widget_single_category_styled, widgetId))
         val repository = sharedRepository ?: ActuaRepository(context)
         var progressStatus = ProgressStatus.Normal
         try {
@@ -45,6 +45,7 @@ internal object SingleCategoryWidget {
                     is SingleChoice.Found -> progressStatus = showSingleItem(
                         context, views, categoryRowOf(context, choice.item),
                         open(context, WidgetActions.CATEGORY, widgetId, choice.item.categoryKey),
+                        widgetId,
                     )
                     SingleChoice.NotFound -> showSingleMessage(
                         views, context.getString(R.string.widget_single_category_missing),
@@ -55,7 +56,7 @@ internal object SingleCategoryWidget {
                     )
                 }
             }
-            WidgetStyles.apply(context, views, progressStatus)
+            WidgetStyles.apply(context, views, progressStatus, widgetId)
             manager.updateAppWidget(widgetId, views)
         } finally {
             if (sharedRepository == null) repository.close()

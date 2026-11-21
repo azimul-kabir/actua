@@ -81,11 +81,11 @@ internal object BudgetSnapshotWidget {
         updatedAt: String?,
     ): RemoteViews {
         val layoutId = when (layout) {
-            BudgetLayout.Mini -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot_mini, R.layout.widget_budget_snapshot_mini_styled)
-            BudgetLayout.Small -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot_small, R.layout.widget_budget_snapshot_small_styled)
-            BudgetLayout.Strip -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot_strip, R.layout.widget_budget_snapshot_strip_styled)
-            BudgetLayout.Compact -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot_compact, R.layout.widget_budget_snapshot_compact_styled)
-            BudgetLayout.Hero, BudgetLayout.HeroFull -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot, R.layout.widget_budget_snapshot_styled)
+            BudgetLayout.Mini -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot_mini, R.layout.widget_budget_snapshot_mini_styled, widgetId)
+            BudgetLayout.Small -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot_small, R.layout.widget_budget_snapshot_small_styled, widgetId)
+            BudgetLayout.Strip -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot_strip, R.layout.widget_budget_snapshot_strip_styled, widgetId)
+            BudgetLayout.Compact -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot_compact, R.layout.widget_budget_snapshot_compact_styled, widgetId)
+            BudgetLayout.Hero, BudgetLayout.HeroFull -> WidgetStyles.layout(context, R.layout.widget_budget_snapshot, R.layout.widget_budget_snapshot_styled, widgetId)
         }
         val views = RemoteViews(context.packageName, layoutId)
         // RemoteViews inflate in the launcher's locale, so rebind every catalog label through
@@ -117,7 +117,7 @@ internal object BudgetSnapshotWidget {
                 )
             },
         )
-        WidgetStyles.apply(context, views)
+        WidgetStyles.apply(context, views, widgetId = widgetId)
         return views
     }
 }

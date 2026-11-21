@@ -60,8 +60,8 @@ internal object SpendingTrendWidget {
         val small = layout == TrendLayout.Small
         val views = RemoteViews(
             context.packageName,
-            if (small) WidgetStyles.layout(context, R.layout.widget_spending_trend_small, R.layout.widget_spending_trend_small_styled)
-            else WidgetStyles.layout(context, R.layout.widget_spending_trend, R.layout.widget_spending_trend_styled),
+            if (small) WidgetStyles.layout(context, R.layout.widget_spending_trend_small, R.layout.widget_spending_trend_small_styled, widgetId)
+            else WidgetStyles.layout(context, R.layout.widget_spending_trend, R.layout.widget_spending_trend_styled, widgetId),
         )
         views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_spending_trend))
         val trend = data.trend
@@ -85,7 +85,7 @@ internal object SpendingTrendWidget {
                 R.id.widget_root,
                 open(context, if (data.usingBudget) WidgetActions.REPORTS else WidgetActions.BUDGET, widgetId),
             )
-            WidgetStyles.apply(context, views)
+            WidgetStyles.apply(context, views, widgetId = widgetId)
             return views
         }
 
@@ -106,7 +106,7 @@ internal object SpendingTrendWidget {
             shown,
             widthPx = (chartWidthDp * density).toInt().coerceAtMost(MAX_CHART_PX),
             heightPx = (chartHeightDp * density).toInt().coerceAtMost(MAX_CHART_PX),
-            colors = WidgetStyles.chartColors(context),
+            colors = WidgetStyles.chartColors(context, widgetId),
             metrics = context.resources.displayMetrics,
             locale = context.resources.configuration.locales[0],
             // Amounts are left off the picture when balances are hidden, and in the small layout.
@@ -115,7 +115,7 @@ internal object SpendingTrendWidget {
         views.setImageViewBitmap(R.id.widget_trend_chart, bitmap)
         views.setContentDescription(R.id.widget_trend_chart, trendDescription(context, shown, hidden))
         views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.REPORTS, widgetId))
-        WidgetStyles.apply(context, views)
+        WidgetStyles.apply(context, views, widgetId = widgetId)
         return views
     }
 

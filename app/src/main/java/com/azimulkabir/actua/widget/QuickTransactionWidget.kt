@@ -18,9 +18,9 @@ internal object QuickTransactionWidget {
         val views = RemoteViews(
             context.packageName,
             when (layout) {
-                QuickLayout.Single -> WidgetStyles.layout(context, R.layout.widget_quick_transaction_single, R.layout.widget_quick_transaction_single_styled)
-                QuickLayout.Stacked -> WidgetStyles.layout(context, R.layout.widget_quick_transaction, R.layout.widget_quick_transaction_styled)
-                QuickLayout.Row -> WidgetStyles.layout(context, R.layout.widget_quick_transaction_row, R.layout.widget_quick_transaction_row_styled)
+                QuickLayout.Single -> WidgetStyles.layout(context, R.layout.widget_quick_transaction_single, R.layout.widget_quick_transaction_single_styled, widgetId)
+                QuickLayout.Stacked -> WidgetStyles.layout(context, R.layout.widget_quick_transaction, R.layout.widget_quick_transaction_styled, widgetId)
+                QuickLayout.Row -> WidgetStyles.layout(context, R.layout.widget_quick_transaction_row, R.layout.widget_quick_transaction_row_styled, widgetId)
             },
         )
         views.setTextViewText(R.id.widget_expense, context.getString(R.string.widget_expense))
@@ -32,7 +32,7 @@ internal object QuickTransactionWidget {
         views.setOnClickPendingIntent(R.id.widget_expense, open(context, WidgetActions.ADD_EXPENSE, widgetId))
         views.setOnClickPendingIntent(R.id.widget_income, open(context, WidgetActions.ADD_INCOME, widgetId))
         views.setOnClickPendingIntent(R.id.widget_transfer, open(context, WidgetActions.ADD_TRANSFER, widgetId))
-        WidgetStyles.apply(context, views)
+        WidgetStyles.apply(context, views, widgetId = widgetId)
         return views
     }
 }

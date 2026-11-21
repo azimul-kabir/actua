@@ -1,6 +1,8 @@
 package com.azimulkabir.actua.widget
 
+import android.appwidget.AppWidgetManager
 import android.content.Context
+import android.graphics.BlendMode
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.os.Build
@@ -50,22 +52,20 @@ internal object WidgetStyles {
      * id is unchanged, so anything an earlier look set and the new update leaves alone would linger.
      * Different ids for the default and styled looks make every switch between them a fresh inflate.
      */
-    fun layout(context: Context, plain: Int, styled: Int): Int = if (activeStyle(context) == WidgetStyle.Default) plain else styled
+    fun layout(context: Context, plain: Int, styled: Int, widgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID): Int =
+        if (activeLook(context, widgetId).style == WidgetStyle.Default) plain else styled
 
     /** Changes whenever something that alters how a widget looks does, for deciding when previews are stale. */
     fun lookSignature(context: Context): String {
         val preferences = DisplayPreferences(context)
-        return "${activeStyle(context)}:${preferences.accent}:${preferences.customAccentColor}:${preferences.catppuccinTheme()}:${preferences.useDynamicColor}"
+        return "${activeLook(context, AppWidgetManager.INVALID_APPWIDGET_ID)}:${preferences.accent}:${preferences.customAccentColor}:${preferences.catppuccinTheme()}:${preferences.useDynamicColor}"
     }
 
     /** The colors a chart drawn into a bitmap uses, so it matches the widget's style and the device theme at this update. */
-    fun chartColors(context: Context): ChartColors {
-        val style = activeStyle(context)
+    fun chartColors(context: Context, widgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID): ChartColors {
+        val style = activeLook(context, widgetId).style
         val night = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-        val preferences = DisplayPreferences(context)
-        val accent = if (style == WidgetStyle.AccentTinted) accentScheme(context, preferences, night) else null
-        val status = if (style == WidgetStyle.AccentTinted) accentStatus(context, preferences, night) else null
-        style.colors(night, accent, status)?.let { return chartColorsFor(it) }
+        styleColors(context, style, night)?.let { return chartColorsFor(it) }
         // The default style takes its colors from the color resources, which follow the device theme.
         fun color(id: Int) = ContextCompat.getColor(context, id)
         return chartColorsFor(
@@ -79,12 +79,34 @@ internal object WidgetStyles {
         )
     }
 
-    private fun activeStyle(context: Context): WidgetStyle = effectiveWidgetStyle(
-        perksAvailable = supporterPerksAvailable(),
-        isSupporter = SupporterPerks(context).isSupporter,
-        stored = DisplayPreferences(context).widgetStyle,
-        accentTintedAvailable = accentTintedAvailable(),
-    )
+    /** The look [widgetId] is drawn in: its own on top of the one for all widgets, for a supporter only. */
+    internal fun activeLook(context: Context, widgetId: Int): WidgetLook {
+        val preferences = DisplayPreferences(context)
+        return effectiveWidgetLook(
+            perksAvailable = supporterPerksAvailable(),
+            isSupporter = SupporterPerks(context).isSupporter,
+            global = WidgetLook(preferences.widgetStyle, preferences.widgetCornerRadius, preferences.widgetOpacity),
+            override = if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) null else WidgetLookPreferences(context).override(widgetId),
+            tintAvailable = accentTintedAvailable(),
+        )
+    }
+
+    /**
+     * The colors [style] has for the device theme [night], drawn from the app's accent where the style follows it. Gradient
+     * accent always takes the light scheme's saturated primary.
+     */
+    internal fun styleColors(context: Context, style: WidgetStyle, night: Boolean): WidgetStyleColors? {
+        val preferences = DisplayPreferences(context)
+        return when (style) {
+            WidgetStyle.AccentTinted -> style.colors(night, accentScheme(context, preferences, night), accentStatus(context, preferences, night))
+            WidgetStyle.GradientAccent -> style.colors(night, accentScheme(context, preferences, night = false))
+            else -> style.colors(night, null)
+        }
+    }
+
+    /** The lowest opacity [style] can be drawn at and stay readable, in both device themes. */
+    internal fun minimumOpacity(context: Context, style: WidgetStyle): Int =
+        minimumOpacity(styleColors(context, style, night = false), styleColors(context, style, night = true))
 
     /**
      * Sets the style's colors on [views], which came from [layout]. Between two styled looks the same
@@ -99,29 +121,54 @@ internal object WidgetStyles {
      * [progressStatus] is how spent the widget's category is, for its progress bar's amber and red states; it
      * has to be passed here because this sets the bar's color, so a status applied before would be overwritten.
      */
-    fun apply(context: Context, views: RemoteViews, progressStatus: ProgressStatus = ProgressStatus.Normal) {
-        val style = activeStyle(context)
+    fun apply(
+        context: Context,
+        views: RemoteViews,
+        progressStatus: ProgressStatus = ProgressStatus.Normal,
+        widgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID,
+    ) {
+        val look = activeLook(context, widgetId)
+        val style = look.style
         if (style == WidgetStyle.Default) return
-        val preferences = DisplayPreferences(context)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            val accentLight = if (style == WidgetStyle.AccentTinted) accentScheme(context, preferences, night = false) else null
-            val accentDark = if (style == WidgetStyle.AccentTinted) accentScheme(context, preferences, night = true) else null
-            val tinted = style == WidgetStyle.AccentTinted
-            val light = style.colors(night = false, accent = accentLight, status = if (tinted) accentStatus(context, preferences, false) else null) ?: return
-            val dark = style.colors(night = true, accent = accentDark, status = if (tinted) accentStatus(context, preferences, true) else null) ?: return
-            applyThemeAware(views, light, dark, progressStatus)
+            val light = styleColors(context, style, night = false) ?: return
+            val dark = styleColors(context, style, night = true) ?: return
+            applyThemeAware(views, look, light, dark, progressStatus)
             return
         }
         val night = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-        val accent = if (style == WidgetStyle.AccentTinted) accentScheme(context, preferences, night) else null
-        val status = if (style == WidgetStyle.AccentTinted) accentStatus(context, preferences, night) else null
-        val colors = style.colors(night, accent, status) ?: return
-        applyFixed(views, style, night, colors, progressStatus)
+        val colors = styleColors(context, style, night) ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            applyTinted(views, look, colors, progressStatus)
+        } else {
+            applyFixed(views, style, night, colors, progressStatus)
+        }
     }
 
-    /** Android 14+: each color is a (light, dark) pair resolved by the launcher, on top of the default drawables. */
+    /**
+     * The root background for [look]: a white shape the style's color tints by multiplying ([backgroundTint]), the
+     * Gradient accent's white-to-grey one, or the Outline style's own scrim and border.
+     */
+    private fun backgroundFor(look: WidgetLook): Int = when (look.style) {
+        WidgetStyle.GradientAccent -> look.radius.gradient
+        WidgetStyle.Outline -> look.radius.outline
+        else -> look.radius.shape
+    }
+
+    /**
+     * What [backgroundFor] is multiplied by: the style's background with its alpha scaled to the look's opacity, which is
+     * never below what keeps the text readable. The Outline drawable has its own colors, so only its alpha is set.
+     */
+    internal fun backgroundTint(look: WidgetLook, colors: WidgetStyleColors): Int {
+        val opacity = look.opacity.coerceAtLeast(minimumOpacity(colors))
+        val base = if (look.style == WidgetStyle.Outline) 0xFFFFFFFF.toInt() else colors.background
+        val alpha = (((base ushr 24) and 0xFF) * opacity / 100f).toInt().coerceIn(0, 255)
+        return (alpha shl 24) or (base and 0xFFFFFF)
+    }
+
+    /** Android 14+: each color is a (light, dark) pair resolved by the launcher. */
     @androidx.annotation.RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private fun applyThemeAware(views: RemoteViews, light: WidgetStyleColors, dark: WidgetStyleColors, status: ProgressStatus) {
+    private fun applyThemeAware(views: RemoteViews, look: WidgetLook, light: WidgetStyleColors, dark: WidgetStyleColors, status: ProgressStatus) {
         fun text(ids: IntArray, light: Int, dark: Int) = ids.forEach { views.setColorInt(it, "setTextColor", light, dark) }
         fun tint(id: Int, method: String, light: Int, dark: Int) =
             views.setColorStateList(id, method, ColorStateList.valueOf(light), ColorStateList.valueOf(dark))
@@ -129,8 +176,9 @@ internal object WidgetStyles {
         text(secondaryIds, light.secondary, dark.secondary)
         text(primaryIds, light.primary, dark.primary)
         text(buttonIds, light.buttonText, dark.buttonText)
-        views.setInt(R.id.widget_root, "setBackgroundResource", R.drawable.widget_background)
-        tint(R.id.widget_root, "setBackgroundTintList", light.background, dark.background)
+        views.setInt(R.id.widget_root, "setBackgroundResource", backgroundFor(look))
+        views.setBlendMode(R.id.widget_root, "setBackgroundTintBlendMode", BlendMode.MULTIPLY)
+        tint(R.id.widget_root, "setBackgroundTintList", backgroundTint(look, light), backgroundTint(look, dark))
         buttonIds.forEach {
             views.setInt(it, "setBackgroundResource", R.drawable.widget_button_background)
             tint(it, "setBackgroundTintList", light.button, dark.button)
@@ -145,7 +193,31 @@ internal object WidgetStyles {
         }
     }
 
-    /** Before Android 14: one value per color, chosen for the theme at this update. */
+    /** Android 12 and 13: one value per color, chosen for the theme at this update, on a tinted background. */
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
+    private fun applyTinted(views: RemoteViews, look: WidgetLook, colors: WidgetStyleColors, status: ProgressStatus) {
+        onBackgroundIds.forEach { views.setTextColor(it, colors.onBackground) }
+        secondaryIds.forEach { views.setTextColor(it, colors.secondary) }
+        primaryIds.forEach { views.setTextColor(it, colors.primary) }
+        buttonIds.forEach { views.setTextColor(it, colors.buttonText) }
+        views.setInt(R.id.widget_root, "setBackgroundResource", backgroundFor(look))
+        views.setBlendMode(R.id.widget_root, "setBackgroundTintBlendMode", BlendMode.MULTIPLY)
+        tint(views, R.id.widget_root, "setBackgroundTintList", backgroundTint(look, colors))
+        buttonIds.forEach {
+            views.setInt(it, "setBackgroundResource", R.drawable.widget_button_background)
+            tint(views, it, "setBackgroundTintList", colors.button)
+        }
+        tileIds.forEach {
+            views.setInt(it, "setBackgroundResource", R.drawable.widget_button_background)
+            tint(views, it, "setBackgroundTintList", colors.tile)
+        }
+        progressIds.forEach {
+            tint(views, it, "setProgressTintList", colors.progressFill(status))
+            tint(views, it, "setProgressBackgroundTintList", colors.progressTrack)
+        }
+    }
+
+    /** Before Android 12: one value per color, chosen for the theme at this update, on fixed drawables. */
     private fun applyFixed(views: RemoteViews, style: WidgetStyle, night: Boolean, colors: WidgetStyleColors, status: ProgressStatus) {
         onBackgroundIds.forEach { views.setTextColor(it, colors.onBackground) }
         secondaryIds.forEach { views.setTextColor(it, colors.secondary) }
@@ -175,8 +247,14 @@ internal object WidgetStyles {
      * red once overspent. Only for the default style on Android 12+, where a tint can be passed. A styled
      * widget gets the same states from [apply], in tones chosen for its style.
      */
-    fun applyProgressStatus(context: Context, views: RemoteViews, progressId: Int, status: ProgressStatus) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || activeStyle(context) != WidgetStyle.Default) return
+    fun applyProgressStatus(
+        context: Context,
+        views: RemoteViews,
+        progressId: Int,
+        status: ProgressStatus,
+        widgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID,
+    ) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || activeLook(context, widgetId).style != WidgetStyle.Default) return
         val color = when (status) {
             ProgressStatus.Normal -> R.color.widget_primary
             ProgressStatus.Warning -> R.color.widget_status_warning
@@ -196,7 +274,9 @@ internal object WidgetStyles {
             else R.drawable.widget_background_translucent_light to R.drawable.widget_button_translucent_light
         WidgetStyle.SolidDark -> R.drawable.widget_background_solid_dark to R.drawable.widget_button_solid_dark
         WidgetStyle.SolidLight -> R.drawable.widget_background_solid_light to R.drawable.widget_button_solid_light
-        WidgetStyle.Default, WidgetStyle.AccentTinted -> R.drawable.widget_background to R.drawable.widget_button_background
+        // The styles that need a tint never reach here: before Android 12 they are drawn as Default.
+        WidgetStyle.Default, WidgetStyle.AccentTinted, WidgetStyle.GradientAccent, WidgetStyle.Outline, WidgetStyle.Midnight ->
+            R.drawable.widget_background to R.drawable.widget_button_background
     }
 
     /** RemoteViews can only pass a ColorStateList on Android 12+; older releases keep the layout's own tint. */

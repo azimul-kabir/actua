@@ -62,8 +62,12 @@ class WidgetConfigurationTest {
             assertTrue("$info should still be reconfigurable", "reconfigurable" in value)
             assertTrue("$info keeps its configuration screen", File("src/main/res/xml/$info.xml").readText().contains("android:configure="))
         }
+        // The rest only have their own look to set, which is optional too.
         for (info in listOf("widget_budget_snapshot_info", "widget_quick_transaction_info", "widget_spending_trend_info", "widget_income_spending_info")) {
-            assertFalse("$info has nothing to configure", File("src/main/res/xml/$info.xml").readText().contains("android:configure="))
+            val value = features(info)!!.split('|')
+            assertTrue("$info should be placeable without configuring", "configuration_optional" in value)
+            assertTrue("$info should be reconfigurable for its look", "reconfigurable" in value)
+            assertTrue("$info sets its look", File("src/main/res/xml/$info.xml").readText().contains("android:configure=\"com.azimulkabir.actua.widget.WidgetLookActivity\""))
         }
     }
 

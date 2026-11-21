@@ -58,8 +58,8 @@ internal object ScheduledTransactionsWidget {
                 val views = RemoteViews(
                     context.packageName,
                     when (layout) {
-                        ListLayout.Mini -> WidgetStyles.layout(context, R.layout.widget_scheduled_transactions_mini, R.layout.widget_scheduled_transactions_mini_styled)
-                        ListLayout.Titled, ListLayout.Full -> WidgetStyles.layout(context, R.layout.widget_scheduled_transactions, R.layout.widget_scheduled_transactions_styled)
+                        ListLayout.Mini -> WidgetStyles.layout(context, R.layout.widget_scheduled_transactions_mini, R.layout.widget_scheduled_transactions_mini_styled, widgetId)
+                        ListLayout.Titled, ListLayout.Full -> WidgetStyles.layout(context, R.layout.widget_scheduled_transactions, R.layout.widget_scheduled_transactions_styled, widgetId)
                     },
                 )
                 views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_upcoming_schedules))
@@ -80,7 +80,7 @@ internal object ScheduledTransactionsWidget {
                 // Every row opens Scheduled; rows fill in an empty intent, so the template can stay immutable.
                 views.setPendingIntentTemplate(R.id.widget_schedule_list, open(context, WidgetActions.SCHEDULES, widgetId * 10 + 1))
                 views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.SCHEDULES, widgetId))
-                WidgetStyles.apply(context, views)
+                WidgetStyles.apply(context, views, widgetId = widgetId)
                 views
             },
         )
@@ -108,7 +108,11 @@ internal object ScheduledTransactionsWidget {
         }
     }
 
-    internal fun scheduleRow(context: Context, entry: ScheduleWidgetEntry): RemoteViews {
+    internal fun scheduleRow(
+        context: Context,
+        entry: ScheduleWidgetEntry,
+        widgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID,
+    ): RemoteViews {
         // Rows bind from the RemoteViewsService's application context, which does not follow
         // the app locale on API 28-32; resolve strings through the app-language context.
         val localized = context.withAppLanguage()
@@ -124,7 +128,7 @@ internal object ScheduledTransactionsWidget {
                 localized.getString(R.string.widget_cd_schedule_row, entry.item.title, due, amount),
             )
             setOnClickFillInIntent(R.id.widget_schedule_row, Intent())
-            WidgetStyles.apply(localized, this)
+            WidgetStyles.apply(localized, this, widgetId = widgetId)
         }
     }
 
