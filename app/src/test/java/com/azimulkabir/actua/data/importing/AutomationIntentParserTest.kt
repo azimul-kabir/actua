@@ -56,8 +56,9 @@ class AutomationIntentParserTest {
     fun `defaults date payee and source`() {
         val candidate = parse("amount" to "-5").candidates.single()
         assertEquals(20260930, candidate.date)
-        assertEquals("Tasker", candidate.payee)
-        assertEquals("Tasker", candidate.sourceLabel)
+        assertEquals("Automation", candidate.payee)
+        assertEquals("Automation", candidate.sourceLabel)
+        assertEquals("Imported from Automation", candidate.notes)
         assertNull(candidate.reference)
         assertNull(candidate.accountHint)
     }

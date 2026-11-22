@@ -43,7 +43,7 @@ fun handleAutomationExtras(
 ): AutomationResult {
     val providedToken = extras[AutomationIntent.EXTRA_TOKEN]
     val rejection = when {
-        !enabled || expectedToken.isNullOrBlank() -> "Received while Accept transactions from Tasker was off"
+        !enabled || expectedToken.isNullOrBlank() -> "Received while Accept transactions from automation apps was off"
         providedToken.isNullOrBlank() -> "No token extra. Write each extra as key:value, for example token:…"
         !isAuthorizedAutomation(enabled, expectedToken, providedToken) -> "Wrong token. $tokenAdvice"
         else -> null
@@ -83,7 +83,9 @@ object AutomationIntent {
     const val EXTRA_ACCOUNT = "account"
     const val EXTRA_SOURCE = "source"
     const val EXTRA_TEXT = "text"
-    const val DEFAULT_SOURCE = "Tasker"
+    const val DEFAULT_SOURCE = "Automation"
+    /** The default source before #1756; accounts remembered under it still apply to [DEFAULT_SOURCE]. */
+    const val LEGACY_DEFAULT_SOURCE = "Tasker"
     val EXTRAS = listOf(EXTRA_TOKEN, EXTRA_AMOUNT, EXTRA_TYPE, EXTRA_PAYEE, EXTRA_DATE, EXTRA_NOTES,
         EXTRA_REFERENCE, EXTRA_ACCOUNT, EXTRA_SOURCE, EXTRA_TEXT)
 }

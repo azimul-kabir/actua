@@ -103,6 +103,19 @@ class ImportAccountHintTest {
     }
 
     @Test
+    fun `the default automation source falls back to the account remembered for Tasker`() {
+        val legacy = mapOf("source:Tasker" to visa.id, DEFAULT_IMPORT_ACCOUNT_KEY to checking.id)
+        fun prefill(source: String, memory: Map<String, String> = legacy) =
+            prefilledImportAccount(null, source, accounts) { memory[it] }
+
+        assertEquals(visa, prefill("Automation"))
+        // A choice made after the rename wins over the old one.
+        assertEquals(checking, prefill("Automation", legacy + ("source:Automation" to checking.id)))
+        // Other sources never borrow the Tasker memory.
+        assertEquals(checking, prefill("com.bank.app"))
+    }
+
+    @Test
     fun `a closed or missing default account is ignored`() {
         val memory = mapOf(DEFAULT_IMPORT_ACCOUNT_KEY to visa.id)
         assertNull(prefilledImportAccount(null, "other.app", listOf(checking, visa.copy(closed = true))) { memory[it] })

@@ -52,7 +52,7 @@ the same hint (such as the card's last digits) or, without a hint, the same sour
 otherwise with the **Default account** (set under Bank notifications or at the top of Review
 captured). **Account for all** at the top of the review fills every row still without an account.
 These choices are kept on the device per budget and cleared with the notification data. Automation rows
-without an `account` share their `source` (default `Tasker`), so send `account` or a distinct `source`
+without an `account` share their `source` (default `Automation`; `Tasker` for the Tasker plugin), so send `account` or a distinct `source`
 per card if one automation feeds several accounts. Statement files and pasted text import into the single **Import into**
 account.
 
@@ -116,8 +116,8 @@ imported row, as they do in Actual's import, and can categorize or rename it.
 
 Automation apps such as Tasker, MacroDroid, or Automate can do their own notification parsing and
 hand Actua the result. This helps with apps that post alerts for many cards in changing formats,
-such as Google Pay. The integration is off by default. Turning on **Accept transactions from Tasker**
-on the import screen creates a random per-install token, which can be copied or replaced there.
+such as Google Pay. The integration is off by default. Turning on **Accept transactions from automation
+apps** on the import screen creates a random per-install token, which can be copied or replaced there.
 
 ### Tasker plugin (recommended)
 
@@ -153,7 +153,7 @@ Target *Broadcast Receiver*) with:
 | `notes` | no | Transaction notes |
 | `reference` | no | Bank reference or transaction ID |
 | `account` | no | Account to select on review: an exact account name (case-insensitive), or digits such as the last card digits that appear in exactly one account's name |
-| `source` | no | Label shown during review; defaults to `Tasker` |
+| `source` | no | Label shown during review; defaults to `Automation` (`Tasker` for the Tasker plugin) |
 | `text` | no | Raw alert text to run through Actua's own message parser instead of `amount` |
 
 Example Tasker extras: `token:%ACTUA_TOKEN`, `amount:-%amount`, `payee:%merchant`,
@@ -161,7 +161,7 @@ Example Tasker extras: `token:%ACTUA_TOKEN`, `amount:-%amount`, `payee:%merchant
 
 ### Step by step with Tasker's Send Intent
 
-1. In Actua, open **Import transactions**, turn on **Accept transactions from Tasker**, and tap
+1. In Actua, open **Import transactions**, turn on **Accept transactions from automation apps**, and tap
    **Token** to copy it. In Tasker, store it in a global variable such as `%ACTUA_TOKEN`.
 2. Create a profile that fires on the bank app's notification (*Event → UI → Notification*, or an
    AutoNotification intercept) and set variables for the amount and payee from its title and text.
@@ -230,7 +230,7 @@ MacroDroid needs no root and no plugin. The simplest setup sends the whole alert
 Actua's own message parser read the amount, as it does for captured notifications. This also helps
 on phones where Actua's notification capture misses alerts but MacroDroid's trigger sees them.
 
-1. In Actua, open **Import transactions**, turn on **Accept transactions from Tasker**, and tap
+1. In Actua, open **Import transactions**, turn on **Accept transactions from automation apps**, and tap
    **Token** to copy it.
 2. In MacroDroid, create a macro with the trigger *Notification → Notification Received*. Pick the
    bank or messages app, and set the text filter to a word every alert from that card contains, such
@@ -255,7 +255,7 @@ Notes:
 - **Only two extras:** send `token` and `text`. Choose the account once during review; later rows
   from the same source start with that account.
 - **Several cards or banks:** use one macro per card, each with its own text filter and `account`,
-  or a distinct `source` extra so rows are labeled by card instead of `Tasker`.
+  or a distinct `source` extra so rows are labeled by card instead of `Automation`.
 - **Parsing in MacroDroid instead:** if Actua's parser doesn't recognize an alert's wording, extract
   the amount into a MacroDroid variable and send `amount` (and optionally `payee`) instead of
   `text`, as in the broadcast table above.

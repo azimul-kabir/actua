@@ -303,7 +303,7 @@
     <string name="delete_notification_data">Benachrichtigungsdaten löschen</string>
     <string name="default_account">Standardkonto</string>
     <string name="automation_apps">Automatisierungs-Apps</string>
-    <string name="accept_from_tasker">Transaktionen von Tasker annehmen</string>
+    <string name="accept_from_automation_apps">Transaktionen von Automatisierungs-Apps annehmen</string>
     <string name="token_label">Token</string>
     <string name="tap_to_copy">Zum Kopieren tippen</string>
     <string name="automation_token_clipboard_label">Actua-Automatisierungstoken</string>
@@ -311,7 +311,7 @@
     <string name="last_broadcast_ignored">Letzten Broadcast ignoriert</string>
     <string name="automation_help_text">Sende einen Broadcast-Intent mit der Aktion %1$s an das Paket %2$s. Extras: token, amount (zum Beispiel -12.34) und optional type (debit oder credit), payee, date (YYYY-MM-DD), notes, reference, account und source. Sende Text statt amount, um den Nachrichtenparser von Actua zu nutzen. Transaktionen warten hier auf die Prüfung.</string>
     <string name="new_token">Neues Token</string>
-    <string name="token_regenerated">Neues Token erstellt. Aktualisiere es in Tasker.</string>
+    <string name="token_regenerated">Neues Token erstellt. Aktualisiere es in deiner Automatisierungs-App.</string>
     <string name="statement_file">Kontoauszugsdatei</string>
     <string name="import_into">Importieren in</string>
     <string name="no_open_account">Kein offenes Konto</string>
