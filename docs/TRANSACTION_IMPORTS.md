@@ -224,6 +224,43 @@ context.sendBroadcast(intent);
 
 The cleanup keeps commas as thousands separators, so amounts must use a point for decimals.
 
+### Step by step with MacroDroid
+
+MacroDroid needs no root and no plugin. The simplest setup sends the whole alert as `text` and lets
+Actua's own message parser read the amount, as it does for captured notifications. This also helps
+on phones where Actua's notification capture misses alerts but MacroDroid's trigger sees them.
+
+1. In Actua, open **Import transactions**, turn on **Accept transactions from Tasker**, and tap
+   **Token** to copy it.
+2. In MacroDroid, create a macro with the trigger *Notification → Notification Received*. Pick the
+   bank or messages app, and set the text filter to a word every alert from that card contains, such
+   as the card's name, so unrelated notifications aren't sent.
+3. Add the action *Applications → Send Intent* and fill in:
+
+   | Field | Value |
+   |---|---|
+   | Target | **Broadcast** |
+   | Action | `com.azimulkabir.actua.action.QUEUE_TRANSACTION` |
+   | Package | `com.azimulkabir.actua` |
+   | Class, Data, MIME type | empty |
+   | Extra 1 | name `token`, value the copied token |
+   | Extra 2 | name `text`, value the notification text, inserted with the magic text button |
+   | Extra 3 (optional) | name `account`, value the exact Actual account name |
+
+4. Test the action first: temporarily set Extra 2 to a fixed alert such as `compra de MXN$12.34`, run
+   the macro manually, and check **Review captured** for a −12.34 row, then reject it.
+
+Notes:
+
+- **Only two extras:** send `token` and `text`. Choose the account once during review; later rows
+  from the same source start with that account.
+- **Several cards or banks:** use one macro per card, each with its own text filter and `account`,
+  or a distinct `source` extra so rows are labeled by card instead of `Tasker`.
+- **Parsing in MacroDroid instead:** if Actua's parser doesn't recognize an alert's wording, extract
+  the amount into a MacroDroid variable and send `amount` (and optionally `payee`) instead of
+  `text`, as in the broadcast table above.
+- Treat the macro export as containing the token: remove it before sharing a `.macro` file.
+
 Accepted broadcasts join the same bounded review queue as captured notifications and are reviewed
 and imported the same way. Nothing is written to the budget until the user imports it. Broadcasts
 are ignored when the integration is off, the token is missing or wrong, or the fields are invalid,
