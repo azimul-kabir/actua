@@ -506,7 +506,7 @@ fun ImportTransactionsScreen(
                     ActuaFormCard {
                         ActuaFormRow(
                             icon = Icons.Outlined.Bolt,
-                            label = stringResource(R.string.accept_from_tasker),
+                            label = stringResource(R.string.accept_from_automation_apps),
                             value = null,
                             checked = automationEnabled,
                             onClick = {

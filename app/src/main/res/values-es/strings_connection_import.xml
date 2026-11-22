@@ -303,7 +303,7 @@
     <string name="delete_notification_data">Eliminar datos de notificaciones</string>
     <string name="default_account">Cuenta predeterminada</string>
     <string name="automation_apps">Aplicaciones de automatización</string>
-    <string name="accept_from_tasker">Aceptar transacciones de Tasker</string>
+    <string name="accept_from_automation_apps">Aceptar transacciones de aplicaciones de automatización</string>
     <string name="token_label">Token</string>
     <string name="tap_to_copy">Toca para copiar</string>
     <string name="automation_token_clipboard_label">Token de automatización de Actua</string>
@@ -311,7 +311,7 @@
     <string name="last_broadcast_ignored">Última difusión ignorada</string>
     <string name="automation_help_text">Envía un intent de difusión con la acción %1$s al paquete %2$s. Datos adicionales: token, amount (por ejemplo, -12.34) y, opcionalmente, type (debit o credit), payee, date (YYYY-MM-DD), notes, reference, account y source. Envía text en lugar de amount para utilizar el analizador de mensajes de Actua. Las transacciones quedarán pendientes de revisión.</string>
     <string name="new_token">Nuevo token</string>
-    <string name="token_regenerated">Se creó un nuevo token. Actualízalo en Tasker.</string>
+    <string name="token_regenerated">Se creó un nuevo token. Actualízalo en tu aplicación de automatización.</string>
     <string name="statement_file">Archivo de extracto bancario</string>
     <string name="import_into">Importar en</string>
     <string name="no_open_account">No hay cuentas abiertas</string>

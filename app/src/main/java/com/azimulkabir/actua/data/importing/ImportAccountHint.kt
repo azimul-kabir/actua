@@ -51,5 +51,8 @@ fun prefilledImportAccount(
     return cleanHint?.let { accountForImportHint(it, open) }
         ?: cleanHint?.let { byId(importAccountMemoryKey(it, source)) }
         ?: byId(importAccountMemoryKey(null, source))
+        // Broadcasts without a source were labeled "Tasker" before #1756; keep their remembered account.
+        ?: source.trim().takeIf { it == AutomationIntent.DEFAULT_SOURCE }
+            ?.let { byId(importAccountMemoryKey(null, AutomationIntent.LEGACY_DEFAULT_SOURCE)) }
         ?: byId(DEFAULT_IMPORT_ACCOUNT_KEY)
 }

@@ -303,7 +303,7 @@
     <string name="delete_notification_data">Удалить данные уведомлений</string>
     <string name="default_account">Счёт по умолчанию</string>
     <string name="automation_apps">Приложения автоматизации</string>
-    <string name="accept_from_tasker">Принимать транзакции из Tasker</string>
+    <string name="accept_from_automation_apps">Принимать транзакции из приложений автоматизации</string>
     <string name="token_label">Токен</string>
     <string name="tap_to_copy">Нажмите, чтобы скопировать</string>
     <string name="automation_token_clipboard_label">Токен автоматизации Actua</string>
@@ -311,7 +311,7 @@
     <string name="last_broadcast_ignored">Последняя рассылка проигнорирована</string>
     <string name="automation_help_text">Отправьте широковещательный intent с действием %1$s в пакет %2$s. Дополнительные параметры: token, amount (например, -12.34) и по желанию type (debit или credit), payee, date (YYYY-MM-DD), notes, reference, account и source. Отправьте text вместо amount, чтобы использовать анализатор сообщений Actua. Транзакции ожидают здесь проверки.</string>
     <string name="new_token">Новый токен</string>
-    <string name="token_regenerated">Создан новый токен. Обновите его в Tasker.</string>
+    <string name="token_regenerated">Создан новый токен. Обновите его в приложении автоматизации.</string>
     <string name="statement_file">Файл выписки</string>
     <string name="import_into">Импортировать в</string>
     <string name="no_open_account">Нет открытых счетов</string>
