@@ -12,7 +12,7 @@ This investigation validates the feasibility of adding optional Google Drive bac
 
 ### Core Verdict
 1. **Scope:** `https://www.googleapis.com/auth/drive.file` is fully sufficient for creating, listing, downloading, updating, and pruning Actua backup archives within a dedicated "Actua Backups" folder. It avoids the invasive and costly CASA Tier 2 verification required by full Drive scopes.
-2. **F-Droid Feasibility:** Google Drive backup **can be 100% compliant with F-Droid** without adding proprietary Google Play Services client SDKs (`play-services-auth`). By adopting standard RFC 8252 OAuth 2.0 with PKCE via Chrome Custom Tabs / system browser and the standard Google Drive REST API v3 over HTTPS, both the `playstore` and `fdroid` flavors share the same clean, open-source codebase.
+2. **No Play Services SDK:** Google Drive backup works without proprietary Google Play Services client SDKs (`play-services-auth`). It uses standard RFC 8252 OAuth 2.0 with PKCE via Chrome Custom Tabs / system browser and the standard Google Drive REST API v3 over HTTPS. (This was originally written to keep the since-retired F-Droid build compliant.)
 3. **Encryption Architecture:** The existing CRDT server-sync encryption format (`SyncEncryption.kt`) is **not** suitable for multi-hundred-megabyte backup archives due to monolithic memory buffering. We specify and implement a versioned, streaming authenticated encryption container (`ACTUABKP` v1) using chunked AES-256-GCM, PBKDF2-HMAC-SHA512 (100,000 iterations), and a header-based canary token for instant passphrase validation.
 4. **Token & Credential Safety:** OAuth tokens are encrypted at rest using the Android Keystore (`AES/GCM/NoPadding`) in `actua_gdrive_auth.xml`, which is explicitly excluded from Android cloud backups and device-to-device transfers in `data_extraction_rules.xml` and `backup_rules.xml`.
 
@@ -39,7 +39,7 @@ This investigation validates the feasibility of adding optional Google Drive bac
 ## 3. OAuth Architecture & Distribution Requirements
 
 ### 3.1 Zero-Proprietary-SDK OAuth 2.0 with PKCE (RFC 8252 / RFC 7636)
-To keep the `fdroid` flavor free of non-free binaries, Actua uses standard browser-based OAuth with PKCE:
+To avoid proprietary binaries, Actua uses standard browser-based OAuth with PKCE:
 1. **Initiation:** Actua generates a cryptographically secure random `code_verifier` and derives `code_challenge = Base64Url(SHA-256(code_verifier))`.
 2. **Consent Request:** Actua launches a Chrome Custom Tab (falling back to the default system browser) pointing to:
    ```text
@@ -62,11 +62,8 @@ To keep the `fdroid` flavor free of non-free binaries, Actua uses standard brows
 | Flavor / Channel | Signing Fingerprint | OAuth Client Type | Play Services Dependency | Status |
 |---|---|---|---|---|
 | **Play Store** (`playstore`) | Google Play App Signing SHA-1 | Android Client / Web Client PKCE | None required | **Supported** |
-| **GitHub Releases** (`fdroid`) | Actua Release Keystore SHA-1 | Android Client / Web Client PKCE | None | **Supported** |
-| **F-Droid** (`fdroid`) | F-Droid Signing Key SHA-1 | Web Client PKCE / Custom Client ID | None (Zero proprietary code) | **Supported** |
+| **GitHub Releases** (`playstore` build) | Actua Release Keystore SHA-1 | Android Client / Web Client PKCE | None | **Supported** |
 
-> [!NOTE]
-> Because F-Droid builds are signed with F-Droid's own keys and reproducible build requirements, using the Web Client / PKCE redirect flow allows identical functionality across all builds without requiring Google Play Services binaries.
 
 ---
 
