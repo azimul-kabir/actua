@@ -302,6 +302,10 @@
     <string name="deleted_notification_data">Candidati acquisiti e impostazioni del parser eliminati.</string>
     <string name="delete_notification_data">Elimina dati delle notifiche</string>
     <string name="default_account">Conto predefinito</string>
+    <string name="leave_unknown_payee_empty">Lascia vuoto il beneficiario se sconosciuto</string>
+    <string name="leave_unknown_payee_empty_caption">Se un avviso non indica l’esercente, lascia vuoto il beneficiario invece di usare il nome dell’app.</string>
+    <string name="leave_notes_empty">Lascia vuote le note</string>
+    <string name="leave_notes_empty_caption">Non aggiungere “Imported from …” alle note.</string>
     <string name="automation_apps">App di automazione</string>
     <string name="accept_from_automation_apps">Accetta transazioni dalle app di automazione</string>
     <string name="token_label">Token</string>

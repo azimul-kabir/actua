@@ -302,6 +302,10 @@
     <string name="deleted_notification_data">Записанные варианты и настройки анализатора удалены.</string>
     <string name="delete_notification_data">Удалить данные уведомлений</string>
     <string name="default_account">Счёт по умолчанию</string>
+    <string name="leave_unknown_payee_empty">Оставлять получателя пустым, если он неизвестен</string>
+    <string name="leave_unknown_payee_empty_caption">Если в уведомлении нет продавца, получатель остаётся пустым вместо названия приложения.</string>
+    <string name="leave_notes_empty">Оставлять заметки пустыми</string>
+    <string name="leave_notes_empty_caption">Не добавлять «Imported from …» в заметки.</string>
     <string name="automation_apps">Приложения автоматизации</string>
     <string name="accept_from_automation_apps">Принимать транзакции из приложений автоматизации</string>
     <string name="token_label">Токен</string>

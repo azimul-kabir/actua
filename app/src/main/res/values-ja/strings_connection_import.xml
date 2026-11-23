@@ -302,6 +302,10 @@
     <string name="deleted_notification_data">取り込んだ候補と解析設定を削除しました。</string>
     <string name="delete_notification_data">通知データを削除</string>
     <string name="default_account">デフォルトの口座</string>
+    <string name="leave_unknown_payee_empty">不明な支払先は空欄にする</string>
+    <string name="leave_unknown_payee_empty_caption">通知に店舗名がない場合、アプリ名を使わずに支払先を空欄にします。</string>
+    <string name="leave_notes_empty">メモを空欄にする</string>
+    <string name="leave_notes_empty_caption">メモに「Imported from …」を追加しません。</string>
     <string name="automation_apps">自動化アプリ</string>
     <string name="accept_from_automation_apps">自動化アプリからの取引を受け付ける</string>
     <string name="token_label">トークン</string>

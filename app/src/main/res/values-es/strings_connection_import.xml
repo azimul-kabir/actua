@@ -302,6 +302,10 @@
     <string name="deleted_notification_data">Se eliminaron las transacciones capturadas y la configuración del analizador.</string>
     <string name="delete_notification_data">Eliminar datos de notificaciones</string>
     <string name="default_account">Cuenta predeterminada</string>
+    <string name="leave_unknown_payee_empty">Dejar el beneficiario vacío si no se reconoce</string>
+    <string name="leave_unknown_payee_empty_caption">Si una alerta no indica el comercio, deja el beneficiario vacío en lugar de usar el nombre de la app.</string>
+    <string name="leave_notes_empty">Dejar las notas vacías</string>
+    <string name="leave_notes_empty_caption">No añadir “Imported from …” a las notas.</string>
     <string name="automation_apps">Aplicaciones de automatización</string>
     <string name="accept_from_automation_apps">Aceptar transacciones de aplicaciones de automatización</string>
     <string name="token_label">Token</string>

@@ -302,6 +302,10 @@
     <string name="deleted_notification_data">Opérations capturées et paramètres d’analyse supprimés.</string>
     <string name="delete_notification_data">Supprimer les données de notification</string>
     <string name="default_account">Compte par défaut</string>
+    <string name="leave_unknown_payee_empty">Laisser le bénéficiaire vide s’il est inconnu</string>
+    <string name="leave_unknown_payee_empty_caption">Si une alerte n’indique pas de commerçant, laisser le bénéficiaire vide au lieu d’utiliser le nom de l’application.</string>
+    <string name="leave_notes_empty">Laisser les notes vides</string>
+    <string name="leave_notes_empty_caption">Ne pas ajouter « Imported from … » aux notes.</string>
     <string name="automation_apps">Applications d’automatisation</string>
     <string name="accept_from_automation_apps">Accepter les opérations des applications d’automatisation</string>
     <string name="token_label">Jeton</string>

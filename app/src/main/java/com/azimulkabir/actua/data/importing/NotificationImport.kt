@@ -34,17 +34,17 @@ object FinancialMessageParser {
         val parsedDate = date.find(normalized)?.destructured?.let { (day, month, year) ->
             runCatching { LocalDate.of(year.toInt(), month.toInt(), day.toInt()) }.getOrNull()
         } ?: today
-        val merchant = counterparty(normalized, outgoing = debit != null) ?: source
+        val merchant = counterparty(normalized, outgoing = debit != null)?.takeIf { it != source }
         val ref = reference.find(normalized)?.groupValues?.get(1)
         val accountHint = account.find(normalized)?.groupValues?.get(1)
         val confidence = when {
-            ref != null && merchant != source -> ImportConfidence.HIGH
-            merchant != source -> ImportConfidence.MEDIUM
+            ref != null && merchant != null -> ImportConfidence.HIGH
+            merchant != null -> ImportConfidence.MEDIUM
             else -> ImportConfidence.LOW
         }
         val encodedDate = parsedDate.year * 10_000 + parsedDate.monthValue * 100 + parsedDate.dayOfMonth
-        return ImportParseResult(listOf(ImportCandidate(1, encodedDate, merchant, "Imported from $source", cents,
-            ref, confidence, source, accountHint, keepPayeeCase = true)), emptyList())
+        return ImportParseResult(listOf(ImportCandidate(1, encodedDate, merchant ?: profile.fallbackPayee(source),
+            profile.importedNotes(source), cents, ref, confidence, source, accountHint, keepPayeeCase = true)), emptyList())
     }
 
     private fun failure(code: ImportProblemCode) = ImportParseResult(emptyList(), listOf(ImportProblem(1, code)))
@@ -88,7 +88,14 @@ object FinancialMessageParser {
 data class FinancialMessageProfile(
     val debitKeywords: Set<String> = setOf("debited", "debit", "purchase", "paid", "withdrawn", "withdrawal", "spent", "charged"),
     val creditKeywords: Set<String> = setOf("credited", "credit", "refund", "received", "deposited", "deposit"),
-)
+    /** Leave the payee empty, instead of the source's name, when a message names no merchant (#1761). */
+    val blankUnknownPayee: Boolean = false,
+    /** Leave notes empty instead of "Imported from <source>" (#1761). */
+    val blankNotes: Boolean = false,
+) {
+    fun fallbackPayee(source: String): String = if (blankUnknownPayee) "" else source
+    fun importedNotes(source: String): String = if (blankNotes) "" else "Imported from $source"
+}
 
 data class AutomationRejection(val reason: String, val atMillis: Long)
 
@@ -150,7 +157,17 @@ class NotificationImportPreferences(context: Context) {
             ?: FinancialMessageParser.defaultProfile.debitKeywords,
         preferences.getStringSet("creditKeywords", FinancialMessageParser.defaultProfile.creditKeywords)
             ?: FinancialMessageParser.defaultProfile.creditKeywords,
+        blankUnknownPayee = blankUnknownPayee,
+        blankNotes = blankNotes,
     )
+
+    var blankUnknownPayee: Boolean
+        get() = preferences.getBoolean("blankUnknownPayee", false)
+        set(value) { preferences.edit().putBoolean("blankUnknownPayee", value).apply() }
+
+    var blankNotes: Boolean
+        get() = preferences.getBoolean("blankNotes", false)
+        set(value) { preferences.edit().putBoolean("blankNotes", value).apply() }
 
     fun saveProfile(profile: FinancialMessageProfile) {
         preferences.edit().putStringSet("debitKeywords", profile.debitKeywords)

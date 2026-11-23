@@ -104,6 +104,7 @@ import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
 import com.azimulkabir.actua.ui.theme.Spacing
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.automirrored.outlined.TrendingDown
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
@@ -116,6 +117,7 @@ import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.PersonOff
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.UploadFile
 import androidx.compose.material.icons.outlined.ViewColumn
@@ -210,6 +212,8 @@ fun ImportTransactionsScreen(
     var debitKeywords by remember { mutableStateOf(notificationPreferences.profile().debitKeywords.joinToString(", ")) }
     var creditKeywords by remember { mutableStateOf(notificationPreferences.profile().creditKeywords.joinToString(", ")) }
     var allowedPackages by remember { mutableStateOf(notificationPreferences.allowedPackages) }
+    var blankUnknownPayee by remember { mutableStateOf(notificationPreferences.blankUnknownPayee) }
+    var blankNotes by remember { mutableStateOf(notificationPreferences.blankNotes) }
     var appMenu by remember { mutableStateOf(false) }
     val notificationApps = remember {
         val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
@@ -476,6 +480,30 @@ fun ImportTransactionsScreen(
                         ActuaCardDivider()
                         DefaultAccountRow()
                         ActuaCardDivider()
+                        ActuaFormRow(
+                            icon = Icons.Outlined.PersonOff,
+                            label = stringResource(R.string.leave_unknown_payee_empty),
+                            value = null,
+                            caption = stringResource(R.string.leave_unknown_payee_empty_caption),
+                            checked = blankUnknownPayee,
+                            onClick = {
+                                blankUnknownPayee = !blankUnknownPayee
+                                notificationPreferences.blankUnknownPayee = blankUnknownPayee
+                            },
+                        )
+                        ActuaCardDivider()
+                        ActuaFormRow(
+                            icon = Icons.AutoMirrored.Outlined.Notes,
+                            label = stringResource(R.string.leave_notes_empty),
+                            value = null,
+                            caption = stringResource(R.string.leave_notes_empty_caption),
+                            checked = blankNotes,
+                            onClick = {
+                                blankNotes = !blankNotes
+                                notificationPreferences.blankNotes = blankNotes
+                            },
+                        )
+                        ActuaCardDivider()
                         ActuaFormTextField(icon = Icons.AutoMirrored.Outlined.TrendingDown, label = stringResource(R.string.debit_keywords),
                             value = debitKeywords, onValueChange = { debitKeywords = it })
                         ActuaCardDivider()
@@ -499,6 +527,7 @@ fun ImportTransactionsScreen(
                             CapturedTransactionNotifications.cancel(context, notificationPreferences.queued().mapNotNull { it.queueId })
                             notificationPreferences.clearAll(); captureEnabled = false; confirmNotifications = false; queued = emptyList()
                             automationEnabled = false; automationToken = null
+                            blankUnknownPayee = false; blankNotes = false
                             message = resources.getString(R.string.deleted_notification_data)
                         }) { Text(stringResource(R.string.delete_notification_data)) }
                     }
@@ -895,7 +924,8 @@ internal fun importProblemMessage(problem: ImportProblem): String = when (proble
 private fun ReviewRow.toCandidateOrNull(): ImportCandidate? = runCatching {
     val parsedDate = LocalDate.parse(date.trim())
     val cents = BigDecimal(amount.trim()).setScale(2).movePointRight(2).longValueExact()
-    require(payee.isNotBlank() && cents != 0L)
+    // Rows from messages keep their payee's case and may have none (#1761); file rows always name one.
+    require((payee.isNotBlank() || keepPayeeCase) && cents != 0L)
     ImportCandidate(sourceRow, parsedDate.year * 10_000 + parsedDate.monthValue * 100 + parsedDate.dayOfMonth,
         payee.trim(), notes.trim(), cents, reference, keepPayeeCase = keepPayeeCase, financialId = financialId)
 }.getOrNull()

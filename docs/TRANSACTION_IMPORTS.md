@@ -112,6 +112,14 @@ used as the payee. For captured notifications the source is the app's name, such
 the same digits. Category assignment is not guessed from merchant text; Actual rules run on every
 imported row, as they do in Actual's import, and can categorize or rename it.
 
+By default, notes read "Imported from <source>", and a row whose message names no merchant uses the
+source as its payee. Under Bank notifications, **Leave payee empty when unknown** leaves that payee
+empty instead (a recognized merchant is still used), and **Leave notes empty** drops the notes. Both
+are off by default and apply to captured notifications, shared or pasted alert text, and automation
+broadcasts, including the Tasker plugin; `payee` and `notes` sent by an automation app always win.
+Rows already waiting in review keep their values. A row with no payee imports without one, as in
+Actual. Statement files are not affected.
+
 ## Tasker and other automation apps
 
 Automation apps such as Tasker, MacroDroid, or Automate can do their own notification parsing and
@@ -148,9 +156,9 @@ Target *Broadcast Receiver*) with:
 | `token` | yes | The token shown on the import screen |
 | `amount` | yes, unless `text` is sent | Decimal amount with at most two decimals, e.g. `-12.34`. Negative is an outflow. Thousands commas are ignored. |
 | `type` | no | `debit` or `credit`; overrides the sign of `amount` |
-| `payee` | no | Defaults to the source label |
+| `payee` | no | Defaults to the source label, or empty with **Leave payee empty when unknown** |
 | `date` | no | `YYYY-MM-DD`; defaults to today |
-| `notes` | no | Transaction notes |
+| `notes` | no | Transaction notes; defaults to "Imported from <source>", or empty with **Leave notes empty** |
 | `reference` | no | Bank reference or transaction ID |
 | `account` | no | Account to select on review: an exact account name (case-insensitive), or digits such as the last card digits that appear in exactly one account's name |
 | `source` | no | Label shown during review; defaults to `Automation` (`Tasker` for the Tasker plugin) |

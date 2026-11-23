@@ -126,8 +126,8 @@ fun parseAutomationExtras(
     val candidate = ImportCandidate(
         sourceRow = 1,
         date = date.year * 10_000 + date.monthValue * 100 + date.dayOfMonth,
-        payee = value(AutomationIntent.EXTRA_PAYEE)?.take(200) ?: source,
-        notes = value(AutomationIntent.EXTRA_NOTES)?.take(500) ?: "Imported from $source",
+        payee = value(AutomationIntent.EXTRA_PAYEE)?.take(200) ?: profile.fallbackPayee(source),
+        notes = value(AutomationIntent.EXTRA_NOTES)?.take(500) ?: profile.importedNotes(source),
         amountCents = signed,
         reference = value(AutomationIntent.EXTRA_REFERENCE)?.take(100),
         confidence = ImportConfidence.HIGH,

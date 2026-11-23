@@ -302,6 +302,10 @@
     <string name="deleted_notification_data">Erfasste Kandidaten und Parser-Einstellungen gelöscht.</string>
     <string name="delete_notification_data">Benachrichtigungsdaten löschen</string>
     <string name="default_account">Standardkonto</string>
+    <string name="leave_unknown_payee_empty">Empfänger leer lassen, wenn unbekannt</string>
+    <string name="leave_unknown_payee_empty_caption">Nennt eine Benachrichtigung keinen Händler, bleibt der Empfänger leer statt des App-Namens.</string>
+    <string name="leave_notes_empty">Notizen leer lassen</string>
+    <string name="leave_notes_empty_caption">„Imported from …“ nicht zu den Notizen hinzufügen.</string>
     <string name="automation_apps">Automatisierungs-Apps</string>
     <string name="accept_from_automation_apps">Transaktionen von Automatisierungs-Apps annehmen</string>
     <string name="token_label">Token</string>

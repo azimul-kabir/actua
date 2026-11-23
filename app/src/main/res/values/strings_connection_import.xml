@@ -302,6 +302,10 @@
     <string name="deleted_notification_data">Deleted captured candidates and parser settings.</string>
     <string name="delete_notification_data">Delete notification data</string>
     <string name="default_account">Default account</string>
+    <string name="leave_unknown_payee_empty">Leave payee empty when unknown</string>
+    <string name="leave_unknown_payee_empty_caption">When an alert names no merchant, leave the payee empty instead of using the app’s name.</string>
+    <string name="leave_notes_empty">Leave notes empty</string>
+    <string name="leave_notes_empty_caption">Don’t add “Imported from …” to the notes.</string>
     <string name="automation_apps">Automation apps</string>
     <string name="accept_from_automation_apps">Accept transactions from automation apps</string>
     <string name="token_label">Token</string>
