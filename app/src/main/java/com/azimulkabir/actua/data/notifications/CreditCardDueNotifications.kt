@@ -249,7 +249,7 @@ private fun postNotification(
         formatMoneyCents(cents, display.hideDecimals, respectBalanceVisibility = false)
     }
     val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-        .setSmallIcon(R.drawable.actua_launcher_monochrome)
+        .setSmallIcon(R.drawable.ic_stat_actua)
         .setContentTitle(context.getString(R.string.credit_card_notification_title, card.accountName, whenText))
         .setContentText(body)
         .setStyle(NotificationCompat.BigTextStyle().bigText(body))
