@@ -122,4 +122,30 @@ class FinancialMessageParserTest {
         val profile = FinancialMessageProfile(setOf("paid"), setOf("credit"))
         assertTrue(FinancialMessageParser.parse("Discredited sender $5.00", "Bank app", profile = profile).candidates.isEmpty())
     }
+
+    @Test
+    fun `unknown payee and notes are filled by default and can be left empty`() {
+        val noMerchant = "You paid $12.34"
+        val filled = FinancialMessageParser.parse(noMerchant, "Mensajes").candidates.single()
+        assertEquals("Mensajes", filled.payee)
+        assertEquals("Imported from Mensajes", filled.notes)
+
+        val blank = FinancialMessageProfile(blankUnknownPayee = true, blankNotes = true)
+        val empty = FinancialMessageParser.parse(noMerchant, "Mensajes", profile = blank).candidates.single()
+        assertEquals("", empty.payee)
+        assertEquals("", empty.notes)
+        assertEquals(-1_234L, empty.amountCents)
+        assertEquals(ImportConfidence.LOW, empty.confidence)
+    }
+
+    @Test
+    fun `a recognized merchant is kept when unknown payees are left empty`() {
+        val blank = FinancialMessageProfile(blankUnknownPayee = true)
+        val candidate = FinancialMessageParser.parse(
+            "Your card ****9876 was debited BDT 450.25 at Coffee House. Trx ID ABC12345", "Bank app", profile = blank,
+        ).candidates.single()
+        assertEquals("Coffee House", candidate.payee)
+        assertEquals("Imported from Bank app", candidate.notes)
+        assertEquals(ImportConfidence.HIGH, candidate.confidence)
+    }
 }

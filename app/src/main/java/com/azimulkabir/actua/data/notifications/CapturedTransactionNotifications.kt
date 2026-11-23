@@ -270,7 +270,9 @@ class CapturedImportWorker(context: Context, parameters: WorkerParameters) : Cor
         val localized = context.withAppLanguage()
         when (val outcome = importCapturedTransaction(context, queueId, accountId)) {
             is CapturedImportOutcome.Imported -> CapturedTransactionNotifications.post(context, queueId) {
-                setContentTitle(localized.getString(R.string.captured_imported_title, outcome.candidate.payee))
+                setContentTitle(outcome.candidate.payee.trim().takeIf(String::isNotEmpty)
+                    ?.let { localized.getString(R.string.captured_imported_title, it) }
+                    ?: localized.getString(R.string.captured_fallback_title))
                 setContentText(localized.getString(R.string.captured_added_to, outcome.accountName))
                 setTimeoutAfter(10_000)
             }

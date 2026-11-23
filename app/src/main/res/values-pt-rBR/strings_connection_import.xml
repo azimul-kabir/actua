@@ -302,6 +302,10 @@
     <string name="deleted_notification_data">Candidatos capturados e configurações do analisador excluídos.</string>
     <string name="delete_notification_data">Excluir dados de notificação</string>
     <string name="default_account">Conta padrão</string>
+    <string name="leave_unknown_payee_empty">Deixar o beneficiário vazio se desconhecido</string>
+    <string name="leave_unknown_payee_empty_caption">Se um alerta não informar o estabelecimento, deixa o beneficiário vazio em vez de usar o nome do app.</string>
+    <string name="leave_notes_empty">Deixar as notas vazias</string>
+    <string name="leave_notes_empty_caption">Não adicionar “Imported from …” às notas.</string>
     <string name="automation_apps">Apps de automação</string>
     <string name="accept_from_automation_apps">Aceitar transações de apps de automação</string>
     <string name="token_label">Token</string>
