@@ -19,7 +19,7 @@ class SupportPromptTest {
         assertTrue(shouldAskForSupport(loaded))
         assertFalse(shouldAskForSupport(loaded.copy(purchasesRestored = false)))
         assertFalse(shouldAskForSupport(loaded.copy(options = emptyList())))
-        // The fdroid build's state: billing is never available.
+        // Billing is not available.
         assertFalse(shouldAskForSupport(SupportPurchaseState()))
     }
 

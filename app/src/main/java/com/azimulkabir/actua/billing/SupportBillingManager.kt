@@ -74,9 +74,9 @@ data class SupportPurchaseState(
 
 /**
  * Drives the optional Support Actua purchases: a monthly supporter subscription, a permanent
- * Supporter badge at several prices. The playstore flavor backs this with Google Play Billing;
- * the fdroid flavor reports [SupportPurchaseState.isAvailable] as false so the settings row that
- * uses this stays hidden, since Play Billing can't work outside Play.
+ * Supporter badge at several prices. It is backed by Google Play Billing, which can't work outside
+ * Play, so [SupportPurchaseState.isAvailable] is false there and the settings row that uses this
+ * stays hidden.
  */
 interface SupportBillingManager {
     val state: StateFlow<SupportPurchaseState>

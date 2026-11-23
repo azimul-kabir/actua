@@ -41,7 +41,7 @@ private class SharedPreferencesSupporterPerksStore(context: Context) : Supporter
 class SupporterPerks(private val store: SupporterPerksStore) {
     constructor(context: Context) : this(SharedPreferencesSupporterPerksStore(context))
 
-    /** The last status Play confirmed. False until the first check, and always false on fdroid. */
+    /** The last status Play confirmed. False until the first check. */
     val isSupporter: Boolean get() = store.isSupporter
 
     /** Whether the last check is old enough that the app-start check should run again. */

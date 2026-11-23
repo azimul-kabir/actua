@@ -129,8 +129,8 @@
             android:launchMode="singleTop"
             android:theme="@style/Theme.Actua"
             android:windowSoftInputMode="adjustResize">
-            <!-- The launcher entry and app shortcuts are declared per flavor: fdroid on this
-                 activity, playstore through the icon aliases (#1542). -->
+            <!-- The launcher entry and app shortcuts are declared through the icon
+                 aliases (#1542). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
