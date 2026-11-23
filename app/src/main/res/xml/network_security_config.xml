@@ -14,11 +14,12 @@
   a non-rooted Android user can trust one. Without this, HTTPS connections to such servers
   fail with CertPathValidatorException regardless of Android build (see #354).
 -->
-<network-security-config>
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
-            <certificates src="user" />
+            <!-- Intentional, see above. -->
+            <certificates src="user" tools:ignore="AcceptsUserCertificates" />
         </trust-anchors>
     </base-config>
 </network-security-config>

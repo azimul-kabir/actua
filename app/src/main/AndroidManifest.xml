@@ -48,9 +48,12 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+        <!-- Exported without a permission so any automation app can send to it; each broadcast must
+             carry the automation token and is ignored while automation is turned off. -->
         <receiver
             android:name=".data.importing.AutomationIntentReceiver"
-            android:exported="true">
+            android:exported="true"
+            tools:ignore="ExportedReceiver">
             <intent-filter>
                 <action android:name="com.azimulkabir.actua.action.QUEUE_TRANSACTION" />
             </intent-filter>
@@ -67,9 +70,11 @@
                 <action android:name="com.twofortyfouram.locale.intent.action.EDIT_SETTING" />
             </intent-filter>
         </activity>
+        <!-- Exported without a permission for Tasker/Locale hosts; it checks the same token. -->
         <receiver
             android:name=".data.importing.TaskerFireReceiver"
-            android:exported="true">
+            android:exported="true"
+            tools:ignore="ExportedReceiver">
             <intent-filter>
                 <action android:name="com.twofortyfouram.locale.intent.action.FIRE_SETTING" />
             </intent-filter>

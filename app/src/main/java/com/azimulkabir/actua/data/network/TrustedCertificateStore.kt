@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.data.network
 
+import android.annotation.SuppressLint
 import android.content.Context
 import java.net.IDN
 import java.net.InetAddress
@@ -201,6 +202,9 @@ internal fun systemTrustManager(): X509TrustManager {
     return factory.trustManagers.filterIsInstance<X509TrustManager>().single()
 }
 
+// Defers to the platform trust manager first and only falls back to the certificate the user
+// pinned for this host, after checking its validity and fingerprint.
+@SuppressLint("CustomX509TrustManager")
 internal class PinnedCertificateTrustManager(
     private val system: X509TrustManager,
     private val host: String,
@@ -241,6 +245,8 @@ fun inspectServerCertificate(serverUrl: String): ServerCertificateInfo {
     val host = requireNotNull(uri.host) { "Enter a valid server URL." }
     val port = if (uri.port == -1) 443 else uri.port
 
+    // Used only for this handshake, see above; nothing is sent over the connection.
+    @SuppressLint("CustomX509TrustManager")
     val inspectionTrustManager = object : X509TrustManager {
         override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
         override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) = Unit

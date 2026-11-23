@@ -2,11 +2,15 @@
 <!-- A report card at one row tall: its name over its value, which shrinks to fit. A state message
      (no budget, not found) replaces the card. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background">
+    <!-- Not a useless parent: widget_background is an inset drawable, so the frame takes the inset as
+         padding and this layout adds its own padding inside it. Merging them would drop one. -->
     <LinearLayout
+        tools:ignore="UselessParent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"

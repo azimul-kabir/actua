@@ -6,9 +6,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background">
+    <!-- Not a useless parent: widget_background is an inset drawable, so the frame takes the inset as
+         padding and this layout adds its own padding inside it. Merging them would drop one. -->
     <!-- The inner weights give the autosized text and chart a bounded height; wrap_content would break the autosizing. -->
     <LinearLayout
-        tools:ignore="NestedWeights"
+        tools:ignore="NestedWeights,UselessParent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center_vertical"
