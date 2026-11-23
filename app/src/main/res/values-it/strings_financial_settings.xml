@@ -472,6 +472,8 @@
 
     <!-- Bank sync. -->
     <string name="fs_bank_sync_title">Sincronizzazione bancaria</string>
+    <string name="fs_bank_sync_on_open">Sincronizza le banche all’apertura</string>
+    <string name="fs_bank_sync_on_open_desc">Scarica le nuove transazioni bancarie all’apertura, al massimo ogni 30 minuti per conto.</string>
     <string name="fs_bank_sync_providers">Fornitori</string>
     <string name="fs_pluggyai_note">Pluggy.ai (America Latina). Inserisci l’ID client e il segreto di Pluggy e gli ID degli elementi delle banche collegate, separati da virgole. Il server li conserva; Actua non conserva nulla.</string>
     <string name="fs_pluggyai_client_id">ID client</string>

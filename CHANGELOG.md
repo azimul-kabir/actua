@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added an optional Sync banks when opening the app setting under Manage → Bank Sync, limited to once per account every 30 minutes ([#1766](https://github.com/azimul-kabir/actua/pull/1766))
 - Added options to leave the payee empty when an alert names no merchant, and to leave notes empty, for captured, shared and automation transactions ([#1762](https://github.com/azimul-kabir/actua/pull/1762))
 - Added the app lock to widget taps, notifications, the share sheet and the Tasker setup screen, and a Hide widget amounts option that masks widget amounts while the lock is on ([#1755](https://github.com/azimul-kabir/actua/pull/1755))
 - Added Scan receipt when editing an existing transaction, to attach a receipt photo or also replace its amount, payee and date ([#1754](https://github.com/azimul-kabir/actua/pull/1754))

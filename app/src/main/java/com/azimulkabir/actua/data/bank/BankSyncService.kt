@@ -48,8 +48,10 @@ class BankSyncService(
     /** The open budget's server file id, so Pluggy.ai finds credentials stored for this budget only. */
     private val cloudFileId: String? = null,
 ) {
-    fun sync(serverUrl: String, token: String, accountId: String? = null): BankSyncResult {
-        val accounts = database.fetchBankSyncAccounts().filter { !it.closed && (accountId == null || it.id == accountId) }
+    fun sync(serverUrl: String, token: String, accountId: String? = null, onlyAccountIds: Set<String>? = null): BankSyncResult {
+        val accounts = database.fetchBankSyncAccounts().filter {
+            !it.closed && (accountId == null || it.id == accountId) && (onlyAccountIds == null || it.id in onlyAccountIds)
+        }
         if (accounts.isEmpty()) return BankSyncResult(accountsSynced = 0, imported = 0, problems = emptyList())
         val floor = today().minusDays(89).format(DateTimeFormatter.BASIC_ISO_DATE).toInt()
         val todayDay = today().format(DateTimeFormatter.BASIC_ISO_DATE).toInt()

@@ -450,6 +450,8 @@
 
     <!-- Bank sync. -->
     <string name="fs_bank_sync_title">银行同步</string>
+    <string name="fs_bank_sync_on_open">打开应用时同步银行</string>
+    <string name="fs_bank_sync_on_open_desc">打开应用时下载新的银行交易，每个账户最多每 30 分钟一次。</string>
     <string name="fs_bank_sync_providers">服务商</string>
     <string name="fs_pluggyai_note">Pluggy.ai（拉丁美洲）。输入您的 Pluggy 客户端 ID 和密钥，以及已连接银行的项目 ID，以逗号分隔。服务器会存储这些信息；Actua 不保存任何内容。</string>
     <string name="fs_pluggyai_client_id">客户端 ID</string>

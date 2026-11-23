@@ -180,6 +180,7 @@ import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.location.AndroidLocationProvider
 import com.azimulkabir.actua.data.location.CurrentLocationResult
 import com.azimulkabir.actua.data.location.LocationUtils
+import com.azimulkabir.actua.data.bank.BankSyncOnOpenPreferences
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
 import com.azimulkabir.actua.data.sync.ActualSyncScheduler
 import com.azimulkabir.actua.data.sync.SYNC_TRIGGER_AFTER_CHANGE
@@ -717,6 +718,7 @@ fun AppNavigation(
     var transactionsRefreshing by transactionNavigationState.transactionsRefreshing
     var accountsRefreshing by transactionNavigationState.accountsRefreshing
     val bankSyncProviderState = rememberBankSyncProviderState()
+    var syncBanksOnOpenEnabled by remember { mutableStateOf(BankSyncOnOpenPreferences(appContext).enabled) }
     var simpleFinConfigured by bankSyncProviderState.simpleFinConfigured
     var goCardlessConfigured by bankSyncProviderState.goCardlessConfigured
     var simpleFinDiscovery by bankSyncProviderState.simpleFinDiscovery
@@ -1129,6 +1131,48 @@ fun AppNavigation(
         }
     }
 
+    /**
+     * Optional "Sync banks when opening the app" (#1763): once the budget file has synced, downloads
+     * bank transactions for linked accounts not synced within [BankSyncOnOpen.COOLDOWN_MILLIS].
+     * Quiet unless rows changed or a bank reported a problem; failures never interrupt app open.
+     */
+    suspend fun syncBanksOnOpen() {
+        if (!BankSyncOnOpenPreferences(appContext).enabled) return
+        try {
+            val result = withContext(Dispatchers.IO) {
+                val due = repository.bankSyncDueAccountIds()
+                if (due.isEmpty()) null
+                else repository.withBackgroundOperation { repository.syncBanks(onlyAccountIds = due) }
+            } ?: return
+            val changed = result.imported + result.matched + result.updated > 0
+            if (changed) {
+                dataVersion += 1
+                withContext(Dispatchers.IO) {
+                    ActualSyncRunner.run(appContext, trigger = SYNC_TRIGGER_AFTER_CHANGE)
+                }
+            }
+            if (changed || result.problems.isNotEmpty()) {
+                val viewAccount = result.added.keys.singleOrNull()?.let { id -> accounts.firstOrNull { it.id == id } }
+                coroutineScope.launch {
+                    val action = snackbarHostState.showSnackbar(
+                        result.summary,
+                        actionLabel = viewAccount?.let { navStrings.view },
+                        duration = if (viewAccount != null) SnackbarDuration.Long else SnackbarDuration.Short,
+                    )
+                    if (action == SnackbarResult.ActionPerformed && viewAccount != null) {
+                        transactionAccount = viewAccount.name; transactionCategory = null; transactionMonth = null
+                        transactionSearch = ""
+                        destination = MainDestination.Accounts; detail = DetailDestination.Transactions
+                    }
+                }
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            DiagnosticsLog.actionFailed("Bank sync on open", error)
+        }
+    }
+
     LaunchedEffect(foregroundGeneration) {
         if (!shouldRequestForegroundSync(foregroundGeneration)) return@LaunchedEffect
         val result = try {
@@ -1154,6 +1198,7 @@ fun AppNavigation(
                     CreditCardDueNotificationScheduler.refresh(appContext)
                     WidgetUpdater.requestAll(appContext)
                 }
+                syncBanksOnOpen()
             }
             SyncRunResult.NotConfigured -> Unit
             SyncRunResult.EncryptionKeyUnavailable -> {
@@ -2508,6 +2553,8 @@ fun AppNavigation(
                 akahuConfigured = akahuConfigured,
                 linkedAccounts = accounts.filter { it.bankSyncSource != null },
                 linkableAccounts = accounts.filter { it.bankSyncSource == null && !it.closed },
+                syncOnOpen = syncBanksOnOpenEnabled,
+                onSyncOnOpenChange = { syncBanksOnOpenEnabled = it; BankSyncOnOpenPreferences(appContext).enabled = it },
                 onSaveSimpleFinToken = ::saveSimpleFinToken,
                 simpleFinDiscovery = simpleFinDiscovery,
                 onDiscoverSimpleFin = ::discoverSimpleFinAccounts,
