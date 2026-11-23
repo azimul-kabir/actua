@@ -167,6 +167,40 @@ A 30-second tour of the budget, accounts and loans, credit cards, reports and wi
       </a>
     </td>
   </tr>
+  <tr>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/light/custom-accent.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/custom-accent.png">
+          <img src="artwork/screenshots/light/custom-accent.png" width="200" alt="Actua custom accent color picker with hex, hue, saturation and brightness controls">
+        </picture>
+      </a>
+    </td>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/light/app-icon.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/app-icon.png">
+          <img src="artwork/screenshots/light/app-icon.png" width="200" alt="Actua app icon picker with 14 icons">
+        </picture>
+      </a>
+    </td>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/light/widget-styles.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/widget-styles.png">
+          <img src="artwork/screenshots/light/widget-styles.png" width="200" alt="Actua widget styles: Default, Translucent, Solid dark, Solid light, Accent-tinted, Gradient accent, Outline and Midnight, with corner radius and opacity">
+        </picture>
+      </a>
+    </td>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/light/receipt-dialog.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/receipt-dialog.png">
+          <img src="artwork/screenshots/light/receipt-dialog.png" width="200" alt="Actua receipt scan on an existing transaction, offering to attach the photo only or replace the details">
+        </picture>
+      </a>
+    </td>
+  </tr>
 </table>
 
 Screenshots use a demo budget and follow your GitHub light or dark theme.
