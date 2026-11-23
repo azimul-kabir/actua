@@ -9,16 +9,12 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:padding="@dimen/widget_padding">
-        <LinearLayout
+        <TextView
+            style="@style/WidgetTitle"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_weight="0"
             android:layout_marginBottom="4dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-            <TextView
-                style="@style/WidgetTitle"
-                android:text="@string/widget_budget_snapshot" />
-        </LinearLayout>
+            android:text="@string/widget_budget_snapshot" />
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"

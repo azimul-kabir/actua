@@ -23,9 +23,6 @@
     <string name="budget_options_section_page">Страница</string>
     <string name="budget_options_section_rows">Каждая строка категории</string>
     <string name="budget_options_section_categories">Показанные категории</string>
-    <string name="budget_options_section_summary">Включено: %1$d из %2$d</string>
-    <string name="budget_options_section_expanded">Развёрнуто</string>
-    <string name="budget_options_section_collapsed">Свёрнуто</string>
     <string name="budget_show_status_dots">Показывать индикаторы состояния</string>
     <string name="budget_switch_budget">Сменить бюджет</string>
     <string name="budget_type_confirm_title_tracking">Перейти на бюджет с отслеживанием?</string>
@@ -353,7 +350,6 @@
     <string name="home_open_budget">Открыть бюджет</string>
     <string name="home_available_to_assign">Доступно для распределения</string>
     <string name="home_open_current_budget">Открыть текущий бюджет</string>
-    <string name="home_amount_available">Доступно: %1$s</string>
     <string name="home_goal_progress">Накоплено %1$d%% цели</string>
     <string name="home_spending_progress">%1$s · потрачено %2$d%%</string>
     <string name="home_view_calendar">Показать календарь</string>

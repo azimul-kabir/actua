@@ -1,7 +1,6 @@
 <resources>
     <string name="widget_budget_snapshot">Riepilogo budget</string>
     <string name="widget_favourite_categories">Categorie preferite</string>
-    <string name="widget_quick_transaction">Transazione rapida</string>
     <string name="widget_account_balances">Saldi dei conti</string>
     <string name="widget_ready">Da assegnare</string>
     <string name="widget_budgeted">Assegnato</string>

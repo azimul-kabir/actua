@@ -243,7 +243,6 @@
     <string name="account_note">Notiz</string>
     <string name="account_add_note">Notiz hinzufügen</string>
     <string name="account_note_placeholder">Kontonotiz</string>
-    <string name="amount_paste">Einfügen</string>
     <string name="amount_paste_description">Betrag aus der Zwischenablage einfügen</string>
     <string name="amount_paste_not_found">Kein Betrag in der Zwischenablage gefunden</string>
     <string name="scan_receipt">Beleg scannen</string>
@@ -297,8 +296,6 @@
     <string name="receipt_folder_dialog_message">Fotos in diesem Ordner liegen außerhalb von Actua. Die App-Sperre schützt sie nicht, andere Apps mit Zugriff auf den Ordner können sie sehen, und eine App, die den Ordner synchronisiert, etwa Nextcloud, kopiert sie. Actua nimmt zugängliche Fotos in verschlüsselte WebDAV-Sicherungen auf, wenn konfiguriert.</string>
     <string name="receipt_folder_dialog_existing">Bereits gespeicherte Fotos bleiben, wo sie sind, und werden nicht verschoben. Wenn du später zum privaten Speicher zurückwechselst, werden im Ordner verbliebene Fotos in Actua nicht mehr angezeigt.</string>
     <string name="receipt_folder_choose">Ordner wählen</string>
-    <string name="amount_clear">Löschen</string>
     <string name="amount_clear_description">Betrag löschen</string>
-    <string name="amount_undo">Rückgängig</string>
     <string name="amount_undo_description">Löschen rückgängig machen</string>
 </resources>

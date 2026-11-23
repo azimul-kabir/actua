@@ -253,7 +253,6 @@
     <string name="account_note">Заметка</string>
     <string name="account_add_note">Добавить заметку</string>
     <string name="account_note_placeholder">Заметка к счёту</string>
-    <string name="amount_paste">Вставить</string>
     <string name="amount_paste_description">Вставить сумму из буфера обмена</string>
     <string name="amount_paste_not_found">В буфере обмена не найдена сумма</string>
     <string name="scan_receipt">Сканировать чек</string>
@@ -309,8 +308,6 @@
     <string name="receipt_folder_dialog_message">Фото в этой папке находятся за пределами Actua. Блокировка приложения их не защищает, другие приложения с доступом к папке могут их видеть, а приложение, синхронизирующее папку, например Nextcloud, их скопирует. Actua включает доступные фото в зашифрованные резервные копии WebDAV, если они настроены.</string>
     <string name="receipt_folder_dialog_existing">Уже сохранённые фото остаются на месте и не перемещаются. Если позже вы вернётесь к личному хранилищу, фото, оставшиеся в папке, больше не будут показываться в Actua.</string>
     <string name="receipt_folder_choose">Выбрать папку</string>
-    <string name="amount_clear">Очистить</string>
     <string name="amount_clear_description">Очистить сумму</string>
-    <string name="amount_undo">Отменить</string>
     <string name="amount_undo_description">Отменить очистку</string>
 </resources>
