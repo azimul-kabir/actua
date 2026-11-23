@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
  *
  * It first asks whether Actua is useful, and only a "Yes" opens Google's review sheet, so unhappy
  * users are not sent to the store. Once shown it is recorded straight away, so it can't come back,
- * whichever button is pressed. The fdroid build and installs that did not come from Google Play never show it. It waits for the Support Actua
+ * whichever button is pressed. Installs that did not come from Google Play never show it. It waits for the Support Actua
  * prompt when that one is still due, so the two never appear together. [canShow] lets the caller
  * hold it back, e.g. while another dialog or a detail screen is open.
  */

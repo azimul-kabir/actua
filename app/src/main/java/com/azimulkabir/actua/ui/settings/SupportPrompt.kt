@@ -28,7 +28,7 @@ import com.azimulkabir.actua.data.preferences.SupporterPerks
  * or [SupportPromptPreferences.TRANSACTION_THRESHOLD] added transactions, whichever comes first.
  *
  * It waits for Play to confirm the options and the user's purchases, so it never asks a
- * supporter, and the fdroid build (where billing is never available) never shows it. Once shown
+ * supporter, and it never shows where billing is unavailable. Once shown
  * it is recorded straight away, so it can't come back, whichever button is pressed.
  * [canShow] lets the caller hold it back, e.g. while another dialog or a detail screen is open.
  */

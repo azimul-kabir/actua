@@ -222,7 +222,7 @@ class WidgetStyleTest {
             WidgetStyle.Default, effectiveWidgetStyle(perksAvailable = true, isSupporter = false, stored = stored, accentTintedAvailable = true),
         )
         assertEquals(
-            "the F-Droid build has no extras, whatever is stored",
+            "no extras without perks, whatever is stored",
             WidgetStyle.Default, effectiveWidgetStyle(perksAvailable = false, isSupporter = true, stored = stored, accentTintedAvailable = true),
         )
         assertEquals(

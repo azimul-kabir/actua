@@ -43,7 +43,7 @@ class CelebrationPolicyTest {
 
     @Test
     fun staysQuietWhenAnyConditionFails() {
-        assertFalse("fdroid build", CelebrationPolicy.shouldPlay(false, true, true, 1f))
+        assertFalse("not available", CelebrationPolicy.shouldPlay(false, true, true, 1f))
         assertFalse("not a supporter", CelebrationPolicy.shouldPlay(true, false, true, 1f))
         assertFalse("toggle off", CelebrationPolicy.shouldPlay(true, true, false, 1f))
         assertFalse("animations off", CelebrationPolicy.shouldPlay(true, true, true, 0f))

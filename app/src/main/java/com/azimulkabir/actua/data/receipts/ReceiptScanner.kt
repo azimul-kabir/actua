@@ -6,8 +6,8 @@ import android.net.Uri
 data class RecognizedLine(val text: String, val left: Int, val top: Int, val right: Int, val bottom: Int)
 
 /**
- * Reads the text on a receipt photo, on the device only. The ML Kit implementation exists only in the
- * `playstore` flavor; `fdroid` has none (see `createReceiptScanner`), so shared code depends on this interface.
+ * Reads the text on a receipt photo, on the device only. Shared code depends on this interface; the
+ * ML Kit implementation lives in the `playstore` flavor (see `createReceiptScanner`).
  */
 interface ReceiptScanner {
     /** A fresh content address the camera app can write one photo to. The photo is deleted by [discard]. */

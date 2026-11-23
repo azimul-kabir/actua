@@ -35,7 +35,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 
-/** Starts a celebration if the user may see one; a no-op outside [CelebrationHost] and on the fdroid build. */
+/** Starts a celebration if the user may see one; a no-op outside [CelebrationHost]. */
 val LocalCelebrate = staticCompositionLocalOf<() -> Unit> { {} }
 
 private const val DURATION_MILLIS = 1500

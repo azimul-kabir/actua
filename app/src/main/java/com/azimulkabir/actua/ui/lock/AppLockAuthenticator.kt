@@ -14,7 +14,7 @@ import androidx.fragment.app.FragmentActivity
 /**
  * Thin wrapper over [BiometricPrompt] for the app lock: a strong biometric or the device's own
  * PIN, pattern or password. It uses `androidx.biometric` only, never Play Services, so it works
- * in the F-Droid build.
+ * on devices without Play Services.
  */
 object AppLockAuthenticator {
     enum class Availability {

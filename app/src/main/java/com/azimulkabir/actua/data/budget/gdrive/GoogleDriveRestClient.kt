@@ -33,7 +33,7 @@ sealed class GoogleDriveException(message: String, cause: Throwable? = null) : E
 
 /**
  * Pure Kotlin / Android HTTP client for Google Drive REST API v3.
- * Zero proprietary Google Play Services dependencies; fully compliant with F-Droid.
+ * Zero proprietary Google Play Services dependencies.
  */
 class GoogleDriveRestClient(
     private val tokenProvider: () -> String?,

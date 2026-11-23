@@ -152,7 +152,7 @@ fun AddTransactionScreen(
     hideDecimalPlaces: Boolean = false,
     conventionalAmountEntry: Boolean = false,
     newTransactionDate: () -> LocalDate = { LocalDate.now() },
-    /** Reads receipts on the device; null (the `fdroid` flavor) hides every scan entry. */
+    /** Reads receipts on the device; null hides every scan entry. */
     receiptScanner: ReceiptScanner? = null,
     /** The receipt photo kept with the edited transaction on this device, if any. */
     receiptPhoto: ReceiptPhoto? = null,

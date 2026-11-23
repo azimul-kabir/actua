@@ -16,7 +16,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Registers how each supporter extra returns to its default when support lapses. Call once at app
- * start, before anything records the supporter status. Does nothing on the fdroid build.
+ * start, before anything records the supporter status. Does nothing where Play billing is unavailable.
  */
 fun registerSupporterExtras(context: Context) {
     if (!supporterPerksAvailable()) return
@@ -50,7 +50,7 @@ private const val PLAY_ANSWER_TIMEOUT_MILLIS = 30_000L
 
 /**
  * App-start check of the cached supporter status, at most once a day, so a refund or a lapsed
- * subscription is noticed without the user visiting Settings. Does nothing on the fdroid build.
+ * subscription is noticed without the user visiting Settings. Does nothing where Play billing is unavailable.
  * Call from the main thread: the billing manager must be started and stopped there.
  */
 suspend fun refreshSupporterPerksIfDue(context: Context) {
