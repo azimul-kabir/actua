@@ -2,7 +2,6 @@
 <resources>
     <string name="widget_budget_snapshot">Resumo do orçamento</string>
     <string name="widget_favourite_categories">Categorias favoritas</string>
-    <string name="widget_quick_transaction">Transação rápida</string>
     <string name="widget_account_balances">Saldos das contas</string>
     <string name="widget_ready">Pronto para orçar</string>
     <string name="widget_budgeted">Orçado</string>

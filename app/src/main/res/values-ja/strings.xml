@@ -1,7 +1,6 @@
 <resources>
     <string name="widget_budget_snapshot">予算スナップショット</string>
     <string name="widget_favourite_categories">お気に入りカテゴリ</string>
-    <string name="widget_quick_transaction">クイック取引</string>
     <string name="widget_account_balances">口座残高</string>
     <string name="widget_ready">未割り当て</string>
     <string name="widget_budgeted">割り当て済み</string>

@@ -3,7 +3,6 @@
     <string name="app_name" translatable="false">Actua</string>
     <string name="widget_budget_snapshot">Resumen del presupuesto</string>
     <string name="widget_favourite_categories">Categorías favoritas</string>
-    <string name="widget_quick_transaction">Transacción rápida</string>
     <string name="widget_account_balances">Saldos de las cuentas</string>
     <string name="widget_ready">Disponible para presupuestar</string>
     <string name="widget_budgeted">Presupuestado</string>

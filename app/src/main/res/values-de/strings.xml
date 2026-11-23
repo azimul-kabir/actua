@@ -1,7 +1,6 @@
 <resources>
     <string name="widget_budget_snapshot">Budgetübersicht</string>
     <string name="widget_favourite_categories">Lieblingskategorien</string>
-    <string name="widget_quick_transaction">Schnelltransaktion</string>
     <string name="widget_account_balances">Kontostände</string>
     <string name="widget_ready">Zu budgetieren</string>
     <string name="widget_budgeted">Budgetiert</string>

@@ -248,7 +248,6 @@
     <string name="account_note">Note</string>
     <string name="account_add_note">Ajouter une note</string>
     <string name="account_note_placeholder">Note du compte</string>
-    <string name="amount_paste">Coller</string>
     <string name="amount_paste_description">Coller le montant depuis le presse-papiers</string>
     <string name="amount_paste_not_found">Aucun montant trouvé dans le presse-papiers</string>
     <string name="scan_receipt">Scanner un reçu</string>
@@ -303,8 +302,6 @@
     <string name="receipt_folder_dialog_message">Les photos de ce dossier sont en dehors d’Actua. Le verrouillage de l’application ne les protège pas, les autres applications ayant accès au dossier peuvent les voir, et une application qui synchronise le dossier, comme Nextcloud, les copiera. Actua inclut les photos accessibles dans les sauvegardes WebDAV chiffrées lorsqu’elles sont configurées.</string>
     <string name="receipt_folder_dialog_existing">Les photos déjà conservées restent où elles sont et ne sont pas déplacées. Si vous revenez plus tard au stockage privé, les photos restées dans le dossier ne sont plus affichées dans Actua.</string>
     <string name="receipt_folder_choose">Choisir un dossier</string>
-    <string name="amount_clear">Effacer</string>
     <string name="amount_clear_description">Effacer le montant</string>
-    <string name="amount_undo">Annuler</string>
     <string name="amount_undo_description">Annuler l’effacement</string>
 </resources>
