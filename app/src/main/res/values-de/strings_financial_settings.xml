@@ -472,6 +472,8 @@
 
     <!-- Bank sync. -->
     <string name="fs_bank_sync_title">Bankabgleich</string>
+    <string name="fs_bank_sync_on_open">Banken beim Öffnen synchronisieren</string>
+    <string name="fs_bank_sync_on_open_desc">Beim Öffnen neue Banktransaktionen laden, höchstens alle 30 Minuten pro Konto.</string>
     <string name="fs_bank_sync_providers">Anbieter</string>
     <string name="fs_pluggyai_note">Pluggy.ai (Lateinamerika). Gib deine Pluggy-Client-ID und dein Secret sowie die Item-IDs der verbundenen Banken ein, durch Kommas getrennt. Der Server speichert sie; Actua behält nichts.</string>
     <string name="fs_pluggyai_client_id">Client-ID</string>

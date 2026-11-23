@@ -176,6 +176,10 @@ lists what was ported, what was only checked by reading, and what is not ported.
   Accounts list shows "N new from bank sync" and the register highlights them until the account is
   left, and a sync that adds rows to one account offers **View** (#1066). These marks are
   device-local per budget and never synced.
+- Optional **Sync banks when opening the app** (Manage → Bank Sync, device setting, off by default,
+  #1763): after the app-open budget sync, linked accounts whose `last_sync` (shared with Actual and
+  other clients) is older than 30 minutes are downloaded through the same importer. Actual's own
+  cooldown is not read; Actua uses a fixed 30 minutes.
 - On-device financial-message parsing for explicitly pasted/shared text and opt-in future
   notifications from an explicit allowed-app list, with configurable debit/credit terms, amount/date/reference/payee extraction,
   confidence labels, last-digit account hints, bounded normalized-candidate storage, and deletion

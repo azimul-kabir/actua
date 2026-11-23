@@ -119,6 +119,8 @@ fun BankSyncScreen(
     akahuConfigured: Boolean = false,
     linkedAccounts: List<Account>,
     linkableAccounts: List<Account>,
+    syncOnOpen: Boolean = false,
+    onSyncOnOpenChange: (Boolean) -> Unit = {},
     onSaveSimpleFinToken: (String) -> Unit,
     simpleFinDiscovery: DiscoveryState,
     onDiscoverSimpleFin: () -> Unit,
@@ -154,6 +156,16 @@ fun BankSyncScreen(
     Column(modifier = modifier.fillMaxWidth()) {
         ActuaScreenHeader(title = stringResource(R.string.fs_bank_sync_title), onBack = onBack)
         Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = floatingBarClearance() + Spacing.xl)) {
+            if (linkedAccounts.isNotEmpty()) {
+                ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm)) {
+                    ActuaListRow(
+                        title = { Text(stringResource(R.string.fs_bank_sync_on_open)) },
+                        subtitle = { Text(stringResource(R.string.fs_bank_sync_on_open_desc), style = MaterialTheme.typography.bodySmall) },
+                        onClick = { onSyncOnOpenChange(!syncOnOpen) },
+                        trailing = { Switch(checked = syncOnOpen, onCheckedChange = null) },
+                    )
+                }
+            }
             SectionLabel(stringResource(R.string.fs_bank_sync_providers))
             ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
                 ProviderRow(

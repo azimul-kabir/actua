@@ -26,6 +26,7 @@ import com.azimulkabir.actua.data.receipts.ReceiptPhotoStore
 import com.azimulkabir.actua.data.bank.BankSyncAccountSettings
 import com.azimulkabir.actua.data.bank.BankSyncFlag
 import com.azimulkabir.actua.data.bank.BankSyncMappings
+import com.azimulkabir.actua.data.bank.BankSyncOnOpen
 import com.azimulkabir.actua.data.bank.BankSyncResult
 import com.azimulkabir.actua.data.bank.BankSyncService
 import com.azimulkabir.actua.data.bank.NewBankTransactions
@@ -1056,22 +1057,28 @@ class ActuaRepository(context: Context) {
         return emptyList()
     }
 
-    fun syncBanks(accountId: String? = null): BankSyncResult {
+    fun syncBanks(accountId: String? = null, onlyAccountIds: Set<String>? = null): BankSyncResult {
         val database = actualDatabase ?: error("Open an Actual budget before syncing banks.")
         val (server, serverUrl, token) = bankSyncClient()
         val result = runCatching {
             BankSyncService(
                 database, requireNotNull(actualWriter), requireNotNull(actualEntities), server,
                 cloudFileId = serverBudgetFileId(),
-            ).sync(serverUrl, token, accountId)
+            ).sync(serverUrl, token, accountId, onlyAccountIds)
         }.onFailure { DiagnosticsLog.bankSyncFailed(it) }.getOrThrow()
         // Diagnostics get counts and each synced account's status code, never account names (#225).
         val statuses = database.fetchBankSyncAccounts()
-            .filter { !it.closed && (accountId == null || it.id == accountId) }
+            .filter { !it.closed && (accountId == null || it.id == accountId) && (onlyAccountIds == null || it.id in onlyAccountIds) }
             .map { it.status ?: "none" }
         DiagnosticsLog.bankSync(result.accountsSynced, result.imported, result.matched, result.updated, statuses)
         ActiveBudgetStore(appContext).budgetId?.let { NewBankTransactions(appContext).record(it, result.added) }
         return result
+    }
+
+    /** Linked accounts whose last bank sync is older than the app-open cooldown (see [BankSyncOnOpen]). */
+    fun bankSyncDueAccountIds(nowMillis: Long = System.currentTimeMillis()): Set<String> {
+        val database = actualDatabase ?: return emptySet()
+        return BankSyncOnOpen.dueAccountIds(database.fetchBankSyncAccounts(), nowMillis)
     }
 
     /** The open budget's file id on the server, or null for a local-only or demo budget. */

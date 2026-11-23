@@ -406,6 +406,8 @@
 
     <!-- Bank sync. -->
     <string name="fs_bank_sync_title">Bank Sync</string>
+    <string name="fs_bank_sync_on_open">Sync banks when opening the app</string>
+    <string name="fs_bank_sync_on_open_desc">Download new bank transactions on open, at most every 30 minutes per account.</string>
     <string name="fs_bank_sync_providers">Providers</string>
     <string name="fs_provider_simplefin" translatable="false">SimpleFIN</string>
     <string name="fs_provider_gocardless" translatable="false">GoCardless</string>

@@ -442,6 +442,8 @@
 
     <!-- Bank sync. -->
     <string name="fs_bank_sync_title">Synchronisation bancaire</string>
+    <string name="fs_bank_sync_on_open">Synchroniser les banques à l’ouverture</string>
+    <string name="fs_bank_sync_on_open_desc">Télécharge les nouvelles transactions bancaires à l’ouverture, au plus toutes les 30 minutes par compte.</string>
     <string name="fs_bank_sync_providers">Fournisseurs</string>
     <string name="fs_pluggyai_note">Pluggy.ai (Amérique latine). Saisissez votre ID client et votre secret Pluggy, ainsi que les ID d’élément des banques connectées, séparés par des virgules. Le serveur les stocke ; Actua ne conserve rien.</string>
     <string name="fs_pluggyai_client_id">ID client</string>

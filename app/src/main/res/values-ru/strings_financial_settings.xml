@@ -516,6 +516,8 @@
 
     <!-- Bank sync. -->
     <string name="fs_bank_sync_title">Синхронизация с банком</string>
+    <string name="fs_bank_sync_on_open">Синхронизировать банки при открытии</string>
+    <string name="fs_bank_sync_on_open_desc">Загружать новые банковские операции при открытии, не чаще раза в 30 минут для счёта.</string>
     <string name="fs_bank_sync_providers">Провайдеры</string>
     <string name="fs_pluggyai_note">Pluggy.ai (Латинская Америка). Введите идентификатор клиента и секрет Pluggy, а также идентификаторы элементов подключённых банков через запятую. Они хранятся на сервере; Actua ничего не сохраняет.</string>
     <string name="fs_pluggyai_client_id">Идентификатор клиента</string>

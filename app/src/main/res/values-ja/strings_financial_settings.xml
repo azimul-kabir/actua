@@ -450,6 +450,8 @@
 
     <!-- Bank sync. -->
     <string name="fs_bank_sync_title">銀行同期</string>
+    <string name="fs_bank_sync_on_open">アプリを開いたときに銀行を同期</string>
+    <string name="fs_bank_sync_on_open_desc">アプリを開いたときに新しい銀行取引を取得します（口座ごとに30分に1回まで）。</string>
     <string name="fs_bank_sync_providers">プロバイダー</string>
     <string name="fs_pluggyai_note">Pluggy.ai（中南米）。PluggyのクライアントIDとシークレット、および連携した銀行のアイテムIDをカンマ区切りで入力してください。サーバーが保存し、Actuaは何も保持しません。</string>
     <string name="fs_pluggyai_client_id">クライアントID</string>
