@@ -6,6 +6,7 @@
     <string name="widget_budgeted">割り当て済み</string>
     <string name="widget_balance">残高</string>
     <string name="widget_expense">− 支出</string>
+    <string name="widget_expense_single">支出</string>
     <string name="widget_income">+ 収入</string>
     <string name="widget_transfer">⇄ 振替</string>
     <string name="widget_no_budget">Actuaを開いて予算を選択してください</string>

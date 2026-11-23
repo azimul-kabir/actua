@@ -6,6 +6,7 @@
     <string name="widget_budgeted">已预算</string>
     <string name="widget_balance">余额</string>
     <string name="widget_expense">− 支出</string>
+    <string name="widget_expense_single">支出</string>
     <string name="widget_income">+ 收入</string>
     <string name="widget_transfer">⇄ 转账</string>
     <string name="widget_no_budget">打开 Actua 以选择预算</string>

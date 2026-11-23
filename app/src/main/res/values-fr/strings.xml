@@ -6,6 +6,7 @@
     <string name="widget_budgeted">Budgété</string>
     <string name="widget_balance">Solde</string>
     <string name="widget_expense">− Dépense</string>
+    <string name="widget_expense_single">Dépense</string>
     <string name="widget_income">+ Revenu</string>
     <string name="widget_transfer">⇄ Virement</string>
     <string name="widget_no_budget">Ouvrez Actua pour sélectionner un budget</string>

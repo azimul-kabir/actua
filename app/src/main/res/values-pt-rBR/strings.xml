@@ -7,6 +7,7 @@
     <string name="widget_budgeted">Orçado</string>
     <string name="widget_balance">Saldo</string>
     <string name="widget_expense">− Gasto</string>
+    <string name="widget_expense_single">Gasto</string>
     <string name="widget_income">+ Receita</string>
     <string name="widget_transfer">⇄ Transferência</string>
     <string name="widget_no_budget">Abra o Actua para selecionar um orçamento</string>
