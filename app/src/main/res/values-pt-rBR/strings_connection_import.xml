@@ -302,8 +302,12 @@
     <string name="deleted_notification_data">Candidatos capturados e configurações do analisador excluídos.</string>
     <string name="delete_notification_data">Excluir dados de notificação</string>
     <string name="default_account">Conta padrão</string>
+    <string name="leave_unknown_payee_empty">Deixar o beneficiário vazio se desconhecido</string>
+    <string name="leave_unknown_payee_empty_caption">Se um alerta não informar o estabelecimento, deixa o beneficiário vazio em vez de usar o nome do app.</string>
+    <string name="leave_notes_empty">Deixar as notas vazias</string>
+    <string name="leave_notes_empty_caption">Não adicionar “Imported from …” às notas.</string>
     <string name="automation_apps">Apps de automação</string>
-    <string name="accept_from_tasker">Aceitar transações do Tasker</string>
+    <string name="accept_from_automation_apps">Aceitar transações de apps de automação</string>
     <string name="token_label">Token</string>
     <string name="tap_to_copy">Toque para copiar</string>
     <string name="automation_token_clipboard_label">Token de automação do Actua</string>
@@ -311,7 +315,7 @@
     <string name="last_broadcast_ignored">Último broadcast ignorado</string>
     <string name="automation_help_text">Envie um broadcast intent com a ação %1$s para o pacote %2$s. Extras: token, valor (por exemplo -12.34) e, opcionalmente, tipo (débito ou crédito), beneficiário, data (AAAA-MM-DD), notas, referência, conta e origem. Envie texto em vez de valor para usar o analisador de mensagens do Actua. As transações aguardam aqui para revisão.</string>
     <string name="new_token">Novo token</string>
-    <string name="token_regenerated">Novo token criado. Atualize-o no Tasker.</string>
+    <string name="token_regenerated">Novo token criado. Atualize-o no seu app de automação.</string>
     <string name="statement_file">Arquivo de extrato</string>
     <string name="import_into">Importar em</string>
     <string name="no_open_account">Nenhuma conta aberta</string>

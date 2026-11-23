@@ -190,7 +190,7 @@ internal fun TaskerQueueTransactionScreen(
             )
             if (!enabled) {
                 Text(
-                    "Accept transactions from Tasker is off, so there is no token to save.",
+                    "Accept transactions from automation apps is off, so there is no token to save.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                 )

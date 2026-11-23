@@ -114,11 +114,21 @@ class TaskerPluginTest {
     }
 
     @Test
+    fun `plugin rows keep the Tasker source unless one is set`() {
+        val plain = TaskerPlugin.fire(true, token, TaskerPlugin.bundleValues(mapOf("amount" to "-1"), token))
+        assertEquals("Tasker", plain.candidates.single().sourceLabel)
+        val unset = TaskerPlugin.fire(true, token, TaskerPlugin.bundleValues(mapOf("amount" to "-1", "source" to "%src"), token))
+        assertEquals("Tasker", unset.candidates.single().sourceLabel)
+        val named = TaskerPlugin.fire(true, token, TaskerPlugin.bundleValues(mapOf("amount" to "-1", "source" to "GPay"), token))
+        assertEquals("GPay", named.candidates.single().sourceLabel)
+    }
+
+    @Test
     fun `an unset amount variable never hides a token or switch problem`() {
         val values = TaskerPlugin.bundleValues(mapOf("amount" to "-%amount"), "old-token")
         assertEquals("Wrong token. Open the Actua action in Tasker and save it again",
             TaskerPlugin.fire(true, token, values).rejection)
-        assertEquals("Received while Accept transactions from Tasker was off",
+        assertEquals("Received while Accept transactions from automation apps was off",
             TaskerPlugin.fire(false, token, values).rejection)
     }
 

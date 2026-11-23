@@ -47,7 +47,7 @@ class AutomationRejectionTest {
         listOf(handle("token" to token, "amount" to "1", enabled = false), handle("amount" to "1", expected = null))
             .forEach {
                 assertTrue(it.candidates.isEmpty())
-                assertEquals("Received while Accept transactions from Tasker was off", it.rejection)
+                assertEquals("Received while Accept transactions from automation apps was off", it.rejection)
             }
     }
 

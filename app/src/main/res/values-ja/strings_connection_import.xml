@@ -302,8 +302,12 @@
     <string name="deleted_notification_data">取り込んだ候補と解析設定を削除しました。</string>
     <string name="delete_notification_data">通知データを削除</string>
     <string name="default_account">デフォルトの口座</string>
+    <string name="leave_unknown_payee_empty">不明な支払先は空欄にする</string>
+    <string name="leave_unknown_payee_empty_caption">通知に店舗名がない場合、アプリ名を使わずに支払先を空欄にします。</string>
+    <string name="leave_notes_empty">メモを空欄にする</string>
+    <string name="leave_notes_empty_caption">メモに「Imported from …」を追加しません。</string>
     <string name="automation_apps">自動化アプリ</string>
-    <string name="accept_from_tasker">Taskerからの取引を受け付ける</string>
+    <string name="accept_from_automation_apps">自動化アプリからの取引を受け付ける</string>
     <string name="token_label">トークン</string>
     <string name="tap_to_copy">タップしてコピー</string>
     <string name="automation_token_clipboard_label">Actuaの自動化トークン</string>
@@ -311,7 +315,7 @@
     <string name="last_broadcast_ignored">最後に無視されたブロードキャスト</string>
     <string name="automation_help_text">アクション%1$sのブロードキャストインテントをパッケージ%2$sに送信します。エクストラ: token、amount（例: -12.34）、および任意でtype（debitまたはcredit）、payee、date（YYYY-MM-DD）、notes、reference、account、source。amountの代わりにtextを送ると、Actuaのメッセージ解析を使います。取引は確認待ちとしてここに保留されます。</string>
     <string name="new_token">新しいトークン</string>
-    <string name="token_regenerated">新しいトークンを作成しました。Taskerで更新してください。</string>
+    <string name="token_regenerated">新しいトークンを作成しました。自動化アプリで更新してください。</string>
     <string name="statement_file">明細書ファイル</string>
     <string name="import_into">インポート先</string>
     <string name="no_open_account">開いている口座がありません</string>

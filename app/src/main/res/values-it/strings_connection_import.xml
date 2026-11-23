@@ -302,8 +302,12 @@
     <string name="deleted_notification_data">Candidati acquisiti e impostazioni del parser eliminati.</string>
     <string name="delete_notification_data">Elimina dati delle notifiche</string>
     <string name="default_account">Conto predefinito</string>
+    <string name="leave_unknown_payee_empty">Lascia vuoto il beneficiario se sconosciuto</string>
+    <string name="leave_unknown_payee_empty_caption">Se un avviso non indica l’esercente, lascia vuoto il beneficiario invece di usare il nome dell’app.</string>
+    <string name="leave_notes_empty">Lascia vuote le note</string>
+    <string name="leave_notes_empty_caption">Non aggiungere “Imported from …” alle note.</string>
     <string name="automation_apps">App di automazione</string>
-    <string name="accept_from_tasker">Accetta transazioni da Tasker</string>
+    <string name="accept_from_automation_apps">Accetta transazioni dalle app di automazione</string>
     <string name="token_label">Token</string>
     <string name="tap_to_copy">Tocca per copiare</string>
     <string name="automation_token_clipboard_label">Token di automazione di Actua</string>
@@ -311,7 +315,7 @@
     <string name="last_broadcast_ignored">Ultimo broadcast ignorato</string>
     <string name="automation_help_text">Invia un intent broadcast con azione %1$s al pacchetto %2$s. Extra: token, amount (ad esempio -12.34) e, facoltativamente, type (debit o credit), payee, date (YYYY-MM-DD), notes, reference, account e source. Invia text al posto di amount per usare il parser dei messaggi di Actua. Le transazioni restano qui in attesa di revisione.</string>
     <string name="new_token">Nuovo token</string>
-    <string name="token_regenerated">Creato un nuovo token. Aggiornalo in Tasker.</string>
+    <string name="token_regenerated">Creato un nuovo token. Aggiornalo nella tua app di automazione.</string>
     <string name="statement_file">File dell’estratto conto</string>
     <string name="import_into">Importa in</string>
     <string name="no_open_account">Nessun conto aperto</string>

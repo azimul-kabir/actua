@@ -56,8 +56,9 @@ class AutomationIntentParserTest {
     fun `defaults date payee and source`() {
         val candidate = parse("amount" to "-5").candidates.single()
         assertEquals(20260930, candidate.date)
-        assertEquals("Tasker", candidate.payee)
-        assertEquals("Tasker", candidate.sourceLabel)
+        assertEquals("Automation", candidate.payee)
+        assertEquals("Automation", candidate.sourceLabel)
+        assertEquals("Imported from Automation", candidate.notes)
         assertNull(candidate.reference)
         assertNull(candidate.accountHint)
     }
@@ -88,4 +89,19 @@ class AutomationIntentParserTest {
         assertFalse(isAuthorizedAutomation(true, null, null))
         assertFalse(isAuthorizedAutomation(true, "", ""))
     }
+
+    @Test
+    fun `blank options leave default payee and notes empty but keep sent ones`() {
+        val blank = FinancialMessageProfile(blankUnknownPayee = true, blankNotes = true)
+        val empty = parseAutomationExtras(mapOf("amount" to "-5"), today, blank).candidates.single()
+        assertEquals("", empty.payee)
+        assertEquals("", empty.notes)
+        assertEquals("Automation", empty.sourceLabel)
+
+        val sent = parseAutomationExtras(mapOf("amount" to "-5", "payee" to "Cafe", "notes" to "Latte"), today, blank)
+            .candidates.single()
+        assertEquals("Cafe", sent.payee)
+        assertEquals("Latte", sent.notes)
+    }
 }
+

@@ -7,6 +7,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Added
 
 - Added an optional Sync banks when opening the app setting under Manage → Bank Sync, limited to once per account every 30 minutes ([#1766](https://github.com/azimul-kabir/actua/pull/1766))
+- Added options to leave the payee empty when an alert names no merchant, and to leave notes empty, for captured, shared and automation transactions ([#1762](https://github.com/azimul-kabir/actua/pull/1762))
 - Added the app lock to widget taps, notifications, the share sheet and the Tasker setup screen, and a Hide widget amounts option that masks widget amounts while the lock is on ([#1755](https://github.com/azimul-kabir/actua/pull/1755))
 - Added Scan receipt when editing an existing transaction, to attach a receipt photo or also replace its amount, payee and date ([#1754](https://github.com/azimul-kabir/actua/pull/1754))
 - Added a note on the Support page, when Google Play can't sell supporter purchases, that they are made through Google Play, with an Open Google Play button ([#1751](https://github.com/azimul-kabir/actua/pull/1751))
@@ -22,10 +23,12 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed the notification status bar icon looking small and faint by enlarging and thickening it ([#1765](https://github.com/azimul-kabir/actua/pull/1765))
 - Fixed values on Accent-tinted widget tiles being hard to read with a bright custom accent in dark mode ([#1732](https://github.com/azimul-kabir/actua/pull/1732))
 
 ### Changed
 
+- Changed "Accept transactions from Tasker" to "Accept transactions from automation apps", and broadcasts without a source now show as Automation instead of Tasker ([#1757](https://github.com/azimul-kabir/actua/pull/1757))
 - Changed GitHub releases to ship one APK, the Google Play build, as `Actua-v<version>.apk`; the separate Direct Full build is gone and earlier GitHub installs update in place ([#1751](https://github.com/azimul-kabir/actua/pull/1751))
 - Changed the Quick Settings tile label from Add transaction to Transaction ([#1725](https://github.com/azimul-kabir/actua/pull/1725))
 

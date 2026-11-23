@@ -52,7 +52,7 @@ the same hint (such as the card's last digits) or, without a hint, the same sour
 otherwise with the **Default account** (set under Bank notifications or at the top of Review
 captured). **Account for all** at the top of the review fills every row still without an account.
 These choices are kept on the device per budget and cleared with the notification data. Automation rows
-without an `account` share their `source` (default `Tasker`), so send `account` or a distinct `source`
+without an `account` share their `source` (default `Automation`; `Tasker` for the Tasker plugin), so send `account` or a distinct `source`
 per card if one automation feeds several accounts. Statement files and pasted text import into the single **Import into**
 account.
 
@@ -112,12 +112,20 @@ used as the payee. For captured notifications the source is the app's name, such
 the same digits. Category assignment is not guessed from merchant text; Actual rules run on every
 imported row, as they do in Actual's import, and can categorize or rename it.
 
+By default, notes read "Imported from <source>", and a row whose message names no merchant uses the
+source as its payee. Under Bank notifications, **Leave payee empty when unknown** leaves that payee
+empty instead (a recognized merchant is still used), and **Leave notes empty** drops the notes. Both
+are off by default and apply to captured notifications, shared or pasted alert text, and automation
+broadcasts, including the Tasker plugin; `payee` and `notes` sent by an automation app always win.
+Rows already waiting in review keep their values. A row with no payee imports without one, as in
+Actual. Statement files are not affected.
+
 ## Tasker and other automation apps
 
 Automation apps such as Tasker, MacroDroid, or Automate can do their own notification parsing and
 hand Actua the result. This helps with apps that post alerts for many cards in changing formats,
-such as Google Pay. The integration is off by default. Turning on **Accept transactions from Tasker**
-on the import screen creates a random per-install token, which can be copied or replaced there.
+such as Google Pay. The integration is off by default. Turning on **Accept transactions from automation
+apps** on the import screen creates a random per-install token, which can be copied or replaced there.
 
 ### Tasker plugin (recommended)
 
@@ -148,12 +156,12 @@ Target *Broadcast Receiver*) with:
 | `token` | yes | The token shown on the import screen |
 | `amount` | yes, unless `text` is sent | Decimal amount with at most two decimals, e.g. `-12.34`. Negative is an outflow. Thousands commas are ignored. |
 | `type` | no | `debit` or `credit`; overrides the sign of `amount` |
-| `payee` | no | Defaults to the source label |
+| `payee` | no | Defaults to the source label, or empty with **Leave payee empty when unknown** |
 | `date` | no | `YYYY-MM-DD`; defaults to today |
-| `notes` | no | Transaction notes |
+| `notes` | no | Transaction notes; defaults to "Imported from <source>", or empty with **Leave notes empty** |
 | `reference` | no | Bank reference or transaction ID |
 | `account` | no | Account to select on review: an exact account name (case-insensitive), or digits such as the last card digits that appear in exactly one account's name |
-| `source` | no | Label shown during review; defaults to `Tasker` |
+| `source` | no | Label shown during review; defaults to `Automation` (`Tasker` for the Tasker plugin) |
 | `text` | no | Raw alert text to run through Actua's own message parser instead of `amount` |
 
 Example Tasker extras: `token:%ACTUA_TOKEN`, `amount:-%amount`, `payee:%merchant`,
@@ -161,7 +169,7 @@ Example Tasker extras: `token:%ACTUA_TOKEN`, `amount:-%amount`, `payee:%merchant
 
 ### Step by step with Tasker's Send Intent
 
-1. In Actua, open **Import transactions**, turn on **Accept transactions from Tasker**, and tap
+1. In Actua, open **Import transactions**, turn on **Accept transactions from automation apps**, and tap
    **Token** to copy it. In Tasker, store it in a global variable such as `%ACTUA_TOKEN`.
 2. Create a profile that fires on the bank app's notification (*Event → UI → Notification*, or an
    AutoNotification intercept) and set variables for the amount and payee from its title and text.
@@ -223,6 +231,43 @@ context.sendBroadcast(intent);
 ```
 
 The cleanup keeps commas as thousands separators, so amounts must use a point for decimals.
+
+### Step by step with MacroDroid
+
+MacroDroid needs no root and no plugin. The simplest setup sends the whole alert as `text` and lets
+Actua's own message parser read the amount, as it does for captured notifications. This also helps
+on phones where Actua's notification capture misses alerts but MacroDroid's trigger sees them.
+
+1. In Actua, open **Import transactions**, turn on **Accept transactions from automation apps**, and tap
+   **Token** to copy it.
+2. In MacroDroid, create a macro with the trigger *Notification → Notification Received*. Pick the
+   bank or messages app, and set the text filter to a word every alert from that card contains, such
+   as the card's name, so unrelated notifications aren't sent.
+3. Add the action *Applications → Send Intent* and fill in:
+
+   | Field | Value |
+   |---|---|
+   | Target | **Broadcast** |
+   | Action | `com.azimulkabir.actua.action.QUEUE_TRANSACTION` |
+   | Package | `com.azimulkabir.actua` |
+   | Class, Data, MIME type | empty |
+   | Extra 1 | name `token`, value the copied token |
+   | Extra 2 | name `text`, value the notification text, inserted with the magic text button |
+   | Extra 3 (optional) | name `account`, value the exact Actual account name |
+
+4. Test the action first: temporarily set Extra 2 to a fixed alert such as `compra de MXN$12.34`, run
+   the macro manually, and check **Review captured** for a −12.34 row, then reject it.
+
+Notes:
+
+- **Only two extras:** send `token` and `text`. Choose the account once during review; later rows
+  from the same source start with that account.
+- **Several cards or banks:** use one macro per card, each with its own text filter and `account`,
+  or a distinct `source` extra so rows are labeled by card instead of `Automation`.
+- **Parsing in MacroDroid instead:** if Actua's parser doesn't recognize an alert's wording, extract
+  the amount into a MacroDroid variable and send `amount` (and optionally `payee`) instead of
+  `text`, as in the broadcast table above.
+- Treat the macro export as containing the token: remove it before sharing a `.macro` file.
 
 Accepted broadcasts join the same bounded review queue as captured notifications and are reviewed
 and imported the same way. Nothing is written to the budget until the user imports it. Broadcasts

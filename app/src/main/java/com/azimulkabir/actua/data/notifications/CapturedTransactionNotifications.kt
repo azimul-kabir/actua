@@ -93,11 +93,11 @@ object CapturedTransactionNotifications {
             description = localized.getString(R.string.captured_channel_description)
         })
         val publicVersion = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.actua_launcher_monochrome)
+            .setSmallIcon(R.drawable.ic_stat_actua)
             .setContentTitle(localized.getString(R.string.captured_notification_public_title))
             .build()
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.actua_launcher_monochrome)
+            .setSmallIcon(R.drawable.ic_stat_actua)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(publicVersion)
             .setContentIntent(reviewIntent(context, queueId))
@@ -270,7 +270,9 @@ class CapturedImportWorker(context: Context, parameters: WorkerParameters) : Cor
         val localized = context.withAppLanguage()
         when (val outcome = importCapturedTransaction(context, queueId, accountId)) {
             is CapturedImportOutcome.Imported -> CapturedTransactionNotifications.post(context, queueId) {
-                setContentTitle(localized.getString(R.string.captured_imported_title, outcome.candidate.payee))
+                setContentTitle(outcome.candidate.payee.trim().takeIf(String::isNotEmpty)
+                    ?.let { localized.getString(R.string.captured_imported_title, it) }
+                    ?: localized.getString(R.string.captured_fallback_title))
                 setContentText(localized.getString(R.string.captured_added_to, outcome.accountName))
                 setTimeoutAfter(10_000)
             }

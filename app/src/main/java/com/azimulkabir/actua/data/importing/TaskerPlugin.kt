@@ -68,7 +68,11 @@ object TaskerPlugin {
                 // An amount can't hold text, so a variable anywhere in it, as in "-%amount", is unset (#1073).
                 ?.takeUnless { extra == AutomationIntent.EXTRA_AMOUNT && unsetAmountVariable(values) != null }
                 ?.let { if (extra == AutomationIntent.EXTRA_AMOUNT) cleanAmount(it) else it }
+                ?: pluginDefaultSource.takeIf { extra == AutomationIntent.EXTRA_SOURCE }
         }
+
+    /** Plugin rows without a source keep the "Tasker" label that broadcasts dropped in #1756. */
+    private const val pluginDefaultSource = AutomationIntent.LEGACY_DEFAULT_SOURCE
 
     /**
      * The first number in [raw], keeping `,` thousands separators (#1080): "-$10.69", "−10.69",

@@ -302,8 +302,12 @@
     <string name="deleted_notification_data">Deleted captured candidates and parser settings.</string>
     <string name="delete_notification_data">Delete notification data</string>
     <string name="default_account">Default account</string>
+    <string name="leave_unknown_payee_empty">Leave payee empty when unknown</string>
+    <string name="leave_unknown_payee_empty_caption">When an alert names no merchant, leave the payee empty instead of using the app’s name.</string>
+    <string name="leave_notes_empty">Leave notes empty</string>
+    <string name="leave_notes_empty_caption">Don’t add “Imported from …” to the notes.</string>
     <string name="automation_apps">Automation apps</string>
-    <string name="accept_from_tasker">Accept transactions from Tasker</string>
+    <string name="accept_from_automation_apps">Accept transactions from automation apps</string>
     <string name="token_label">Token</string>
     <string name="tap_to_copy">Tap to copy</string>
     <string name="automation_token_clipboard_label">Actua automation token</string>
@@ -311,7 +315,7 @@
     <string name="last_broadcast_ignored">Last broadcast ignored</string>
     <string name="automation_help_text">Send a broadcast intent with action %1$s to package %2$s. Extras: token, amount (for example -12.34), and optionally type (debit or credit), payee, date (YYYY-MM-DD), notes, reference, account and source. Send text instead of amount to use Actua’s message parser. Transactions wait here for review.</string>
     <string name="new_token">New token</string>
-    <string name="token_regenerated">Created a new token. Update it in Tasker.</string>
+    <string name="token_regenerated">Created a new token. Update it in your automation app.</string>
     <string name="statement_file">Statement file</string>
     <string name="import_into">Import into</string>
     <string name="no_open_account">No open account</string>

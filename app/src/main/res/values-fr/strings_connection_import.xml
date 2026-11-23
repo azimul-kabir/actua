@@ -302,8 +302,12 @@
     <string name="deleted_notification_data">Opérations capturées et paramètres d’analyse supprimés.</string>
     <string name="delete_notification_data">Supprimer les données de notification</string>
     <string name="default_account">Compte par défaut</string>
+    <string name="leave_unknown_payee_empty">Laisser le bénéficiaire vide s’il est inconnu</string>
+    <string name="leave_unknown_payee_empty_caption">Si une alerte n’indique pas de commerçant, laisser le bénéficiaire vide au lieu d’utiliser le nom de l’application.</string>
+    <string name="leave_notes_empty">Laisser les notes vides</string>
+    <string name="leave_notes_empty_caption">Ne pas ajouter « Imported from … » aux notes.</string>
     <string name="automation_apps">Applications d’automatisation</string>
-    <string name="accept_from_tasker">Accepter les opérations depuis Tasker</string>
+    <string name="accept_from_automation_apps">Accepter les opérations des applications d’automatisation</string>
     <string name="token_label">Jeton</string>
     <string name="tap_to_copy">Touchez pour copier</string>
     <string name="automation_token_clipboard_label">Jeton d’automatisation Actua</string>
@@ -311,7 +315,7 @@
     <string name="last_broadcast_ignored">Dernière diffusion ignorée</string>
     <string name="automation_help_text">Envoyez un intent de diffusion avec l’action %1$s au paquet %2$s. Extras : token, amount (par exemple -12.34) et, facultativement, type (debit ou credit), payee, date (AAAA-MM-JJ), notes, reference, account et source. Envoyez du texte à la place de amount pour utiliser l’analyseur de messages d’Actua. Les opérations attendent ici d’être vérifiées.</string>
     <string name="new_token">Nouveau jeton</string>
-    <string name="token_regenerated">Nouveau jeton créé. Mettez-le à jour dans Tasker.</string>
+    <string name="token_regenerated">Nouveau jeton créé. Mettez-le à jour dans votre application d’automatisation.</string>
     <string name="statement_file">Fichier de relevé</string>
     <string name="import_into">Importer dans</string>
     <string name="no_open_account">Aucun compte ouvert</string>

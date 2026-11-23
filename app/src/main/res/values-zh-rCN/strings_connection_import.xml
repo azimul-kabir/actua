@@ -302,8 +302,12 @@
     <string name="deleted_notification_data">已删除捕获的候选交易和解析设置。</string>
     <string name="delete_notification_data">删除通知数据</string>
     <string name="default_account">默认账户</string>
+    <string name="leave_unknown_payee_empty">未知收款人时留空</string>
+    <string name="leave_unknown_payee_empty_caption">通知中没有商户名称时，将收款人留空，而不是使用应用名称。</string>
+    <string name="leave_notes_empty">备注留空</string>
+    <string name="leave_notes_empty_caption">不在备注中添加“Imported from …”。</string>
     <string name="automation_apps">自动化应用</string>
-    <string name="accept_from_tasker">接收来自 Tasker 的交易</string>
+    <string name="accept_from_automation_apps">接收来自自动化应用的交易</string>
     <string name="token_label">令牌</string>
     <string name="tap_to_copy">点按以复制</string>
     <string name="automation_token_clipboard_label">Actua 自动化令牌</string>
@@ -311,7 +315,7 @@
     <string name="last_broadcast_ignored">上次广播已忽略</string>
     <string name="automation_help_text">向包 %2$s 发送动作为 %1$s 的广播 Intent。附加参数：token、amount（例如 -12.34），以及可选的 type（debit 或 credit）、payee、date (YYYY-MM-DD)、notes、reference、account 和 source。发送 text 而不是 amount，即可使用 Actua 的消息解析器。交易会在此等待查看。</string>
     <string name="new_token">新令牌</string>
-    <string name="token_regenerated">已创建新令牌。请在 Tasker 中更新。</string>
+    <string name="token_regenerated">已创建新令牌。请在自动化应用中更新。</string>
     <string name="statement_file">对账单文件</string>
     <string name="import_into">导入到</string>
     <string name="no_open_account">没有开放的账户</string>
