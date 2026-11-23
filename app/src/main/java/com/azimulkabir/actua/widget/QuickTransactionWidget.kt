@@ -23,7 +23,9 @@ internal object QuickTransactionWidget {
                 QuickLayout.Row -> WidgetStyles.layout(context, R.layout.widget_quick_transaction_row, R.layout.widget_quick_transaction_row_styled, widgetId)
             },
         )
-        views.setTextViewText(R.id.widget_expense, context.getString(R.string.widget_expense))
+        // The single-button layout only ever shows Expense, so it drops the minus sign to leave room for the word.
+        val expense = if (layout == QuickLayout.Single) R.string.widget_expense_single else R.string.widget_expense
+        views.setTextViewText(R.id.widget_expense, context.getString(expense))
         views.setTextViewText(R.id.widget_income, context.getString(R.string.widget_income))
         views.setTextViewText(R.id.widget_transfer, context.getString(R.string.widget_transfer))
         views.setContentDescription(R.id.widget_expense, context.getString(R.string.widget_cd_add_expense))

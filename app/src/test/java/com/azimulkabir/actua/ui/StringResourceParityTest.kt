@@ -134,6 +134,19 @@ class StringResourceParityTest {
         )
     }
 
+    /** The single-button Quick transaction layout drops the minus sign but must name the same thing as the larger layouts. */
+    @Test
+    fun singleExpenseLabelMatchesWidgetExpenseInEveryLocale() {
+        localeDirs.forEach { dir ->
+            val strings = stringsOf(dir)
+            assertEquals(
+                "$dir: widget_expense_single must be widget_expense without its '− ' marker",
+                strings.getValue("widget_expense").removePrefix("− "),
+                strings.getValue("widget_expense_single"),
+            )
+        }
+    }
+
     private fun stringsOf(dir: String): Map<String, String> = locales.getValue(dir).first
 
     private fun pluralsOf(dir: String): Map<String, List<Pair<String, String>>> = locales.getValue(dir).second

@@ -7,6 +7,7 @@
     <string name="widget_budgeted">Запланировано</string>
     <string name="widget_balance">Остаток</string>
     <string name="widget_expense">− Расход</string>
+    <string name="widget_expense_single">Расход</string>
     <string name="widget_income">+ Доход</string>
     <string name="widget_transfer">⇄ Перевод</string>
     <string name="widget_no_budget">Откройте Actua, чтобы выбрать бюджет</string>

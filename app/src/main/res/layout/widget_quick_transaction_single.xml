@@ -11,10 +11,20 @@
         android:orientation="horizontal"
         android:paddingHorizontal="@dimen/widget_padding_compact"
         android:paddingVertical="6dp">
+        <!-- The lone button is too narrow for its label at large font sizes: keep it on one line and
+             shrink it rather than breaking the word. Sizes are in sp, so the 6sp floor still scales
+             with the system font size. -->
         <TextView
             android:id="@+id/widget_expense"
             style="@style/WidgetAction"
             android:layout_width="match_parent"
-            android:text="@string/widget_expense" />
+            android:paddingHorizontal="2dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="6sp"
+            android:autoSizeMaxTextSize="13sp"
+            android:autoSizeStepGranularity="1sp"
+            android:text="@string/widget_expense_single" />
     </LinearLayout>
 </FrameLayout>

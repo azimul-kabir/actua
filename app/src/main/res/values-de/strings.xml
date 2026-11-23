@@ -7,6 +7,7 @@
     <string name="widget_budgeted">Budgetiert</string>
     <string name="widget_balance">Saldo</string>
     <string name="widget_expense">− Ausgabe</string>
+    <string name="widget_expense_single">Ausgabe</string>
     <string name="widget_income">+ Einnahme</string>
     <string name="widget_transfer">⇄ Überweisung</string>
     <string name="widget_no_budget">Öffne Actua, um ein Budget auszuwählen</string>
