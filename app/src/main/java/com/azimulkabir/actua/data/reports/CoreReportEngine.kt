@@ -356,6 +356,9 @@ object CoreReportEngine {
         dimension: String, ids: List<String>, start: YearMonth, end: YearMonth,
         budgetMonth: (YearMonth) -> ActualBudgetMonth?,
     ): Long {
+        require(dimension in setOf("budgeted", "spent", "goal", "balance_start", "balance_end"))
+        if (ids.isEmpty()) return 0
+
         fun carryover(month: YearMonth): Long {
             val budget = budgetMonth(month) ?: return 0
             val rows = (budget.categories + budget.hiddenCategories).associateBy { it.categoryId }
@@ -1547,7 +1550,10 @@ object CoreReportEngine {
             skipSpaces()
             check(index == source.length)
             result
-        }.getOrNull()
+        }.getOrElse {
+            if (it is java.util.concurrent.CancellationException) throw it
+            null
+        }
 
         private fun expression(depth: Int = 0): Double {
             var value = term(depth)
@@ -1586,8 +1592,12 @@ object CoreReportEngine {
 
         private fun function(): Double {
             val function = callName()
-            val result = when (function) {
-                "QUERY", "QUERY_COUNT" -> transactionQuery(string(), function == "QUERY_COUNT")
+            return when (function) {
+                "QUERY", "QUERY_COUNT" -> {
+                    val name = string()
+                    expect(')')
+                    transactionQuery(name, function == "QUERY_COUNT")
+                }
                 "BUDGET_QUERY" -> {
                     val dimension = string().lowercase()
                     expect(',')
@@ -1596,13 +1606,12 @@ object CoreReportEngine {
                     val start = monthArg()
                     expect(',')
                     val end = monthArg()
+                    expect(')')
                     check(start <= end)
                     budgetQuery(dimension, ids, start, end)
                 }
                 else -> error("Unsupported formula function")
             }
-            expect(')')
-            return result
         }
 
         private fun monthArg(): YearMonth {
@@ -1626,7 +1635,7 @@ object CoreReportEngine {
                     val values = mutableListOf<String>()
                     do {
                         skipSpaces()
-                        values += if (peek() == '"' || peek() == '\'') string() else numberLiteral()
+                        values += if (peek() == '"' || peek() == '\'') string() else number().toString().removeSuffix(".0")
                         skipSpaces()
                         val more = peek() == ',' || peek() == ';'
                         if (more) index++
