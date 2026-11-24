@@ -891,6 +891,7 @@ fun BudgetScreen(
             conventionalAmountEntry = conventionalAmountEntry,
             toBudgetCents = overview.toBudgetCents ?: 0L,
             bufferedCents = overview.bufferedCents,
+            autoBufferedCents = overview.autoBufferedCents,
             groups = groups,
             hideDecimalPlaces = hideDecimalPlaces,
             onDismiss = { budgetSummaryOpen = false },
@@ -904,6 +905,10 @@ fun BudgetScreen(
             },
             onResetNextMonthBuffer = {
                 onResetNextMonthBuffer()
+                budgetSummaryOpen = false
+            },
+            onDisableAutoHold = {
+                onResetIncomeHold()
                 budgetSummaryOpen = false
             },
         )
@@ -2846,6 +2851,28 @@ internal fun balancePillTone(
 
 private enum class BudgetSummaryAction { MOVE, HOLD }
 
+/** Which To Budget actions Actual's `ToBudgetMenu` offers for the month's amounts. */
+internal data class BudgetSummaryActions(
+    val move: Boolean,
+    val cover: Boolean,
+    val hold: Boolean,
+    val resetManualHold: Boolean,
+    val disableAutoHold: Boolean,
+) {
+    val any: Boolean get() = move || cover || hold || resetManualHold || disableAutoHold
+}
+
+internal fun budgetSummaryActions(toBudgetCents: Long, manualBufferedCents: Long, autoBufferedCents: Long): BudgetSummaryActions {
+    val forNextMonth = if (manualBufferedCents != 0L) manualBufferedCents else autoBufferedCents
+    return BudgetSummaryActions(
+        move = toBudgetCents > 0L,
+        cover = toBudgetCents < 0L,
+        hold = autoBufferedCents == 0L && toBudgetCents > 0L,
+        resetManualHold = forNextMonth > 0L && manualBufferedCents != 0L,
+        disableAutoHold = forNextMonth > 0L && manualBufferedCents == 0L,
+    )
+}
+
 /**
  * The amount the To Budget sheet actually moves, or null when nothing can move. Funding a category
  * from To Budget is limited to To Budget, as Actual's `transferAvailable` clamps it; covering a
@@ -2868,15 +2895,18 @@ private fun BudgetSummarySheet(
     conventionalAmountEntry: Boolean,
     toBudgetCents: Long,
     bufferedCents: Long,
+    autoBufferedCents: Long,
     groups: List<BudgetGroup>,
     hideDecimalPlaces: Boolean,
     onDismiss: () -> Unit,
     onMoveToCategory: (String, String, Long) -> Unit,
     onHoldForNextMonth: (Long) -> Unit,
     onResetNextMonthBuffer: () -> Unit,
+    onDisableAutoHold: () -> Unit,
 ) {
     val covering = toBudgetCents < 0L
-    var action by remember { mutableStateOf<BudgetSummaryAction?>(BudgetSummaryAction.MOVE) }
+    val actions = budgetSummaryActions(toBudgetCents, bufferedCents, autoBufferedCents)
+    var action by remember { mutableStateOf<BudgetSummaryAction?>(if (actions.move || actions.cover) BudgetSummaryAction.MOVE else null) }
 
     // When covering an overbudgeted "To Budget", only categories with balance available can
     // fund the cover, so the picker is narrowed instead of listing every category.
@@ -2900,13 +2930,12 @@ private fun BudgetSummarySheet(
     }
     var moveAmount by remember(toBudgetCents) { mutableStateOf(kotlin.math.abs(toBudgetCents)) }
 
-    val maxHoldable = remember(toBudgetCents, bufferedCents) { maxOf(0L, toBudgetCents + bufferedCents) }
-    val holdCalculator = remember(maxHoldable, bufferedCents, conventionalAmountEntry) {
-        CalculatorAmountState(bufferedCents.coerceIn(0L, maxHoldable), allowsNegative = false, conventionalAmountEntry = conventionalAmountEntry)
+    // Actual's hold adds to the current hold and starts at all of To Budget.
+    val maxHoldable = remember(toBudgetCents) { maxOf(0L, toBudgetCents) }
+    val holdCalculator = remember(maxHoldable, conventionalAmountEntry) {
+        CalculatorAmountState(maxHoldable, allowsNegative = false, conventionalAmountEntry = conventionalAmountEntry)
     }
-    var holdAmount by remember(maxHoldable, bufferedCents) {
-        mutableStateOf(bufferedCents.coerceIn(0L, maxHoldable))
-    }
+    var holdAmount by remember(maxHoldable) { mutableStateOf(maxHoldable) }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val optionLabels = remember(options) { options.associateBy { "${it.first} · ${it.second}" } }
@@ -2933,14 +2962,14 @@ private fun BudgetSummarySheet(
                 Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                BudgetModeButton(
+                if (actions.move || actions.cover) BudgetModeButton(
                     text = if (covering) stringResource(R.string.budget_cover_from)
                     else stringResource(R.string.budget_move_to_category),
                     icon = Icons.Outlined.SwapHoriz,
                     selected = action == BudgetSummaryAction.MOVE,
                     modifier = Modifier.fillMaxWidth(),
                 ) { action = if (action == BudgetSummaryAction.MOVE) null else BudgetSummaryAction.MOVE }
-                if (!covering) {
+                if (actions.hold) {
                     BudgetModeButton(
                         text = stringResource(R.string.budget_hold_for_next_month),
                         icon = Icons.Outlined.Savings,
@@ -2949,9 +2978,13 @@ private fun BudgetSummarySheet(
                     ) { action = if (action == BudgetSummaryAction.HOLD) null else BudgetSummaryAction.HOLD }
                 }
             }
-            if (bufferedCents != 0L) {
+            if (actions.resetManualHold || actions.disableAutoHold) {
                 ActuaSheetCard {
-                    ActuaSheetAction(stringResource(R.string.budget_reset_hold), icon = Icons.Outlined.RestartAlt, onClick = onResetNextMonthBuffer)
+                    if (actions.resetManualHold) {
+                        ActuaSheetAction(stringResource(R.string.budget_reset_hold), icon = Icons.Outlined.RestartAlt, onClick = onResetNextMonthBuffer)
+                    } else {
+                        ActuaSheetAction(stringResource(R.string.budget_stop_holding_automatically), icon = Icons.Outlined.RestartAlt, onClick = onDisableAutoHold)
+                    }
                 }
             }
             AnimatedContent(

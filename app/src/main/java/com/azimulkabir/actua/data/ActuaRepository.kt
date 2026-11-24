@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.azimulkabir.actua.data.budget.CategoryDeletePlan
 import com.azimulkabir.actua.data.budget.ActualBudgetDatabase
+import com.azimulkabir.actua.data.budget.heldAfterHold
 import com.azimulkabir.actua.data.export.TransactionCsv
 import com.azimulkabir.actua.data.export.toCsvTransaction
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
@@ -1008,6 +1009,7 @@ class ActuaRepository(context: Context) {
                 spentCents = spent,
                 availableCents = totalled.sumOf { it.availableCents },
                 bufferedCents = budget.bufferedCents,
+                autoBufferedCents = budget.autoBufferedCents,
                 savedCents = if (!budget.isTracking) null else if (projected) {
                     budget.incomeCategories.sumOf { it.budgetedCents } - budgeted
                 } else {
@@ -2593,7 +2595,15 @@ class ActuaRepository(context: Context) {
 
     /** Holds part or all of [month]'s To Budget amount for next month. Envelope budgets only. */
     fun setBufferedAmount(month: String, amountCents: Long): Boolean {
-        actualBudgets?.setBuffered(month, amountCents) ?: return false
+        val db = actualDatabase ?: return false
+        val writer = actualBudgets ?: return false
+        val budget = db.fetchBudgetMonth(month)
+        val toBudget = budget.toBudgetCents ?: return false
+        // Actual's `holdForNextMonth` only holds while To Budget is positive, and adds to the current hold.
+        if (toBudget <= 0L) return false
+        writer.setBuffered(month, heldAfterHold(toBudget, budget.bufferedCents, amountCents))
+        // The hold UI also runs `resetIncomeCarryover`, so a manual hold replaces any automatic one.
+        resetIncomeHold(month)
         return true
     }
 

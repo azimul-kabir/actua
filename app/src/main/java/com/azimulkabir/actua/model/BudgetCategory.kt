@@ -211,6 +211,8 @@ data class BudgetOverview(
     val spentCents: Long,
     val availableCents: Long,
     val bufferedCents: Long = 0,
+    /** The automatic hold from income categories that carry over (Actual's `buffered-auto`). */
+    val autoBufferedCents: Long = 0,
     /**
      * Tracking budgets only: Actual's `total-saved` (budgeted income − budgeted expenses) when
      * [projectedSavings], else `real-saved` (income received − spent).
