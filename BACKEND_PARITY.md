@@ -39,6 +39,7 @@ Actua 2.4.0 was then reviewed against Actual v26.11.0 at commit
 lists what was ported, what was only checked by reading, and what is not ported.
 
 - Saved Sankey reports in spent and budgeted modes, with calendar-month envelope and tracking cells in budgeted mode ([report parity](docs/REPORTS_PARITY.md#sankey-sankey-card))
+- Formula cards evaluate named transaction counts and budget dimensions over selected categories and months ([report parity](docs/REPORTS_PARITY.md#formula-formula-card))
 - Budget archive validation, import, download, active selection, and export
 - Password and OpenID/OIDC login through Actual's `/account/login` flow, including explicit
   login-method selection, browser authorization, a localhost-only callback listener,

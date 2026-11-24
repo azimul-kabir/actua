@@ -665,6 +665,66 @@ class FormulaTest {
 
     private fun row(meta: String) = DashboardWidgetRow("w", "formula-card", meta)
 
+    @Test fun `query count counts live filtered rows in the named date range`() {
+        val rows = listOf(
+            tx("1", 20260401, -100, "rent"),
+            tx("2", 20260430, -300, "rent"),
+            tx("3", 20260501, -300, "rent"),
+            tx("4", 20260415, -700, "food"),
+            tx("5", 20260420, -700, "rent").copy(tombstone = true),
+        )
+        val meta = JSONObject("""{"queries":{"rent":{"conditions":[{"field":"category","op":"is","value":"rent"}],
+            "timeFrame":{"mode":"static","start":"2026-04","end":"2026-04"}}}}""")
+            .put("formula", """=QUERY("rent") / QUERY_COUNT("rent") + QUERY_COUNT("unknown")""")
+        assertEquals(-200L, CoreReportEngine.compute(row(meta.toString()), rows).valueCents)
+    }
+
+    @Test fun `budget query reads signed activity and envelope balances with carryover`() {
+        val march = YearMonth.of(2026, 3)
+        fun month(offset: Long, rent: Long, activity: Long, balance: Long, rollover: Boolean): ActualBudgetMonth {
+            val month = march.plusMonths(offset).toString()
+            val category = ActualCategoryBudget(month, "rent", "Rent", "bills", "Bills", 0.0, 0.0,
+                rent, activity, balance, 0, false, false, 300L, false, rollover, null, null, null)
+            return ActualBudgetMonth(month, listOf(category, category.copy(categoryId = "other", groupId = "other")),
+                emptyList(), 0L, emptyList(), emptyList())
+        }
+        val budgets = mapOf(
+            march to month(0, 100, -300, -200, true),
+            march.plusMonths(1) to month(1, 500, -700, -400, false),
+            march.plusMonths(2) to month(2, 900, -500, 400, false),
+        )
+        val context = RuleContext(
+            categoryNames = mapOf("rent" to "Rent", "other" to "Other"),
+            categoryGroupIds = mapOf("rent" to "bills", "other" to "other"),
+        )
+        val meta = JSONObject("""{"queries":{"q":{"conditions":[
+            {"field":"account","op":"is","value":"unrelated"},{"field":"category_group","op":"is","value":"bills"}],
+            "timeFrame":{"mode":"static","start":"2026-04","end":"2026-05"}}}}""")
+        fun evaluate(formula: String) = CoreReportEngine.compute(
+            row(meta.put("formula", formula).toString()), emptyList(), context, budgetMonth = budgets::get,
+        )
+
+        for ((dimension, expected) in mapOf(
+            "budgeted" to 1400L, "spent" to -1200L, "balance_start" to -200L,
+            "balance_end" to 400L, "goal" to 600L,
+        )) {
+            val formula = """=BUDGET_QUERY("$dimension", QUERY_EXTRACT_CATEGORIES("q"),
+                QUERY_EXTRACT_TIMEFRAME_START("q"), QUERY_EXTRACT_TIMEFRAME_END("q"))"""
+            assertEquals(dimension, expected, evaluate(formula).valueCents)
+        }
+        assertEquals(1000L, evaluate("""=BUDGET_QUERY("budgeted", {"rent";"other"}, "2026-04", "2026-04")""").valueCents)
+        for (malformed in listOf(
+            """=BUDGET_QUERY("unknown", {"rent"}, "2026-04", "2026-05")""",
+            """=BUDGET_QUERY("spent", {"rent"}, "2026-14", "2026-05")""",
+            """=BUDGET_QUERY("spent", {"rent"}, "2026-06", "2026-05")""",
+            """=QUERY_COUNT("q", "extra")""",
+        )) {
+            val widget = evaluate(malformed)
+            assertEquals(malformed, null, widget.valueCents)
+            org.junit.Assert.assertNotNull(widget.markdown)
+        }
+    }
+
     @Test fun `a sub-query with no explicit timeFrame sums all-time, not just the current month`() {
         val rows = listOf(
             tx("1", 20240115, -1_000, "groceries"),
