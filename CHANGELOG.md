@@ -24,6 +24,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Fixed
 
 - Fixed hidden categories missing from the Move money and Move to a category target lists ([#1778](https://github.com/azimul-kabir/actua/pull/1778))
+- Fixed Move money and Cover overspending opening at zero; they now start with the category's balance or the overspent amount ([#1776](https://github.com/azimul-kabir/actua/pull/1776))
 - Fixed the Expense label on the smallest Quick transaction widget wrapping or breaking mid-word at large font sizes ([#1768](https://github.com/azimul-kabir/actua/pull/1768))
 - Fixed the notification status bar icon looking small and faint by enlarging and thickening it ([#1765](https://github.com/azimul-kabir/actua/pull/1765))
 - Fixed values on Accent-tinted widget tiles being hard to read with a bright custom accent in dark mode ([#1732](https://github.com/azimul-kabir/actua/pull/1732))
