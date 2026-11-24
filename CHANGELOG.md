@@ -23,6 +23,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed Hold for next month to start at the To Budget amount and add to the current hold, and the To Budget sheet to offer actions in the same states as Actual ([#1777](https://github.com/azimul-kabir/actua/pull/1777))
 - Fixed the Expense label on the smallest Quick transaction widget wrapping or breaking mid-word at large font sizes ([#1768](https://github.com/azimul-kabir/actua/pull/1768))
 - Fixed the notification status bar icon looking small and faint by enlarging and thickening it ([#1765](https://github.com/azimul-kabir/actua/pull/1765))
 - Fixed values on Accent-tinted widget tiles being hard to read with a bright custom accent in dark mode ([#1732](https://github.com/azimul-kabir/actua/pull/1732))
