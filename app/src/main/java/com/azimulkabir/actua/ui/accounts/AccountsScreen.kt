@@ -727,7 +727,10 @@ private fun AccountRow(
     showTypeIcon: Boolean = true,
 ) {
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    ActuaGroupedItem(position = position) {
+    ActuaGroupedItem(
+        position = position,
+        dividerInset = if (showTypeIcon) Sizes.cardDividerInset else Spacing.lg,
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth()
                 .heightIn(min = Sizes.compactRowMinHeight)
