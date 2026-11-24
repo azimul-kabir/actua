@@ -2,6 +2,9 @@ package com.azimulkabir.actua.data.reports
 
 import com.azimulkabir.actua.data.home.StartDayAdjustment
 import com.azimulkabir.actua.data.home.MonthStartRule
+import com.azimulkabir.actua.data.budget.model.ActualBudgetMonth
+import com.azimulkabir.actua.data.budget.model.ActualCategoryBudget
+import com.azimulkabir.actua.data.budget.model.ActualIncomeBudget
 import com.azimulkabir.actua.data.budget.model.ActualCategory
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
@@ -54,6 +57,51 @@ class SankeyTest {
         assertEquals(1000000L, widget.valueCents)
         assertEquals(listOf("Salary" to 800000L, "Bonus" to 200000L), widget.incomeCategories.map { it.name to it.spentCents })
         assertEquals(listOf("Bills" to 300000L), widget.categories.map { it.name to it.spentCents })
+    }
+
+    @Test fun `budgeted mode aggregates calendar month cells in envelope and tracking budgets`() {
+        val aprilMonth = YearMonth.of(2026, 4)
+        val mayMonth = aprilMonth.plusMonths(1)
+        for (tracking in listOf(false, true)) {
+            fun budget(month: YearMonth, rent: Long, released: Long, received: Long) = ActualBudgetMonth(
+                month = month.toString(),
+                categories = listOf(
+                    ActualCategoryBudget(month.toString(), "rent", "Rent", "ge", "Bills", 0.0, 0.0,
+                        rent, -900, 0, 0, false, false, null, false, false, null, null, null),
+                ),
+                hiddenCategories = listOf(
+                    ActualCategoryBudget(month.toString(), "fund", "Fund", "ge", "Bills", 0.0, 0.0,
+                        released, 0, 0, 0, true, false, null, false, false, null, null, null),
+                ),
+                incomeCategories = listOf(
+                    ActualIncomeBudget(month.toString(), "salary", "Salary", "Income", 0.0,
+                        5000, received, false, false),
+                ),
+                hiddenIncomeCategories = emptyList(),
+                toBudgetCents = if (tracking) null else 100L,
+                bufferedCents = if (tracking) 0 else 200,
+                fromLastMonthCents = if (tracking) 0 else 300,
+                lastMonthOverspentCents = if (tracking) 0 else -50,
+            )
+            val months = mapOf(
+                aprilMonth to budget(aprilMonth, 600, -250, 1000),
+                mayMonth to budget(mayMonth, 800, 50, 900),
+            )
+            val widget = CoreReportEngine.compute(
+                row("""{"mode":"budgeted","timeFrame":{"mode":"static","start":"2026-04","end":"2026-05"},
+                    "conditions":[{"field":"account","op":"is","value":"other"}]}"""),
+                listOf(tx("spent", 20260420, -42, "rent")), context, incomeCategoryIds,
+                budgetMonth = months::get, monthStart = MonthStartRule(25),
+            )
+            assertEquals(true, widget.sankeyBudgeted)
+            val sources = mapOf("Salary" to 1900L, "From Fund" to 200L)
+            val destinations = mapOf("Bills" to 1400L)
+            assertEquals(if (tracking) sources else sources + ("From Mar 2026" to 300L),
+                widget.incomeCategories.associate { it.name to it.spentCents })
+            assertEquals(if (tracking) destinations else destinations + mapOf(
+                "To budget" to 100L, "For Jun 2026" to 200L, "Overspent" to 100L,
+            ), widget.categories.associate { it.name to it.spentCents })
+        }
     }
 
     private val april = """{"timeFrame":{"mode":"static","start":"2026-04","end":"2026-04"}}"""

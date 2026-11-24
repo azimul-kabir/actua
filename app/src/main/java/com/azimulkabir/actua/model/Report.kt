@@ -92,6 +92,7 @@ data class ReportWidget(
     val customReportId: String? = null,
     /** Balance Forecast's `yAxisBase = Zero-Based`: the chart's value axis always includes zero. */
     val zeroBasedAxis: Boolean = false,
+    val sankeyBudgeted: Boolean = false,
 )
 
 /** What a custom report's Summary totals, mirroring the labels in upstream `ReportSummary.tsx`. */

@@ -1781,6 +1781,7 @@ private fun Sankey(
     income = widget.valueCents ?: 0,
     categories = widget.categories,
     incomeCategories = widget.incomeCategories,
+    budgeted = widget.sankeyBudgeted,
     subtitle = widget.subtitle,
     hideDecimals = hideDecimals,
     onDrillDown = onDrillDown,
