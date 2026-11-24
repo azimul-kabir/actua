@@ -25,6 +25,12 @@ same transaction edits in Actual and in Actua against one server, then compare t
    The report goes to the job summary and the `two-client-parity` artifact, with the normalized rows
    (`two-client-rows.json`).
 
+5. `cli-check.mjs` reads the same budget back through Actual's official CLI (`@actual-app/cli`, pinned
+   to the server's version), a separate reader from step 4: it downloads and syncs through the CLI's
+   own path. It fails if an account's `accounts list` balance differs from the sum of its non-parent
+   transactions from `query run`, if any role's balance differs between the `Upstream …` and `Actua …`
+   accounts, or if the Actua accounts are empty. The report is `cli-check-report.md`.
+
 Scenario *n* writes on 2026-08-*n* and may move its rows to 2026-09-*n*, so the day of the month
 identifies it. The scenario list lives in `common.mjs`; `upstream.mjs` and the Kotlin test must make
 the same edits in the same order.
@@ -70,6 +76,7 @@ TWO_CLIENT_SERVER_URL=http://localhost:5006 node upstream.mjs
   -Pandroid.testInstrumentationRunnerArguments.twoClientServerUrl=http://10.0.2.2:5006 \
   -Pandroid.testInstrumentationRunnerArguments.twoClientPassword=two-client-parity   # from the repository root
 TWO_CLIENT_SERVER_URL=http://localhost:5006 node compare.mjs
+TWO_CLIENT_SERVER_URL=http://localhost:5006 node cli-check.mjs
 ```
 
 Use a throwaway server: the scripts bootstrap it and create a budget on it.
