@@ -44,6 +44,8 @@ data class ActualBudgetMonth(
     val hiddenCategories: List<ActualCategoryBudget>,
     val hiddenIncomeCategories: List<ActualIncomeBudget>,
     val bufferedCents: Long = 0,
+    /** The automatic hold from income categories that carry over; Actual's `buffered-auto`. */
+    val autoBufferedCents: Long = 0,
 ) {
     val isTracking: Boolean get() = toBudgetCents == null
 }
