@@ -2415,15 +2415,17 @@ private fun EditBudgetAmountSheet(
     val autoAssignChoices = buildAutoAssignChoices(category, month, scheduleFunding)
     val options = remember(groups, toBudgetCents) {
         listOf(MoveEndpoint(null, null, toBudgetCents)) + groups.filterNot { it.isIncome }.flatMap { group ->
-            group.categories.filterNot { it.hidden }.map { item ->
-                MoveEndpoint(group.name, item.name, item.balanceCents)
+            // Hidden categories stay valid targets, as in Actual's transfer menu; they are only
+            // left out of the "From" list below.
+            group.categories.map { item ->
+                MoveEndpoint(group.name, item.name, item.balanceCents, hidden = item.hidden || group.hidden)
             }
         }
     }
     // Only categories with balance available can fund a move, so the "From" picker is
     // narrower than the "To" picker (which must still be able to target any category,
     // including an overspent one — that's how covering overspending works).
-    val fromOptions = remember(options) { options.filter { it.balanceCents > 0L } }
+    val fromOptions = remember(options) { options.filter { it.balanceCents > 0L && !it.hidden } }
     val anchor = remember(sourceGroup, category) {
         MoveEndpoint(sourceGroup.name, category.name, category.balanceCents)
     }
@@ -2882,8 +2884,10 @@ private fun BudgetSummarySheet(
     // fund the cover, so the picker is narrowed instead of listing every category.
     val options = remember(groups, covering) {
         groups.filterNot { it.isIncome }.flatMap { group ->
-            group.categories.filterNot { it.hidden }
-                .filter { !covering || it.balanceCents > 0L }
+            // Funding a category can target hidden ones, as Actual's transfer menu does; covering draws
+            // only from visible categories with a balance.
+            group.categories
+                .filter { !covering || (!it.hidden && !group.hidden && it.balanceCents > 0L) }
                 .map { group.name to it.name }
         }
     }
@@ -3037,6 +3041,7 @@ private data class MoveEndpoint(
     val group: String?,
     val category: String?,
     val balanceCents: Long,
+    val hidden: Boolean = false,
 ) {
     /** The picker row's label; the To Budget endpoint takes the localized [toBudgetLabel]. */
     fun title(toBudgetLabel: String): String = category ?: toBudgetLabel
