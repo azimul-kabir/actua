@@ -23,6 +23,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed the Accounts tab row separator not lining up with the account name when account type icons are off ([#1781](https://github.com/azimul-kabir/actua/pull/1781))
 - Fixed hidden categories missing from the Move money and Move to a category target lists ([#1778](https://github.com/azimul-kabir/actua/pull/1778))
 - Fixed Hold for next month to start at the To Budget amount and add to the current hold, and the To Budget sheet to offer actions in the same states as Actual ([#1777](https://github.com/azimul-kabir/actua/pull/1777))
 - Fixed Move money and Cover overspending opening at zero; they now start with the category's balance or the overspent amount ([#1776](https://github.com/azimul-kabir/actua/pull/1776))
