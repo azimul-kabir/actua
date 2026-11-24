@@ -2393,6 +2393,17 @@ internal fun CategoryProgressBar(
 
 private enum class EditBudgetMode { NONE, AUTO_ASSIGN, MOVE }
 
+/**
+ * The amount the move sheet opens with, as Actual's `TransferMenu` and `CoverMenu` prefill it: a
+ * category with money moves its whole balance; an overspent one covers its overspending, held to what
+ * the default [sourceBalanceCents] can fund so Done is enabled straight away.
+ */
+internal fun budgetMovePrefillCents(categoryBalanceCents: Long, sourceBalanceCents: Long): Long = when {
+    categoryBalanceCents > 0L -> categoryBalanceCents
+    categoryBalanceCents < 0L -> minOf(-categoryBalanceCents, sourceBalanceCents.coerceAtLeast(0L))
+    else -> 0L
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditBudgetAmountSheet(
@@ -2432,18 +2443,28 @@ private fun EditBudgetAmountSheet(
     val anchor = remember(sourceGroup, category) {
         MoveEndpoint(sourceGroup.name, category.name, category.balanceCents)
     }
+    // Covering an overspent category defaults to a source that can actually fund it, as To Budget when it
+    // has money and otherwise the first category with a positive balance.
+    val coverSource = remember(options, anchor) {
+        options.firstOrNull { it.balanceCents > 0L && !(it.group == anchor.group && it.category == anchor.category) }
+            ?: options.first()
+    }
     var from by remember(anchor) {
-        mutableStateOf(if (category.balanceCents < 0) options.first() else anchor)
+        mutableStateOf(if (category.balanceCents < 0) coverSource else anchor)
     }
     var to by remember(anchor) {
         mutableStateOf(if (category.balanceCents < 0) anchor else options.first())
     }
+    // Actual prefills a transfer with the category's balance and a cover with the overspent amount.
+    val movePrefill = remember(category) {
+        budgetMovePrefillCents(category.balanceCents, if (category.balanceCents < 0) coverSource.balanceCents else 0L)
+    }
     val calculator = remember(category, moveMode, conventionalAmountEntry) {
-        if (moveMode) CalculatorAmountState(0L, allowsNegative = false, conventionalAmountEntry = conventionalAmountEntry)
+        if (moveMode) CalculatorAmountState(movePrefill, allowsNegative = false, conventionalAmountEntry = conventionalAmountEntry)
         else CalculatorAmountState(category.assignedCents, allowsNegative = true, conventionalAmountEntry = conventionalAmountEntry)
     }
     var enteredAmount by remember(category, moveMode) {
-        mutableStateOf(if (moveMode) 0L else category.assignedCents)
+        mutableStateOf(if (moveMode) movePrefill else category.assignedCents)
     }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val coroutineScope = rememberCoroutineScope()
