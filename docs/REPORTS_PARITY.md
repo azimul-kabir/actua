@@ -225,9 +225,11 @@ Upstream: HyperFormula with `QUERY`/`BUDGET_QUERY` and other functions ([`hooks/
 | --- | --- | --- | --- |
 | `QUERY("name")` = sum of a named query's amounts | `fetchQuerySum` | same | Match |
 | Query with no `timeFrame.mode` = all time | no date filter | same | Match |
-| Unknown query name | error | `0` | **Intentional** |
+| Unknown transaction query name | `0` | `0` | Match |
 | `+ - * /`, parentheses, unary signs | HyperFormula | `ArithmeticParser` | Match |
-| Other functions (`BUDGET_QUERY`, `QUERY_COUNT`, spreadsheet functions) | supported | "This formula uses functions Actua cannot evaluate." | **Not ported** |
+| `QUERY_COUNT("name")` | counts matching transaction rows | same, using the report transaction read model | Match (#1361) |
+| `BUDGET_QUERY` | budgeted, signed spent, opening and closing balances, and goals over a category and month range | same fields, literal category IDs or the named-query category and timeframe helpers | Match for supported arguments (#1361) |
+| General spreadsheet functions | supported | "This formula uses functions Actua cannot evaluate." | **Not ported** |
 
 Tests: `FormulaTest`.
 

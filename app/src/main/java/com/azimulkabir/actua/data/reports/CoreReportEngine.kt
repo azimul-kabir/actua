@@ -198,7 +198,7 @@ object CoreReportEngine {
                 context, conditions, start, minOf(end, today),
                 meta?.optString("granularity")?.takeIf(String::isNotBlank) ?: "monthly", end,
             )
-            "formula-card" -> formula(row.id, name, meta, transactions, context, today)
+            "formula-card" -> formula(row.id, name, meta, transactions, context, incomeCategoryIds, budgetMonth, today)
             // [dashboards] renders a live saved report itself; reaching here means it is missing,
             // which upstream's `CustomReportListCards` shows as a deleted-report placeholder.
             "custom-report" -> ReportWidget(row.id, ReportWidgetKind.MISSING_REPORT, name,
@@ -309,27 +309,81 @@ object CoreReportEngine {
 
     private fun formula(
         id: String, name: String, meta: JSONObject?, all: List<ActualTransaction>,
-        context: RuleContext, today: LocalDate,
+        context: RuleContext, incomeCategoryIds: Set<String>,
+        budgetMonth: (YearMonth) -> ActualBudgetMonth?, today: LocalDate,
     ): ReportWidget {
-        var expression = meta?.optString("formula").orEmpty().removePrefix("=")
+        val expression = meta?.optString("formula").orEmpty().removePrefix("=")
         val queries = meta?.optJSONObject("queries")
-        Regex("query\\(\\s*[\\\"']([^\\\"']+)[\\\"']\\s*\\)", RegexOption.IGNORE_CASE)
-            .findAll(expression).toList().asReversed().forEach { match ->
-                val query = queries?.optJSONObject(match.groupValues[1])
-                // Unlike a widget's own timeFrame, a sub-query with no explicit timeFrame mode
-                // means "no date restriction" (all-time), matching upstream/Actuali; an unknown
-                // query name (query == null) evaluates to 0 rather than matching everything.
-                val timeFrameMeta = query?.optJSONObject("timeFrame")?.takeIf { it.has("mode") }
-                val range = timeFrameMeta?.let { timeFrame(it, today, monthSliding = true) }
-                val conditions = parseConditions(query)
-                val cents = if (query == null) 0L else all.filterNot { it.tombstone }
-                    .filter { range == null || it.date in range.first.toYmd()..range.second.toYmd() }
-                    .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }.sumOf { it.amountCents }
-                expression = expression.replaceRange(match.range, (cents / 100.0).toString())
+        val current = YearMonth.from(today)
+
+        fun transactionQuery(queryName: String, count: Boolean): Double {
+            val query = queries?.optJSONObject(queryName) ?: return 0.0
+            val frame = query.optJSONObject("timeFrame")?.takeIf { it.has("mode") }
+            val dates = frame?.let { timeFrame(it, today, monthSliding = true) }
+                ?.let { (start, end) -> start.toYmd()..end.toYmd() }
+            val (conditions, op) = parseConditions(query)
+            val rows = all.asSequence().filter {
+                !it.tombstone && (dates == null || it.date in dates) && RulesEngine.matches(it, conditions, op, context)
             }
-        val value = ArithmeticParser(expression).parse()?.times(100)?.roundToLong()
+            return if (count) rows.count().toDouble() else rows.sumOf { it.amountCents } / 100.0
+        }
+
+        fun categories(queryName: String): List<String> {
+            val query = queries?.optJSONObject(queryName) ?: return emptyList()
+            val (conditions, op) = parseConditions(query)
+            val categoryConditions = conditions.filter { it.field == "category" || it.field == "category_group" }
+            return context.categoryNames.keys.filter {
+                if (categoryConditions.isEmpty()) it !in incomeCategoryIds && it !in context.hiddenCategoryIds
+                else categoryMatches(it, categoryConditions, op, context)
+            }
+        }
+
+        fun queryMonth(queryName: String, start: Boolean): String {
+            val frame = queries?.optJSONObject(queryName)?.optJSONObject("timeFrame") ?: return current.toString()
+            val range = timeFrame(frame, today, monthSliding = true)
+            return YearMonth.from(if (start) range.first else range.second).toString()
+        }
+
+        val value = ArithmeticParser(
+            expression, ::transactionQuery, ::categories, ::queryMonth,
+            { dimension, ids, start, end -> budgetQuery(dimension, ids, start, end, budgetMonth) / 100.0 },
+        ).parse()?.times(100)?.takeIf(Double::isFinite)?.roundToLong()
         return ReportWidget(id, ReportWidgetKind.FORMULA, name, valueCents = value,
             markdown = if (value == null) "This formula uses functions Actua cannot evaluate." else null)
+    }
+
+    private fun budgetQuery(
+        dimension: String, ids: List<String>, start: YearMonth, end: YearMonth,
+        budgetMonth: (YearMonth) -> ActualBudgetMonth?,
+    ): Long {
+        fun carryover(month: YearMonth): Long {
+            val budget = budgetMonth(month) ?: return 0
+            val rows = (budget.categories + budget.hiddenCategories).associateBy { it.categoryId }
+            return ids.sumOf { rows[it]?.let { row ->
+                if (row.carryoverEnabled) row.availableCents else row.availableCents.coerceAtLeast(0)
+            } ?: 0L }
+        }
+        fun sum(month: YearMonth, field: String): Long {
+            val budget = budgetMonth(month) ?: return 0
+            val expenses = (budget.categories + budget.hiddenCategories).associateBy { it.categoryId }
+            val income = (budget.incomeCategories + budget.hiddenIncomeCategories).associateBy { it.categoryId }
+            return ids.sumOf { id ->
+                when (field) {
+                    "budgeted" -> expenses[id]?.budgetedCents ?: 0L
+                    "spent" -> expenses[id]?.spentCents ?: income[id]?.receivedCents ?: 0L
+                    "goal" -> expenses[id]?.goalCents ?: 0L
+                    else -> error("Invalid budget dimension")
+                }
+            }
+        }
+
+        return when (dimension) {
+            "balance_start" -> carryover(start.minusMonths(1))
+            "balance_end" -> carryover(end.minusMonths(1)) + sum(end, "budgeted") + sum(end, "spent")
+            "budgeted", "spent", "goal" -> generateSequence(start) { if (it == end) null else it.plusMonths(1) }
+                .sumOf { sum(it, dimension) }
+            else -> error("Invalid budget dimension")
+        }
     }
 
     private fun calendar(
@@ -1479,7 +1533,13 @@ object CoreReportEngine {
     }
 
     /** Arithmetic subset used by Actuali's formula cards: +, -, *, /, parentheses and unary signs. */
-    private class ArithmeticParser(private val source: String) {
+    private class ArithmeticParser(
+        private val source: String,
+        private val transactionQuery: (String, Boolean) -> Double,
+        private val categories: (String) -> List<String>,
+        private val queryMonth: (String, Boolean) -> String,
+        private val budgetQuery: (String, List<String>, YearMonth, YearMonth) -> Double,
+    ) {
         private var index = 0
 
         fun parse(): Double? = runCatching {
@@ -1489,45 +1549,141 @@ object CoreReportEngine {
             result
         }.getOrNull()
 
-        private fun expression(): Double {
-            var value = term()
+        private fun expression(depth: Int = 0): Double {
+            var value = term(depth)
             while (true) {
                 skipSpaces()
                 value = when (peek()) {
-                    '+' -> { index++; value + term() }
-                    '-' -> { index++; value - term() }
+                    '+' -> { index++; value + term(depth) }
+                    '-' -> { index++; value - term(depth) }
                     else -> return value
                 }
             }
         }
 
-        private fun term(): Double {
-            var value = factor()
+        private fun term(depth: Int): Double {
+            var value = factor(depth)
             while (true) {
                 skipSpaces()
                 value = when (peek()) {
-                    '*' -> { index++; value * factor() }
-                    '/' -> { index++; val divisor = factor(); check(divisor != 0.0); value / divisor }
+                    '*' -> { index++; value * factor(depth) }
+                    '/' -> { index++; val divisor = factor(depth); check(divisor != 0.0); value / divisor }
                     else -> return value
                 }
             }
         }
 
-        private fun factor(): Double {
+        private fun factor(depth: Int = 0): Double {
+            check(depth < 128)
             skipSpaces()
             return when (peek()) {
-                '+' -> { index++; factor() }
-                '-' -> { index++; -factor() }
-                '(' -> { index++; val value = expression(); skipSpaces(); check(peek() == ')'); index++; value }
-                else -> number()
+                '+' -> { index++; factor(depth + 1) }
+                '-' -> { index++; -factor(depth + 1) }
+                '(' -> { index++; val value = expression(depth + 1); skipSpaces(); check(peek() == ')'); index++; value }
+                else -> if (peek()?.isLetter() == true) function() else number()
             }
         }
 
-        private fun number(): Double {
+        private fun function(): Double {
+            val function = callName()
+            val result = when (function) {
+                "QUERY", "QUERY_COUNT" -> transactionQuery(string(), function == "QUERY_COUNT")
+                "BUDGET_QUERY" -> {
+                    val dimension = string().lowercase()
+                    expect(',')
+                    val ids = categoryIds()
+                    expect(',')
+                    val start = monthArg()
+                    expect(',')
+                    val end = monthArg()
+                    check(start <= end)
+                    budgetQuery(dimension, ids, start, end)
+                }
+                else -> error("Unsupported formula function")
+            }
+            expect(')')
+            return result
+        }
+
+        private fun monthArg(): YearMonth {
+            skipSpaces()
+            val value = if (peek() == '"' || peek() == '\'') string() else {
+                val function = callName()
+                check(function == "QUERY_EXTRACT_TIMEFRAME_START" || function == "QUERY_EXTRACT_TIMEFRAME_END")
+                val name = string()
+                expect(')')
+                queryMonth(name, function == "QUERY_EXTRACT_TIMEFRAME_START")
+            }
+            check(value.length == 7)
+            return YearMonth.parse(value)
+        }
+
+        private fun categoryIds(): List<String> {
+            skipSpaces()
+            val cells = when (peek()) {
+                '{' -> {
+                    index++
+                    val values = mutableListOf<String>()
+                    do {
+                        skipSpaces()
+                        values += if (peek() == '"' || peek() == '\'') string() else numberLiteral()
+                        skipSpaces()
+                        val more = peek() == ',' || peek() == ';'
+                        if (more) index++
+                    } while (more)
+                    expect('}')
+                    values
+                }
+                '"', '\'' -> listOf(string())
+                else -> {
+                    check(callName() == "QUERY_EXTRACT_CATEGORIES")
+                    val name = string()
+                    expect(')')
+                    categories(name)
+                }
+            }
+            return cells.flatMap { it.split(',') }.map(String::trim).filter(String::isNotEmpty)
+        }
+
+        private fun callName(): String {
+            skipSpaces()
+            val start = index
+            while (peek()?.let { it.isLetter() || it == '_' } == true) index++
+            val name = source.substring(start, index).uppercase()
+            expect('(')
+            return name
+        }
+
+        private fun string(): String {
+            skipSpaces()
+            val quote = peek()
+            check(quote == '"' || quote == '\'')
+            index++
+            return buildString {
+                while (true) {
+                    val char = source.getOrNull(index++) ?: error("Unterminated string")
+                    if (char == quote) {
+                        if (peek() != quote) break
+                        index++
+                    }
+                    append(char)
+                }
+            }
+        }
+
+        private fun expect(char: Char) {
+            skipSpaces()
+            check(peek() == char)
+            index++
+        }
+
+        private fun number(): Double = numberLiteral().toDouble()
+
+        private fun numberLiteral(): String {
             val start = index
             while (peek()?.let { it.isDigit() || it == '.' } == true) index++
             check(index > start)
-            return source.substring(start, index).toDouble()
+            return source.substring(start, index)
         }
 
         private fun skipSpaces() { while (peek()?.isWhitespace() == true) index++ }
