@@ -2,7 +2,8 @@ name: Two-client parity
 
 # #663: makes the same transaction edits through Actual's loot-core (@actual-app/api) and through
 # Actua (an emulator instrumentation test) against one throwaway actual-server, then compares the
-# synced rows. See docs/tools/two-client/README.md. All data is synthetic.
+# synced rows, then reads the budget back through @actual-app/cli. See
+# docs/tools/two-client/README.md. All data is synthetic.
 
 on:
   pull_request:
@@ -112,6 +113,9 @@ jobs:
       - name: Compare the synced rows
         run: node compare.mjs
 
+      - name: Read the budget back through the Actual CLI
+        run: node cli-check.mjs
+
       - name: Save actual-server log
         if: ${{ always() }}
         run: mkdir -p work && docker logs actual-server > work/actual-server.log 2>&1 || true
@@ -124,6 +128,7 @@ jobs:
           path: |
             docs/tools/two-client/work/two-client-report.md
             docs/tools/two-client/work/two-client-rows.json
+            docs/tools/two-client/work/cli-check-report.md
             docs/tools/two-client/work/actual-server.log
             app/build/reports/androidTests/
             app/build/outputs/androidTest-results/

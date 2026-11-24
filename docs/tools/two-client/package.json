@@ -7,6 +7,7 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@actual-app/api": "26.9.0"
+    "@actual-app/api": "26.9.0",
+    "@actual-app/cli": "26.9.0"
   }
 }
