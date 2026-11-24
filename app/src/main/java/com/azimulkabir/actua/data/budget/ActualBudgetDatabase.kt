@@ -2116,6 +2116,8 @@ class ActualBudgetDatabase private constructor(
         var priorFlags = mutableMapOf<String, Boolean>()
         var toBudget = 0L
         var priorBuffered = 0L
+        var fromLastMonth = 0L
+        var lastMonthOverspent = 0L
         val autoBuffers = mutableMapOf<Int, Long>()
         val leftovers = mutableMapOf<Int, Map<String, Long>>()
         var cursorMonth = earliest
@@ -2129,7 +2131,9 @@ class ActualBudgetDatabase private constructor(
                 val overspent = expenseIds.sumOf { if (priorFlags[it] == true) 0 else minOf(0, running[it] ?: 0) }
                 autoBuffers[cursorMonth] = automaticBuffer
                 val held = (buffered[cursorMonth] ?: 0).takeIf { it != 0L } ?: automaticBuffer
-                toBudget = income + toBudget + priorBuffered + overspent - assigned - held
+                fromLastMonth = toBudget + priorBuffered
+                lastMonthOverspent = overspent
+                toBudget = income + fromLastMonth + overspent - assigned - held
                 priorBuffered = held
             }
             val touched = monthBudgets.keys + monthSpent.keys + running.keys
@@ -2177,6 +2181,8 @@ class ActualBudgetDatabase private constructor(
             incomes.filter { it.hidden || it.groupHidden },
             if (envelope) buffered[target] ?: 0 else 0,
             if (envelope) autoBuffers[target] ?: 0 else 0,
+            fromLastMonth,
+            lastMonthOverspent,
         )
     }
 

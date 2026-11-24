@@ -65,18 +65,20 @@ fun SankeyChart(
     hideDecimals: Boolean,
     onDrillDown: ((ReportCategory) -> Unit)?,
     modifier: Modifier = Modifier,
+    budgeted: Boolean = false,
 ) {
     val expenses = categories.filter { it.spentCents > 0 }
     val sources = incomeCategories.filter { it.spentCents > 0 }
     if (income <= 0 && expenses.isEmpty() && sources.isEmpty()) {
-        Text("No transactions match this report's filters.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(if (budgeted) "No budget flows for this report." else "No transactions match this report's filters.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
     val palette = rememberChartPalette()
     val remainingColor = MaterialTheme.colorScheme.outlineVariant
     val hubColor = palette.semantic.income
     val expenseTotal = expenses.sumOf { it.spentCents }
-    val remaining = (income - expenseTotal).coerceAtLeast(0)
+    val remaining = if (budgeted) 0L else (income - expenseTotal).coerceAtLeast(0)
     val rightNodes = remember(expenses, remaining, palette, remainingColor) {
         expenses.mapIndexed { i, c -> SankeyNode(c.name, c.spentCents, palette.categorical[i % palette.categorical.size]) } +
             (if (remaining > 0) listOf(SankeyNode("Remaining", remaining, remainingColor)) else emptyList())
@@ -89,6 +91,7 @@ fun SankeyChart(
     }
     val hasBreakdown = sources.isNotEmpty()
     val total = maxOf(income, leftNodes.sumOf { it.value }, rightNodes.sumOf { it.value }, 1)
+    val hubValue = if (budgeted) total else income.coerceAtLeast(0L)
 
     val reveal = rememberChartReveal(Triple(income, expenses, sources))
     var selected by rememberSaveable(leftNodes.size, rightNodes.size) { mutableStateOf<Pair<SankeySide, Int>?>(null) }
@@ -116,7 +119,7 @@ fun SankeyChart(
         Row(Modifier.fillMaxWidth()) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    activeLeft?.let { "${leftNodes[it].name} · ${share(leftNodes[it].value)}" } ?: "Income",
+                    activeLeft?.let { "${leftNodes[it].name} · ${share(leftNodes[it].value)}" } ?: if (budgeted) "Available funds" else "Income",
                     style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
@@ -126,7 +129,7 @@ fun SankeyChart(
             }
             Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
                 Text(
-                    activeRight?.let { "${rightNodes[it].name} · ${share(rightNodes[it].value)}" } ?: "Expenses",
+                    activeRight?.let { "${rightNodes[it].name} · ${share(rightNodes[it].value)}" } ?: if (budgeted) "Allocations" else "Expenses",
                     style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
@@ -149,7 +152,7 @@ fun SankeyChart(
             val hubLeft = if (hasBreakdown) midX - hubW / 2f else barW
             val hubRight = if (hasBreakdown) midX + hubW / 2f else barW
             val rightX = w - barW
-            val hubHeight = income.coerceAtLeast(0L).toFloat() / total * h
+            val hubHeight = hubValue.toFloat() / total * h
 
             val leftBars = remember(leftNodes, total, h) { layoutSankeyBars(leftNodes.map { it.value }, total, h) }
             val rightBars = remember(rightNodes, total, h) { layoutSankeyBars(rightNodes.map { it.value }, total, h) }

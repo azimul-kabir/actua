@@ -164,6 +164,9 @@ object CoreReportEngine {
         } else null
         // Sankey's month-shaped ranges (the default last 6 months, a saved current/last month or N-month
         // sliding window) become pay periods on this device; every other saved range keeps its meaning.
+        if (row.type == "sankey-card" && meta?.optString("mode") == "budgeted") {
+            return budgetedSankey(row.id, name, context, conditions, budgetMonth, YearMonth.from(start), YearMonth.from(end))
+        }
         val sankeyPayRange = if (!monthStart.isCalendarMonth && row.type == "sankey-card") {
             sankeyPayRange(meta?.optJSONObject("timeFrame"), today, monthStart)
         } else null
@@ -588,6 +591,59 @@ object CoreReportEngine {
         return ReportWidget(id, ReportWidgetKind.BUDGET_ANALYSIS, name, points = points,
             valueCents = points.sumOf { it.primaryCents }, comparisonCents = points.sumOf { it.secondaryCents },
             balanceCents = points.lastOrNull()?.tertiaryCents)
+    }
+
+    private fun budgetedSankey(
+        id: String, name: String, context: RuleContext,
+        conditions: Pair<List<Rule.Condition>, Rule.ConditionsOp>,
+        budgetMonth: (YearMonth) -> ActualBudgetMonth?, start: YearMonth, end: YearMonth,
+    ): ReportWidget {
+        val months = generateSequence(start) { it.plusMonths(1) }.takeWhile { it <= end }
+            .map(budgetMonth).toList()
+        val categoryConditions = conditions.first.filter { it.field == "category" || it.field == "category_group" }
+        fun includes(categoryId: String) = categoryConditions.isEmpty() ||
+            categoryMatches(categoryId, categoryConditions, conditions.second, context)
+
+        val available = mutableListOf<ReportCategory>()
+        val allocations = mutableListOf<ReportCategory>()
+        val budgets = months.filterNotNull()
+        budgets.flatMap { it.incomeCategories + it.hiddenIncomeCategories }
+            .filter { includes(it.categoryId) }.groupBy { it.categoryId }.values.forEach { rows ->
+                available += ReportCategory(rows.first().categoryName, rows.sumOf { it.receivedCents })
+            }
+        val assignments = budgets.flatMap { it.categories + it.hiddenCategories }
+            .filter { includes(it.categoryId) }.groupBy { it.categoryId }.values.map { rows ->
+                rows.first() to rows.sumOf { it.budgetedCents }
+            }
+        assignments.filter { (_, cents) -> cents < 0 }.forEach { (category, cents) ->
+            available += ReportCategory("From ${category.categoryName}", -cents)
+        }
+        assignments.filter { (_, cents) -> cents > 0 }.groupBy { (category, _) -> category.groupId }
+            .values.forEach { rows ->
+                allocations += ReportCategory(rows.first().first.groupName, rows.sumOf { it.second })
+            }
+
+        val last = months.lastOrNull()
+        val toBudget = last?.toBudgetCents ?: 0L
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", java.util.Locale.ENGLISH)
+        available += ReportCategory("From ${start.minusMonths(1).format(formatter)}", months.firstOrNull()?.fromLastMonthCents ?: 0L)
+        if (toBudget < 0) available += ReportCategory("Overbudgeted", -toBudget)
+        if (toBudget > 0) allocations += ReportCategory("To budget", toBudget)
+        if (last != null && !last.isTracking) {
+            val held = last.bufferedCents.takeIf { it != 0L } ?: last.autoBufferedCents
+            allocations += ReportCategory("For ${end.plusMonths(1).format(formatter)}", held)
+        }
+        allocations += ReportCategory("Overspent", -budgets.sumOf { it.lastMonthOverspentCents })
+
+        return ReportWidget(
+            id, ReportWidgetKind.SANKEY, name,
+            valueCents = available.sumOf { it.spentCents },
+            comparisonCents = allocations.sumOf { it.spentCents },
+            categories = allocations.filter { it.spentCents != 0L }.sortedByDescending { it.spentCents },
+            incomeCategories = available.filter { it.spentCents != 0L }.sortedByDescending { it.spentCents },
+            subtitle = if (start == end) start.format(formatter) else "${start.format(formatter)} - ${end.format(formatter)}",
+            sankeyBudgeted = true,
+        )
     }
 
     /**
