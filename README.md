@@ -48,7 +48,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - A customizable Home, tab bar and favorites, with home-screen widgets, launcher shortcuts and a Quick Settings tile
 - App lock, hiding Actua from recents, and encrypted backups to your device, Google Drive or WebDAV
 - Optional cosmetic Supporter extras (app icons, accent colors, Catppuccin themes, widget styles); budgeting always stays free
-- A built-in demo budget and a privacy-safe Diagnostics report
+- A What's new card after each update, a built-in demo budget and a privacy-safe Diagnostics report
 
 See the [full feature list](docs/FEATURES.md), and [BACKEND_PARITY.md](BACKEND_PARITY.md) for detailed compatibility and implementation status. Actua is reviewed against Actual Budget 26.11, as of 2.4.0 ([details](docs/ACTUAL_26_11_COMPATIBILITY.md)).
 

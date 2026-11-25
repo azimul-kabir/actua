@@ -360,6 +360,8 @@
     <string name="settings_rating_prompt_body">Si oui, une note rapide sur Google Play aide d’autres personnes à la trouver. Cela ne prend qu’un instant.</string>
     <string name="settings_rating_prompt_yes">Oui, la noter</string>
     <string name="settings_rating_prompt_no">Pas vraiment</string>
+    <string name="settings_whats_new_title">Nouveautés d\'Actua %1$s</string>
+    <string name="settings_whats_new_dismiss">Compris</string>
 
     <!-- About page. -->
     <string name="settings_about_summary">Client Android natif pour Actual Budget\nVersion %1$s</string>

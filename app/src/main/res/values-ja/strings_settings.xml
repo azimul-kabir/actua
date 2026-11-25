@@ -360,6 +360,8 @@
     <string name="settings_rating_prompt_body">役に立っているなら、Google Playで簡単に評価していただくと、ほかの人が見つけやすくなります。ほんの少しの時間で済みます。</string>
     <string name="settings_rating_prompt_yes">はい、評価する</string>
     <string name="settings_rating_prompt_no">あまりそう思わない</string>
+    <string name="settings_whats_new_title">Actua %1$s の新機能</string>
+    <string name="settings_whats_new_dismiss">OK</string>
 
     <!-- About page. -->
     <string name="settings_about_summary">Actual Budget向けネイティブAndroidクライアント\nバージョン %1$s</string>

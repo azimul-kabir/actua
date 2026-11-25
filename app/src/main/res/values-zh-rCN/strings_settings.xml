@@ -360,6 +360,8 @@
     <string name="settings_rating_prompt_body">如果有用，在 Google Play 上快速评分可以帮助其他人发现它。只需片刻。</string>
     <string name="settings_rating_prompt_yes">是的，去评分</string>
     <string name="settings_rating_prompt_no">不太有用</string>
+    <string name="settings_whats_new_title">Actua %1$s 新功能</string>
+    <string name="settings_whats_new_dismiss">知道了</string>
 
     <!-- About page. -->
     <string name="settings_about_summary">Actual Budget 的原生 Android 客户端\n版本 %1$s</string>

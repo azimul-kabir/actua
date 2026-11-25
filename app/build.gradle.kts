@@ -93,6 +93,44 @@ android {
     }
 }
 
+// The in-app "What's new" card shows the release's Google Play text, so the build copies each language's
+// fastlane/metadata/android/<play-language>/changelogs/<versionCode>.txt into the app's assets as
+// whatsnew/<app-language>.txt (see WhatsNewNotes). English is required; a missing translation falls back to it.
+abstract class BundleWhatsNewTask : DefaultTask() {
+    @get:Input abstract val versionCode: Property<Int>
+    @get:InputDirectory @get:PathSensitive(PathSensitivity.RELATIVE) abstract val metadataDir: DirectoryProperty
+    @get:OutputDirectory abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun bundle() {
+        val out = outputDir.get().asFile.resolve("whatsnew")
+        out.deleteRecursively()
+        out.mkdirs()
+        val languages = mapOf(
+            "en-US" to "en", "pt-BR" to "pt-BR", "es-ES" to "es", "fr-FR" to "fr", "de-DE" to "de",
+            "it-IT" to "it", "ja-JP" to "ja", "ru-RU" to "ru", "zh-CN" to "zh-CN",
+        )
+        languages.forEach { (playLanguage, appLanguage) ->
+            val notes = metadataDir.get().asFile.resolve("$playLanguage/changelogs/${versionCode.get()}.txt")
+            if (notes.isFile) {
+                notes.copyTo(out.resolve("$appLanguage.txt"), overwrite = true)
+            } else if (playLanguage == "en-US") {
+                throw GradleException("Missing $notes: add this release's \"What's new\" text (see .github/MAINTAINER_NOTES.md)")
+            }
+        }
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        val bundleWhatsNew = tasks.register<BundleWhatsNewTask>("bundleWhatsNew${variant.name.replaceFirstChar { it.uppercase() }}") {
+            versionCode.set(android.defaultConfig.versionCode)
+            metadataDir.set(rootProject.layout.projectDirectory.dir("fastlane/metadata/android"))
+        }
+        variant.sources.assets?.addGeneratedSourceDirectory(bundleWhatsNew, BundleWhatsNewTask::outputDir)
+    }
+}
+
 // The benchmark build is installed next to the real app, never over it: same application ID and signing
 // would either fail to install or need an uninstall that deletes the real app's data. :macrobenchmark
 // targets this ID (see its DemoBudgetJourneys.kt).

@@ -79,7 +79,7 @@ Every release follows this sequence:
    in the release that isn't already exercised by an existing item.
 7. Add `fastlane/metadata/android/<language>/changelogs/<versionCode>.txt` for **every** language folder
    (en-US, fr-FR, de-DE, it-IT, ja-JP, ru-RU, zh-CN, es-ES, pt-BR), the store's "What's new"
-   text (500 characters at most: short bullets, one change each, about six words or fewer, no
+   text, which the build also bundles into the app for its one-time What's new card after an update (the build fails without the en-US file; a missing translation falls back to English; 500 characters at most: short bullets, one change each, about six words or fewer, no
    implementation details), and update the store listing descriptions in every language folder when
    features change. The release stops if any language is missing its file. When the UI changes noticeably, refresh `images/phoneScreenshots/` (2–8 PNGs,
    from `artwork/screenshots/light/`) and `images/featureGraphic.png` (1024 × 500, no calls to

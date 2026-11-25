@@ -360,6 +360,8 @@
     <string name="settings_rating_prompt_body">Wenn ja, hilft eine kurze Bewertung bei Google Play anderen, es zu finden. Es dauert nur einen Moment.</string>
     <string name="settings_rating_prompt_yes">Ja, bewerten</string>
     <string name="settings_rating_prompt_no">Eher nicht</string>
+    <string name="settings_whats_new_title">Neu in Actua %1$s</string>
+    <string name="settings_whats_new_dismiss">Verstanden</string>
 
     <!-- About page. -->
     <string name="settings_about_summary">Native Android-App für Actual Budget\nVersion %1$s</string>
