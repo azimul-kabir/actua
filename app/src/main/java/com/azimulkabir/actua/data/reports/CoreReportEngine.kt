@@ -722,7 +722,8 @@ object CoreReportEngine {
         transactions.filter { it.categoryId != null && it.categoryId in context.categoryNames }
             .groupBy { tx ->
                 val isIncome = tx.categoryId in incomeCategoryIds
-                Triple(tx.categoryId!!, tx.accountId, if (isIncome) tx.payeeId else null)
+                // Upstream's `aggregateCategoryData`: with `groupAccounts` a category (and income payee) nets across accounts.
+                Triple(tx.categoryId!!, if (options.groupAccounts) null else tx.accountId, if (isIncome) tx.payeeId else null)
             }
             .forEach { (key, rows) ->
                 val net = rows.sumOf { it.amountCents }
@@ -731,7 +732,7 @@ object CoreReportEngine {
                 if (net > 0) {
                     inflows += Flow(categoryName, net)
                 } else {
-                    val label = if (key.first in incomeCategoryIds) categoryName
+                    val label = if (key.first in incomeCategoryIds || options.categoryLayer) categoryName
                         else key.first.let(context.categoryGroupIds::get)?.let(context.categoryGroupNames::get)
                             .orEmpty().ifBlank { "Other" }
                     outflows += Flow(label, -net)
@@ -742,7 +743,7 @@ object CoreReportEngine {
                 val catIds = if (isIncome) {
                     context.categoryNames.filterValues { it == label }.keys
                 } else {
-                    val groupIds = context.categoryGroupNames.filterValues { it == label }.keys
+                    val groupIds = if (options.categoryLayer) emptySet() else context.categoryGroupNames.filterValues { it == label }.keys
                     val catIdsInGroup = context.categoryGroupIds.filterValues { it in groupIds }.keys
                     catIdsInGroup + context.categoryNames.filterValues { it == label }.keys
                 }
@@ -759,7 +760,10 @@ object CoreReportEngine {
         // Upstream's top-N "Other" fold and category sort, applied to each column (`sankey-spreadsheet.ts`
         // `groupOtherCategories` and `sortGraph`). Budgeted mode keeps its own fixed nodes.
         val incomeCategories = shapeSankeyColumn(breakdown(inflows, isIncome = true), options, context.categoryNames.values.toList())
-        val categories = shapeSankeyColumn(breakdown(outflows, isIncome = false), options, context.categoryGroupNames.values.toList())
+        val categories = shapeSankeyColumn(
+            breakdown(outflows, isIncome = false), options,
+            if (options.categoryLayer) context.categoryNames.values.toList() else context.categoryGroupNames.values.toList(),
+        )
         val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", java.util.Locale.ENGLISH)
         val subtitle = if (exactDates) "$start - $end"
             else if (YearMonth.from(start) == YearMonth.from(end)) start.format(formatter)
