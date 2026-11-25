@@ -228,8 +228,8 @@
     <string name="settings_budget_type_tracking">Tracking (report-based)</string>
     <string name="settings_category_status_dot">Category status dot</string>
     <string name="settings_category_status_dot_description">Show a status dot next to category names on Budget and Home</string>
-    <string name="settings_color_balances">Color balances</string>
-    <string name="settings_color_balances_description">Draw the category status color behind the Balance on Budget rows</string>
+    <string name="settings_color_balances">Use accent color</string>
+    <string name="settings_color_balances_description">Progress bars, status dots and balances follow your accent color. Overspending stays red, goals in progress amber and empty categories gray; a red or orange accent keeps the standard colors.</string>
     <string name="settings_hide_income_group">Hide income group</string>
     <string name="settings_hide_income_group_description">Hide the income category group on the Budget tab</string>
     <string name="settings_category_status_colors">Category status colors</string>

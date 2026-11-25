@@ -228,8 +228,8 @@
     <string name="settings_budget_type_tracking">С отслеживанием (на основе отчётов)</string>
     <string name="settings_category_status_dot">Индикатор состояния категории</string>
     <string name="settings_category_status_dot_description">Показывать индикатор состояния рядом с названиями категорий в разделах «Бюджет» и «Главная»</string>
-    <string name="settings_color_balances">Окрашивать остатки</string>
-    <string name="settings_color_balances_description">Рисовать цвет состояния категории за остатком в строках бюджета</string>
+    <string name="settings_color_balances">Использовать акцентный цвет</string>
+    <string name="settings_color_balances_description">Индикаторы прогресса, точки состояния и остатки следуют вашему акцентному цвету. Перерасход остаётся красным, цели в процессе — янтарными, пустые категории — серыми; при красном или оранжевом акцентном цвете остаются стандартные цвета.</string>
     <string name="settings_hide_income_group">Скрыть группу доходов</string>
     <string name="settings_hide_income_group_description">Скрыть группу категорий доходов на вкладке «Бюджет»</string>
     <string name="settings_category_status_colors">Цвета состояния категорий</string>

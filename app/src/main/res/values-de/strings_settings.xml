@@ -228,8 +228,8 @@
     <string name="settings_budget_type_tracking">Tracking (berichtsbasiert)</string>
     <string name="settings_category_status_dot">Statuspunkt der Kategorien</string>
     <string name="settings_category_status_dot_description">Einen Statuspunkt neben Kategorienamen in Budget und Start anzeigen</string>
-    <string name="settings_color_balances">Salden einfärben</string>
-    <string name="settings_color_balances_description">Die Statusfarbe der Kategorie hinter dem Saldo in den Budgetzeilen zeichnen</string>
+    <string name="settings_color_balances">Akzentfarbe verwenden</string>
+    <string name="settings_color_balances_description">Fortschrittsbalken, Statuspunkte und Salden folgen deiner Akzentfarbe. Überschreitungen bleiben rot, laufende Ziele gelb und leere Kategorien grau; eine rote oder orange Akzentfarbe behält die Standardfarben.</string>
     <string name="settings_hide_income_group">Einnahmengruppe ausblenden</string>
     <string name="settings_hide_income_group_description">Die Einnahmen-Kategoriegruppe im Tab „Budget“ ausblenden</string>
     <string name="settings_category_status_colors">Statusfarben der Kategorien</string>

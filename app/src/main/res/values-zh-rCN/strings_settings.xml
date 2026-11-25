@@ -228,8 +228,8 @@
     <string name="settings_budget_type_tracking">跟踪式（基于报表）</string>
     <string name="settings_category_status_dot">类别状态圆点</string>
     <string name="settings_category_status_dot_description">在“预算”和“主页”的类别名称旁显示状态圆点</string>
-    <string name="settings_color_balances">为余额着色</string>
-    <string name="settings_color_balances_description">在“预算”行的余额后面绘制类别状态颜色</string>
+    <string name="settings_color_balances">使用强调色</string>
+    <string name="settings_color_balances_description">进度条、状态圆点和余额将跟随强调色。超支仍为红色，进行中的目标为琥珀色，空类别为灰色；红色或橙色强调色将保留标准颜色。</string>
     <string name="settings_hide_income_group">隐藏收入分组</string>
     <string name="settings_hide_income_group_description">在“预算”标签页上隐藏收入类别分组</string>
     <string name="settings_category_status_colors">类别状态颜色</string>

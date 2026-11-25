@@ -228,8 +228,8 @@
     <string name="settings_budget_type_tracking">Acompanhamento (baseado em relatórios)</string>
     <string name="settings_category_status_dot">Ponto de status das categorias</string>
     <string name="settings_category_status_dot_description">Mostre um ponto de status ao lado dos nomes das categorias em Orçamento e Início</string>
-    <string name="settings_color_balances">Colorir saldos</string>
-    <string name="settings_color_balances_description">Desenhe a cor de status da categoria atrás do Saldo nas linhas do Orçamento</string>
+    <string name="settings_color_balances">Usar cor de destaque</string>
+    <string name="settings_color_balances_description">Barras de progresso, pontos de status e saldos seguem sua cor de destaque. Gastos acima do orçamento continuam vermelhos, metas em andamento âmbar e categorias vazias cinza; uma cor de destaque vermelha ou laranja mantém as cores padrão.</string>
     <string name="settings_hide_income_group">Ocultar grupo de receitas</string>
     <string name="settings_hide_income_group_description">Oculte o grupo de categorias de receita na aba Orçamento</string>
     <string name="settings_category_status_colors">Cores de status das categorias</string>
