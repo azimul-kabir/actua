@@ -75,7 +75,7 @@ limited to 25 MB, and expanded XLSX worksheet parts are bounded to reduce malfor
 
 Actua supports standard financial statement exchange formats matching Actual Budget:
 
-- **OFX and QFX:** Open Financial Exchange (OFX) and Quicken (QFX) SGML/XML statement files. Actua extracts transaction dates, amounts, payees, notes, and the unique `FITID` (Financial Institution Transaction ID) stored as `financial_id`.
+- **OFX and QFX:** Open Financial Exchange (OFX) and Quicken (QFX) SGML/XML statement files. Actua extracts transaction dates, amounts (a lone comma is read as the decimal mark, as in Actual from its next release, so `-19,78` is -19.78), payees, notes, and the unique `FITID` (Financial Institution Transaction ID) stored as `financial_id`.
 - **QIF:** Quicken Interchange Format (QIF) files. Actua parses standard bank, credit card, and cash transactions with standard date formats, amount fields, payees, and memo fields.
 - **CAMT.053:** ISO 20022 XML bank-to-customer statement files. Actua processes debit/credit entries, booking dates, remittance information, counterparty names, and entry references.
 
