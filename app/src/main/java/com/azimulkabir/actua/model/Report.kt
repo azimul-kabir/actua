@@ -17,6 +17,8 @@ data class ReportCategory(
     val expenseCents: Long? = null,
     /** Query definition to resolve contributing transactions on demand. */
     val drillDownQuery: DrillDownQuery? = null,
+    /** For a category group in a two-ring donut: the categories that make up [spentCents]. */
+    val children: List<ReportCategory> = emptyList(),
 )
 
 data class ReportPoint(
