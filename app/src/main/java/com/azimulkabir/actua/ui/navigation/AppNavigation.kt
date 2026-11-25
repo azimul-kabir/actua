@@ -197,6 +197,7 @@ import com.azimulkabir.actua.data.home.HolidayCodec
 import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.data.navigation.TabItem
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
+import com.azimulkabir.actua.data.schedules.SchedulePrefill
 import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
 import com.azimulkabir.actua.data.rules.RuleEditorData
@@ -733,6 +734,7 @@ fun AppNavigation(
     var akahuDiscovery by bankSyncProviderState.akahuDiscovery
     var reconcileOpen by transactionNavigationState.reconcileOpen
     var scheduleReturnsToBills by scheduleNavigationState.scheduleReturnsToBills
+    var schedulePrefill by rememberSaveable(stateSaver = SchedulePrefillSaver) { mutableStateOf<SchedulePrefill?>(null) }
     var scheduleReturnsToTransactions by scheduleNavigationState.scheduleReturnsToTransactions
     var scheduleReturnsToTransactionsTab by scheduleNavigationState.scheduleReturnsToTransactionsTab
     var billsCalendarReturnsToSchedules by scheduleNavigationState.billsCalendarReturnsToSchedules
@@ -1968,6 +1970,15 @@ fun AppNavigation(
                     scheduleReturnsToTransactionsTab = false
                     detail = DetailDestination.EditSchedule
                 },
+                onCreateSchedule = { transaction ->
+                    SchedulePrefill.from(transaction)?.let {
+                        schedulePrefill = it
+                        scheduleReturnsToBills = false
+                        scheduleReturnsToTransactions = true
+                        scheduleReturnsToTransactionsTab = false
+                        detail = DetailDestination.NewSchedule
+                    }
+                },
                 categoryOptions = categoryChoices.labels,
                 onCategorizeMultiple = { transactionsToCategorize, category ->
                     val picked = categoryChoices.choice(category)
@@ -2732,6 +2743,8 @@ fun AppNavigation(
                 onReturnFromCapturedReview = ::returnFromCapturedReview,
                 onOpenCapturedReview = ::openCapturedReview,
                 onReturnFromEditSchedule = ::returnFromEditSchedule,
+                schedulePrefill = schedulePrefill,
+                onSchedulePrefillChange = { schedulePrefill = it },
                 billsReturnDetail = if (destination == MainDestination.Bills) DetailDestination.Main else DetailDestination.BillsCalendar,
                 scheduleRemindersEnabled = scheduleRemindersEnabled,
                 onScheduleRemindersEnabledChange = { scheduleRemindersEnabled = it },
@@ -3146,6 +3159,15 @@ fun AppNavigation(
                         scheduleReturnsToTransactions = false
                         scheduleReturnsToTransactionsTab = true
                         detail = DetailDestination.EditSchedule
+                    },
+                    onCreateSchedule = { transaction ->
+                        SchedulePrefill.from(transaction)?.let {
+                            schedulePrefill = it
+                            scheduleReturnsToBills = false
+                            scheduleReturnsToTransactions = false
+                            scheduleReturnsToTransactionsTab = true
+                            detail = DetailDestination.NewSchedule
+                        }
                     },
                     categoryOptions = categoryChoices.labels,
                     onCategorizeMultiple = { transactionsToCategorize, category ->

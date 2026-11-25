@@ -125,6 +125,8 @@
     <string name="transactions_mark_cleared">Marcar como confirmadas</string>
     <string name="transactions_mark_uncleared">Marcar como sin confirmar</string>
     <string name="transactions_link_schedule">Vincular a planificación</string>
+    <string name="transactions_create_schedule">Crear planificación</string>
+    <string name="transactions_create_schedule_unavailable">Crear planificación (no disponible para transferencias)</string>
     <string name="transactions_unlink_schedule">Desvincular planificación</string>
     <string name="transactions_view_schedule">Ver planificación</string>
     <string name="transactions_edit_schedule">Editar planificación</string>

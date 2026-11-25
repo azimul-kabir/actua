@@ -126,6 +126,8 @@
     <string name="transactions_mark_cleared">Marquer comme pointées</string>
     <string name="transactions_mark_uncleared">Marquer comme non pointées</string>
     <string name="transactions_link_schedule">Associer à une échéance</string>
+    <string name="transactions_create_schedule">Créer une échéance</string>
+    <string name="transactions_create_schedule_unavailable">Créer une échéance (indisponible pour les virements)</string>
     <string name="transactions_unlink_schedule">Dissocier de l’échéance</string>
     <string name="transactions_view_schedule">Voir l’échéance</string>
     <string name="transactions_edit_schedule">Modifier l’échéancier</string>

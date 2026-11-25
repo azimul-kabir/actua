@@ -124,6 +124,8 @@
     <string name="transactions_mark_cleared">Mark cleared</string>
     <string name="transactions_mark_uncleared">Mark uncleared</string>
     <string name="transactions_link_schedule">Link to schedule</string>
+    <string name="transactions_create_schedule">Create schedule</string>
+    <string name="transactions_create_schedule_unavailable">Create schedule (not available for transfers)</string>
     <string name="transactions_unlink_schedule">Unlink schedule</string>
     <string name="transactions_view_schedule">View schedule</string>
     <string name="transactions_edit_schedule">Edit schedule</string>

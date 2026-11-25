@@ -30,6 +30,7 @@ import com.azimulkabir.actua.ui.settings.PayeeLocationsScreen
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
+import com.azimulkabir.actua.data.schedules.SchedulePrefill
 import com.azimulkabir.actua.data.notifications.ScheduleReminderSettings
 
 @Composable
@@ -72,6 +73,8 @@ internal fun NavigationScheduleScreens(
     onReturnFromCapturedReview: () -> Unit,
     onOpenCapturedReview: (Boolean) -> Unit,
     onReturnFromEditSchedule: () -> Unit,
+    schedulePrefill: SchedulePrefill?,
+    onSchedulePrefillChange: (SchedulePrefill?) -> Unit,
     billsReturnDetail: DetailDestination,
     scheduleRemindersEnabled: Boolean,
     onScheduleRemindersEnabledChange: (Boolean) -> Unit,
@@ -85,6 +88,7 @@ internal fun NavigationScheduleScreens(
             canAdd = accounts.any { !it.closed },
             onBack = { onDetailChange(DetailDestination.Main) },
             onAdd = {
+                onSchedulePrefillChange(null)
                 onScheduleReturnsToBillsChange(false)
                 onDetailChange(DetailDestination.NewSchedule)
             },
@@ -224,6 +228,7 @@ internal fun NavigationScheduleScreens(
                 )
             },
             onAddSchedule = {
+                onSchedulePrefillChange(null)
                 onScheduleReturnsToBillsChange(true)
                 onDetailChange(DetailDestination.NewSchedule)
             },
@@ -267,27 +272,32 @@ internal fun NavigationScheduleScreens(
                 modifier = contentModifier,
             )
         }
-        DetailDestination.NewSchedule -> com.azimulkabir.actua.ui.settings.EditScheduleScreen(
-            item = null,
-            accounts = accounts,
-            payeeOptions = payeeNames,
-            hideDecimalPlaces = hideDecimalPlaces,
-            conventionalAmountEntry = conventionalAmountEntry,
-            onBack = {
-                onDetailChange(if (scheduleReturnsToBills) billsReturnDetail else DetailDestination.Schedules)
-                onScheduleReturnsToBillsChange(false)
-            },
-            onSave = { fields, payeeName ->
-                onMutate(
-                    R.string.navigation_creating_schedule,
-                    {
-                        onDetailChange(if (scheduleReturnsToBills) billsReturnDetail else DetailDestination.Schedules)
-                        onScheduleReturnsToBillsChange(false)
-                    },
-                ) { repository.createSchedule(fields, payeeName) }
-            },
-            modifier = contentModifier,
-        )
+        DetailDestination.NewSchedule -> {
+            val leaveNewSchedule = {
+                onSchedulePrefillChange(null)
+                if (scheduleReturnsToTransactions || scheduleReturnsToTransactionsTab) {
+                    onReturnFromEditSchedule()
+                } else {
+                    onDetailChange(if (scheduleReturnsToBills) billsReturnDetail else DetailDestination.Schedules)
+                    onScheduleReturnsToBillsChange(false)
+                }
+            }
+            com.azimulkabir.actua.ui.settings.EditScheduleScreen(
+                item = null,
+                accounts = accounts,
+                payeeOptions = payeeNames,
+                hideDecimalPlaces = hideDecimalPlaces,
+                conventionalAmountEntry = conventionalAmountEntry,
+                prefill = schedulePrefill,
+                onBack = leaveNewSchedule,
+                onSave = { fields, payeeName ->
+                    onMutate(R.string.navigation_creating_schedule, leaveNewSchedule) {
+                        repository.createSchedule(fields, payeeName)
+                    }
+                },
+                modifier = contentModifier,
+            )
+        }
         DetailDestination.EditSchedule -> schedules.firstOrNull {
             it.schedule.id == editingScheduleId
         }?.let { item ->

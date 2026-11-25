@@ -124,6 +124,8 @@
     <string name="transactions_mark_cleared">Als verbucht markieren</string>
     <string name="transactions_mark_uncleared">Als nicht verbucht markieren</string>
     <string name="transactions_link_schedule">Mit Zeitplan verknüpfen</string>
+    <string name="transactions_create_schedule">Zeitplan erstellen</string>
+    <string name="transactions_create_schedule_unavailable">Zeitplan erstellen (bei Überweisungen nicht verfügbar)</string>
     <string name="transactions_unlink_schedule">Zeitplanverknüpfung lösen</string>
     <string name="transactions_view_schedule">Zeitplan anzeigen</string>
     <string name="transactions_edit_schedule">Zeitplan bearbeiten</string>

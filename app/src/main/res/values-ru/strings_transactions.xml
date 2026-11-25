@@ -128,6 +128,8 @@
     <string name="transactions_mark_cleared">Отметить проведёнными</string>
     <string name="transactions_mark_uncleared">Отметить непроведёнными</string>
     <string name="transactions_link_schedule">Привязать к расписанию</string>
+    <string name="transactions_create_schedule">Создать расписание</string>
+    <string name="transactions_create_schedule_unavailable">Создать расписание (недоступно для переводов)</string>
     <string name="transactions_unlink_schedule">Отвязать от расписания</string>
     <string name="transactions_view_schedule">Показать расписание</string>
     <string name="transactions_edit_schedule">Изменить расписание</string>

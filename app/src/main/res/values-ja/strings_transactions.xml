@@ -122,6 +122,8 @@
     <string name="transactions_mark_cleared">処理済みにする</string>
     <string name="transactions_mark_uncleared">未処理にする</string>
     <string name="transactions_link_schedule">スケジュールに関連付け</string>
+    <string name="transactions_create_schedule">スケジュールを作成</string>
+    <string name="transactions_create_schedule_unavailable">スケジュールを作成（振替では利用不可）</string>
     <string name="transactions_unlink_schedule">スケジュールの関連付けを解除</string>
     <string name="transactions_view_schedule">スケジュールを表示</string>
     <string name="transactions_edit_schedule">スケジュールを編集</string>
