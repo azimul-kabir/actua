@@ -18,6 +18,8 @@
     <string name="budget_show_group_totals">Показывать итоги по группам</string>
     <string name="budget_show_balance_pills">Показывать метки остатка</string>
     <string name="budget_show_goal_icons">Показывать значки целей</string>
+    <string name="budget_flat_table">Группы от края до края</string>
+    <string name="budget_flat_table_description">Рисует каждую группу плоской, от края до края, со скруглёнными углами только на концах. Только в виде таблицы.</string>
     <string name="budget_display_options_menu">Параметры отображения</string>
     <string name="budget_display_options_title">Параметры отображения</string>
     <string name="budget_options_section_page">Страница</string>

@@ -13,8 +13,7 @@ class BudgetTableLayoutTest {
         balance: Float,
         width: Float = 330f,
         showSpent: Boolean = true,
-        iconWidth: Float = 0f,
-    ) = tableLayoutFor(budgeted, spent, balance, width, showSpent, gap = 6f, pillPadding = 10f, iconWidth = iconWidth)
+    ) = tableLayoutFor(budgeted, spent, balance, width, showSpent, gap = 6f, pillPadding = 10f)
 
     private fun nonNull(layout: TableLayout?): TableLayout {
         assertNotNull(layout)
@@ -67,32 +66,10 @@ class BudgetTableLayoutTest {
     }
 
     @Test
-    fun targetIconsWidenOnlyTheBalanceColumnAndCostTheNameNoRoom() {
-        val plain = nonNull(layout(budgeted = 55f, spent = 60f, balance = 50f))
-        val icons = nonNull(layout(budgeted = 55f, spent = 60f, balance = 50f, iconWidth = 18f))
-        assertEquals(plain.balance.value + 18f, icons.balance.value, 0.001f)
-        assertEquals(plain.budgeted.value, icons.budgeted.value, 0.001f)
-        assertEquals(plain.spent.value, icons.spent.value, 0.001f)
-    }
-
-    @Test
-    fun targetIconsShrinkAmountsRatherThanCrowdOutTheName() {
-        val plain = nonNull(layout(budgeted = 72f, spent = 68f, balance = 76f))
-        val icons = nonNull(layout(budgeted = 72f, spent = 68f, balance = 76f, iconWidth = 18f))
-        assertTrue(icons.scale < plain.scale)
-        val columns = icons.budgeted.value + icons.spent.value + icons.balance.value
+    fun shrunkAmountsLeaveTheNameItsMinimumShare() {
+        val layout = nonNull(layout(budgeted = 72f, spent = 68f, balance = 76f))
+        assertTrue(layout.scale < 1f)
+        val columns = layout.budgeted.value + layout.spent.value + layout.balance.value
         assertEquals(330f * (1f - TableNameMinShare), columns, 0.5f)
-    }
-
-    @Test
-    fun targetIconsCanPushATightTableIntoTheStackedLayout() {
-        assertNotNull(layout(budgeted = 85f, spent = 80f, balance = 85f))
-        assertNull(layout(budgeted = 85f, spent = 80f, balance = 85f, iconWidth = 50f))
-    }
-
-    @Test
-    fun stackedBalanceWeightGivesExtraRoomOnlyWhenGoalIconsAreShown() {
-        assertEquals(StackedBalanceWeight, stackedBalanceWeight(showGoalIcons = true), 0f)
-        assertEquals(1f, stackedBalanceWeight(showGoalIcons = false), 0f)
     }
 }

@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added an Edge-to-edge groups option in the Budget table view's Display options, which draws each group flat from edge to edge with rounded corners only at its ends ([#1836](https://github.com/azimul-kabir/actua/pull/1836))
 - Added a What's new card on the first open after an update, showing the release notes in your language ([#1792](https://github.com/azimul-kabir/actua/pull/1792))
 - Added Create schedule to the transaction selection menu, which opens a new schedule prefilled with the transaction's payee, account, amount and date ([#1790](https://github.com/azimul-kabir/actua/pull/1790))
 - Added trend lines to saved line reports that have them turned on in Actual ([#1784](https://github.com/azimul-kabir/actua/pull/1784))
@@ -50,6 +51,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Changed the Budget table view to denser 48 dp rows, 13 sp aligned amounts, two-line group names, and goal icons shown as a small badge on the balance pill ([#1836](https://github.com/azimul-kabir/actua/pull/1836))
 - Changed "Accept transactions from Tasker" to "Accept transactions from automation apps", and broadcasts without a source now show as Automation instead of Tasker ([#1757](https://github.com/azimul-kabir/actua/pull/1757))
 - Changed GitHub releases to ship one APK, the Google Play build, as `Actua-v<version>.apk`; the separate Direct Full build is gone and earlier GitHub installs update in place ([#1751](https://github.com/azimul-kabir/actua/pull/1751))
 - Changed the Quick Settings tile label from Add transaction to Transaction ([#1725](https://github.com/azimul-kabir/actua/pull/1725))

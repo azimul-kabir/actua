@@ -18,6 +18,8 @@
     <string name="budget_show_group_totals">Mostrar totales de grupos</string>
     <string name="budget_show_balance_pills">Mostrar indicadores de saldo</string>
     <string name="budget_show_goal_icons">Mostrar iconos de objetivos</string>
+    <string name="budget_flat_table">Grupos de borde a borde</string>
+    <string name="budget_flat_table_description">Dibuja cada grupo plano de borde a borde, con esquinas redondeadas solo en sus extremos. Solo en la vista de tabla.</string>
     <string name="budget_display_options_menu">Opciones de visualización</string>
     <string name="budget_display_options_title">Opciones de visualización</string>
     <string name="budget_options_section_page">Página</string>

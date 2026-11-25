@@ -18,6 +18,8 @@
     <string name="budget_show_group_totals">显示分组合计</string>
     <string name="budget_show_balance_pills">显示余额标签</string>
     <string name="budget_show_goal_icons">显示目标图标</string>
+    <string name="budget_flat_table">通栏分组</string>
+    <string name="budget_flat_table_description">将每个分组平铺到屏幕两侧边缘，仅在两端保留圆角。仅适用于表格视图。</string>
     <string name="budget_display_options_menu">显示选项</string>
     <string name="budget_display_options_title">显示选项</string>
     <string name="budget_options_section_page">页面</string>

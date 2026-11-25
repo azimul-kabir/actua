@@ -18,6 +18,8 @@
     <string name="budget_show_group_totals">Mostra totali dei gruppi</string>
     <string name="budget_show_balance_pills">Mostra etichette dei saldi</string>
     <string name="budget_show_goal_icons">Mostra icone degli obiettivi</string>
+    <string name="budget_flat_table">Gruppi a tutto schermo</string>
+    <string name="budget_flat_table_description">Mostra ogni gruppo piatto da bordo a bordo, con angoli arrotondati solo alle estremità. Solo vista tabella.</string>
     <string name="budget_display_options_menu">Opzioni di visualizzazione</string>
     <string name="budget_display_options_title">Opzioni di visualizzazione</string>
     <string name="budget_options_section_page">Pagina</string>

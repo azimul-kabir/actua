@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
@@ -94,8 +95,17 @@ class BudgetGoalIconsTest {
         assertIconFollowsTheOption()
     }
 
+    /** The table view marks a goal with a badge on the balance pill (the dot keeps the same label, so count the tag). */
+    private fun tableIconCount() = compose.onAllNodesWithTag("goalIcon", useUnmergedTree = true).fetchSemanticsNodes().size
+
     @Test fun tableViewHidesTheIconAndShowsItAgain() {
         setBudget("Table")
-        assertIconFollowsTheOption()
+        assertEquals("the icon should be drawn by default", 1, tableIconCount())
+        compose.runOnIdle { showIcons.value = false }
+        compose.waitForIdle()
+        assertEquals("no icon once hidden", 0, tableIconCount())
+        compose.runOnIdle { showIcons.value = true }
+        compose.waitForIdle()
+        assertEquals("shown again", 1, tableIconCount())
     }
 }
