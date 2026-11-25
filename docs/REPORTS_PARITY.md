@@ -37,7 +37,8 @@ Actua: `ActualBudgetDatabase.fetchDashboardPages` / `fetchDashboardWidgets`
 
 | Behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
-| Live pages (`tombstone = 0`), opened at the first page | `q('dashboard_pages')`, redirect to `pages[0]` | `ORDER BY rowid`, first page selected | Match |
+| Live pages (`tombstone = 0`), opened at the first page | `q('dashboard_pages')` ordered by `sort_order, id` (upcoming release, [actual#9278](https://github.com/actualbudget/actual/pull/9278)), redirect to `pages[0]` | `ORDER BY sort_order, id` when the column exists, otherwise `rowid`; first page selected. A new page gets the last `sort_order` plus 16384 | Match (#1795) |
+| Widgets whose page does not exist locally (the seeded page has a different id on each device) | shown on the first page | `fetchDashboardWidgets` adopts them onto the first page; deleting a page only deletes its own widgets | Match (#1795) |
 | Widgets belong to their `dashboard_page_id` | `widgets.filter(w => w.dashboard_page_id === id)` | `AND dashboard_page_id = ?` (or `IS NULL` without pages) | Match |
 | Narrow-screen order: `y`, then `x` | mobile layout sort | `ORDER BY y, x, rowid` | Match |
 | `width`/`height` layout | grid layout | single column, one card per widget | **Intentional** (phone layout) |

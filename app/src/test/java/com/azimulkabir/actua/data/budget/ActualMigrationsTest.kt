@@ -51,6 +51,7 @@ class ActualMigrationsTest {
             }
         }
         assertNotNull(ActualMigrations.sql(1787013118115))
+        assertNotNull(ActualMigrations.sql(1792441821604))
     }
 
     @Test fun onlyStatementsThatWouldCollideWithExistingSchemaAreSkipped() {
