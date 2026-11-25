@@ -476,7 +476,8 @@ fun BudgetScreen(
             // One decision for every table header and row, so their columns stay lined up.
             val tableLayout = rememberTableLayout(
                 screenWidth - (if (tableStyle == TableStyle.Flat) TableRowPadding else Spacing.screenHorizontal + TableRowPadding) * 2,
-                showSpent,
+                visibleGroups, showSpent, showGroupTotals, hideDecimalPlaces,
+                overview = overview.takeIf { showOverview && budgetView != "Plan" },
             )
             val tableStacked = budgetView != "Plan" && tableLayout == null
             // One row of the category list, shared by the grouped list and the flat Favorites list. [visible] is false
@@ -2150,21 +2151,76 @@ internal data class TableLayout(
 /** Set while the table renders side by side; null when it is stacked (or isn't the table view). */
 private val LocalTableLayout = compositionLocalOf<TableLayout?> { null }
 
+/**
+ * The table's columns for [availableWidth] (see [tableLayoutFor]), measuring the widest amount each
+ * column holds across [groups] and the [overview] above them at the current font size.
+ */
 @Composable
-private fun rememberTableLayout(availableWidth: androidx.compose.ui.unit.Dp, showSpent: Boolean): TableLayout? {
-    val fontScale = LocalDensity.current.fontScale
-    return remember(availableWidth, showSpent, fontScale) { tableLayoutFor(availableWidth.value, showSpent, fontScale) }
+private fun rememberTableLayout(
+    availableWidth: androidx.compose.ui.unit.Dp,
+    groups: List<Triple<BudgetGroup, List<BudgetCategory>, BudgetGroup>>,
+    showSpent: Boolean,
+    showGroupTotals: Boolean,
+    hideDecimalPlaces: Boolean,
+    overview: BudgetOverview? = null,
+): TableLayout? {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val typography = MaterialTheme.typography
+    return remember(availableWidth, groups, showSpent, showGroupTotals, hideDecimalPlaces, overview, density, typography) {
+        val amountStyle = typography.bodyMedium.asTableAmount().copy(fontWeight = FontWeight.SemiBold)
+        val balanceStyle = amountStyle.copy(fontWeight = FontWeight.Bold)
+        // A whole table has many amounts; only the longest can be the widest.
+        fun widest(cents: List<Long>, style: androidx.compose.ui.text.TextStyle): Float {
+            val texts = cents.map { formatMoneyCents(it, hideDecimalPlaces) }
+            val longest = texts.maxOfOrNull { it.length } ?: return 0f
+            return texts.filter { it.length >= longest - 1 }.distinct().maxOf {
+                with(density) { measurer.measure(it, style, maxLines = 1, softWrap = false, density = density).size.width.toDp().value }
+            }
+        }
+        val budgeted = mutableListOf<Long>(); val spent = mutableListOf<Long>(); val balance = mutableListOf<Long>()
+        overview?.let { budgeted += it.budgetedCents; spent += it.spentCents; balance += it.availableCents }
+        groups.forEach { (group, categories, headerGroup) ->
+            if (group.isIncome) return@forEach
+            if (showGroupTotals) {
+                val totals = headerGroup.categories
+                budgeted += totals.sumOf { it.assignedCents }
+                spent += -totals.sumOf { it.spentCents }
+                balance += totals.sumOf { it.balanceCents }
+            }
+            categories.filterNot { it.isIncome }.forEach {
+                budgeted += it.assignedCents; spent += -it.spentCents; balance += it.balanceCents
+            }
+        }
+        tableLayoutFor(
+            availableWidth.value, showSpent, density.fontScale,
+            budgetedText = widest(budgeted, amountStyle),
+            spentText = if (showSpent) widest(spent, amountStyle) else 0f,
+            balanceText = widest(balance, balanceStyle),
+        )
+    }
 }
 
 /**
  * Actuali's compact budget table: a [TableNameColumnWidth] name column, then the rest of
- * [availableWidth] split equally between the amount columns. Null (stack the rows) above
- * [TableStackFontScale], or when no width is left for the amounts.
+ * [availableWidth] split equally between the amount columns, whose amounts are [budgetedText],
+ * [spentText] and [balanceText] dp wide at full size at most. Null (stack the rows) above
+ * [TableStackFontScale], or when an amount wouldn't fit its column even at [TableAmountCellMinScale]
+ * (a narrow phone, a large font), so amounts stack rather than clip.
  */
-internal fun tableLayoutFor(availableWidth: Float, showSpent: Boolean, fontScale: Float): TableLayout? {
+internal fun tableLayoutFor(
+    availableWidth: Float,
+    showSpent: Boolean,
+    fontScale: Float,
+    budgetedText: Float = 0f,
+    spentText: Float = 0f,
+    balanceText: Float = 0f,
+): TableLayout? {
     if (fontScale > TableStackFontScale) return null
     val column = (availableWidth - TableNameColumnWidth) / (if (showSpent) 3 else 2)
     if (column <= 0f) return null
+    fun fits(text: Float, padding: Float = 0f) = text * TableAmountCellMinScale + TableAmountGap.value + padding <= column
+    if (!fits(budgetedText) || (showSpent && !fits(spentText)) || !fits(balanceText, CategoryPillPadding.value)) return null
     return TableLayout(budgeted = column.dp, spent = if (showSpent) column.dp else 0.dp, balance = column.dp)
 }
 
