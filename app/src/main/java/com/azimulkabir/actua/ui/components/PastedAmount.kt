@@ -1,7 +1,7 @@
 package com.azimulkabir.actua.ui.components
 
 /**
- * Reads an amount out of clipboard text for the keypad's Paste button, as integer minor units.
+ * Reads an amount out of clipboard text for the keypad's Paste button, as an integer with two implied decimals.
  *
  * The text must contain exactly one number; anything around it (a currency symbol or code, a sign, words) is
  * ignored, and the sign is dropped because the keypad's expense/income choice decides it. Digits are read
@@ -11,8 +11,9 @@ package com.azimulkabir.actua.ui.components
  * groups thousands; a lone separator followed by exactly three digits is grouping (`1,234`) unless the
  * currency has three decimal places; otherwise a lone separator is the decimal mark. Spaces inside a number
  * are not accepted (a no-break or narrow no-break space and `'` are, as grouping marks), so "12 50" is two
- * numbers and is refused rather than guessed. Returns null when no single unambiguous amount is found, or
- * when it has more fraction digits than [decimalPlaces].
+ * numbers and is refused rather than guessed. [decimalPlaces] only settles whether a lone separator before three
+ * digits is grouping. Amounts always have two implied decimals, so a currency without decimals reads ¥1,500
+ * as 150000. Returns null when no single unambiguous amount is found, or when it has more than two fraction digits.
  */
 internal object PastedAmount {
     private val number = Regex("""[.,]\d+|\d(?:[\d.,'  ]*\d)?""")
@@ -23,8 +24,9 @@ internal object PastedAmount {
         val token = tokens.singleOrNull() ?: return null
         val cleaned = token.filterNot { it == '\'' || it == ' ' || it == ' ' }
         val (whole, fraction) = split(cleaned, decimalPlaces) ?: return null
-        if (fraction.length > decimalPlaces) return null
-        val digits = whole + fraction.padEnd(decimalPlaces, '0')
+        // A currency without decimals still takes up to two fraction digits: amounts have two implied decimals.
+        if (fraction.length > STORED_DECIMALS) return null
+        val digits = whole + fraction.padEnd(STORED_DECIMALS, '0')
         return digits.trimStart('0').ifEmpty { "0" }.toLongOrNull()
     }
 
