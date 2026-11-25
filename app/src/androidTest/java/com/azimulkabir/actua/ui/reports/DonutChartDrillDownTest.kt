@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.click
@@ -40,6 +41,12 @@ class DonutChartDrillDownTest {
             ReportCategory("Rent", 100_00L, drillDownQuery = rent),
         ),
     )
+
+    /** The legend sits under a "Show breakdown" control (#1850). */
+    private fun showBreakdown() {
+        compose.onNodeWithTag("chartBreakdownToggle").performClick()
+        compose.waitForIdle()
+    }
 
     private fun setContent(onQuery: (DrillDownQuery) -> Unit) = compose.setContent {
         MaterialTheme {
@@ -91,6 +98,7 @@ class DonutChartDrillDownTest {
     fun tappingALegendRowOpensItsTransactions() {
         var requested: DrillDownQuery? = null
         setContent { requested = it }
+        showBreakdown()
 
         compose.onNodeWithText("Rent").performClick()
         compose.waitForIdle()
@@ -98,8 +106,21 @@ class DonutChartDrillDownTest {
     }
 
     @Test
+    fun theBreakdownIsHiddenUntilShownAndHidesAgain() {
+        setContent { }
+        compose.onNodeWithText("Show breakdown").assertIsDisplayed()
+        compose.onNodeWithText("Rent").assertDoesNotExist()
+        showBreakdown()
+        compose.onNodeWithText("Rent").assertIsDisplayed()
+        compose.onNodeWithText("Hide breakdown").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Rent").assertDoesNotExist()
+    }
+
+    @Test
     fun selectingASliceShowsItsAmountAndShareInTheCentre() {
         setContent { }
+        showBreakdown()
         compose.onNodeWithText("Total").assertIsDisplayed()
         // Before selecting, 75.0% shows once, in the legend.
         val before = compose.onAllNodesWithText("75.0%").fetchSemanticsNodes().size

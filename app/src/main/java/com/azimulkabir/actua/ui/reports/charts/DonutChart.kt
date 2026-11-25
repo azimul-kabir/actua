@@ -150,7 +150,7 @@ fun DonutChart(
             }
         }
         val largeFont = LocalDensity.current.fontScale > 1.3f
-        segments.forEachIndexed { i, segment ->
+        CollapsibleBreakdown { segments.forEachIndexed { i, segment ->
             val dim = activeFocus != null && activeFocus != i
             val textColor = MaterialTheme.colorScheme.onSurface.copy(alpha = if (dim) 0.5f else 1f)
             val nameWeight = if (i == shown) FontWeight.Bold else FontWeight.Normal
@@ -186,6 +186,6 @@ fun DonutChart(
                     Text(amount, fontWeight = FontWeight.SemiBold, color = textColor)
                 }
             }
-        }
+        } }
     }
 }

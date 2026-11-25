@@ -158,7 +158,7 @@ fun GroupDonutChart(
         }
         val largeFont = LocalDensity.current.fontScale > 1.3f
         var categoryIndex = 0
-        groups.forEachIndexed { g, group ->
+        CollapsibleBreakdown { groups.forEachIndexed { g, group ->
             LegendRow(
                 name = group.name, share = share(group.spentCents), amount = formatMoneyCents(group.spentCents, hideDecimals),
                 color = groupColors[g], selected = g == activeGroup, largeFont = largeFont, indent = false,
@@ -172,7 +172,7 @@ fun GroupDonutChart(
                     onClick = { openCategory(flatIndex) },
                 )
             }
-        }
+        } }
     }
 }
 

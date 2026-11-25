@@ -7,6 +7,7 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -140,6 +141,9 @@ class ReportsChartInteractionTest {
             }
         }
 
+        // The legend sits under a "Show breakdown" control (#1850).
+        compose.onNodeWithTag("chartBreakdownToggle").performClick()
+        compose.waitForIdle()
         compose.onNodeWithText("Salary").assertExists()
         compose.onNodeWithText("Checking").assertExists()
         compose.onNodeWithText("Rent").assertExists()
@@ -166,6 +170,8 @@ class ReportsChartInteractionTest {
             }
         }
 
+        compose.onNodeWithTag("chartBreakdownToggle").performClick()
+        compose.waitForIdle()
         // Summary heads and legend headers both read "Categories" until a node is highlighted.
         compose.onAllNodesWithText("Categories").assertCountEquals(2)
         compose.onNodeWithText("Rent").performClick()

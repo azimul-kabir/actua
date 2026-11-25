@@ -245,7 +245,7 @@ fun SankeyChart(
         }
 
         // The legend gives every node its full name and a row to tap, grouped by layer.
-        diagram.nodes.withIndex().groupBy { it.value.layer }.toSortedMap().forEach { (layer, rows) ->
+        CollapsibleBreakdown { diagram.nodes.withIndex().groupBy { it.value.layer }.toSortedMap().forEach { (layer, rows) ->
             Text(layer.title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             rows.forEach { (i, node) ->
                 LegendRow(
@@ -256,7 +256,7 @@ fun SankeyChart(
                     onClick = { activate(i) }, onLongClick = { focus(i) },
                 )
             }
-        }
+        } }
     }
 }
 
