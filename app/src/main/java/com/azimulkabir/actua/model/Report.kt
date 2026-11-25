@@ -93,6 +93,8 @@ data class ReportWidget(
     /** Balance Forecast's `yAxisBase = Zero-Based`: the chart's value axis always includes zero. */
     val zeroBasedAxis: Boolean = false,
     val sankeyBudgeted: Boolean = false,
+    /** Sankey `showPercentages`: nodes show their share of the column instead of an amount. */
+    val sankeyShowPercentages: Boolean = false,
 )
 
 /** What a custom report's Summary totals, mirroring the labels in upstream `ReportSummary.tsx`. */
