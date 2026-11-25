@@ -18,6 +18,8 @@
     <string name="budget_show_group_totals">グループ合計を表示</string>
     <string name="budget_show_balance_pills">残高ピルを表示</string>
     <string name="budget_show_goal_icons">目標アイコンを表示</string>
+    <string name="budget_flat_table">端から端までのグループ</string>
+    <string name="budget_flat_table_description">各グループを端から端まで平らに表示し、角丸は両端のみにします。テーブル表示のみ。</string>
     <string name="budget_display_options_menu">表示オプション</string>
     <string name="budget_display_options_title">表示オプション</string>
     <string name="budget_options_section_page">ページ</string>

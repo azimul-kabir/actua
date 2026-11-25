@@ -104,6 +104,11 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(SHOW_GOAL_ICONS, true)
         set(value) { preferences.edit().putBoolean(SHOW_GOAL_ICONS, value).apply() }
 
+    /** On draws the Budget table view's groups flat and edge to edge, instead of as inset cards. */
+    var flatBudgetTable: Boolean
+        get() = preferences.getBoolean(FLAT_BUDGET_TABLE, false)
+        set(value) { preferences.edit().putBoolean(FLAT_BUDGET_TABLE, value).apply() }
+
     var hideFullySpentCategories: Boolean
         get() = preferences.getBoolean(HIDE_FULLY_SPENT_CATEGORIES, false)
         set(value) { preferences.edit().putBoolean(HIDE_FULLY_SPENT_CATEGORIES, value).apply() }
@@ -119,6 +124,7 @@ class DisplayPreferences(context: Context) {
             showGroupTotals = showGroupTotals,
             showBalancePills = showBalancePills,
             showGoalIcons = showGoalIcons,
+            flatTable = flatBudgetTable,
             hideFullySpent = hideFullySpentCategories,
             showHidden = showHiddenCategories,
         )
@@ -132,6 +138,7 @@ class DisplayPreferences(context: Context) {
                 .putBoolean(SHOW_GROUP_TOTALS, value.showGroupTotals)
                 .putBoolean(SHOW_BALANCE_PILLS, value.showBalancePills)
                 .putBoolean(SHOW_GOAL_ICONS, value.showGoalIcons)
+                .putBoolean(FLAT_BUDGET_TABLE, value.flatTable)
                 .putBoolean(HIDE_FULLY_SPENT_CATEGORIES, value.hideFullySpent)
                 .putBoolean(SHOW_HIDDEN_CATEGORIES, value.showHidden)
                 .apply()
@@ -391,6 +398,7 @@ class DisplayPreferences(context: Context) {
         const val SHOW_GROUP_TOTALS = "show_group_totals"
         const val SHOW_BALANCE_PILLS = "show_balance_pills"
         const val SHOW_GOAL_ICONS = "show_goal_icons"
+        const val FLAT_BUDGET_TABLE = "flat_budget_table"
         const val HIDE_FULLY_SPENT_CATEGORIES = "hide_fully_spent_categories"
         const val BUDGET_CATEGORY_VIEW = "budget_category_view"
         const val SHOW_CATEGORY_FILTERS = "show_category_filters"

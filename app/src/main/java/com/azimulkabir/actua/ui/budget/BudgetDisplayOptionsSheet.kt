@@ -93,6 +93,14 @@ internal fun BudgetDisplayOptionsSheet(
                 OptionSwitchRow(stringResource(R.string.budget_show_group_totals), options.showGroupTotals) {
                     onOptionsChange(options.copy(showGroupTotals = it))
                 }
+                if (!planView) {
+                    OptionDivider()
+                    OptionSwitchRow(
+                        stringResource(R.string.budget_flat_table),
+                        options.flatTable,
+                        stringResource(R.string.budget_flat_table_description),
+                    ) { onOptionsChange(options.copy(flatTable = it)) }
+                }
             }
             OptionsSection(stringResource(R.string.budget_options_section_categories)) {
                 OptionSwitchRow(stringResource(R.string.budget_hide_fully_spent), options.hideFullySpent) {

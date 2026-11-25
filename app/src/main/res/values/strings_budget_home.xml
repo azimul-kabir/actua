@@ -18,6 +18,8 @@
     <string name="budget_show_group_totals">Show group totals</string>
     <string name="budget_show_balance_pills">Show balance pills</string>
     <string name="budget_show_goal_icons">Show goal icons</string>
+    <string name="budget_flat_table">Edge-to-edge groups</string>
+    <string name="budget_flat_table_description">Draw each group flat from edge to edge, with rounded corners only at its ends. Table view only.</string>
     <string name="budget_display_options_menu">Display options</string>
     <string name="budget_display_options_title">Display options</string>
     <string name="budget_options_section_page">Page</string>

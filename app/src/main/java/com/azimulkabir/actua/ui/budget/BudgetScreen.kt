@@ -336,6 +336,11 @@ fun BudgetScreen(
     val showGroupTotals = displayOptions.showGroupTotals
     val showBalancePills = displayOptions.showBalancePills
     val showGoalIcons = displayOptions.showGoalIcons
+    val tableStyle = when {
+        budgetView == "Plan" -> TableStyle.None
+        displayOptions.flatTable -> TableStyle.Flat
+        else -> TableStyle.Cards
+    }
     val hideFullySpent = displayOptions.hideFullySpent
     val showCategoryFilters = displayOptions.showCategoryFilters
     val context = LocalContext.current
@@ -406,7 +411,7 @@ fun BudgetScreen(
         uncategorizedTransactions.sumOf { it.amountCents }
     }
 
-    CompositionLocalProvider(LocalShowBalancePills provides showBalancePills, LocalShowGoalIcons provides showGoalIcons) { BoxWithConstraints(modifier.fillMaxSize()) {
+    CompositionLocalProvider(LocalShowBalancePills provides showBalancePills, LocalShowGoalIcons provides showGoalIcons, LocalTableStyle provides tableStyle) { BoxWithConstraints(modifier.fillMaxSize()) {
         val screenWidth = maxWidth
         Column(modifier = Modifier.fillMaxSize()) {
             BudgetToolbar(
@@ -468,7 +473,7 @@ fun BudgetScreen(
 
             // One decision for every table header and row, so their columns stay lined up.
             val tableLayout = rememberTableLayout(
-                screenWidth - TableRowPadding * 2,
+                screenWidth - (if (tableStyle == TableStyle.Flat) TableRowPadding else Spacing.screenHorizontal + TableRowPadding) * 2,
                 visibleGroups, showSpent, showGroupTotals, hideDecimalPlaces,
                 overview = overview.takeIf { showOverview && budgetView != "Plan" },
             )
@@ -485,8 +490,9 @@ fun BudgetScreen(
                         IncomeBudgetCategoryRow(
                             category = category,
                             position = GroupPosition.of(index, count),
-                            flat = budgetView != "Plan",
+                            flat = tableStyle == TableStyle.Flat,
                             roundTop = favoritesOnly,
+                            table = tableStyle != TableStyle.None,
                             hideDecimalPlaces = hideDecimalPlaces,
                             onClick = { onShowCategoryTransactions(category, true, false) },
                             onLongClick = { selectedCategory = category },
@@ -635,7 +641,7 @@ fun BudgetScreen(
                             IncomeBudgetGroupHeader(
                                 group = headerGroup,
                                 collapsed = collapsed,
-                                flat = budgetView != "Plan",
+                                flat = tableStyle == TableStyle.Flat,
                                 joinsRows = visibleCategories.isNotEmpty() && !collapsed,
                                 hideDecimalPlaces = hideDecimalPlaces,
                                 onClick = onGroupClick,
@@ -1702,7 +1708,7 @@ private fun PlanBudgetCategoryRow(
 private fun IncomeBudgetGroupHeader(
     group: BudgetGroup,
     collapsed: Boolean,
-    /** The table view's flat style (see [BudgetGroupHeader]); false in the Plan view. */
+    /** The table view's flat style (see [BudgetGroupHeader]); false for cards and in the Plan view. */
     flat: Boolean,
     joinsRows: Boolean,
     hideDecimalPlaces: Boolean,
@@ -1757,16 +1763,18 @@ private fun IncomeBudgetGroupHeader(
 private fun IncomeBudgetCategoryRow(
     category: BudgetCategory,
     position: GroupPosition,
-    /** The table view's flat style (see [CategoryRow]); false in the Plan view. */
+    /** The table view's flat style (see [CategoryRow]); false for cards and in the Plan view. */
     flat: Boolean,
     roundTop: Boolean,
+    /** In the table view (either style) rows are the denser [TableRowMinHeight]; the Plan view keeps its height. */
+    table: Boolean,
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
     TableGroupedItem(flat = flat, position = position, roundTop = roundTop, dividerInset = Spacing.lg) {
         Row(
-            modifier = Modifier.fillMaxWidth().heightIn(min = if (flat) TableRowMinHeight else Sizes.compactRowMinHeight).combinedClickable(
+            modifier = Modifier.fillMaxWidth().heightIn(min = if (table) TableRowMinHeight else Sizes.compactRowMinHeight).combinedClickable(
                 role = Role.Button, onClick = onClick, onLongClick = onLongClick,
             ).padding(horizontal = Spacing.lg, vertical = Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
@@ -1799,7 +1807,10 @@ private fun BudgetOverviewRow(
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
         shape = MaterialTheme.shapes.large,
-        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
+        modifier = Modifier.fillMaxWidth().padding(
+            horizontal = if (LocalTableStyle.current == TableStyle.Flat) 0.dp else Spacing.screenHorizontal,
+            vertical = Spacing.sm,
+        ),
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = TableRowPadding, vertical = Spacing.md)) {
             val leadLabel = overviewLeadLabel(overview, R.string.budget_to_budget)
@@ -2064,6 +2075,11 @@ private fun tableAmountsFit(
 /** Horizontal padding inside a table card or group header, between its edge and its content. */
 private val TableRowPadding = Spacing.lg
 
+/** How the Budget tab lays out its category rows: [None] is the Plan view, which this change leaves alone. */
+private enum class TableStyle { None, Cards, Flat }
+
+private val LocalTableStyle = compositionLocalOf { TableStyle.None }
+
 /** Table amounts are 13 sp, with tabular digits so the columns line up from row to row. */
 private val TableAmountFontSize = 13.sp
 
@@ -2257,13 +2273,15 @@ private fun BudgetGroupHeader(
     val budgeted = group.categories.sumOf { it.assignedCents }
     val spent = group.categories.sumOf { it.spentCents }
     val balance = group.categories.sumOf { it.balanceCents }
+    val flat = LocalTableStyle.current == TableStyle.Flat
+    val headerColor = TableGroupHeaderColor
 
     Surface(color = MaterialTheme.colorScheme.background) {
         Box(
             modifier = Modifier.fillMaxWidth()
-                .padding(top = Spacing.md)
-                .clip(tableGroupHeaderShape(joinsRows))
-                .background(TableGroupHeaderColor)
+                .then(if (flat) Modifier.padding(top = Spacing.md) else Modifier.padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.md))
+                .clip(if (flat) tableGroupHeaderShape(joinsRows) else MaterialTheme.shapes.large)
+                .then(if (flat) Modifier.background(headerColor) else Modifier)
                 .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick)
                 .padding(horizontal = TableRowPadding, vertical = Spacing.sm),
         ) {
@@ -2350,7 +2368,7 @@ private fun CategoryRow(
     hideDecimalPlaces: Boolean,
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
 ) {
-    TableGroupedItem(flat = true, position = position, roundTop = roundTop, dividerInset = TableRowPadding) {
+    TableGroupedItem(flat = LocalTableStyle.current == TableStyle.Flat, position = position, roundTop = roundTop, dividerInset = TableRowPadding) {
         Column(
             modifier = Modifier.fillMaxWidth().heightIn(min = TableRowMinHeight)
                 .combinedClickable(onClick = onOpen, onLongClick = onLongClick)
