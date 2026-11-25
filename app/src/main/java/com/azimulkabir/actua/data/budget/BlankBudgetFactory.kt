@@ -30,7 +30,8 @@ internal object BlankBudgetFactory {
      */
     private fun seedDashboard(database: SQLiteDatabase) {
         val pageId = UUID.randomUUID().toString()
-        database.execSQL("INSERT INTO dashboard_pages (id, name) VALUES (?, ?)", arrayOf(pageId, "Main"))
+        // 16384 is the sort order Actual's migration 1792441821604 gives the first page.
+        database.execSQL("INSERT INTO dashboard_pages (id, name, sort_order) VALUES (?, ?, ?)", arrayOf(pageId, "Main", 16384))
         DEFAULT_DASHBOARD.forEach { widget ->
             database.execSQL(
                 "INSERT INTO dashboard (id, type, width, height, x, y, meta, dashboard_page_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -70,7 +71,7 @@ internal object BlankBudgetFactory {
         "CREATE TABLE created_budgets (month TEXT PRIMARY KEY)",
         "CREATE TABLE custom_reports (id TEXT PRIMARY KEY, name TEXT, start_date TEXT, end_date TEXT, date_static INTEGER DEFAULT 0, date_range TEXT, mode TEXT DEFAULT 'total', group_by TEXT DEFAULT 'Category', balance_type TEXT DEFAULT 'Expense', show_empty INTEGER DEFAULT 0, show_offbudget INTEGER DEFAULT 0, show_hidden INTEGER DEFAULT 0, show_uncategorized INTEGER DEFAULT 0, selected_categories TEXT, graph_type TEXT DEFAULT 'BarGraph', conditions TEXT, conditions_op TEXT DEFAULT 'and', metadata TEXT, interval TEXT DEFAULT 'Monthly', color_scheme TEXT, tombstone INTEGER DEFAULT 0, include_current INTEGER DEFAULT 0, sort_by TEXT DEFAULT 'desc', trim_intervals INTEGER DEFAULT 0, show_trend_lines INTEGER DEFAULT 0)",
         "CREATE TABLE dashboard (id TEXT PRIMARY KEY, type TEXT, width INTEGER, height INTEGER, x INTEGER, y INTEGER, meta TEXT, tombstone INTEGER DEFAULT 0, dashboard_page_id TEXT)",
-        "CREATE TABLE dashboard_pages (id TEXT PRIMARY KEY, name TEXT, tombstone INTEGER DEFAULT 0)",
+        "CREATE TABLE dashboard_pages (id TEXT PRIMARY KEY, name TEXT, tombstone INTEGER DEFAULT 0, sort_order REAL DEFAULT 1000000000)",
         "CREATE TABLE kvcache (key TEXT PRIMARY KEY, value TEXT)",
         "CREATE TABLE kvcache_key (id INTEGER PRIMARY KEY, key REAL)",
         "CREATE TABLE messages_clock (id INTEGER PRIMARY KEY, clock TEXT)",
@@ -115,7 +116,7 @@ internal object BlankBudgetFactory {
         1730744182000,1736640000000,1737158400000,1738491452000,1739139550000,1740506588539,
         1745425408000,1749799110000,1749799110001,1754611200000,1759260219000,1759842823172,
         1762178745667,1765518577215,1768872504000,1769000000000,1778510362740,1780099200000,
-        1780327681000,1780606215000,1780606215001,1783004650757,1787013118115,1788468782000,
+        1780327681000,1780606215000,1780606215001,1783004650757,1787013118115,1788468782000,1792441821604,
     )
 
     private val STARTER_DATA = listOf(

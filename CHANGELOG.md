@@ -31,6 +31,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed dashboard widgets created on another device not showing, and the order of report dashboard pages not matching Actual ([#1824](https://github.com/azimul-kabir/actua/pull/1824))
 - Fixed saved Sankey reports in budgeted mode showing spending instead of budget assignments ([#1782](https://github.com/azimul-kabir/actua/pull/1782))
 
 - Fixed the Accounts tab row separator not lining up with the account name when account type icons are off ([#1781](https://github.com/azimul-kabir/actua/pull/1781))
