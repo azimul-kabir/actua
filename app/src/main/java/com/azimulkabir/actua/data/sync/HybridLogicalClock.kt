@@ -34,6 +34,13 @@ class HybridLogicalClock(
         }
     }
 
+    /** Puts the clock back to [timestamp], undoing advances made by a receive whose messages were not applied. */
+    @Synchronized
+    fun restore(timestamp: HlcTimestamp) {
+        millis = timestamp.millis
+        counter = timestamp.counter
+    }
+
     fun send(): HlcTimestamp {
         // Read outside the clock lock so the log query never nests inside it.
         val logHighWater = highWater?.invoke()

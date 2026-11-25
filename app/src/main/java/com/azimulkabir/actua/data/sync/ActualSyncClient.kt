@@ -131,12 +131,20 @@ class ActualSyncClient(
         totals.received += response.messages.size
         val localChanged = database.maxMessageTimestamp() != localHighWater
 
-        try {
-            response.messages.forEach { clock.receive(it.timestamp) }
-        } catch (_: HlcException.ClockDrift) {
-            throw ActualSyncException.ClockDrift
+        // Actual restores its clock when a received batch fails to apply, so a failure never leaves the clock
+        // advanced past messages that were not stored.
+        val clockBeforeReceive = clock.current()
+        val received = try {
+            try {
+                response.messages.forEach { clock.receive(it.timestamp) }
+            } catch (_: HlcException.ClockDrift) {
+                throw ActualSyncException.ClockDrift
+            }
+            database.receiveMessages(response.messages)
+        } catch (error: Throwable) {
+            clock.restore(clockBeforeReceive)
+            throw error
         }
-        val received = database.receiveMessages(response.messages)
         received.insertedMessages.forEach { merkle = merkle.inserting(it.timestamp) }
         if (received.insertedMessages.isNotEmpty()) merkle = merkle.pruned()
 

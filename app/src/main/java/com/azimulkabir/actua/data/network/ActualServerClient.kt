@@ -1097,6 +1097,14 @@ internal fun syncRejectionMessage(reason: String): String = when (reason) {
             "encryption, then sync again. Your local changes are kept."
     "file-not-found" ->
         "This budget is no longer on the server. It may have been deleted. Your local copy is unchanged."
+    "clock-drift" ->
+        "The server refused changes from this device because their timestamps are more than 5 minutes ahead " +
+            "of the server's clock, which happens when a device clock was set ahead while editing. Turn on " +
+            "automatic date and time in Android settings on every device that edits this budget, then sync " +
+            "again. Syncing is paused and your local changes are kept."
+    "invalid-timestamp" ->
+        "The server refused a change from this device because its timestamp could not be read. Syncing is " +
+            "paused and your local changes are kept. Update Actua and Actual's server, then sync again."
     else -> "The server refused to sync this budget ($reason). Your local changes are kept."
 }
 
