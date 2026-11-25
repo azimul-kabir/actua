@@ -61,4 +61,13 @@ class TransactionSearchTermsTest {
     fun anUnsetDateFormatDefaultsToActualsMonthFirstFormat() {
         assertEquals(listOf(20260503), terms("05/03/2026", null).dates)
     }
+
+    @Test
+    fun digitsInsideWordsAreNotReadAsAnAmount() {
+        // Actual #9232: "XF 35mm" and "12kr34" searched as the amount 35 / 1234.
+        listOf("XF 35mm", "12kr34", "35mm", "abc12").forEach { search ->
+            assertEquals(search, null, terms(search).amountRangeCents)
+        }
+        assertEquals(3500L..3599L, terms("35").amountRangeCents)
+    }
 }
