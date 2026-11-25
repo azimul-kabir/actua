@@ -360,6 +360,8 @@
     <string name="settings_rating_prompt_body">If it is, a quick rating on Google Play helps other people find it. It only takes a moment.</string>
     <string name="settings_rating_prompt_yes">Yes, rate it</string>
     <string name="settings_rating_prompt_no">Not really</string>
+    <string name="settings_whats_new_title">What\'s new in Actua %1$s</string>
+    <string name="settings_whats_new_dismiss">Got it</string>
 
     <!-- About page. -->
     <string name="settings_about_summary">Native Android client for Actual Budget\nVersion %1$s</string>

@@ -35,3 +35,4 @@ Actual Budget, see [BACKEND_PARITY.md](../BACKEND_PARITY.md).
 - Multiple downloaded budgets with a quick switcher in Manage
 - Built-in local demo budget with credit cards, loans, a Debt group, schedules, rules, reports and a year of activity to try
 - Privacy-safe Diagnostics report you can copy, save or email when reporting a problem
+- A one-time What's new card on the first open after an update, showing the release's Google Play notes in the app's language (never on a fresh install)

@@ -132,6 +132,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.azimulkabir.actua.ui.settings.SettingsScreen
 import com.azimulkabir.actua.ui.settings.RatingPrompt
 import com.azimulkabir.actua.ui.settings.SupportPrompt
+import com.azimulkabir.actua.ui.settings.WhatsNewPrompt
 import com.azimulkabir.actua.ui.settings.ConnectionScreen
 import com.azimulkabir.actua.ui.settings.CreditCardsScreen
 import com.azimulkabir.actua.ui.settings.LoansScreen
@@ -1427,6 +1428,10 @@ fun AppNavigation(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
+    WhatsNewPrompt(
+        canShow = repository.isUsingActualBudget && detail == DetailDestination.Main &&
+            unopenedBudgetDialog == null && !budgetReplacementInProgress,
+    )
     SupportPrompt(
         canShow = repository.isUsingActualBudget && detail == DetailDestination.Main &&
             unopenedBudgetDialog == null && !budgetReplacementInProgress,

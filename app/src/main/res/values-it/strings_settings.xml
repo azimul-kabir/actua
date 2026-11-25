@@ -360,6 +360,8 @@
     <string name="settings_rating_prompt_body">Se sì, una rapida valutazione su Google Play aiuta altre persone a trovarla. Ci vuole solo un attimo.</string>
     <string name="settings_rating_prompt_yes">Sì, valutala</string>
     <string name="settings_rating_prompt_no">Non proprio</string>
+    <string name="settings_whats_new_title">Novità di Actua %1$s</string>
+    <string name="settings_whats_new_dismiss">Ho capito</string>
 
     <!-- About page. -->
     <string name="settings_about_summary">Client Android nativo per Actual Budget\nVersione %1$s</string>

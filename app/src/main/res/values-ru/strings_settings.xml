@@ -360,6 +360,8 @@
     <string name="settings_rating_prompt_body">Если да, быстрая оценка в Google Play поможет другим людям найти её. Это займёт всего минуту.</string>
     <string name="settings_rating_prompt_yes">Да, оценить</string>
     <string name="settings_rating_prompt_no">Не совсем</string>
+    <string name="settings_whats_new_title">Что нового в Actua %1$s</string>
+    <string name="settings_whats_new_dismiss">Понятно</string>
 
     <!-- About page. -->
     <string name="settings_about_summary">Нативный клиент Android для Actual Budget\nВерсия %1$s</string>

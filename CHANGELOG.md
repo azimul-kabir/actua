@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a What's new card on the first open after an update, showing the release notes in your language ([#1792](https://github.com/azimul-kabir/actua/pull/1792))
 - Added Create schedule to the transaction selection menu, which opens a new schedule prefilled with the transaction's payee, account, amount and date ([#1790](https://github.com/azimul-kabir/actua/pull/1790))
 - Added trend lines to saved line reports that have them turned on in Actual ([#1784](https://github.com/azimul-kabir/actua/pull/1784))
 - Added support for budget queries and transaction counts in saved formula reports ([#1783](https://github.com/azimul-kabir/actua/pull/1783))
