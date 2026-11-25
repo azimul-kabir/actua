@@ -9,6 +9,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.security.SecureRandom
 import java.time.LocalDate
+import java.util.Currency
 import java.util.Locale
 import java.util.UUID
 
@@ -23,8 +24,16 @@ object FinancialMessageParser {
      * <MERCHANT> $<amount>", e.g. "CIBC Costco Mastercard, 2085 COSTCO GAS W160 $115.52".
      */
     private val cardPurchase = Regex(
-        "((?:[\\p{L}][\\p{L}\\p{N}&'.-]*\\s+){0,5}[\\p{L}][\\p{L}\\p{N}&'.-]*),\\s*(\\d{4})\\s+(.+?)\\s+(?:[A-Z]{3}\\s*)?\\$\\s?\\d[\\d,]*\\.\\d{2}\\s*\\.?$",
+        "((?:[\\p{L}][\\p{L}\\p{N}&'.-]*\\s+){0,5}[\\p{L}][\\p{L}\\p{N}&'.-]*),\\s*(\\d{4})\\s+(.+?)\\s+\\$\\s?\\d[\\d,]*\\.\\d{2}\\s*\\.?$",
     )
+    private val trailingWord = Regex("^(.+)\\s+([A-Z]{3})$")
+
+    /** Drops a currency code before the amount ("CAD $12.00"), but only a real ISO code, so "SHELL OIL" stays whole. */
+    private fun withoutCurrencyCode(merchant: String): String {
+        val (rest, code) = trailingWord.find(merchant)?.destructured ?: return merchant
+        val isCurrency = runCatching { Currency.getInstance(code) }.isSuccess
+        return if (isCurrency) rest.trim() else merchant
+    }
     val defaultProfile = FinancialMessageProfile()
 
     fun parse(text: String, source: String = "Shared text", today: LocalDate = LocalDate.now(),
@@ -44,7 +53,7 @@ object FinancialMessageParser {
         val parsedDate = date.find(normalized)?.destructured?.let { (day, month, year) ->
             runCatching { LocalDate.of(year.toInt(), month.toInt(), day.toInt()) }.getOrNull()
         } ?: today
-        val merchant = (card?.groupValues?.get(3)?.trim() ?: counterparty(normalized, outgoing = outgoing))?.takeIf { it != source }
+        val merchant = (card?.groupValues?.get(3)?.trim()?.let(::withoutCurrencyCode) ?: counterparty(normalized, outgoing = outgoing))?.takeIf { it != source }
         val ref = reference.find(normalized)?.groupValues?.get(1)
         val accountHint = card?.let { "${it.groupValues[1].trim()} ${it.groupValues[2]}" }
             ?: account.find(normalized)?.groupValues?.get(1)
