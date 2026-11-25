@@ -51,6 +51,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Changed donut and Sankey report cards to keep their breakdown list behind a Show breakdown button, and stacked bar legends to wrap side by side ([#1851](https://github.com/azimul-kabir/actua/pull/1851))
 - Changed budget balances to green when positive and red when negative, and the category status colors to fixed green, amber, gray, red and blue ([#1838](https://github.com/azimul-kabir/actua/pull/1838))
 - Changed the Budget table view to denser 48 dp rows, 13 sp aligned amounts, two-line group names, and goal icons shown as a small badge on the balance pill ([#1836](https://github.com/azimul-kabir/actua/pull/1836))
 - Changed the Budget table view to equal Budgeted, Spent and Balance columns, shrinking only amounts that don't fit ([#1845](https://github.com/azimul-kabir/actua/pull/1845))

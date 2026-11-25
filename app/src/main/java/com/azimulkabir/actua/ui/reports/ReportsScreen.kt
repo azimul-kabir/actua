@@ -1407,13 +1407,21 @@ private fun StackedIntervalBars(points: List<ReportPoint>, hideDecimals: Boolean
         Text(points.last().period, style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
-    names.forEach { name ->
-        Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-            Spacer(Modifier.size(10.dp).background(colorByName[name] ?: fallbackColor,
-                androidx.compose.foundation.shape.CircleShape))
-            Spacer(Modifier.width(8.dp))
-            Text(name, maxLines = 1, style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+    // Side by side, wrapping onto another row when the line is full.
+    @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+    androidx.compose.foundation.layout.FlowRow(
+        Modifier.fillMaxWidth().padding(top = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        names.forEach { name ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(Modifier.size(10.dp).background(colorByName[name] ?: fallbackColor,
+                    androidx.compose.foundation.shape.CircleShape))
+                Spacer(Modifier.width(6.dp))
+                Text(name, maxLines = 1, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
