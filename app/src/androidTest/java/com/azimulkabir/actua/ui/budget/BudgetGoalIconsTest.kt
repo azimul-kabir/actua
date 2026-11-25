@@ -95,7 +95,7 @@ class BudgetGoalIconsTest {
         assertIconFollowsTheOption()
     }
 
-    /** The table view draws the goal icon in the status dot's place, so the labelled-node count does not change. */
+    /** The table view marks a goal with a badge on the balance pill (the dot keeps the same label, so count the tag). */
     private fun tableIconCount() = compose.onAllNodesWithTag("goalIcon", useUnmergedTree = true).fetchSemanticsNodes().size
 
     @Test fun tableViewHidesTheIconAndShowsItAgain() {

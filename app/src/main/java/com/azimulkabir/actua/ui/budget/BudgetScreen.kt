@@ -2377,21 +2377,7 @@ private fun CategoryRow(
         ) {
             val name = @Composable { modifier: Modifier ->
                 Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-                    // A category with a goal shows its goal icon in the status dot's place, so the
-                    // amount columns need no room for it.
-                    val goal = category.targetFunding(scheduleFunding).takeIf { LocalShowGoalIcons.current }
-                    if (goal != null) {
-                        Icon(
-                            targetFundingIcon(goal),
-                            contentDescription = stringResource(targetFundingDescription(goal)),
-                            tint = if (LocalCategoryStatusColors.current?.showDots ?: true) {
-                                categoryStatusColor(category.statusState(scheduleFunding))
-                            } else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(end = 6.dp).size(TargetIconSize).testTag("goalIcon"),
-                        )
-                    } else {
-                        CategoryStatusDot(category.statusState(scheduleFunding), modifier = Modifier.padding(end = 6.dp))
-                    }
+                    CategoryStatusDot(category.statusState(scheduleFunding), modifier = Modifier.padding(end = 6.dp))
                     Text(if (category.hidden) stringResource(R.string.budget_hidden_name, category.name) else category.name,
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
@@ -2418,6 +2404,7 @@ private fun CategoryRow(
                         horizontalPadding = CategoryPillPadding,
                         verticalPadding = 3.dp,
                         tableAmount = true,
+                        targetBadge = category.targetFunding(scheduleFunding),
                     )
                 }
             }
@@ -2872,14 +2859,16 @@ internal fun BalancePill(
     verticalPadding: androidx.compose.ui.unit.Dp = 2.dp,
     /** In the table view: shrink like the other [TableAmountText]s rather than [ShrinkToFitText]. */
     tableAmount: Boolean = false,
-    /** The category's target state: a small icon leads the amount . */
+    /** The category's target state: a small icon leads the amount. */
     targetFunding: TargetFunding? = null,
+    /** The table view's goal marker: a small badge on the pill's top-left corner, taking no layout width. */
+    targetBadge: TargetFunding? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     val statusColor = categoryStatusColor(status)
     val tone = balancePillTone(amount, status, colorByStatus)
-    Surface(
-        modifier = modifier,
+    val pill = @Composable { pillModifier: Modifier -> Surface(
+        modifier = pillModifier,
         shape = CircleShape,
         color = when {
             !LocalShowBalancePills.current -> Color.Transparent
@@ -2913,10 +2902,32 @@ internal fun BalancePill(
         } else {
             ShrinkToFitText(text = text, style = textStyle, fontWeight = weight, color = color, modifier = padding)
         }
+    } }
+    val badge = targetBadge.takeIf { LocalShowGoalIcons.current }
+    if (badge == null) {
+        pill(modifier)
+    } else {
+        Box(modifier) {
+            pill(Modifier)
+            // A notch in the row's own colour keeps the badge legible against both the pill and the row.
+            Box(
+                Modifier.align(Alignment.TopStart).offset(x = (-5).dp, y = (-5).dp).size(TargetBadgeSize)
+                    .clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    targetFundingIcon(badge),
+                    contentDescription = stringResource(targetFundingDescription(badge)),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(TargetBadgeSize - 3.dp).testTag("goalIcon"),
+                )
+            }
+        }
     }
 }
 
 private val TargetIconSize = 14.dp
+private val TargetBadgeSize = 13.dp
 private val TargetIconGap = 4.dp
 private val TableTargetIconGap = 2.dp
 
