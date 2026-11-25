@@ -225,9 +225,11 @@ Upstream: HyperFormula with `QUERY`/`BUDGET_QUERY` and other functions ([`hooks/
 | --- | --- | --- | --- |
 | `QUERY("name")` = sum of a named query's amounts | `fetchQuerySum` | same | Match |
 | Query with no `timeFrame.mode` = all time | no date filter | same | Match |
-| Unknown query name | error | `0` | **Intentional** |
+| Unknown transaction query name | `0` | `0` | Match |
 | `+ - * /`, parentheses, unary signs | HyperFormula | `ArithmeticParser` | Match |
-| Other functions (`BUDGET_QUERY`, `QUERY_COUNT`, spreadsheet functions) | supported | "This formula uses functions Actua cannot evaluate." | **Not ported** |
+| `QUERY_COUNT("name")` | counts matching transaction rows | same, using the report transaction read model | Match (#1361) |
+| `BUDGET_QUERY` | budgeted, signed spent, opening and closing balances, and goals over a category and month range | same fields, literal category IDs or the named-query category and timeframe helpers | Match for supported arguments (#1361) |
+| General spreadsheet functions | supported | "This formula uses functions Actua cannot evaluate." | **Not ported** |
 
 Tests: `FormulaTest`.
 
@@ -285,15 +287,23 @@ Upstream: [`S/sankey-spreadsheet.ts#L173-L838`][sankey], [`W/SankeyCard.tsx#L53-
 
 | Setting / behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
-| `mode = spent`: categorized rows only, netted per category and account (and payee for income), split by net sign | per-category queries | same | Match (#950) |
-| Income broken down per income category | | same | Match |
-| `mode = budgeted` | budget cells | always spent | **Not ported** |
-| `topNcategories` "Other", `groupAccounts`, `layerFrom`/`layerTo`, `categorySort`, `showPercentages` | layout options | not read | **Not ported** |
-| Account column | optional `GraphLayers.Account` layer, only with `groupAccounts` (default off; [`GRAPH_LAYER_ORDER`][sankey-layers]) | not drawn; Actuali's account column is not copied because Actual only shows it when `groupAccounts` is on | **Not ported** (#1115) |
-| Drill-down | none | tap a node or ribbon opens its transactions via `DrillDownQuery`; long-press focuses a flow | Android addition |
+| `mode = spent` | categorized rows only, netted per category, account and payee, split by net sign; refunds flow in from their payee ([`fetchCategoryData`][sankey], [`createTransactionsGraph`][sankey]) | same, in integer cents; unnamed accounts read "(Unnamed account)" rather than dropping the row | Match (#950, #1788) |
+| Layers | payee, income category, account, budget (budgeted mode only), category group, category ([`GRAPH_LAYER_ORDER`][sankey-layers]) | the same graph, drawn as one column per layer that has nodes, left to right; net-negative income, "To budget", "Overbudgeted" and `From <category>` sit where upstream puts them | Match (#1788) |
+| `layerFrom`, `layerTo` | a saved range is used only when both are layers; defaults are payee to category (spent) and income category to category (budgeted); [`filterGraphByLayers`][sankey-layers] keeps the layers between them | same; a range that runs backwards draws nothing, as upstream | Match (#1788) |
+| `mode = budgeted` | income and money carried in flow into "Available funds", then "Budgeted", the groups and categories, "To budget", `For <next month>` and "Overspent" | same graph and layers over the range's calendar-month budget cells, with the envelope adjustments from #1357 | Match for the flows (#1357, #1788) |
+| `topNcategories` "Other" | per layer, the smallest nodes fold into one "Other" ([`groupOtherCategories`][sankey-other]); a category folds into its group's "Other" and a payee into its income category's unless `categorySort = global`; an unset value is capped at 15 and by the card height | the same fold, per layer, with a default of 15; no card-height cap, because the chart grows tall enough for its fullest column instead. The legend row of an "Other" lists what it holds, and tapping it opens the merged transactions | Match; the height cap is **Intentional** (#1788) |
+| `categorySort` | `per-group` (a group's categories under it, an income category's payees above it), `global` (by value, "Other" last), `budget-order` ([`sortGraph`][sankey-sort]) | all three, ordering each column | Match (#1358, #1788) |
+| `showPercentages` | "Show as percentages" | bars and legend rows show each node's share of its layer instead of an amount | Match (#1358) |
+| `groupAccounts` | nets each category and payee across accounts into one "Income" account node ([`aggregateCategoryData`][sankey-aggregate]); off, one account node per account | same | Match (#1358, #1788) |
+| Account layer | part of the default range, between income categories and category groups | same; there is no hub or "Remaining" node: an account bar is as tall as the larger of what flows in and out | Match (#1115, #1788) |
+| `showTransfers` | transfers between on-budget accounts drawn account to account, paired by `transfer_id`, cycles cancelled ([`aggregateTransferPairs`][sankey]); ignored with `groupAccounts` | same, in integer cents; each transfer in a chain adds an account column | Match (#1788) |
+| Hidden layout nodes | `addHiddenNodes` pads chains so the charting library's columns line up | not needed: columns are assigned per layer, and the account layer widens by its longest chain of transfers | **Intentional** implementation difference |
+| Chart layout and colours | the charting library places nodes; colours hash the node key | Actua's own d3-style layout (one scale for every column, columns centred, flows stacked by the position of the bar at the other end); colours hash the key onto the chart palette, and "To budget", "Overspent", negative and carry-over nodes keep upstream's meaning | Android addition |
+| Drill-down | none | tap a node or ribbon opens its transactions via `DrillDownQuery` (budgeted flows have none); long-press focuses a node and its flows | Android addition |
+| Small screens | n/a | the chart grows with its fullest column and scrolls sideways when its columns do not fit; the legend below names every node by layer for TalkBack and large fonts | Android addition |
 | Default range | last 6 months | same | Match (#948) |
 
-Tests: `SankeyTest`, `src/androidTest/.../ui/reports/ReportsChartInteractionTest.sankeyRendersACategoryPerNodeAndARemainingNodeForUnspentIncome`.
+Tests: `SankeyTest`, `SankeyGraphTest`, `SankeyOptionsTest`, `SankeyLayoutTest`, `src/androidTest/.../ui/reports/SankeyDrillDownTest` and `ReportsChartInteractionTest`. The fixtures are hand-worked from the upstream functions linked above; none is generated by upstream yet.
 
 ### Balance Forecast (`balance-forecast-card`)
 
@@ -348,7 +358,7 @@ Actua-only income-vs-expenses card (`SRE.incomeExpense`, `:305`) and view filter
 | Net Payment/Net Deposit clamp per group and per interval; total sums clamped intervals | `custom-spreadsheet`/`recalculate` | `clampNet`, `SRE.reportTotal` | Match |
 | `Budgeted` reads budget cells, income categories excluded | `fetchBudgetData` | `SRE.computeBudgeted` (`:172`) | Match |
 | `group_by` Category / Group / Payee / Account / Interval | | same | Match |
-| `group_by = CategoryGroup` (two-ring donut) | | treated as Category | **Not ported** |
+| `group_by = CategoryGroup` ("Category+Group") | donut: inner ring of groups, outer ring of their categories in lighter tints ([`DonutGraph`][donut-graph], [`buildColorMap`][donut-colors]); other graph types group like Group | donut: `GroupDonutChart` with the same two rings, shades and ordering (group totals are the sum of their categories, empty groups drop out, `sort_by` and `show_empty` apply inside each group); other graph types group like Group. Not offered in Actua's own group-by picker | Match (#1359) |
 | `group_by = Tag` with `metadata.tagScope` (v26.11) | `tagGroups.ts`, `tagScope.ts` (`packages/desktop-client/src/components/reports`) | `TagBucketing` and `ReportGrouping.TAG`: one bucket per exact set of in-scope tags in a transaction's notes ("#a + #b"), "Untagged" for none, hidden tags excluded, empty or unreadable scope means all tags, show-empty lists every tag then Untagged. Actua reads the report but does not offer Tag in its own group-by picker, and never rewrites `metadata`, so the scope survives edits. A Budgeted balance type is not split by tags (upstream rejects it) and falls back to Category. | Match (#1415) | `TagBucketingTest`, `SavedReportEngineTest` |
 | Uncategorized split into Uncategorized / Transfers / Off budget (one "Uncategorized & Off budget" group for Group) | synthetic items | same | Match (#951) |
 | `show_uncategorized` off keeps uncategorized off-budget rows | yes | same | Match (#951) |
@@ -364,7 +374,7 @@ Actua-only income-vs-expenses card (`SRE.incomeExpense`, `:305`) and view filter
 | "All time" = earliest → latest transaction; quarter, 30-day and year presets clamp their start to the earliest transaction | `getLiveRange`/`validateRange` | same | Match (#954) |
 | `sort_by` (`asc`/`desc` flipped for Payment and Net Payment, `name`, `budget` = item order), `show_empty`, `trim_intervals` | `sortData`, `filterEmptyRows`, `trimIntervals` | same | Match (#952) |
 | Intervals through the range end (future days of "This month") | yes | same | Match (#952) |
-| `show_trend_lines` | chart overlay | not drawn | **Not ported** |
+| `show_trend_lines` | dashed least-squares line per series over a line chart ([`computeTrendLines`][trend-lines]) | same fit over the plotted total, drawn on `LineGraph` reports only, with the value axis grown to hold it (`computeTrendLine`, `LineChart`) | Match (#1360) |
 | Summary panel: total and `Math.round(total / intervals)` | `ReportSummary` | opt-in, device-local toggle (#644) | Match |
 | Dashboard card shows no headline total | | same (#629) | Match |
 
@@ -395,8 +405,7 @@ stays open.
 - Condition operators the rules engine doesn't support fall back to no condition, unlike upstream's
   AQL filters.
 - Formula cards evaluate only arithmetic and `QUERY()`.
-- Monte Carlo is a simplified port (see above). Sankey budgeted mode and layout options, the
-  CategoryGroup donut and trend lines are not ported.
+- Monte Carlo is a simplified port (see above).
 - Fixtures: the report tests use synthetic budgets; no fixture is generated by upstream's
   spreadsheets yet.
 
@@ -433,6 +442,12 @@ stays open.
 [custom]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/spreadsheets/custom-spreadsheet.ts
 [hidden-items]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/spreadsheets/filterHiddenItems.ts
 [empty-rows]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/spreadsheets/filterEmptyRows.ts
+[sankey-aggregate]: https://github.com/actualbudget/actual/blob/62fb1e4d4bea8178b43f30bc859242510ebc6480/packages/desktop-client/src/components/reports/spreadsheets/sankey-spreadsheet.ts#L722-L768
+[sankey-other]: https://github.com/actualbudget/actual/blob/62fb1e4d4bea8178b43f30bc859242510ebc6480/packages/desktop-client/src/components/reports/spreadsheets/sankey-spreadsheet.ts#L1352-L1410
+[sankey-sort]: https://github.com/actualbudget/actual/blob/62fb1e4d4bea8178b43f30bc859242510ebc6480/packages/desktop-client/src/components/reports/spreadsheets/sankey-spreadsheet.ts#L1520-L1700
+[donut-graph]: https://github.com/actualbudget/actual/blob/62fb1e4d4bea8178b43f30bc859242510ebc6480/packages/desktop-client/src/components/reports/graphs/DonutGraph.tsx
+[donut-colors]: https://github.com/actualbudget/actual/blob/62fb1e4d4bea8178b43f30bc859242510ebc6480/packages/desktop-client/src/components/reports/graphs/donutColors.ts
+[trend-lines]: https://github.com/actualbudget/actual/blob/62fb1e4d4bea8178b43f30bc859242510ebc6480/packages/desktop-client/src/components/reports/graphs/util/computeTrendLines.ts
 [report-options]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/ReportOptions.ts#L300-L440
 [live-range]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/getLiveRange.ts
 [card-data]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/reports/GetCardData.tsx#L80-L170

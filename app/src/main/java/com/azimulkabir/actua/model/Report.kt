@@ -17,6 +17,8 @@ data class ReportCategory(
     val expenseCents: Long? = null,
     /** Query definition to resolve contributing transactions on demand. */
     val drillDownQuery: DrillDownQuery? = null,
+    /** For a category group in a two-ring donut: the categories that make up [spentCents]. */
+    val children: List<ReportCategory> = emptyList(),
 )
 
 data class ReportPoint(
@@ -63,8 +65,6 @@ data class ReportWidget(
     val comparisonCents: Long? = null,
     val points: List<ReportPoint> = emptyList(),
     val categories: List<ReportCategory> = emptyList(),
-    /** Income-side breakdown for the Sankey widget; empty for every other widget kind. */
-    val incomeCategories: List<ReportCategory> = emptyList(),
     val markdown: String? = null,
     val sourceType: String? = null,
     /** Saved-report presentation hint (`DonutGraph`, `BarGraph`, ...). */
@@ -92,6 +92,10 @@ data class ReportWidget(
     val customReportId: String? = null,
     /** Balance Forecast's `yAxisBase = Zero-Based`: the chart's value axis always includes zero. */
     val zeroBasedAxis: Boolean = false,
+    /** The layered chart behind a Sankey widget; null for every other widget kind. */
+    val sankey: SankeyDiagram? = null,
+    /** Saved report's `show_trend_lines`: overlay a trend line on its line chart. */
+    val showTrendLines: Boolean = false,
 )
 
 /** What a custom report's Summary totals, mirroring the labels in upstream `ReportSummary.tsx`. */

@@ -118,7 +118,7 @@ object SavedReportEngine {
         val scoped = if (row.groupBy == "Payee") matching.filter { it.payeeId != null } else matching
         val included = aggregator.select(scoped, filter)
         val grouping = when (row.groupBy) {
-            "Group" -> ReportGrouping.CATEGORY_GROUP
+            "Group", CATEGORY_GROUP_BY -> ReportGrouping.CATEGORY_GROUP
             "Payee" -> ReportGrouping.PAYEE
             "Account" -> ReportGrouping.ACCOUNT
             "Tag" -> ReportGrouping.TAG
@@ -126,10 +126,19 @@ object SavedReportEngine {
         }
         val tagBuckets = if (grouping == ReportGrouping.TAG) TagBucketing(shared.tags, row.metadata) else null
         val itemOrder = itemOrder(grouping, shared, tagBuckets)
-        val segments = if (row.groupBy == "Interval") emptyList() else arrange(
-            aggregator.groupTotals(scoped, filter, grouping, tagBuckets).map { ReportCategory(it.name, it.totalCents, it.transactionIds) },
-            row, balType, itemOrder,
-        )
+        val segments = when {
+            row.groupBy == "Interval" -> emptyList()
+            twoRingDonut(row) -> categoryGroupRings(
+                aggregator.groupTotals(scoped, filter, ReportGrouping.CATEGORY).map {
+                    it.id to ReportCategory(it.name, it.totalCents, it.transactionIds)
+                },
+                row, balType, shared,
+            )
+            else -> arrange(
+                aggregator.groupTotals(scoped, filter, grouping, tagBuckets).map { ReportCategory(it.name, it.totalCents, it.transactionIds) },
+                row, balType, itemOrder,
+            )
+        }
         val timeMode = row.mode == "time" || row.groupBy == "Interval"
         val stacked = timeMode && row.groupBy != "Interval" && row.graphType == "StackedBarGraph"
         val allPoints = if (stacked) {
@@ -152,7 +161,7 @@ object SavedReportEngine {
                 row, total, included.filter { it.amountCents < 0 }.sumOf { it.amountCents },
                 included.filter { it.amountCents > 0 }.sumOf { it.amountCents }, summaryStart, end, weekStart,
             ),
-            customReportId = row.id,
+            customReportId = row.id, showTrendLines = row.showTrendLines,
         )
     }
 
@@ -218,7 +227,7 @@ object SavedReportEngine {
         val groupNames = groups.associate { it.id to it.name }
         val incomeCategoryIds = groups.flatMap { it.categories }.filter { it.isIncome }.mapTo(mutableSetOf()) { it.id }
         val groupFilter = view.categoryGroupIds.takeIf { it.isNotEmpty() }
-        val byGroup = row.groupBy == "Group"
+        val byGroup = row.groupBy == "Group" || row.groupBy == CATEGORY_GROUP_BY
 
         fun monthCategories(month: YearMonth): List<ActualCategoryBudget> {
             val budget = budgetMonth(month) ?: return emptyList()
@@ -242,8 +251,16 @@ object SavedReportEngine {
         val byMonth = months.associateWith(::monthCategories)
         val all = byMonth.values.flatten()
         val itemOrder = itemOrder(if (byGroup) ReportGrouping.CATEGORY_GROUP else ReportGrouping.CATEGORY, shared)
-        val segments = if (row.groupBy == "Interval") emptyList() else
-            arrange(totals(all), row, ReportBalanceType.BUDGETED, itemOrder)
+        val segments = when {
+            row.groupBy == "Interval" -> emptyList()
+            twoRingDonut(row) -> categoryGroupRings(
+                all.groupBy { it.categoryId }.map { (id, matching) ->
+                    id to ReportCategory(matching.first().categoryName.orEmpty().ifBlank { "Uncategorized" }, matching.sumOf { it.budgetedCents })
+                },
+                row, ReportBalanceType.BUDGETED, shared,
+            )
+            else -> arrange(totals(all), row, ReportBalanceType.BUDGETED, itemOrder)
+        }
         val timeMode = row.mode == "time" || row.groupBy == "Interval"
         val stacked = timeMode && row.groupBy != "Interval" && row.graphType == "StackedBarGraph"
         val canonicalOrder = segments.map { it.name }
@@ -267,8 +284,43 @@ object SavedReportEngine {
             id = "saved:${row.id}", kind = ReportWidgetKind.CUSTOM_REPORT, name = row.name.ifBlank { "Untitled report" },
             valueCents = all.sumOf { it.budgetedCents }, categories = segments, points = points, timeMode = timeMode,
             graphType = row.graphType, subtitle = "$start – $end · ${row.groupBy}",
-            customReportId = row.id,
+            customReportId = row.id, showTrendLines = row.showTrendLines,
         )
+    }
+
+    /** Upstream's `Category+Group` group-by key, which a donut draws as two rings. */
+    private const val CATEGORY_GROUP_BY = "CategoryGroup"
+    private const val UNCATEGORIZED_GROUP_NAME = "Uncategorized & Off budget"
+
+    /** True when [row] is a donut grouped by `CategoryGroup`: an inner ring of groups, an outer ring of categories. */
+    internal fun twoRingDonut(row: SavedReportRow): Boolean =
+        row.groupBy == CATEGORY_GROUP_BY && row.graphType == "DonutGraph"
+
+    /**
+     * Upstream's `createGroupedSpreadsheet` for the two-ring donut: every category group with its
+     * categories nested in [ReportCategory.children]. [categories] pairs a category id (null or a
+     * synthetic bucket for uncategorized, transfer and off-budget rows) with its total. A group's
+     * total is the sum of its own categories, groups left at zero drop out (as upstream's donut
+     * filters them even with show empty on), and groups and categories each sort by `sort_by`.
+     */
+    internal fun categoryGroupRings(
+        categories: List<Pair<String?, ReportCategory>>, row: SavedReportRow, balanceType: ReportBalanceType, shared: Shared,
+    ): List<ReportCategory> {
+        val groupOf = shared.groups.flatMap { group -> group.categories.map { it.id to group.id } }.toMap()
+        val byGroup = categories.groupBy { (id, _) -> id?.let(groupOf::get) }
+        val groupIds: List<String?> = shared.groups.map { it.id } + listOf<String?>(null)
+        val rings = groupIds.map { groupId ->
+            val group = shared.groups.firstOrNull { it.id == groupId }
+            val order = group?.categories?.sortedBy { it.sortOrder }?.map { it.name } ?: listOf("Uncategorized", "Off budget", "Transfers")
+            val children = arrange(byGroup[groupId].orEmpty().map { it.second }, row, balanceType, order)
+            ReportCategory(
+                name = group?.name ?: UNCATEGORIZED_GROUP_NAME,
+                spentCents = children.sumOf { it.spentCents },
+                transactionIds = children.flatMap { it.transactionIds },
+                children = children,
+            )
+        }
+        return arrange(rings, row, balanceType, itemOrder(ReportGrouping.CATEGORY_GROUP, shared)).filter { it.spentCents != 0L }
     }
 
     /**

@@ -891,6 +891,7 @@ fun BudgetScreen(
             conventionalAmountEntry = conventionalAmountEntry,
             toBudgetCents = overview.toBudgetCents ?: 0L,
             bufferedCents = overview.bufferedCents,
+            autoBufferedCents = overview.autoBufferedCents,
             groups = groups,
             hideDecimalPlaces = hideDecimalPlaces,
             onDismiss = { budgetSummaryOpen = false },
@@ -904,6 +905,10 @@ fun BudgetScreen(
             },
             onResetNextMonthBuffer = {
                 onResetNextMonthBuffer()
+                budgetSummaryOpen = false
+            },
+            onDisableAutoHold = {
+                onResetIncomeHold()
                 budgetSummaryOpen = false
             },
         )
@@ -2388,6 +2393,17 @@ internal fun CategoryProgressBar(
 
 private enum class EditBudgetMode { NONE, AUTO_ASSIGN, MOVE }
 
+/**
+ * The amount the move sheet opens with, as Actual's `TransferMenu` and `CoverMenu` prefill it: a
+ * category with money moves its whole balance; an overspent one covers its overspending, held to what
+ * the default [sourceBalanceCents] can fund so Done is enabled straight away.
+ */
+internal fun budgetMovePrefillCents(categoryBalanceCents: Long, sourceBalanceCents: Long): Long = when {
+    categoryBalanceCents > 0L -> categoryBalanceCents
+    categoryBalanceCents < 0L -> minOf(-categoryBalanceCents, sourceBalanceCents.coerceAtLeast(0L))
+    else -> 0L
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditBudgetAmountSheet(
@@ -2415,30 +2431,42 @@ private fun EditBudgetAmountSheet(
     val autoAssignChoices = buildAutoAssignChoices(category, month, scheduleFunding)
     val options = remember(groups, toBudgetCents) {
         listOf(MoveEndpoint(null, null, toBudgetCents)) + groups.filterNot { it.isIncome }.flatMap { group ->
-            group.categories.filterNot { it.hidden }.map { item ->
-                MoveEndpoint(group.name, item.name, item.balanceCents)
+            // Hidden categories stay valid targets, as in Actual's transfer menu; they are only
+            // left out of the "From" list below.
+            group.categories.map { item ->
+                MoveEndpoint(group.name, item.name, item.balanceCents, hidden = item.hidden || group.hidden)
             }
         }
     }
     // Only categories with balance available can fund a move, so the "From" picker is
     // narrower than the "To" picker (which must still be able to target any category,
     // including an overspent one — that's how covering overspending works).
-    val fromOptions = remember(options) { options.filter { it.balanceCents > 0L } }
+    val fromOptions = remember(options) { options.filter { it.balanceCents > 0L && !it.hidden } }
     val anchor = remember(sourceGroup, category) {
         MoveEndpoint(sourceGroup.name, category.name, category.balanceCents)
     }
+    // Covering an overspent category defaults to a source that can actually fund it, as To Budget when it
+    // has money and otherwise the first category with a positive balance.
+    val coverSource = remember(options, anchor) {
+        options.firstOrNull { it.balanceCents > 0L && !(it.group == anchor.group && it.category == anchor.category) }
+            ?: options.first()
+    }
     var from by remember(anchor) {
-        mutableStateOf(if (category.balanceCents < 0) options.first() else anchor)
+        mutableStateOf(if (category.balanceCents < 0) coverSource else anchor)
     }
     var to by remember(anchor) {
         mutableStateOf(if (category.balanceCents < 0) anchor else options.first())
     }
+    // Actual prefills a transfer with the category's balance and a cover with the overspent amount.
+    val movePrefill = remember(category) {
+        budgetMovePrefillCents(category.balanceCents, if (category.balanceCents < 0) coverSource.balanceCents else 0L)
+    }
     val calculator = remember(category, moveMode, conventionalAmountEntry) {
-        if (moveMode) CalculatorAmountState(0L, allowsNegative = false, conventionalAmountEntry = conventionalAmountEntry)
+        if (moveMode) CalculatorAmountState(movePrefill, allowsNegative = false, conventionalAmountEntry = conventionalAmountEntry)
         else CalculatorAmountState(category.assignedCents, allowsNegative = true, conventionalAmountEntry = conventionalAmountEntry)
     }
     var enteredAmount by remember(category, moveMode) {
-        mutableStateOf(if (moveMode) 0L else category.assignedCents)
+        mutableStateOf(if (moveMode) movePrefill else category.assignedCents)
     }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val coroutineScope = rememberCoroutineScope()
@@ -2846,6 +2874,28 @@ internal fun balancePillTone(
 
 private enum class BudgetSummaryAction { MOVE, HOLD }
 
+/** Which To Budget actions Actual's `ToBudgetMenu` offers for the month's amounts. */
+internal data class BudgetSummaryActions(
+    val move: Boolean,
+    val cover: Boolean,
+    val hold: Boolean,
+    val resetManualHold: Boolean,
+    val disableAutoHold: Boolean,
+) {
+    val any: Boolean get() = move || cover || hold || resetManualHold || disableAutoHold
+}
+
+internal fun budgetSummaryActions(toBudgetCents: Long, manualBufferedCents: Long, autoBufferedCents: Long): BudgetSummaryActions {
+    val forNextMonth = if (manualBufferedCents != 0L) manualBufferedCents else autoBufferedCents
+    return BudgetSummaryActions(
+        move = toBudgetCents > 0L,
+        cover = toBudgetCents < 0L,
+        hold = autoBufferedCents == 0L && toBudgetCents > 0L,
+        resetManualHold = forNextMonth > 0L && manualBufferedCents != 0L,
+        disableAutoHold = forNextMonth > 0L && manualBufferedCents == 0L,
+    )
+}
+
 /**
  * The amount the To Budget sheet actually moves, or null when nothing can move. Funding a category
  * from To Budget is limited to To Budget, as Actual's `transferAvailable` clamps it; covering a
@@ -2868,22 +2918,27 @@ private fun BudgetSummarySheet(
     conventionalAmountEntry: Boolean,
     toBudgetCents: Long,
     bufferedCents: Long,
+    autoBufferedCents: Long,
     groups: List<BudgetGroup>,
     hideDecimalPlaces: Boolean,
     onDismiss: () -> Unit,
     onMoveToCategory: (String, String, Long) -> Unit,
     onHoldForNextMonth: (Long) -> Unit,
     onResetNextMonthBuffer: () -> Unit,
+    onDisableAutoHold: () -> Unit,
 ) {
     val covering = toBudgetCents < 0L
-    var action by remember { mutableStateOf<BudgetSummaryAction?>(BudgetSummaryAction.MOVE) }
+    val actions = budgetSummaryActions(toBudgetCents, bufferedCents, autoBufferedCents)
+    var action by remember { mutableStateOf<BudgetSummaryAction?>(if (actions.move || actions.cover) BudgetSummaryAction.MOVE else null) }
 
     // When covering an overbudgeted "To Budget", only categories with balance available can
     // fund the cover, so the picker is narrowed instead of listing every category.
     val options = remember(groups, covering) {
         groups.filterNot { it.isIncome }.flatMap { group ->
-            group.categories.filterNot { it.hidden }
-                .filter { !covering || it.balanceCents > 0L }
+            // Funding a category can target hidden ones, as Actual's transfer menu does; covering draws
+            // only from visible categories with a balance.
+            group.categories
+                .filter { !covering || (!it.hidden && !group.hidden && it.balanceCents > 0L) }
                 .map { group.name to it.name }
         }
     }
@@ -2900,13 +2955,12 @@ private fun BudgetSummarySheet(
     }
     var moveAmount by remember(toBudgetCents) { mutableStateOf(kotlin.math.abs(toBudgetCents)) }
 
-    val maxHoldable = remember(toBudgetCents, bufferedCents) { maxOf(0L, toBudgetCents + bufferedCents) }
-    val holdCalculator = remember(maxHoldable, bufferedCents, conventionalAmountEntry) {
-        CalculatorAmountState(bufferedCents.coerceIn(0L, maxHoldable), allowsNegative = false, conventionalAmountEntry = conventionalAmountEntry)
+    // Actual's hold adds to the current hold and starts at all of To Budget.
+    val maxHoldable = remember(toBudgetCents) { maxOf(0L, toBudgetCents) }
+    val holdCalculator = remember(maxHoldable, conventionalAmountEntry) {
+        CalculatorAmountState(maxHoldable, allowsNegative = false, conventionalAmountEntry = conventionalAmountEntry)
     }
-    var holdAmount by remember(maxHoldable, bufferedCents) {
-        mutableStateOf(bufferedCents.coerceIn(0L, maxHoldable))
-    }
+    var holdAmount by remember(maxHoldable) { mutableStateOf(maxHoldable) }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val optionLabels = remember(options) { options.associateBy { "${it.first} · ${it.second}" } }
@@ -2933,14 +2987,14 @@ private fun BudgetSummarySheet(
                 Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                BudgetModeButton(
+                if (actions.move || actions.cover) BudgetModeButton(
                     text = if (covering) stringResource(R.string.budget_cover_from)
                     else stringResource(R.string.budget_move_to_category),
                     icon = Icons.Outlined.SwapHoriz,
                     selected = action == BudgetSummaryAction.MOVE,
                     modifier = Modifier.fillMaxWidth(),
                 ) { action = if (action == BudgetSummaryAction.MOVE) null else BudgetSummaryAction.MOVE }
-                if (!covering) {
+                if (actions.hold) {
                     BudgetModeButton(
                         text = stringResource(R.string.budget_hold_for_next_month),
                         icon = Icons.Outlined.Savings,
@@ -2949,9 +3003,13 @@ private fun BudgetSummarySheet(
                     ) { action = if (action == BudgetSummaryAction.HOLD) null else BudgetSummaryAction.HOLD }
                 }
             }
-            if (bufferedCents != 0L) {
+            if (actions.resetManualHold || actions.disableAutoHold) {
                 ActuaSheetCard {
-                    ActuaSheetAction(stringResource(R.string.budget_reset_hold), icon = Icons.Outlined.RestartAlt, onClick = onResetNextMonthBuffer)
+                    if (actions.resetManualHold) {
+                        ActuaSheetAction(stringResource(R.string.budget_reset_hold), icon = Icons.Outlined.RestartAlt, onClick = onResetNextMonthBuffer)
+                    } else {
+                        ActuaSheetAction(stringResource(R.string.budget_stop_holding_automatically), icon = Icons.Outlined.RestartAlt, onClick = onDisableAutoHold)
+                    }
                 }
             }
             AnimatedContent(
@@ -3037,6 +3095,7 @@ private data class MoveEndpoint(
     val group: String?,
     val category: String?,
     val balanceCents: Long,
+    val hidden: Boolean = false,
 ) {
     /** The picker row's label; the To Budget endpoint takes the localized [toBudgetLabel]. */
     fun title(toBudgetLabel: String): String = category ?: toBudgetLabel

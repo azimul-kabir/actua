@@ -126,6 +126,8 @@
     <string name="transactions_mark_cleared">Segna come contabilizzate</string>
     <string name="transactions_mark_uncleared">Segna come non contabilizzate</string>
     <string name="transactions_link_schedule">Collega a una pianificazione</string>
+    <string name="transactions_create_schedule">Crea pianificazione</string>
+    <string name="transactions_create_schedule_unavailable">Crea pianificazione (non disponibile per i trasferimenti)</string>
     <string name="transactions_unlink_schedule">Scollega pianificazione</string>
     <string name="transactions_view_schedule">Vedi pianificazione</string>
     <string name="transactions_edit_schedule">Modifica pianificazione</string>

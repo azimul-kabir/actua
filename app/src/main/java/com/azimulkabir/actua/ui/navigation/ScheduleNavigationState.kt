@@ -5,6 +5,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import com.azimulkabir.actua.data.schedules.SchedulePrefill
 
 /** Flow state retains its original navigation-composition lifetime and saveability. */
 internal class ScheduleNavigationState(
@@ -52,3 +53,17 @@ internal fun rememberScheduleNavigationState(): ScheduleNavigationState =
         billsCalendarReturnsToSchedules = rememberSaveable { mutableStateOf(false) },
         scheduleRuleId = rememberSaveable { mutableStateOf<String?>(null) },
     )
+
+/** Keeps the transaction-derived schedule draft across rotation and process death. */
+internal val SchedulePrefillSaver = androidx.compose.runtime.saveable.listSaver<SchedulePrefill?, Any>(
+    save = { prefill ->
+        if (prefill == null) emptyList()
+        else listOf(prefill.payeeName, prefill.accountName, prefill.amountCents, prefill.startDate.yyyymmdd)
+    },
+    restore = { saved ->
+        if (saved.size != 4) null
+        else com.azimulkabir.actua.data.schedules.DayDate.fromYyyymmdd(saved[3] as Int)?.let {
+            SchedulePrefill(saved[0] as String, saved[1] as String, saved[2] as Long, it)
+        }
+    },
+)

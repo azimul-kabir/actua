@@ -79,36 +79,41 @@ fun EditScheduleScreen(
     onDelete: (() -> Unit)? = null,
     onUnlinkTransaction: ((String) -> Unit)? = null,
     onEditAsRule: ((String) -> Unit)? = null,
+    prefill: SchedulePrefill? = null,
     modifier: Modifier = Modifier,
 ) {
     val schedule = item?.schedule
     val originalRecurrence = (schedule?.dateCondition as? ScheduleDateCondition.Recurring)?.config
     val originalDate = (schedule?.dateCondition as? ScheduleDateCondition.Fixed)?.day
-        ?: schedule?.nextDate ?: DayDate.today()
+        ?: schedule?.nextDate ?: prefill?.startDate ?: DayDate.today()
     val editorKey = schedule?.id ?: "new"
     var name by remember(editorKey) { mutableStateOf(schedule?.name.orEmpty()) }
-    var payeeName by remember(editorKey) { mutableStateOf(item?.payeeName.orEmpty()) }
+    var payeeName by remember(editorKey) { mutableStateOf(item?.payeeName ?: prefill?.payeeName.orEmpty()) }
     var accountName by remember(editorKey) {
-        mutableStateOf(item?.accountName ?: accounts.firstOrNull { !it.closed }?.name.orEmpty())
+        mutableStateOf(
+            item?.accountName
+                ?: prefill?.accountName?.takeIf { name -> accounts.any { it.name == name && !it.closed } }
+                ?: accounts.firstOrNull { !it.closed }?.name.orEmpty(),
+        )
     }
-    var income by remember(editorKey) { mutableStateOf((schedule?.postAmount ?: -1L) > 0) }
+    var income by remember(editorKey) { mutableStateOf((schedule?.postAmount ?: prefill?.amountCents ?: -1L) > 0) }
     var amountOp by remember(editorKey) { mutableStateOf(schedule?.amountOp ?: ScheduleAmountOp.APPROXIMATE) }
     val originalRange = schedule?.amount as? ScheduledAmount.Range
     var amountLow by remember(editorKey) {
-        mutableStateOf(minOf(abs(originalRange?.first ?: schedule?.postAmount ?: 0L), abs(originalRange?.second ?: schedule?.postAmount ?: 0L)))
+        mutableStateOf(minOf(abs(originalRange?.first ?: schedule?.postAmount ?: prefill?.amountCents ?: 0L), abs(originalRange?.second ?: schedule?.postAmount ?: prefill?.amountCents ?: 0L)))
     }
     var amountHigh by remember(editorKey) {
-        mutableStateOf(maxOf(abs(originalRange?.first ?: schedule?.postAmount ?: 0L), abs(originalRange?.second ?: schedule?.postAmount ?: 0L)))
+        mutableStateOf(maxOf(abs(originalRange?.first ?: schedule?.postAmount ?: prefill?.amountCents ?: 0L), abs(originalRange?.second ?: schedule?.postAmount ?: prefill?.amountCents ?: 0L)))
     }
     var calculatorTarget by remember { mutableStateOf<Int?>(null) }
-    var repeats by remember(editorKey) { mutableStateOf(originalRecurrence != null) }
+    var repeats by remember(editorKey) { mutableStateOf(originalRecurrence != null || (schedule == null && prefill != null)) }
     var oneOffDate by remember(editorKey) { mutableStateOf(originalDate) }
     var recurrence by remember(editorKey) {
         mutableStateOf(
             originalRecurrence ?: RecurConfig(
                 frequency = RecurConfig.Frequency.MONTHLY,
                 interval = 1,
-                start = schedule?.nextDate ?: DayDate.today(),
+                start = schedule?.nextDate ?: prefill?.startDate ?: DayDate.today(),
             ),
         )
     }

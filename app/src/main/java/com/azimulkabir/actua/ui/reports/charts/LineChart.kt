@@ -50,8 +50,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToLong
 
 /** One line of a [LineChart]. [values] line up with the chart's periods. */
 data class LineChartSeries(
@@ -62,6 +65,8 @@ data class LineChartSeries(
     val fill: Boolean = false,
     /** Points from this index on are drawn dashed as a forecast. */
     val forecastFromIndex: Int? = null,
+    /** Draws a dashed least-squares trend line through [values], like Actual's `show_trend_lines`. */
+    val trendLine: Boolean = false,
 )
 
 /** A shaded band between [lower] and [upper] values, e.g. a range of simulated outcomes. */
@@ -121,8 +126,11 @@ fun LineChart(
         val months = periods.map { it.take(7) }
         if (months.distinct().size == months.size) months else periods.map { it.take(10) }
     }
-    val allValues = remember(series, lowValue, bands) {
-        series.flatMap { it.values } + listOfNotNull(lowValue) + bands.flatMap { it.lower + it.upper }
+    val trends = remember(series) { series.map { s -> if (s.trendLine) computeTrendLine(s.values) else null } }
+    val allValues = remember(series, lowValue, bands, trends) {
+        // The axis grows to hold a trend line that runs past the data, as Actual's `extendDomain` does.
+        series.flatMap { it.values } + listOfNotNull(lowValue) + bands.flatMap { it.lower + it.upper } +
+            trends.filterNotNull().flatMap { listOf(floor(it.start).toLong(), ceil(it.end).toLong(), ceil(it.start).toLong(), floor(it.end).toLong()) }
     }
     val gridlines = remember(allValues, includeZero) {
         val lo = if (includeZero) minOf(0L, allValues.min()) else allValues.min()
@@ -247,7 +255,10 @@ fun LineChart(
                     Modifier.fillMaxSize()
                         .semantics {
                             this.contentDescription = contentDescription + " " +
-                                series.joinToString(" ") { seriesSummary(it.label, periods, it.values, formatValue) }
+                                series.joinToString(" ") { seriesSummary(it.label, periods, it.values, formatValue) } +
+                                trends.withIndex().joinToString("") { (k, t) ->
+                                    if (t == null) "" else " Trend line for ${series[k].label} goes from ${formatValue(t.start.roundToLong())} to ${formatValue(t.end.roundToLong())}."
+                                }
                             customActions = listOf(
                                 CustomAccessibilityAction("Next period") { selectedIndex = stepPeriodIndex(selectedIndex, 1, n); true },
                                 CustomAccessibilityAction("Previous period") { selectedIndex = stepPeriodIndex(selectedIndex, -1, n); true },
@@ -280,6 +291,15 @@ fun LineChart(
                                 drawPath(g.dashed, series[k].color, style = dashedStroke)
                                 if (n == 1) drawCircle(series[k].color, strokeWidth * 1.5f, g.points[0])
                             }
+                        }
+
+                        trends.forEachIndexed { k, trend ->
+                            if (trend == null) return@forEachIndexed
+                            fun y(v: Double) = plotH - ((v - axisMin) / span).toFloat() * plotH
+                            drawLine(
+                                series[k].color.copy(alpha = 0.6f), Offset(0f, y(trend.start)), Offset(xStep * (n - 1), y(trend.end)),
+                                strokeWidth = 1.5.dp.toPx(), pathEffect = dash,
+                            )
                         }
 
                         forecastBoundary?.let { b ->

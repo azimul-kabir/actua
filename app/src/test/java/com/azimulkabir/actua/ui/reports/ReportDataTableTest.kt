@@ -6,6 +6,10 @@ import com.azimulkabir.actua.model.ReportCategory
 import com.azimulkabir.actua.model.ReportPoint
 import com.azimulkabir.actua.model.ReportWidget
 import com.azimulkabir.actua.model.ReportWidgetKind
+import com.azimulkabir.actua.model.SankeyDiagram
+import com.azimulkabir.actua.model.SankeyDiagramNode
+import com.azimulkabir.actua.model.SankeyLayer
+import com.azimulkabir.actua.model.SankeyNodeRole
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -35,14 +39,29 @@ class ReportDataTableTest {
         assertFalse(row.canDrill)
     }
 
-    @Test fun sankeyListsIncomeThenExpenseNodes() {
-        val widget = ReportWidget(
-            "w", ReportWidgetKind.SANKEY, "Sankey", valueCents = 500_00,
-            incomeCategories = listOf(ReportCategory("Salary", 500_00, listOf("a"))),
-            categories = listOf(ReportCategory("Rent", 200_00, listOf("b")), ReportCategory("Zero", 0)),
+    @Test fun sankeyListsItsNodesLayerByLayer() {
+        fun node(name: String, layer: SankeyLayer, column: Int, cents: Long, drill: Boolean = true) = SankeyDiagramNode(
+            name, name, layer, SankeyNodeRole.NORMAL, column, cents, 0.0, if (drill) DrillDownQuery(categoryName = name) else null,
         )
-        val rows = reportDataTable(widget, money)!!.rows
-        assertEquals(listOf(listOf("Income", "Salary", "$500"), listOf("Expense", "Rent", "$200")), rows.map { it.cells })
+        val diagram = SankeyDiagram(
+            nodes = listOf(
+                node("Rent", SankeyLayer.CATEGORY, 2, 200_00),
+                node("Salary", SankeyLayer.INCOME_CATEGORY, 0, 500_00),
+                node("Checking", SankeyLayer.ACCOUNT, 1, 500_00, drill = false),
+                node("Zero", SankeyLayer.CATEGORY, 2, 0),
+            ),
+            links = emptyList(), columnLayers = listOf(SankeyLayer.INCOME_CATEGORY, SankeyLayer.ACCOUNT, SankeyLayer.CATEGORY),
+        )
+        val widget = ReportWidget("w", ReportWidgetKind.SANKEY, "Sankey", valueCents = 500_00, sankey = diagram)
+        val table = reportDataTable(widget, money)!!
+        assertEquals(listOf("Layer", "Name", "Amount"), table.headers)
+        assertEquals(
+            listOf(
+                listOf("Income categories", "Salary", "$500"), listOf("Accounts", "Checking", "$500"), listOf("Categories", "Rent", "$200"),
+            ),
+            table.rows.map { it.cells },
+        )
+        assertEquals(listOf(true, false, true), table.rows.map { it.canDrill })
     }
 
     @Test fun monteCarloShowsAllFivePercentiles() {

@@ -117,6 +117,7 @@ import androidx.compose.ui.semantics.heading
 import com.azimulkabir.actua.model.ReportRange
 import com.azimulkabir.actua.ui.reports.charts.LocalChartScale
 import com.azimulkabir.actua.ui.reports.charts.BudgetAnalysisChart
+import com.azimulkabir.actua.ui.reports.charts.GroupDonutChart
 import com.azimulkabir.actua.ui.reports.charts.LineChartBand
 import com.azimulkabir.actua.ui.reports.charts.SankeyChart
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -1197,6 +1198,7 @@ private fun TrendChart(
     lowValue: Long? = null,
     description: String = "Trend chart with ${points.size} points. Touch to read a value.",
     zeroBased: Boolean = false,
+    trendLine: Boolean = false,
 ) {
     if (points.isEmpty()) {
         Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1216,6 +1218,7 @@ private fun TrendChart(
                 values = points.map { it.primaryCents },
                 fill = true,
                 forecastFromIndex = forecastFrom,
+                trendLine = trendLine,
             ),
         ),
         formatValue = { if (isMoney) formatMoneyCents(it, hideDecimals) else "$it days" },
@@ -1497,13 +1500,14 @@ private fun CustomReport(
         return
     }
     when {
+        widget.graphType == "DonutGraph" && segments.any { it.children.isNotEmpty() } -> GroupDonutChart(segments, hideDecimals, onDrillDown)
         widget.graphType == "DonutGraph" && segments.isNotEmpty() -> DonutChart(segments, hideDecimals, onDrillDown)
         widget.timeMode && widget.graphType == "StackedBarGraph" && widget.points.any { it.segments.isNotEmpty() } ->
             StackedIntervalBars(widget.points, hideDecimals, onDrillDown)
         widget.timeMode && (widget.graphType == "BarGraph" || widget.graphType == "StackedBarGraph") &&
             widget.points.isNotEmpty() -> IntervalBars(widget.points, hideDecimals)
         (widget.graphType == "LineGraph" || widget.graphType == "AreaGraph") && widget.points.size > 1 -> {
-            TrendChart(widget.points, hideDecimals)
+            TrendChart(widget.points, hideDecimals, trendLine = widget.showTrendLines && widget.graphType == "LineGraph")
         }
         else -> CategoryBars(widget, hideDecimals, onDrillDown)
     }
@@ -1777,14 +1781,19 @@ private fun Sankey(
     widget: ReportWidget,
     hideDecimals: Boolean,
     onDrillDown: ((ReportCategory) -> Unit)? = null,
-) = SankeyChart(
-    income = widget.valueCents ?: 0,
-    categories = widget.categories,
-    incomeCategories = widget.incomeCategories,
-    subtitle = widget.subtitle,
-    hideDecimals = hideDecimals,
-    onDrillDown = onDrillDown,
-)
+) {
+    val diagram = widget.sankey
+    if (diagram == null) {
+        Text("No transactions match this report's filters.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    } else {
+        SankeyChart(
+            diagram = diagram,
+            subtitle = widget.subtitle,
+            hideDecimals = hideDecimals,
+            onDrillDown = onDrillDown,
+        )
+    }
+}
 
 @Composable
 private fun MonteCarlo(points: List<ReportPoint>, hideDecimals: Boolean) {

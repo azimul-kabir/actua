@@ -164,6 +164,9 @@ object CoreReportEngine {
         } else null
         // Sankey's month-shaped ranges (the default last 6 months, a saved current/last month or N-month
         // sliding window) become pay periods on this device; every other saved range keeps its meaning.
+        if (row.type == "sankey-card" && meta?.optString("mode") == "budgeted") {
+            return budgetedSankey(row.id, name, context, conditions, budgetMonth, YearMonth.from(start), YearMonth.from(end), SankeyOptions.from(meta))
+        }
         val sankeyPayRange = if (!monthStart.isCalendarMonth && row.type == "sankey-card") {
             sankeyPayRange(meta?.optJSONObject("timeFrame"), today, monthStart)
         } else null
@@ -195,7 +198,7 @@ object CoreReportEngine {
                 context, conditions, start, minOf(end, today),
                 meta?.optString("granularity")?.takeIf(String::isNotBlank) ?: "monthly", end,
             )
-            "formula-card" -> formula(row.id, name, meta, transactions, context, today)
+            "formula-card" -> formula(row.id, name, meta, transactions, context, incomeCategoryIds, budgetMonth, today)
             // [dashboards] renders a live saved report itself; reaching here means it is missing,
             // which upstream's `CustomReportListCards` shows as a deleted-report placeholder.
             "custom-report" -> ReportWidget(row.id, ReportWidgetKind.MISSING_REPORT, name,
@@ -214,7 +217,7 @@ object CoreReportEngine {
                 accountBalances, today)
             "budget-analysis-card" -> budgetAnalysis(row.id, name, meta, context, budgetMonth, start, end)
             "sankey-card" -> sankey(row.id, name, filtered, context, incomeCategoryIds, rangeStart, rangeEnd,
-                exactDates = sankeyPayRange != null)
+                exactDates = sankeyPayRange != null, options = SankeyOptions.from(meta))
             // Upstream's card only uses the tracking-budget source in a tracking budget file.
             // Actual 26.11's `yAxisBase`: `Zero-Based` pins the chart axis to zero, anything else is automatic.
             "balance-forecast-card" -> (if (meta?.optString("source") == "tracking-budget" &&
@@ -306,27 +309,84 @@ object CoreReportEngine {
 
     private fun formula(
         id: String, name: String, meta: JSONObject?, all: List<ActualTransaction>,
-        context: RuleContext, today: LocalDate,
+        context: RuleContext, incomeCategoryIds: Set<String>,
+        budgetMonth: (YearMonth) -> ActualBudgetMonth?, today: LocalDate,
     ): ReportWidget {
-        var expression = meta?.optString("formula").orEmpty().removePrefix("=")
+        val expression = meta?.optString("formula").orEmpty().removePrefix("=")
         val queries = meta?.optJSONObject("queries")
-        Regex("query\\(\\s*[\\\"']([^\\\"']+)[\\\"']\\s*\\)", RegexOption.IGNORE_CASE)
-            .findAll(expression).toList().asReversed().forEach { match ->
-                val query = queries?.optJSONObject(match.groupValues[1])
-                // Unlike a widget's own timeFrame, a sub-query with no explicit timeFrame mode
-                // means "no date restriction" (all-time), matching upstream/Actuali; an unknown
-                // query name (query == null) evaluates to 0 rather than matching everything.
-                val timeFrameMeta = query?.optJSONObject("timeFrame")?.takeIf { it.has("mode") }
-                val range = timeFrameMeta?.let { timeFrame(it, today, monthSliding = true) }
-                val conditions = parseConditions(query)
-                val cents = if (query == null) 0L else all.filterNot { it.tombstone }
-                    .filter { range == null || it.date in range.first.toYmd()..range.second.toYmd() }
-                    .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }.sumOf { it.amountCents }
-                expression = expression.replaceRange(match.range, (cents / 100.0).toString())
+        val current = YearMonth.from(today)
+
+        fun transactionQuery(queryName: String, count: Boolean): Double {
+            val query = queries?.optJSONObject(queryName) ?: return 0.0
+            val frame = query.optJSONObject("timeFrame")?.takeIf { it.has("mode") }
+            val dates = frame?.let { timeFrame(it, today, monthSliding = true) }
+                ?.let { (start, end) -> start.toYmd()..end.toYmd() }
+            val (conditions, op) = parseConditions(query)
+            val rows = all.asSequence().filter {
+                !it.tombstone && (dates == null || it.date in dates) && RulesEngine.matches(it, conditions, op, context)
             }
-        val value = ArithmeticParser(expression).parse()?.times(100)?.roundToLong()
+            return if (count) rows.count().toDouble() else rows.sumOf { it.amountCents } / 100.0
+        }
+
+        fun categories(queryName: String): List<String> {
+            val query = queries?.optJSONObject(queryName) ?: return emptyList()
+            val (conditions, op) = parseConditions(query)
+            val categoryConditions = conditions.filter { it.field == "category" || it.field == "category_group" }
+            return context.categoryNames.keys.filter {
+                if (categoryConditions.isEmpty()) it !in incomeCategoryIds && it !in context.hiddenCategoryIds
+                else categoryMatches(it, categoryConditions, op, context)
+            }
+        }
+
+        fun queryMonth(queryName: String, start: Boolean): String {
+            val frame = queries?.optJSONObject(queryName)?.optJSONObject("timeFrame") ?: return current.toString()
+            val range = timeFrame(frame, today, monthSliding = true)
+            return YearMonth.from(if (start) range.first else range.second).toString()
+        }
+
+        val value = ArithmeticParser(
+            expression, ::transactionQuery, ::categories, ::queryMonth,
+            { dimension, ids, start, end -> budgetQuery(dimension, ids, start, end, budgetMonth) / 100.0 },
+        ).parse()?.times(100)?.takeIf(Double::isFinite)?.roundToLong()
         return ReportWidget(id, ReportWidgetKind.FORMULA, name, valueCents = value,
             markdown = if (value == null) "This formula uses functions Actua cannot evaluate." else null)
+    }
+
+    private fun budgetQuery(
+        dimension: String, ids: List<String>, start: YearMonth, end: YearMonth,
+        budgetMonth: (YearMonth) -> ActualBudgetMonth?,
+    ): Long {
+        require(dimension in setOf("budgeted", "spent", "goal", "balance_start", "balance_end"))
+        if (ids.isEmpty()) return 0
+
+        fun carryover(month: YearMonth): Long {
+            val budget = budgetMonth(month) ?: return 0
+            val rows = (budget.categories + budget.hiddenCategories).associateBy { it.categoryId }
+            return ids.sumOf { rows[it]?.let { row ->
+                if (row.carryoverEnabled) row.availableCents else row.availableCents.coerceAtLeast(0)
+            } ?: 0L }
+        }
+        fun sum(month: YearMonth, field: String): Long {
+            val budget = budgetMonth(month) ?: return 0
+            val expenses = (budget.categories + budget.hiddenCategories).associateBy { it.categoryId }
+            val income = (budget.incomeCategories + budget.hiddenIncomeCategories).associateBy { it.categoryId }
+            return ids.sumOf { id ->
+                when (field) {
+                    "budgeted" -> expenses[id]?.budgetedCents ?: 0L
+                    "spent" -> expenses[id]?.spentCents ?: income[id]?.receivedCents ?: 0L
+                    "goal" -> expenses[id]?.goalCents ?: 0L
+                    else -> error("Invalid budget dimension")
+                }
+            }
+        }
+
+        return when (dimension) {
+            "balance_start" -> carryover(start.minusMonths(1))
+            "balance_end" -> carryover(end.minusMonths(1)) + sum(end, "budgeted") + sum(end, "spent")
+            "budgeted", "spent", "goal" -> generateSequence(start) { if (it == end) null else it.plusMonths(1) }
+                .sumOf { sum(it, dimension) }
+            else -> error("Invalid budget dimension")
+        }
     }
 
     private fun calendar(
@@ -591,66 +651,119 @@ object CoreReportEngine {
     }
 
     /**
-     * Upstream's Sankey `spent` mode (`sankey-spreadsheet.ts`, `fetchCategoryData` and
-     * `createTransactionsGraph`): only categorized transactions count, netted per category and
-     * account (and payee, for income categories), and each net's sign decides its side. A net-positive
-     * expense category (refunds) flows in and a net-negative income category flows out, so a refund
-     * no longer inflates both totals; uncategorized rows and same-side transfers have no category and
-     * stay out. Income is broken down per income category; outflows per category group.
+     * Upstream's `mode = budgeted` Sankey (`createBudgetSpreadsheet` and `createBudgetGraph`): the
+     * range's received income and money carried in flow into "Available funds", then into
+     * "Budgeted", the category groups and categories, "To budget", "For <next month>" and
+     * "Overspent". Amounts add the range's calendar-month budget cells, in integer cents.
+     */
+    private fun budgetedSankey(
+        id: String, name: String, context: RuleContext,
+        conditions: Pair<List<Rule.Condition>, Rule.ConditionsOp>,
+        budgetMonth: (YearMonth) -> ActualBudgetMonth?, start: YearMonth, end: YearMonth,
+        options: SankeyOptions,
+    ): ReportWidget {
+        val months = generateSequence(start) { it.plusMonths(1) }.takeWhile { it <= end }
+            .map(budgetMonth).toList()
+        val categoryConditions = conditions.first.filter { it.field == "category" || it.field == "category_group" }
+        fun includes(categoryId: String) = categoryConditions.isEmpty() ||
+            categoryMatches(categoryId, categoryConditions, conditions.second, context)
+
+        val budgets = months.filterNotNull()
+        val entries = mutableListOf<SankeyBudgetEntry>()
+        budgets.flatMap { it.incomeCategories + it.hiddenIncomeCategories }
+            .filter { includes(it.categoryId) }.groupBy { it.categoryId }.values.forEach { rows ->
+                val cents = rows.sumOf { it.receivedCents }
+                if (cents != 0L) entries += SankeyBudgetEntry("Income", "income", rows.first().categoryName, rows.first().categoryId, true, cents)
+            }
+        budgets.flatMap { it.categories + it.hiddenCategories }
+            .filter { includes(it.categoryId) }.groupBy { it.categoryId }.values.forEach { rows ->
+                val cents = rows.sumOf { it.budgetedCents }
+                val first = rows.first()
+                if (cents != 0L) entries += SankeyBudgetEntry(first.groupName, first.groupId, first.categoryName, first.categoryId, false, cents)
+            }
+
+        val last = months.lastOrNull()
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", java.util.Locale.ENGLISH)
+        val totals = SankeyBudgetTotals(
+            toBudget = last?.toBudgetCents ?: 0L,
+            // Actua carries the held-back amount ("For <next month>") rather than recomputing it from the next month.
+            forNextMonth = if (last != null && !last.isTracking) last.bufferedCents.takeIf { it != 0L } ?: last.autoBufferedCents else 0L,
+            fromPreviousMonth = months.firstOrNull()?.fromLastMonthCents ?: 0L,
+            lastMonthOverspent = budgets.sumOf { it.lastMonthOverspentCents },
+            previousMonthLabel = start.minusMonths(1).format(formatter),
+            nextMonthLabel = end.plusMonths(1).format(formatter),
+        )
+        val diagram = buildSankeyDiagram(
+            createBudgetGraph(entries, totals), options, sankeyBudgetOrder(context), 0, 0, budgeted = true,
+        )
+        return ReportWidget(
+            id, ReportWidgetKind.SANKEY, name, valueCents = diagram.inflowCents, comparisonCents = diagram.outflowCents,
+            subtitle = if (start == end) start.format(formatter) else "${start.format(formatter)} - ${end.format(formatter)}",
+            sankey = diagram,
+        )
+    }
+
+    /** The budget's category groups and their categories in order, for `categorySort = budget-order`. */
+    private fun sankeyBudgetOrder(context: RuleContext) = SankeyBudgetOrder(
+        context.categoryGroupNames.keys.map { groupId ->
+            groupId to context.categoryGroupIds.filterValues { it == groupId }.keys.toList()
+        },
+    )
+
+    /**
+     * Upstream's Sankey `spent` mode (`sankey-spreadsheet.ts`, `fetchCategoryData`,
+     * `fetchTransferData` and `createTransactionsGraph`): only categorized transactions count,
+     * netted per category, account and payee, and each net's sign decides its side. Money flows from
+     * payees through income categories and accounts to category groups and categories, with
+     * transfers between accounts drawn account to account when `showTransfers` is on. Uncategorized
+     * rows have no category and stay out.
      */
     private fun sankey(
         id: String, name: String, transactions: List<ActualTransaction>, context: RuleContext,
         incomeCategoryIds: Set<String>, start: LocalDate, end: LocalDate, exactDates: Boolean = false,
+        options: SankeyOptions = SankeyOptions(),
     ): ReportWidget {
-        data class Flow(val label: String, val cents: Long)
-        val inflows = mutableListOf<Flow>()
-        val outflows = mutableListOf<Flow>()
-        transactions.filter { it.categoryId != null && it.categoryId in context.categoryNames }
+        val categoryOrder = context.categoryNames.keys.withIndex().associate { (i, id) -> id to i }
+        val entries = transactions.filter { it.categoryId != null && it.categoryId in context.categoryNames }
             .groupBy { tx ->
-                val isIncome = tx.categoryId in incomeCategoryIds
-                Triple(tx.categoryId!!, tx.accountId, if (isIncome) tx.payeeId else null)
+                // Upstream's `aggregateCategoryData`: with `groupAccounts` a category (and payee) nets across accounts.
+                Triple(tx.categoryId!!, if (options.groupAccounts) null else tx.accountId, tx.payeeId.orEmpty())
             }
-            .forEach { (key, rows) ->
+            .mapNotNull { (key, rows) ->
+                val (categoryId, accountId, payeeId) = key
                 val net = rows.sumOf { it.amountCents }
-                if (net == 0L) return@forEach
-                val categoryName = context.categoryNames[key.first].orEmpty().ifBlank { "Other" }
-                if (net > 0) {
-                    inflows += Flow(categoryName, net)
-                } else {
-                    val label = if (key.first in incomeCategoryIds) categoryName
-                        else key.first.let(context.categoryGroupIds::get)?.let(context.categoryGroupNames::get)
-                            .orEmpty().ifBlank { "Other" }
-                    outflows += Flow(label, -net)
-                }
-            }
-        fun breakdown(flows: List<Flow>, isIncome: Boolean) = flows.groupBy { it.label }
-            .map { (label, rows) ->
-                val catIds = if (isIncome) {
-                    context.categoryNames.filterValues { it == label }.keys
-                } else {
-                    val groupIds = context.categoryGroupNames.filterValues { it == label }.keys
-                    val catIdsInGroup = context.categoryGroupIds.filterValues { it in groupIds }.keys
-                    catIdsInGroup + context.categoryNames.filterValues { it == label }.keys
-                }
-                val query = DrillDownQuery(
-                    startDate = start.toYmd(),
-                    endDate = end.toYmd(),
-                    categoryIds = catIds.takeIf { it.isNotEmpty() },
-                    direction = if (isIncome) DrillDownDirection.INCOME else DrillDownDirection.EXPENSE,
-                    categoryName = label,
+                if (options.groupAccounts && net == 0L) return@mapNotNull null
+                val groupId = context.categoryGroupIds[categoryId].orEmpty().ifBlank { "ungrouped" }
+                SankeyEntry(
+                    categoryGroup = context.categoryGroupNames[groupId].orEmpty().ifBlank { "Other" },
+                    categoryGroupId = groupId,
+                    category = context.categoryNames[categoryId].orEmpty().ifBlank { "Other" },
+                    categoryId = categoryId,
+                    value = kotlin.math.abs(net),
+                    isIncome = categoryId in incomeCategoryIds,
+                    isNegative = net < 0,
+                    accountName = if (accountId == null) "Income" else context.accountNames[accountId].orEmpty().ifBlank { "(Unnamed account)" },
+                    accountId = accountId ?: SankeyKeys.ALL_ACCOUNTS,
+                    payeeName = context.payeeNames[payeeId].orEmpty(),
+                    payeeId = payeeId,
                 )
-                ReportCategory(label, rows.sumOf { it.cents }, drillDownQuery = query)
             }
-            .sortedByDescending { it.spentCents }
-        val incomeCategories = breakdown(inflows, isIncome = true)
-        val categories = breakdown(outflows, isIncome = false)
+            .sortedBy { categoryOrder[it.categoryId] ?: Int.MAX_VALUE }
+        val transferRows = if (options.showTransfers && !options.groupAccounts) {
+            transactions.filter { it.transferId != null && it.accountId !in context.offBudgetAccountIds }.map {
+                SankeyTransferRow(it.id, it.amountCents, it.accountId, context.accountNames[it.accountId].orEmpty(), it.transferId!!)
+            }
+        } else emptyList()
+        val diagram = buildSankeyDiagram(
+            createTransactionsGraph(entries, aggregateTransferPairs(transferRows), options.groupAccounts),
+            options, sankeyBudgetOrder(context), start.toYmd(), end.toYmd(), budgeted = false,
+        )
         val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", java.util.Locale.ENGLISH)
         val subtitle = if (exactDates) "$start - $end"
             else if (YearMonth.from(start) == YearMonth.from(end)) start.format(formatter)
             else "${start.format(formatter)} - ${end.format(formatter)}"
-        return ReportWidget(id, ReportWidgetKind.SANKEY, name, valueCents = incomeCategories.sumOf { it.spentCents },
-            comparisonCents = categories.sumOf { it.spentCents }, categories = categories,
-            incomeCategories = incomeCategories, subtitle = subtitle)
+        return ReportWidget(id, ReportWidgetKind.SANKEY, name, valueCents = diagram.inflowCents,
+            comparisonCents = diagram.outflowCents, subtitle = subtitle, sankey = diagram)
     }
 
     /**
@@ -1423,7 +1536,13 @@ object CoreReportEngine {
     }
 
     /** Arithmetic subset used by Actuali's formula cards: +, -, *, /, parentheses and unary signs. */
-    private class ArithmeticParser(private val source: String) {
+    private class ArithmeticParser(
+        private val source: String,
+        private val transactionQuery: (String, Boolean) -> Double,
+        private val categories: (String) -> List<String>,
+        private val queryMonth: (String, Boolean) -> String,
+        private val budgetQuery: (String, List<String>, YearMonth, YearMonth) -> Double,
+    ) {
         private var index = 0
 
         fun parse(): Double? = runCatching {
@@ -1431,47 +1550,149 @@ object CoreReportEngine {
             skipSpaces()
             check(index == source.length)
             result
-        }.getOrNull()
+        }.getOrElse {
+            if (it is java.util.concurrent.CancellationException) throw it
+            null
+        }
 
-        private fun expression(): Double {
-            var value = term()
+        private fun expression(depth: Int = 0): Double {
+            var value = term(depth)
             while (true) {
                 skipSpaces()
                 value = when (peek()) {
-                    '+' -> { index++; value + term() }
-                    '-' -> { index++; value - term() }
+                    '+' -> { index++; value + term(depth) }
+                    '-' -> { index++; value - term(depth) }
                     else -> return value
                 }
             }
         }
 
-        private fun term(): Double {
-            var value = factor()
+        private fun term(depth: Int): Double {
+            var value = factor(depth)
             while (true) {
                 skipSpaces()
                 value = when (peek()) {
-                    '*' -> { index++; value * factor() }
-                    '/' -> { index++; val divisor = factor(); check(divisor != 0.0); value / divisor }
+                    '*' -> { index++; value * factor(depth) }
+                    '/' -> { index++; val divisor = factor(depth); check(divisor != 0.0); value / divisor }
                     else -> return value
                 }
             }
         }
 
-        private fun factor(): Double {
+        private fun factor(depth: Int = 0): Double {
+            check(depth < 128)
             skipSpaces()
             return when (peek()) {
-                '+' -> { index++; factor() }
-                '-' -> { index++; -factor() }
-                '(' -> { index++; val value = expression(); skipSpaces(); check(peek() == ')'); index++; value }
-                else -> number()
+                '+' -> { index++; factor(depth + 1) }
+                '-' -> { index++; -factor(depth + 1) }
+                '(' -> { index++; val value = expression(depth + 1); skipSpaces(); check(peek() == ')'); index++; value }
+                else -> if (peek()?.isLetter() == true) function() else number()
             }
         }
 
-        private fun number(): Double {
+        private fun function(): Double {
+            val function = callName()
+            return when (function) {
+                "QUERY", "QUERY_COUNT" -> {
+                    val name = string()
+                    expect(')')
+                    transactionQuery(name, function == "QUERY_COUNT")
+                }
+                "BUDGET_QUERY" -> {
+                    val dimension = string().lowercase()
+                    expect(',')
+                    val ids = categoryIds()
+                    expect(',')
+                    val start = monthArg()
+                    expect(',')
+                    val end = monthArg()
+                    expect(')')
+                    check(start <= end)
+                    budgetQuery(dimension, ids, start, end)
+                }
+                else -> error("Unsupported formula function")
+            }
+        }
+
+        private fun monthArg(): YearMonth {
+            skipSpaces()
+            val value = if (peek() == '"' || peek() == '\'') string() else {
+                val function = callName()
+                check(function == "QUERY_EXTRACT_TIMEFRAME_START" || function == "QUERY_EXTRACT_TIMEFRAME_END")
+                val name = string()
+                expect(')')
+                queryMonth(name, function == "QUERY_EXTRACT_TIMEFRAME_START")
+            }
+            check(value.length == 7)
+            return YearMonth.parse(value)
+        }
+
+        private fun categoryIds(): List<String> {
+            skipSpaces()
+            val cells = when (peek()) {
+                '{' -> {
+                    index++
+                    val values = mutableListOf<String>()
+                    do {
+                        skipSpaces()
+                        values += if (peek() == '"' || peek() == '\'') string() else number().toString().removeSuffix(".0")
+                        skipSpaces()
+                        val more = peek() == ',' || peek() == ';'
+                        if (more) index++
+                    } while (more)
+                    expect('}')
+                    values
+                }
+                '"', '\'' -> listOf(string())
+                else -> {
+                    check(callName() == "QUERY_EXTRACT_CATEGORIES")
+                    val name = string()
+                    expect(')')
+                    categories(name)
+                }
+            }
+            return cells.flatMap { it.split(',') }.map(String::trim).filter(String::isNotEmpty)
+        }
+
+        private fun callName(): String {
+            skipSpaces()
+            val start = index
+            while (peek()?.let { it.isLetter() || it == '_' } == true) index++
+            val name = source.substring(start, index).uppercase()
+            expect('(')
+            return name
+        }
+
+        private fun string(): String {
+            skipSpaces()
+            val quote = peek()
+            check(quote == '"' || quote == '\'')
+            index++
+            return buildString {
+                while (true) {
+                    val char = source.getOrNull(index++) ?: error("Unterminated string")
+                    if (char == quote) {
+                        if (peek() != quote) break
+                        index++
+                    }
+                    append(char)
+                }
+            }
+        }
+
+        private fun expect(char: Char) {
+            skipSpaces()
+            check(peek() == char)
+            index++
+        }
+
+        private fun number(): Double = numberLiteral().toDouble()
+
+        private fun numberLiteral(): String {
             val start = index
             while (peek()?.let { it.isDigit() || it == '.' } == true) index++
             check(index > start)
-            return source.substring(start, index).toDouble()
+            return source.substring(start, index)
         }
 
         private fun skipSpaces() { while (peek()?.isWhitespace() == true) index++ }

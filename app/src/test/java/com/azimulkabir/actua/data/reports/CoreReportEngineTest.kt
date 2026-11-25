@@ -2,6 +2,9 @@ package com.azimulkabir.actua.data.reports
 
 import com.azimulkabir.actua.data.home.StartDayAdjustment
 import com.azimulkabir.actua.data.home.MonthStartRule
+import com.azimulkabir.actua.data.budget.model.ActualBudgetMonth
+import com.azimulkabir.actua.data.budget.model.ActualCategoryBudget
+import com.azimulkabir.actua.data.budget.model.ActualIncomeBudget
 import com.azimulkabir.actua.data.budget.model.ActualCategory
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
@@ -11,7 +14,10 @@ import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleAmountOp
 import com.azimulkabir.actua.data.schedules.ScheduleDateCondition
 import com.azimulkabir.actua.data.schedules.ScheduledAmount
+import com.azimulkabir.actua.model.ReportWidget
 import com.azimulkabir.actua.model.ReportWidgetKind
+import com.azimulkabir.actua.model.SankeyLayer
+import com.azimulkabir.actua.model.SankeyNodeRole
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -40,7 +46,10 @@ class SankeyTest {
 
     private fun row(meta: String? = null) = DashboardWidgetRow("w", "sankey-card", meta)
 
-    @Test fun `breaks income down by source category, unlike the group-level expense breakdown`() {
+    private fun ReportWidget.column(c: Int) = sankey!!.nodes.filter { it.column == c }.map { it.name to it.valueCents }
+    private fun ReportWidget.flows() = sankey!!.links.associate { "${sankey!!.nodes[it.source].name}>${sankey!!.nodes[it.target].name}" to it.cents }
+
+    @Test fun `draws income categories, the account, category groups and categories as columns`() {
         val rows = listOf(
             tx("1", 20260405, 800000, "salary"),
             tx("2", 20260406, 200000, "bonus"),
@@ -52,8 +61,65 @@ class SankeyTest {
         )
         assertEquals(ReportWidgetKind.SANKEY, widget.kind)
         assertEquals(1000000L, widget.valueCents)
-        assertEquals(listOf("Salary" to 800000L, "Bonus" to 200000L), widget.incomeCategories.map { it.name to it.spentCents })
-        assertEquals(listOf("Bills" to 300000L), widget.categories.map { it.name to it.spentCents })
+        assertEquals(300000L, widget.comparisonCents)
+        assertEquals(listOf("Salary" to 800000L, "Bonus" to 200000L), widget.column(0))
+        assertEquals(listOf("(Unnamed account)" to 1000000L), widget.column(1))
+        assertEquals(listOf("Bills" to 300000L), widget.column(2))
+        assertEquals(listOf("Rent" to 300000L), widget.column(3))
+        assertEquals(
+            listOf(SankeyLayer.INCOME_CATEGORY, SankeyLayer.ACCOUNT, SankeyLayer.CATEGORY_GROUP, SankeyLayer.CATEGORY),
+            widget.sankey!!.columnLayers,
+        )
+    }
+
+    @Test fun `budgeted mode aggregates calendar month cells in envelope and tracking budgets`() {
+        val aprilMonth = YearMonth.of(2026, 4)
+        val mayMonth = aprilMonth.plusMonths(1)
+        for (tracking in listOf(false, true)) {
+            fun budget(month: YearMonth, rent: Long, released: Long, received: Long) = ActualBudgetMonth(
+                month = month.toString(),
+                categories = listOf(
+                    ActualCategoryBudget(month.toString(), "rent", "Rent", "ge", "Bills", 0.0, 0.0,
+                        rent, -900, 0, 0, false, false, null, false, false, null, null, null),
+                ),
+                hiddenCategories = listOf(
+                    ActualCategoryBudget(month.toString(), "fund", "Fund", "ge", "Bills", 0.0, 0.0,
+                        released, 0, 0, 0, true, false, null, false, false, null, null, null),
+                ),
+                incomeCategories = listOf(
+                    ActualIncomeBudget(month.toString(), "salary", "Salary", "Income", 0.0,
+                        5000, received, false, false),
+                ),
+                hiddenIncomeCategories = emptyList(),
+                toBudgetCents = if (tracking) null else 100L,
+                bufferedCents = if (tracking) 0 else 200,
+                fromLastMonthCents = if (tracking) 0 else 300,
+                lastMonthOverspentCents = if (tracking) 0 else -50,
+            )
+            val months = mapOf(
+                aprilMonth to budget(aprilMonth, 600, -250, 1000),
+                mayMonth to budget(mayMonth, 800, 50, 900),
+            )
+            val widget = CoreReportEngine.compute(
+                row("""{"mode":"budgeted","timeFrame":{"mode":"static","start":"2026-04","end":"2026-05"},
+                    "conditions":[{"field":"account","op":"is","value":"other"}]}"""),
+                listOf(tx("spent", 20260420, -42, "rent")), context, incomeCategoryIds,
+                budgetMonth = months::get, monthStart = MonthStartRule(25),
+            )
+            assertEquals(true, widget.sankey!!.budgeted)
+            val common = mapOf(
+                "Salary>Available funds" to 1900L, "From Fund>Budgeted" to 200L,
+                "Available funds>Budgeted" to 1200L, "Budgeted>Bills" to 1400L, "Bills>Rent" to 1400L,
+            )
+            assertEquals(
+                if (tracking) common else common + mapOf(
+                    "From Mar 2026>Available funds" to 300L, "Available funds>To budget" to 100L,
+                    "Available funds>For Jun 2026" to 200L, "Available funds>Overspent" to 100L,
+                ),
+                widget.flows(),
+            )
+            assertEquals(SankeyNodeRole.NEGATIVE, widget.sankey!!.nodes.first { it.name == "From Fund" }.role)
+        }
     }
 
     private val april = """{"timeFrame":{"mode":"static","start":"2026-04","end":"2026-04"}}"""
@@ -107,7 +173,7 @@ class SankeyTest {
         )
         val widget = CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds)
         assertEquals(800000L, widget.valueCents)
-        assertEquals(listOf("Bills" to 250000L), widget.categories.map { it.name to it.spentCents })
+        assertEquals(listOf("Bills" to 250000L), widget.column(2))
         assertEquals(250000L, widget.comparisonCents)
     }
 
@@ -123,7 +189,7 @@ class SankeyTest {
         val widget = CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds)
         assertEquals(800000L, widget.valueCents)
         assertEquals(300000L, widget.comparisonCents)
-        assertEquals(listOf("Salary"), widget.incomeCategories.map { it.name })
+        assertEquals(listOf("Salary"), widget.column(0).map { it.first })
     }
 
     @Test fun `a net-positive expense category flows in rather than counting as spending`() {
@@ -132,9 +198,11 @@ class SankeyTest {
             tx("2", 20260412, 30000, "rent"),
         )
         val widget = CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds)
-        assertEquals(listOf("Rent" to 20000L), widget.incomeCategories.map { it.name to it.spentCents })
-        assertEquals(emptyList<Any>(), widget.categories)
-        assertEquals(0L, widget.comparisonCents)
+        // The refund comes in from "(No payee)" through a Rent income-category node to the account;
+        // nothing flows out to a group or category.
+        assertEquals(listOf("(No payee)" to 20000L), widget.column(0))
+        assertEquals(listOf("Rent" to 20000L), widget.column(1))
+        assertEquals(emptyList<Any>(), widget.sankey!!.nodes.filter { it.layer == SankeyLayer.CATEGORY_GROUP || it.layer == SankeyLayer.CATEGORY })
     }
 
     @Test fun `a net-negative income category flows out`() {
@@ -144,7 +212,8 @@ class SankeyTest {
         )
         val widget = CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds)
         assertEquals(800000L, widget.valueCents)
-        assertEquals(listOf("Bonus" to 5000L), widget.categories.map { it.name to it.spentCents })
+        val bonus = widget.sankey!!.nodes.single { it.role == SankeyNodeRole.NEGATIVE }
+        assertEquals(listOf("Bonus", SankeyLayer.CATEGORY_GROUP, 5000L), listOf(bonus.name, bonus.layer, bonus.valueCents))
     }
 
     @Test fun `sets a subtitle with the resolved date range`() {
@@ -616,6 +685,66 @@ class FormulaTest {
         id, "a", date, amount, null, null, categoryId, null, null, false, false, null, false, null, false, null, null, null, null)
 
     private fun row(meta: String) = DashboardWidgetRow("w", "formula-card", meta)
+
+    @Test fun `query count counts live filtered rows in the named date range`() {
+        val rows = listOf(
+            tx("1", 20260401, -100, "rent"),
+            tx("2", 20260430, -300, "rent"),
+            tx("3", 20260501, -300, "rent"),
+            tx("4", 20260415, -700, "food"),
+            tx("5", 20260420, -700, "rent").copy(tombstone = true),
+        )
+        val meta = JSONObject("""{"queries":{"rent":{"conditions":[{"field":"category","op":"is","value":"rent"}],
+            "timeFrame":{"mode":"static","start":"2026-04","end":"2026-04"}}}}""")
+            .put("formula", """=QUERY("rent") / QUERY_COUNT("rent") + QUERY_COUNT("unknown")""")
+        assertEquals(-200L, CoreReportEngine.compute(row(meta.toString()), rows).valueCents)
+    }
+
+    @Test fun `budget query reads signed activity and envelope balances with carryover`() {
+        val march = YearMonth.of(2026, 3)
+        fun month(offset: Long, rent: Long, activity: Long, balance: Long, rollover: Boolean): ActualBudgetMonth {
+            val month = march.plusMonths(offset).toString()
+            val category = ActualCategoryBudget(month, "rent", "Rent", "bills", "Bills", 0.0, 0.0,
+                rent, activity, balance, 0, false, false, 300L, false, rollover, null, null, null)
+            return ActualBudgetMonth(month, listOf(category, category.copy(categoryId = "other", groupId = "other")),
+                emptyList(), 0L, emptyList(), emptyList())
+        }
+        val budgets = mapOf(
+            march to month(0, 100, -300, -200, true),
+            march.plusMonths(1) to month(1, 500, -700, -400, false),
+            march.plusMonths(2) to month(2, 900, -500, 400, false),
+        )
+        val context = RuleContext(
+            categoryNames = mapOf("rent" to "Rent", "other" to "Other"),
+            categoryGroupIds = mapOf("rent" to "bills", "other" to "other"),
+        )
+        val meta = JSONObject("""{"queries":{"q":{"conditions":[
+            {"field":"account","op":"is","value":"unrelated"},{"field":"category_group","op":"is","value":"bills"}],
+            "timeFrame":{"mode":"static","start":"2026-04","end":"2026-05"}}}}""")
+        fun evaluate(formula: String) = CoreReportEngine.compute(
+            row(meta.put("formula", formula).toString()), emptyList(), context, budgetMonth = budgets::get,
+        )
+
+        for ((dimension, expected) in mapOf(
+            "budgeted" to 1400L, "spent" to -1200L, "balance_start" to -200L,
+            "balance_end" to 400L, "goal" to 600L,
+        )) {
+            val formula = """=BUDGET_QUERY("$dimension", QUERY_EXTRACT_CATEGORIES("q"),
+                QUERY_EXTRACT_TIMEFRAME_START("q"), QUERY_EXTRACT_TIMEFRAME_END("q"))"""
+            assertEquals(dimension, expected, evaluate(formula).valueCents)
+        }
+        assertEquals(1000L, evaluate("""=BUDGET_QUERY("budgeted", {"rent";"other"}, "2026-04", "2026-04")""").valueCents)
+        for (malformed in listOf(
+            """=BUDGET_QUERY("unknown", {"rent"}, "2026-04", "2026-05")""",
+            """=BUDGET_QUERY("spent", {"rent"}, "2026-14", "2026-05")""",
+            """=BUDGET_QUERY("spent", {"rent"}, "2026-06", "2026-05")""",
+            """=QUERY_COUNT("q", "extra")""",
+        )) {
+            val widget = evaluate(malformed)
+            assertEquals(malformed, null, widget.valueCents)
+            org.junit.Assert.assertNotNull(widget.markdown)
+        }
+    }
 
     @Test fun `a sub-query with no explicit timeFrame sums all-time, not just the current month`() {
         val rows = listOf(

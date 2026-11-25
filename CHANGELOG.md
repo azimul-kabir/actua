@@ -7,6 +7,9 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Added
 
 - Added a What's new card on the first open after an update, showing the release notes in your language ([#1792](https://github.com/azimul-kabir/actua/pull/1792))
+- Added Create schedule to the transaction selection menu, which opens a new schedule prefilled with the transaction's payee, account, amount and date ([#1790](https://github.com/azimul-kabir/actua/pull/1790))
+- Added trend lines to saved line reports that have them turned on in Actual ([#1784](https://github.com/azimul-kabir/actua/pull/1784))
+- Added support for budget queries and transaction counts in saved formula reports ([#1783](https://github.com/azimul-kabir/actua/pull/1783))
 - Added an optional Sync banks when opening the app setting under Manage → Bank Sync, limited to once per account every 30 minutes ([#1766](https://github.com/azimul-kabir/actua/pull/1766))
 - Added options to leave the payee empty when an alert names no merchant, and to leave notes empty, for captured, shared and automation transactions ([#1762](https://github.com/azimul-kabir/actua/pull/1762))
 - Added the app lock to widget taps, notifications, the share sheet and the Tasker setup screen, and a Hide widget amounts option that masks widget amounts while the lock is on ([#1755](https://github.com/azimul-kabir/actua/pull/1755))
@@ -21,9 +24,19 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added a widget style pack for supporters: Gradient accent, Outline and Midnight styles, corner radius and background opacity, for all widgets or each widget on its own ([#1733](https://github.com/azimul-kabir/actua/pull/1733))
 - Added a Custom accent color for supporters, with a hex field and hue, saturation and brightness sliders ([#1729](https://github.com/azimul-kabir/actua/pull/1729))
 - Added ten new app icons for supporters: Teal, Amber, Rose, Forest, Ocean, Latte, Mocha, Gradient, Midnight and Paper ([#1730](https://github.com/azimul-kabir/actua/pull/1730))
+- Added support for the Sankey card's top categories limit, sort order and show-as-percentages options ([#1786](https://github.com/azimul-kabir/actua/pull/1786))
+- Added a two-ring donut for saved reports grouped by category group, with groups inside and their categories outside ([#1785](https://github.com/azimul-kabir/actua/pull/1785))
+- Added support for the Sankey card's group accounts option and for ending it at categories ([#1787](https://github.com/azimul-kabir/actua/pull/1787))
+- Changed the Sankey card to a layered chart with payee, account and budget layers, the saved layer range and transfers between accounts ([#1789](https://github.com/azimul-kabir/actua/pull/1789))
 
 ### Fixed
 
+- Fixed saved Sankey reports in budgeted mode showing spending instead of budget assignments ([#1782](https://github.com/azimul-kabir/actua/pull/1782))
+
+- Fixed the Accounts tab row separator not lining up with the account name when account type icons are off ([#1781](https://github.com/azimul-kabir/actua/pull/1781))
+- Fixed hidden categories missing from the Move money and Move to a category target lists ([#1778](https://github.com/azimul-kabir/actua/pull/1778))
+- Fixed Hold for next month to start at the To Budget amount and add to the current hold, and the To Budget sheet to offer actions in the same states as Actual ([#1777](https://github.com/azimul-kabir/actua/pull/1777))
+- Fixed Move money and Cover overspending opening at zero; they now start with the category's balance or the overspent amount ([#1776](https://github.com/azimul-kabir/actua/pull/1776))
 - Fixed the Expense label on the smallest Quick transaction widget wrapping or breaking mid-word at large font sizes ([#1768](https://github.com/azimul-kabir/actua/pull/1768))
 - Fixed the notification status bar icon looking small and faint by enlarging and thickening it ([#1765](https://github.com/azimul-kabir/actua/pull/1765))
 - Fixed values on Accent-tinted widget tiles being hard to read with a bright custom accent in dark mode ([#1732](https://github.com/azimul-kabir/actua/pull/1732))

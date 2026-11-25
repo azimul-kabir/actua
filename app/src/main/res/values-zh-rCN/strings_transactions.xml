@@ -122,6 +122,8 @@
     <string name="transactions_mark_cleared">标记为已清算</string>
     <string name="transactions_mark_uncleared">标记为未清算</string>
     <string name="transactions_link_schedule">关联到计划</string>
+    <string name="transactions_create_schedule">创建计划</string>
+    <string name="transactions_create_schedule_unavailable">创建计划（转账不可用）</string>
     <string name="transactions_unlink_schedule">取消关联计划</string>
     <string name="transactions_view_schedule">查看计划</string>
     <string name="transactions_edit_schedule">编辑计划</string>

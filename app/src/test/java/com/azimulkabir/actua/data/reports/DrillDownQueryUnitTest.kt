@@ -252,17 +252,22 @@ class DrillDownQueryUnitTest {
         assertEquals(ReportWidgetKind.SANKEY, widget.kind)
 
         // Income categories
-        val salaryCat = widget.incomeCategories.first { it.name == "Salary" }
+        val salaryCat = widget.sankey!!.nodes.first { it.name == "Salary" }
         assertNotNull(salaryCat.drillDownQuery)
         val salaryTxs = filterSynthetic(transactions, salaryCat.drillDownQuery!!)
         assertEquals(listOf("1"), salaryTxs.map { it.id })
         assertEquals(800_000L, salaryTxs.sumOf { it.amountCents })
 
         // Expense categories
-        val billsCat = widget.categories.first { it.name == "Bills" }
+        val billsCat = widget.sankey!!.nodes.first { it.name == "Bills" }
         assertNotNull(billsCat.drillDownQuery)
         val billsTxs = filterSynthetic(transactions, billsCat.drillDownQuery!!)
         assertEquals(listOf("3"), billsTxs.map { it.id })
         assertEquals(300_000L, billsTxs.sumOf { -it.amountCents })
+
+        // The account node opens every transaction in that account for the range.
+        val account = widget.sankey!!.nodes.first { it.layer == com.azimulkabir.actua.model.SankeyLayer.ACCOUNT }
+        assertEquals(setOf("chk"), account.drillDownQuery!!.accountIds)
+        assertEquals(setOf("1", "2", "3"), filterSynthetic(transactions, account.drillDownQuery!!).map { it.id }.toSet())
     }
 }
