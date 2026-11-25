@@ -31,7 +31,7 @@ internal object BlankBudgetFactory {
     private fun seedDashboard(database: SQLiteDatabase) {
         val pageId = UUID.randomUUID().toString()
         // 16384 is the sort order Actual's migration 1792441821604 gives the first page.
-        database.execSQL("INSERT INTO dashboard_pages (id, name, sort_order) VALUES (?, ?, ?)", arrayOf(pageId, "Main", 16384))
+        database.execSQL("INSERT INTO dashboard_pages (id, name, sort_order) VALUES (?, ?, ?)", arrayOf<Any?>(pageId, "Main", 16384))
         DEFAULT_DASHBOARD.forEach { widget ->
             database.execSQL(
                 "INSERT INTO dashboard (id, type, width, height, x, y, meta, dashboard_page_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
