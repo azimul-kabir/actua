@@ -1197,6 +1197,7 @@ private fun TrendChart(
     lowValue: Long? = null,
     description: String = "Trend chart with ${points.size} points. Touch to read a value.",
     zeroBased: Boolean = false,
+    trendLine: Boolean = false,
 ) {
     if (points.isEmpty()) {
         Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1216,6 +1217,7 @@ private fun TrendChart(
                 values = points.map { it.primaryCents },
                 fill = true,
                 forecastFromIndex = forecastFrom,
+                trendLine = trendLine,
             ),
         ),
         formatValue = { if (isMoney) formatMoneyCents(it, hideDecimals) else "$it days" },
@@ -1503,7 +1505,7 @@ private fun CustomReport(
         widget.timeMode && (widget.graphType == "BarGraph" || widget.graphType == "StackedBarGraph") &&
             widget.points.isNotEmpty() -> IntervalBars(widget.points, hideDecimals)
         (widget.graphType == "LineGraph" || widget.graphType == "AreaGraph") && widget.points.size > 1 -> {
-            TrendChart(widget.points, hideDecimals)
+            TrendChart(widget.points, hideDecimals, trendLine = widget.showTrendLines && widget.graphType == "LineGraph")
         }
         else -> CategoryBars(widget, hideDecimals, onDrillDown)
     }

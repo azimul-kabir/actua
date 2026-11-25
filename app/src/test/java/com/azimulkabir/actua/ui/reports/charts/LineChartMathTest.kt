@@ -45,4 +45,33 @@ class LineChartMathTest {
         assertEquals(2, nearestPointIndex(50f, 100f, 5))
         assertEquals(0, nearestPointIndex(50f, 100f, 1))
     }
+
+    // Fixture series mirror upstream's computeTrendLines.test.ts.
+    @Test
+    fun trendLineIsNullWithFewerThanTwoValues() {
+        assertNull(computeTrendLine(emptyList()))
+        assertNull(computeTrendLine(listOf(100L)))
+    }
+
+    @Test
+    fun trendLineFitsALinearSeriesExactly() {
+        val trend = computeTrendLine(listOf(0L, 10_00L, 20_00L, 30_00L))!!
+        assertEquals(0.0, trend.start, 1e-9)
+        assertEquals(30_00.0, trend.end, 1e-9)
+    }
+
+    @Test
+    fun trendLineOfAConstantSeriesIsFlatAtTheMean() {
+        val trend = computeTrendLine(listOf(500L, 500L, 500L))!!
+        assertEquals(500.0, trend.start, 1e-9)
+        assertEquals(500.0, trend.end, 1e-9)
+    }
+
+    @Test
+    fun trendLineIsALeastSquaresFit() {
+        // 1, 3, 2, 5, 4: slope 0.8, intercept 1.4.
+        val trend = computeTrendLine(listOf(1L, 3L, 2L, 5L, 4L))!!
+        assertEquals(1.4, trend.start, 1e-9)
+        assertEquals(1.4 + 0.8 * 4, trend.end, 1e-9)
+    }
 }

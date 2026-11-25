@@ -57,3 +57,25 @@ fun seriesSummary(label: String, periods: List<String>, values: List<Long>, form
     return "$label: $n periods, from ${periods[0].take(10)} ${format(values[0])} to ${periods[n - 1].take(10)} ${format(values[n - 1])}, " +
         "highest ${format(values[high])} in ${periods[high].take(10)}, lowest ${format(values[low])} in ${periods[low].take(10)}."
 }
+
+/** Ends of a trend line: the fitted value at the first and last point, in cents as fractions. */
+data class TrendLineEnds(val start: Double, val end: Double)
+
+/**
+ * Least-squares line through [values] at x = 0, 1, 2, ..., the fit Actual draws when a line
+ * report's `show_trend_lines` is on (`computeTrendLines.ts`). Null with fewer than two values.
+ */
+fun computeTrendLine(values: List<Long>): TrendLineEnds? {
+    val n = values.size
+    if (n < 2) return null
+    val sumX = n * (n - 1) / 2.0
+    val sumSquares = (n - 1.0) * n * (2.0 * n - 1) / 6.0
+    val denominator = n * sumSquares - sumX * sumX
+    if (denominator == 0.0) return null
+    var sumY = 0.0
+    var sumXY = 0.0
+    values.forEachIndexed { x, y -> sumY += y; sumXY += x.toDouble() * y }
+    val slope = (n * sumXY - sumX * sumY) / denominator
+    val intercept = (sumY - slope * sumX) / n
+    return TrendLineEnds(intercept, intercept + slope * (n - 1))
+}

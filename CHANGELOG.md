@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added trend lines to saved line reports that have them turned on in Actual ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
 - Added support for budget queries and transaction counts in saved formula reports ([#1783](https://github.com/azimul-kabir/actua/pull/1783))
 - Added an optional Sync banks when opening the app setting under Manage → Bank Sync, limited to once per account every 30 minutes ([#1766](https://github.com/azimul-kabir/actua/pull/1766))
 - Added options to leave the payee empty when an alert names no merchant, and to leave notes empty, for captured, shared and automation transactions ([#1762](https://github.com/azimul-kabir/actua/pull/1762))
