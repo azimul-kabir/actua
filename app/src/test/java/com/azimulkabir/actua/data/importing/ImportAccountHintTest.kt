@@ -121,4 +121,19 @@ class ImportAccountHintTest {
         assertNull(prefilledImportAccount(null, "other.app", listOf(checking, visa.copy(closed = true))) { memory[it] })
         assertNull(prefilledImportAccount(null, "other.app", accounts) { mapOf(DEFAULT_IMPORT_ACCOUNT_KEY to "gone")[it] })
     }
+
+    @Test
+    fun `a card alert hint matches the account by last digits or by its name words`() {
+        val gas = account("Gas Mastercard")
+        val byDigits = account("Travel 1234")
+        assertEquals(byDigits, accountForImportHint("Sample Bank Gas Mastercard 1234", listOf(checking, byDigits, gas)))
+        assertEquals(gas, accountForImportHint("Sample Bank Gas Mastercard 1234", listOf(checking, gas)))
+    }
+
+    @Test
+    fun `a card alert hint with two matching names or none selects nothing`() {
+        val twins = listOf(account("Gas Mastercard", id = "a"), account("Mastercard Gas", id = "b"))
+        assertNull(accountForImportHint("Sample Bank Gas Mastercard 1234", twins))
+        assertNull(accountForImportHint("Sample Bank Gas Mastercard 1234", listOf(checking)))
+    }
 }

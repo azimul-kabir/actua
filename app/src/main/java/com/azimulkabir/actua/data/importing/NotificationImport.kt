@@ -18,6 +18,13 @@ object FinancialMessageParser {
     private val reference = Regex("(?i)(?:ref(?:erence)?|trx|txn|transaction)(?:\\s*(?:id|no))?[:# -]*([A-Z0-9-]{4,})")
     private val date = Regex("\\b(\\d{1,2})[/-](\\d{1,2})[/-](\\d{4})\\b")
     private val account = Regex("(?i)(?:card|a/c|account)[^0-9]{0,12}(?:x+|\\*+)?([0-9]{3,6})")
+    /**
+     * A card purchase alert with no wording around it, as CIBC Banking sends: "<card name>, <last 4>
+     * <MERCHANT> $<amount>", e.g. "CIBC Costco Mastercard, 2085 COSTCO GAS W160 $115.52".
+     */
+    private val cardPurchase = Regex(
+        "((?:[\\p{L}][\\p{L}\\p{N}&'.-]*\\s+){0,5}[\\p{L}][\\p{L}\\p{N}&'.-]*),\\s*(\\d{4})\\s+(.+?)\\s+(?:[A-Z]{3}\\s*)?\\$\\s?\\d[\\d,]*\\.\\d{2}\\s*\\.?$",
+    )
     val defaultProfile = FinancialMessageProfile()
 
     fun parse(text: String, source: String = "Shared text", today: LocalDate = LocalDate.now(),
@@ -26,17 +33,21 @@ object FinancialMessageParser {
         val wording = directionWording(normalized, source)
         val debit = profile.debitKeywords.firstOrNull { wording.containsWord(it) }
         val credit = profile.creditKeywords.firstOrNull { wording.containsWord(it) }
-        if (debit == null && credit == null) return failure(ImportProblemCode.DEBIT_OR_CREDIT_NOT_RECOGNIZED)
+        val card = cardPurchase.find(normalized)
+        // A card alert that says nothing about direction is a purchase; an explicit credit word still wins.
+        if (debit == null && credit == null && card == null) return failure(ImportProblemCode.DEBIT_OR_CREDIT_NOT_RECOGNIZED)
+        val outgoing = debit != null || credit == null
         val parsedAmount = (currencyAmount.find(normalized) ?: labeledAmount.find(normalized))?.groupValues?.get(1)
             ?.replace(",", "")?.toBigDecimalOrNull()
             ?: return failure(ImportProblemCode.TRANSACTION_AMOUNT_NOT_RECOGNIZED)
-        val cents = parsedAmount.setScale(2).movePointRight(2).longValueExact() * if (debit != null) -1 else 1
+        val cents = parsedAmount.setScale(2).movePointRight(2).longValueExact() * if (outgoing) -1 else 1
         val parsedDate = date.find(normalized)?.destructured?.let { (day, month, year) ->
             runCatching { LocalDate.of(year.toInt(), month.toInt(), day.toInt()) }.getOrNull()
         } ?: today
-        val merchant = counterparty(normalized, outgoing = debit != null)?.takeIf { it != source }
+        val merchant = (card?.groupValues?.get(3)?.trim() ?: counterparty(normalized, outgoing = outgoing))?.takeIf { it != source }
         val ref = reference.find(normalized)?.groupValues?.get(1)
-        val accountHint = account.find(normalized)?.groupValues?.get(1)
+        val accountHint = card?.let { "${it.groupValues[1].trim()} ${it.groupValues[2]}" }
+            ?: account.find(normalized)?.groupValues?.get(1)
         val confidence = when {
             ref != null && merchant != null -> ImportConfidence.HIGH
             merchant != null -> ImportConfidence.MEDIUM

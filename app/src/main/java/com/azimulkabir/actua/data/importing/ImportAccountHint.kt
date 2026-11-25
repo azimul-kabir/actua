@@ -11,8 +11,23 @@ fun accountForImportHint(hint: String, accounts: List<Account>): Account? {
     val wanted = hint.trim()
     if (wanted.isEmpty()) return null
     accounts.filter { it.name.trim().equals(wanted, ignoreCase = true) }.singleOrNull()?.let { return it }
-    return accounts.singleOrNull { wanted in it.name.filter(Char::isDigit) }
+    accounts.singleOrNull { wanted in it.name.filter(Char::isDigit) }?.let { return it }
+    // A card alert's hint is "<card name> <last digits>", e.g. "CIBC Costco Mastercard 2085".
+    val card = CARD_HINT.matchEntire(wanted) ?: return null
+    val (name, digits) = card.destructured
+    accounts.singleOrNull { digits in it.name.filter(Char::isDigit) }?.let { return it }
+    val words = importHintWords(name)
+    return accounts.singleOrNull { account ->
+        importHintWords(account.name).let { it.isNotEmpty() && words.containsAll(it) }
+    }
 }
+
+private val CARD_HINT = Regex("(.*\\p{L}.*?)\\s+(\\d{4})")
+private val HINT_WORD = Regex("[\\p{L}\\p{N}]+")
+
+/** The lower-cased words of [text], so an account named "Costco Mastercard" matches "CIBC Costco Mastercard". */
+private fun importHintWords(text: String): Set<String> =
+    HINT_WORD.findAll(text.lowercase()).map { it.value }.toSet()
 
 /**
  * Names of open [accounts] that, sent as an import hint, select exactly that account: what the

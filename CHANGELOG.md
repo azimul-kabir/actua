@@ -31,6 +31,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed captured card alerts in the form "Card name, 1234 MERCHANT $12.34" (as CIBC Banking sends) showing the app as the payee and not picking the card's account ([#1834](https://github.com/azimul-kabir/actua/pull/1834))
+
 - Fixed OFX and QFX amounts that use a comma as the decimal mark being imported 100 times too large ([#1828](https://github.com/azimul-kabir/actua/pull/1828))
 - Fixed syncing a budget with a very long history failing because the upload was too large for the server ([#1826](https://github.com/azimul-kabir/actua/pull/1826))
 - Fixed dashboard widgets created on another device not showing, and the order of report dashboard pages not matching Actual ([#1824](https://github.com/azimul-kabir/actua/pull/1824))

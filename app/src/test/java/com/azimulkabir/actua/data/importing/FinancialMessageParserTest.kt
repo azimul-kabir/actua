@@ -148,4 +148,23 @@ class FinancialMessageParserTest {
         assertEquals("Imported from Bank app", candidate.notes)
         assertEquals(ImportConfidence.HIGH, candidate.confidence)
     }
+
+    @Test
+    fun `parses a card purchase alert with no direction wording`() {
+        val candidate = FinancialMessageParser.parse(
+            "Sample Bank Gas Mastercard, 1234 EXAMPLE GAS W100 $45.67", "Sample Banking", LocalDate.of(2026, 9, 14),
+        ).candidates.single()
+        assertEquals(-4_567L, candidate.amountCents)
+        assertEquals("EXAMPLE GAS W100", candidate.payee)
+        assertEquals("Sample Bank Gas Mastercard 1234", candidate.accountHint)
+        assertEquals(ImportConfidence.MEDIUM, candidate.confidence)
+    }
+
+    @Test
+    fun `a card alert with a title keeps the merchant and an explicit refund is money in`() {
+        val refund = FinancialMessageParser.parse("Refund Sample Bank Gas Mastercard, 1234 EXAMPLE GAS W100 $45.67",
+            "Sample Banking").candidates.single()
+        assertEquals(4_567L, refund.amountCents)
+        assertEquals("EXAMPLE GAS W100", refund.payee)
+    }
 }
