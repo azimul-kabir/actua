@@ -2,6 +2,7 @@ package com.azimulkabir.actua.ui.reports
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -10,6 +11,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.azimulkabir.actua.model.ReportCategory
@@ -174,7 +177,9 @@ class ReportsChartInteractionTest {
         compose.waitForIdle()
         // Summary heads and legend headers both read "Categories" until a node is highlighted.
         compose.onAllNodesWithText("Categories").assertCountEquals(2)
-        compose.onNodeWithText("Rent").performClick()
+        // The legend sits below the chart and the Show breakdown button, under the bottom edge of a
+        // 320x640 screen (API 28 CI); scroll it in and click through semantics so the tap can't miss.
+        compose.onNodeWithText("Rent").performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
 
         compose.onAllNodesWithText("Categories").assertCountEquals(1)
