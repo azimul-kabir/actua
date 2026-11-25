@@ -1,0 +1,9 @@
+• Seis novos idiomas
+• Escaneie recibos em transações existentes
+• Crie um agendamento a partir de uma transação
+• Cartão de novidades após atualizar
+• Tabela do orçamento mais clara
+• Nova opção Usar cor de destaque
+• Mais opções de relatórios do Actual
+• Novos ícones e estilos de widget
+• Valores em iene, won e rial corrigidos

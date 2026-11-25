@@ -1,0 +1,9 @@
+• Seis idiomas nuevos
+• Escanea recibos en transacciones existentes
+• Crea una programación desde una transacción
+• Tarjeta de novedades tras actualizar
+• Vista de tabla del presupuesto más clara
+• Nueva opción Usar color de acento
+• Más opciones de informes de Actual
+• Nuevos iconos y estilos de widgets
+• Importes en yenes, wones y riales corregidos

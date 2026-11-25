@@ -1,0 +1,9 @@
+• Six nouvelles langues
+• Scanner un reçu sur une opération existante
+• Créer une échéance depuis une opération
+• Carte Nouveautés après les mises à jour
+• Vue tableau du budget plus claire
+• Nouvelle option Utiliser la couleur d’accent
+• Plus d’options de rapports d’Actual
+• Nouvelles icônes et styles de widgets
+• Montants en yen, won et rial corrigés
