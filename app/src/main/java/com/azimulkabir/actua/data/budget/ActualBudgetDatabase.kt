@@ -1743,8 +1743,10 @@ class ActualBudgetDatabase private constructor(
     fun fetchDashboardPages(): List<DashboardPageRow> {
         if (!hasTable("dashboard_pages")) return emptyList()
         val rows = mutableListOf<DashboardPageRow>()
+        // Actual orders pages by sort_order (migration 1792441821604), then id.
+        val order = if ("sort_order" in columns("dashboard_pages")) "sort_order, id" else "rowid"
         database.rawQuery(
-            "SELECT id, COALESCE(name, '') FROM dashboard_pages WHERE tombstone = 0 OR tombstone IS NULL ORDER BY rowid",
+            "SELECT id, COALESCE(name, '') FROM dashboard_pages WHERE tombstone = 0 OR tombstone IS NULL ORDER BY $order",
             null,
         ).use { cursor -> while (cursor.moveToNext()) rows += DashboardPageRow(cursor.getString(0), cursor.getString(1)) }
         return rows
@@ -1791,16 +1793,36 @@ class ActualBudgetDatabase private constructor(
         return widgets
     }
 
+    /** The sort order for a new dashboard page: after every existing page, as Actual's `createDashboardPage`. */
     @Synchronized
-    fun fetchDashboardWidgets(pageId: String?): List<DashboardWidgetRow> {
+    fun nextDashboardPageSortOrder(): Double? {
+        if (!hasTable("dashboard_pages") || "sort_order" !in columns("dashboard_pages")) return null
+        val last = database.rawQuery(
+            "SELECT sort_order FROM dashboard_pages ORDER BY sort_order DESC, id DESC LIMIT 1", null,
+        ).use { if (it.moveToFirst() && !it.isNull(0)) it.getDouble(0) else 0.0 }
+        return last + DASHBOARD_PAGE_SORT_INCREMENT
+    }
+
+    /**
+     * Live widgets of [pageId]. With [adoptOrphans], the first page also shows widgets whose page does not
+     * exist here: the default page is seeded by a migration that sends no sync messages, so every device made
+     * its own id for it, and widgets synced from another device would otherwise sit on no page at all
+     * (actualbudget/actual#9278). Callers that change or delete a page's widgets pass false.
+     */
+    @Synchronized
+    fun fetchDashboardWidgets(pageId: String?, adoptOrphans: Boolean = true): List<DashboardWidgetRow> {
         if (!hasTable("dashboard")) return emptyList()
         val columns = database.rawQuery("PRAGMA table_info(dashboard)", null).use { cursor ->
             val name = cursor.getColumnIndexOrThrow("name")
             buildSet { while (cursor.moveToNext()) add(cursor.getString(name)) }
         }
         val hasPage = "dashboard_page_id" in columns
+        val adopts = hasPage && adoptOrphans && pageId != null && pageId == fetchDashboardPages().firstOrNull()?.id
         val where = if (!hasPage) "" else if (pageId == null) {
             " AND dashboard_page_id IS NULL"
+        } else if (adopts) {
+            " AND (dashboard_page_id = ? OR dashboard_page_id IS NULL OR dashboard_page_id NOT IN " +
+                "(SELECT id FROM dashboard_pages WHERE tombstone = 0 OR tombstone IS NULL))"
         } else {
             " AND dashboard_page_id = ?"
         }
@@ -2740,6 +2762,9 @@ class ActualBudgetDatabase private constructor(
         // IDs and declarations mirror Actuali iOS. The core read model needs
         // schedule now; the remaining columns ensure synced account/category
         // data is not discarded while later Android screens are being ported.
+        /** Actual's `SORT_INCREMENT`: the gap between neighbouring sort orders. */
+        internal const val DASHBOARD_PAGE_SORT_INCREMENT = 16384.0
+
         private val columnMigrations = listOf(
             ColumnMigration(1694438752000, "zero_budgets", "goal", "INTEGER DEFAULT null"),
             ColumnMigration(1694438752001, "reflect_budgets", "goal", "INTEGER DEFAULT null"),
@@ -2755,6 +2780,7 @@ class ActualBudgetDatabase private constructor(
             ColumnMigration(1780606215004, "accounts", "last_sync", "TEXT"),
             ColumnMigration(1783004650757, "schedules", "sort_order", "REAL DEFAULT 0"),
             ColumnMigration(1787013118115, "accounts", "account_group_id", "TEXT DEFAULT NULL"),
+            ColumnMigration(1792441821604, "dashboard_pages", "sort_order", "REAL DEFAULT 1000000000"),
         )
         /**
          * Migration ids recorded by Actuali/Actua for their own partial column steps. Actual has no
