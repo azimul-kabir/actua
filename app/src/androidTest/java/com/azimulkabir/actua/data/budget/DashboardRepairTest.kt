@@ -84,6 +84,31 @@ class DashboardRepairTest {
         assertEquals(0, messageCount(file))
     }
 
+    /** actualbudget/actual#9278: a widget synced from a device whose seeded page has another id is not lost. */
+    @Test fun widgetsOnAPageThatDoesNotExistShowOnTheFirstPageOnly() = withBudget(clearDashboard = false) { database, file ->
+        val first = database.fetchDashboardPages().first().id
+        val second = ActualEntityWriter(database).createDashboardPage("Second")
+        SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { raw ->
+            raw.execSQL("INSERT INTO dashboard (id, type, width, height, x, y, meta, dashboard_page_id) VALUES ('orphan','net-worth-card',6,2,0,99,NULL,'page-from-the-other-device')")
+            raw.execSQL("INSERT INTO dashboard (id, type, width, height, x, y, meta, dashboard_page_id) VALUES ('pageless','cash-flow-card',6,2,6,99,NULL,NULL)")
+        }
+
+        assertEquals(listOf(first, second), database.fetchDashboardPages().map { it.id })
+        val onFirst = database.fetchDashboardWidgets(first).map { it.id }
+        assertTrue("orphan" in onFirst && "pageless" in onFirst)
+        assertEquals(emptyList<String>(), database.fetchDashboardWidgets(second).map { it.id })
+        assertFalse("orphan" in database.fetchDashboardWidgets(first, adoptOrphans = false).map { it.id })
+    }
+
+    @Test fun aNewPageSortsAfterTheSeededPage() = withBudget(clearDashboard = false) { database, _ ->
+        val seeded = database.fetchDashboardPages().single().id
+        val writer = ActualEntityWriter(database)
+        val one = writer.createDashboardPage("One")
+        val two = writer.createDashboardPage("Two")
+
+        assertEquals(listOf(seeded, one, two), database.fetchDashboardPages().map { it.id })
+    }
+
     private fun withBudget(clearDashboard: Boolean, block: (ActualBudgetDatabase, File) -> Unit) {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val file = File(context.cacheDir, "dashboard-repair-${UUID.randomUUID()}.sqlite")

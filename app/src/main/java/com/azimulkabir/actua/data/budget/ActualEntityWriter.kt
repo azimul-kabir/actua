@@ -149,7 +149,7 @@ class ActualEntityWriter(
     fun ensureDashboardPage(): Boolean {
         if (!database.dashboardPagesSupported() || database.fetchDashboardPages().isNotEmpty()) return false
         val messages = mutableListOf<CrdtMessage>()
-        messages += fields("dashboard_pages", DEFAULT_DASHBOARD_PAGE_ID, linkedMapOf("name" to "Main", "tombstone" to 0))
+        messages += fields("dashboard_pages", DEFAULT_DASHBOARD_PAGE_ID, linkedMapOf("name" to "Main", "tombstone" to 0, "sort_order" to 16384.0))
         val widgets = database.liveDashboardWidgetIds()
         if (widgets.isNotEmpty()) {
             widgets.forEach { messages += fields("dashboard", it, linkedMapOf("dashboard_page_id" to DEFAULT_DASHBOARD_PAGE_ID)) }
@@ -752,7 +752,10 @@ class ActualEntityWriter(
     fun createDashboardPage(name: String): String {
         val clean = requiredName(name)
         val id = idFactory()
-        persist(fields("dashboard_pages", id, linkedMapOf("name" to clean, "tombstone" to 0)))
+        val values = linkedMapOf<String, Any?>("name" to clean, "tombstone" to 0)
+        // Without it a page sorts last, and ahead of the seeded page on a client that predates the column.
+        database.nextDashboardPageSortOrder()?.let { values["sort_order"] = it }
+        persist(fields("dashboard_pages", id, values))
         return id
     }
 
@@ -766,7 +769,7 @@ class ActualEntityWriter(
     fun deleteDashboardPage(id: String) {
         val messages = mutableListOf<CrdtMessage>()
         messages += fields("dashboard_pages", id, linkedMapOf("tombstone" to 1))
-        database.fetchDashboardWidgets(id).forEach {
+        database.fetchDashboardWidgets(id, adoptOrphans = false).forEach {
             messages += fields("dashboard", it.id, linkedMapOf("tombstone" to 1))
         }
         persist(messages)
@@ -823,7 +826,7 @@ class ActualEntityWriter(
                 "show_trend_lines",
             ),
             "dashboard" to setOf("type", "width", "height", "x", "y", "meta", "tombstone", "dashboard_page_id"),
-            "dashboard_pages" to setOf("name", "tombstone"),
+            "dashboard_pages" to setOf("name", "tombstone", "sort_order"),
         )
     }
 }

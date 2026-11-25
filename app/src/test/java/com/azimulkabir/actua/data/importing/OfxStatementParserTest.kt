@@ -146,4 +146,24 @@ class OfxStatementParserTest {
         val result = OfxStatementParser.parse(bytes)
         assertEquals("Café", result.candidates.single().payee)
     }
+
+    @Test
+    fun `reads a comma as the decimal mark`() {
+        assertEquals(-1978L, OfxStatementParser.parseOfxAmount("-19,78"))
+        assertEquals(15_000L, OfxStatementParser.parseOfxAmount("+150,00"))
+        assertEquals(5L, OfxStatementParser.parseOfxAmount("0,05"))
+    }
+
+    @Test
+    fun `keeps a comma that groups thousands`() {
+        assertEquals(123_450L, OfxStatementParser.parseOfxAmount("1,234.50"))
+        assertEquals(-123_456_700L, OfxStatementParser.parseOfxAmount("-1,234,567.00"))
+        assertEquals(-123_456_700L, OfxStatementParser.parseOfxAmount("-1,234,567"))
+    }
+
+    @Test
+    fun `plain amounts are unchanged`() {
+        assertEquals(-1978L, OfxStatementParser.parseOfxAmount("-19.78"))
+        assertEquals(150_000L, OfxStatementParser.parseOfxAmount("1500"))
+    }
 }
