@@ -324,7 +324,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] No obvious clipping, blank space, overlapping text or inaccessible actions on the primary test device.
 - [ ] Typing in the Transactions search field and toggling row selection feel responsive with no visible lag on a large transaction list; switching Budget between Plan/Table view and scrolling through many category groups feels smooth with no stutter at income/Plan/Table section boundaries.
 - [ ] Budget category details, Accounts list scrolling (including a budget with many credit-card accounts), and opening Add/Edit Transaction's payee/category/account pickers all remain responsive while typing.
-- [ ] With device formats left on "Same as budget", change the budget's number format, date format, hide decimals and currency in Actual, sync, and verify Actua follows each; set a device override and verify it wins. On a `JPY` budget verify amounts show and are entered as whole yen.
+- [ ] With device formats left on "Same as budget", change the budget's number format, date format, hide decimals and currency in Actual, sync, and verify Actua follows each; set a device override and verify it wins. On a `JPY` budget verify amounts show and are entered as whole yen, and that an amount entered in Actua shows the same in Actual (¥1,500 is stored as 150000).
 - [ ] Settings → About → Diagnostics: verify recent activity (screens, syncs, a forced failed action) is listed, copy, save and email the report, and confirm it contains no server address, credentials, budget names or amounts; clear the log and verify it empties.
 
 ## Standalone budgets, Google Drive backups, and recent features

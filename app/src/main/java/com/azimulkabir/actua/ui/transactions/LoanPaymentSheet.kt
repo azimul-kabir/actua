@@ -1,5 +1,7 @@
 package com.azimulkabir.actua.ui.transactions
 
+import com.azimulkabir.actua.ui.components.STORED_DECIMALS
+import com.azimulkabir.actua.ui.components.centsToInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -55,7 +57,7 @@ data class LoanPaymentRequest(
     val date: Int,
 )
 
-private fun centsText(cents: Long): String = BigDecimal(cents).movePointLeft(CurrencyDisplay.decimalPlaces).toPlainString()
+private fun centsText(cents: Long): String = centsToInput(cents)
 
 /** Open, on-budget accounts a loan payment can come from, in name order. */
 internal fun loanFundingAccounts(accounts: List<Account>, loanAccountId: String): List<Account> =
@@ -81,7 +83,7 @@ internal fun LoanPaymentSheet(
     var payment by remember { mutableStateOf(centsText(suggested)) }
     var interest by remember { mutableStateOf(centsText(estimate.interestCents)) }
     var escrow by remember { mutableStateOf(centsText(estimate.escrowCents)) }
-    val decimals = CurrencyDisplay.decimalPlaces
+    val decimals = STORED_DECIMALS
     val paymentCents = parsePositiveCents(payment, decimals)
     val interestCents = parseNonNegativeCents(interest, decimals)
     val escrowCents = if (config.escrowOrFeesCents == null) 0L else parseNonNegativeCents(escrow, decimals)

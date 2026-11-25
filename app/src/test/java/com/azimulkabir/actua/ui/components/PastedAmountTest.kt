@@ -50,11 +50,11 @@ class PastedAmountTest {
     }
 
     @Test fun currenciesWithOtherDecimalPlaces() {
-        assertEquals(1234L, cents("1,234", decimalPlaces = 0))
-        assertEquals(1234L, cents("1234", decimalPlaces = 0))
-        assertNull(cents("12.5", decimalPlaces = 0))
-        assertEquals(1234L, cents("1.234", decimalPlaces = 3))
-        assertEquals(12500L, cents("12.5", decimalPlaces = 3))
+        // A currency without decimals still stores two implied decimals: ¥1,234 is 123400.
+        assertEquals(123_400L, cents("1,234", decimalPlaces = 0))
+        assertEquals(123_400L, cents("1234", decimalPlaces = 0))
+        assertEquals(1_250L, cents("12.5", decimalPlaces = 0))
+        assertNull(cents("12.555", decimalPlaces = 0))
     }
 
     @Test fun refusesTextWithoutExactlyOneAmount() {

@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.data.budget
 
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.time.LocalDate
@@ -20,13 +21,15 @@ object BudgetMovementNote {
     fun decimalPlaces(currencyCode: String?): Int = CurrencyDecimals.of(currencyCode)
 
     /**
-     * Upstream `integerToCurrency(amount, undefined, decimalPlaces)` on the server: the integer amount
-     * divided by 10^decimalPlaces, formatted en-US with grouping and exactly two fraction digits
-     * (the server never changes its default number format).
+     * Upstream `integerToCurrencyWithDecimal(amount, currencyCode)` on the server: the integer amount
+     * divided by 100 (every currency stores two implied decimals), formatted en-US with grouping and
+     * the currency's own fraction digits, so none for JPY, KRW and IRR (the server never changes its
+     * default number format).
      */
     fun amountText(amountCents: Long, currencyCode: String?): String {
-        val value = BigDecimal.valueOf(amountCents).movePointLeft(decimalPlaces(currencyCode))
-        return DecimalFormat("#,##0.00", DecimalFormatSymbols(Locale.US)).format(value)
+        val value = BigDecimal.valueOf(amountCents).movePointLeft(2)
+        val pattern = if (decimalPlaces(currencyCode) == 0) "#,##0" else "#,##0.00"
+        return DecimalFormat(pattern, DecimalFormatSymbols(Locale.US)).apply { roundingMode = RoundingMode.HALF_UP }.format(value)
     }
 
     /** One note line, without the leading "- ". [today] is formatted `MMMM dd`, in English. */
