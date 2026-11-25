@@ -4,62 +4,51 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [2.9.0] - 2026-11-26
+
 ### Added
 
-- Added an Edge-to-edge groups option in the Budget table view's Display options, which draws each group flat from edge to edge with rounded corners only at its ends ([#1836](https://github.com/azimul-kabir/actua/pull/1836))
-- Added a What's new card on the first open after an update, showing the release notes in your language ([#1792](https://github.com/azimul-kabir/actua/pull/1792))
-- Added Create schedule to the transaction selection menu, which opens a new schedule prefilled with the transaction's payee, account, amount and date ([#1790](https://github.com/azimul-kabir/actua/pull/1790))
-- Added trend lines to saved line reports that have them turned on in Actual ([#1784](https://github.com/azimul-kabir/actua/pull/1784))
-- Added support for budget queries and transaction counts in saved formula reports ([#1783](https://github.com/azimul-kabir/actua/pull/1783))
-- Added an optional Sync banks when opening the app setting under Manage → Bank Sync, limited to once per account every 30 minutes ([#1766](https://github.com/azimul-kabir/actua/pull/1766))
-- Added options to leave the payee empty when an alert names no merchant, and to leave notes empty, for captured, shared and automation transactions ([#1762](https://github.com/azimul-kabir/actua/pull/1762))
-- Added the app lock to widget taps, notifications, the share sheet and the Tasker setup screen, and a Hide widget amounts option that masks widget amounts while the lock is on ([#1755](https://github.com/azimul-kabir/actua/pull/1755))
-- Added Scan receipt when editing an existing transaction, to attach a receipt photo or also replace its amount, payee and date ([#1754](https://github.com/azimul-kabir/actua/pull/1754))
-- Added a note on the Support page, when Google Play can't sell supporter purchases, that they are made through Google Play, with an Open Google Play button ([#1751](https://github.com/azimul-kabir/actua/pull/1751))
-- Added French as an app language, selectable under Settings → Display → Language ([#1734](https://github.com/azimul-kabir/actua/pull/1734))
-- Added German as an app language, selectable under Settings → Display → Language ([#1735](https://github.com/azimul-kabir/actua/pull/1735))
-- Added Italian as an app language, selectable under Settings → Display → Language ([#1742](https://github.com/azimul-kabir/actua/pull/1742))
-- Added Japanese as an app language, selectable under Settings → Display → Language ([#1743](https://github.com/azimul-kabir/actua/pull/1743))
-- Added Russian as an app language, selectable under Settings → Display → Language ([#1746](https://github.com/azimul-kabir/actua/pull/1746))
-- Added Simplified Chinese as an app language, selectable under Settings → Display → Language ([#1747](https://github.com/azimul-kabir/actua/pull/1747))
-- Added a widget style pack for supporters: Gradient accent, Outline and Midnight styles, corner radius and background opacity, for all widgets or each widget on its own ([#1733](https://github.com/azimul-kabir/actua/pull/1733))
-- Added a Custom accent color for supporters, with a hex field and hue, saturation and brightness sliders ([#1729](https://github.com/azimul-kabir/actua/pull/1729))
-- Added ten new app icons for supporters: Teal, Amber, Rose, Forest, Ocean, Latte, Mocha, Gradient, Midnight and Paper ([#1730](https://github.com/azimul-kabir/actua/pull/1730))
-- Added support for the Sankey card's top categories limit, sort order and show-as-percentages options ([#1786](https://github.com/azimul-kabir/actua/pull/1786))
-- Added a two-ring donut for saved reports grouped by category group, with groups inside and their categories outside ([#1785](https://github.com/azimul-kabir/actua/pull/1785))
-- Added support for the Sankey card's group accounts option and for ending it at categories ([#1787](https://github.com/azimul-kabir/actua/pull/1787))
-- Changed the Sankey card to a layered chart with payee, account and budget layers, the saved layer range and transfers between accounts ([#1789](https://github.com/azimul-kabir/actua/pull/1789))
-
-### Fixed
-
-- Fixed captured card alerts in the form "Card name, 1234 MERCHANT $12.34" (as CIBC Banking sends) showing the app as the payee and not picking the card's account ([#1834](https://github.com/azimul-kabir/actua/pull/1834))
-
-- Fixed OFX and QFX amounts that use a comma as the decimal mark being imported 100 times too large ([#1828](https://github.com/azimul-kabir/actua/pull/1828))
-- Fixed syncing a budget with a very long history failing because the upload was too large for the server ([#1826](https://github.com/azimul-kabir/actua/pull/1826))
-- Fixed dashboard widgets created on another device not showing, and the order of report dashboard pages not matching Actual ([#1824](https://github.com/azimul-kabir/actua/pull/1824))
-- Fixed the message shown when the server refuses changes made while a device clock was set ahead, which now says how to fix it ([#1823](https://github.com/azimul-kabir/actua/pull/1823))
-- Fixed amounts in currencies without decimals (yen, won, rial) being stored at the wrong scale, so they match Actual; amounts typed in these currencies before this fix must be entered again ([#1822](https://github.com/azimul-kabir/actua/pull/1822))
-- Fixed saved Sankey reports in budgeted mode showing spending instead of budget assignments ([#1782](https://github.com/azimul-kabir/actua/pull/1782))
-
-- Fixed the Accounts tab row separator not lining up with the account name when account type icons are off ([#1781](https://github.com/azimul-kabir/actua/pull/1781))
-- Fixed hidden categories missing from the Move money and Move to a category target lists ([#1778](https://github.com/azimul-kabir/actua/pull/1778))
-- Fixed Hold for next month to start at the To Budget amount and add to the current hold, and the To Budget sheet to offer actions in the same states as Actual ([#1777](https://github.com/azimul-kabir/actua/pull/1777))
-- Fixed Move money and Cover overspending opening at zero; they now start with the category's balance or the overspent amount ([#1776](https://github.com/azimul-kabir/actua/pull/1776))
-- Fixed the Expense label on the smallest Quick transaction widget wrapping or breaking mid-word at large font sizes ([#1768](https://github.com/azimul-kabir/actua/pull/1768))
-- Fixed the notification status bar icon looking small and faint by enlarging and thickening it ([#1765](https://github.com/azimul-kabir/actua/pull/1765))
-- Fixed values on Accent-tinted widget tiles being hard to read with a bright custom accent in dark mode ([#1732](https://github.com/azimul-kabir/actua/pull/1732))
+- Added French, German, Italian, Japanese, Russian and Simplified Chinese as app languages, under Settings → Display → Language ([#1734](https://github.com/azimul-kabir/actua/pull/1734), [#1735](https://github.com/azimul-kabir/actua/pull/1735), [#1742](https://github.com/azimul-kabir/actua/pull/1742), [#1743](https://github.com/azimul-kabir/actua/pull/1743), [#1746](https://github.com/azimul-kabir/actua/pull/1746), [#1747](https://github.com/azimul-kabir/actua/pull/1747))
+- Added Scan receipt when editing an existing transaction, to attach the photo or also replace its amount, payee and date ([#1754](https://github.com/azimul-kabir/actua/pull/1754))
+- Added Create schedule to the transaction selection menu, prefilled from the transaction ([#1790](https://github.com/azimul-kabir/actua/pull/1790))
+- Added a What's new card on the first open after an update, in your language ([#1792](https://github.com/azimul-kabir/actua/pull/1792))
+- Added an Edge-to-edge groups option to the Budget table view's Display options ([#1836](https://github.com/azimul-kabir/actua/pull/1836))
+- Added an optional Sync banks when opening the app setting under Manage → Bank Sync ([#1766](https://github.com/azimul-kabir/actua/pull/1766))
+- Added options to leave the payee and notes empty for captured, shared and automation transactions ([#1762](https://github.com/azimul-kabir/actua/pull/1762))
+- Added the app lock to widget taps, notifications, the share sheet and Tasker setup, and a Hide widget amounts option ([#1755](https://github.com/azimul-kabir/actua/pull/1755))
+- Added trend lines to saved line reports and budget queries and transaction counts to formula reports ([#1784](https://github.com/azimul-kabir/actua/pull/1784), [#1783](https://github.com/azimul-kabir/actua/pull/1783))
+- Added a two-ring donut for saved reports grouped by category group ([#1785](https://github.com/azimul-kabir/actua/pull/1785))
+- Added the Sankey card's top categories, sort, percentages, group accounts and category layer options ([#1786](https://github.com/azimul-kabir/actua/pull/1786), [#1787](https://github.com/azimul-kabir/actua/pull/1787))
+- Added a Custom accent color, ten app icons and a widget style pack for supporters ([#1729](https://github.com/azimul-kabir/actua/pull/1729), [#1730](https://github.com/azimul-kabir/actua/pull/1730), [#1733](https://github.com/azimul-kabir/actua/pull/1733))
+- Added an Open Google Play button on the Support page when Google Play can't sell supporter purchases ([#1751](https://github.com/azimul-kabir/actua/pull/1751))
 
 ### Changed
 
-- Changed donut and Sankey report cards to keep their breakdown list behind a Show breakdown button, and stacked bar legends to wrap side by side ([#1851](https://github.com/azimul-kabir/actua/pull/1851))
-- Changed budget balances to green when positive and red when negative, and the category status colors to fixed green, amber, gray, red and blue ([#1838](https://github.com/azimul-kabir/actua/pull/1838))
-- Changed the Budget table view to denser 48 dp rows, 13 sp aligned amounts, two-line group names, and goal icons shown as a small badge on the balance pill ([#1836](https://github.com/azimul-kabir/actua/pull/1836))
-- Changed the Budget table view to equal Budgeted, Spent and Balance columns, shrinking only amounts that don't fit ([#1845](https://github.com/azimul-kabir/actua/pull/1845))
-- Changed Edge-to-edge groups in the Budget table view to slightly rounded corners with a full-width warning banner and row-height group headers, and made table balance pills less rounded ([#1846](https://github.com/azimul-kabir/actua/pull/1846))
-- Changed "Color balances" to "Use accent color": when on, progress bars, status dots and balances take the accent color while overspent, goal in progress and empty categories stay red, amber and gray ([#1849](https://github.com/azimul-kabir/actua/pull/1849))
-- Changed "Accept transactions from Tasker" to "Accept transactions from automation apps", and broadcasts without a source now show as Automation instead of Tasker ([#1757](https://github.com/azimul-kabir/actua/pull/1757))
-- Changed GitHub releases to ship one APK, the Google Play build, as `Actua-v<version>.apk`; the separate Direct Full build is gone and earlier GitHub installs update in place ([#1751](https://github.com/azimul-kabir/actua/pull/1751))
+- Changed the Sankey card to a layered chart with payee, account and budget layers ([#1789](https://github.com/azimul-kabir/actua/pull/1789))
+- Changed the Budget table view to denser rows, equal columns and goal badges on the balance pill ([#1836](https://github.com/azimul-kabir/actua/pull/1836), [#1845](https://github.com/azimul-kabir/actua/pull/1845))
+- Changed Edge-to-edge groups to slightly rounded, full-width blocks with row-height group headers ([#1846](https://github.com/azimul-kabir/actua/pull/1846))
+- Changed budget balances to green and red by sign, and category status colors to fixed green, amber, gray, red and blue ([#1838](https://github.com/azimul-kabir/actua/pull/1838))
+- Changed "Color balances" to "Use accent color", which colors bars, dots and balances with your accent while warnings keep their colors ([#1849](https://github.com/azimul-kabir/actua/pull/1849))
+- Changed donut and Sankey report cards to keep their breakdown behind a Show breakdown button, and stacked bar legends to wrap ([#1851](https://github.com/azimul-kabir/actua/pull/1851))
+- Changed "Accept transactions from Tasker" to "Accept transactions from automation apps" ([#1757](https://github.com/azimul-kabir/actua/pull/1757))
+- Changed GitHub releases to ship one APK, the Google Play build, as `Actua-v<version>.apk` ([#1751](https://github.com/azimul-kabir/actua/pull/1751))
 - Changed the Quick Settings tile label from Add transaction to Transaction ([#1725](https://github.com/azimul-kabir/actua/pull/1725))
+
+### Fixed
+
+- Fixed amounts in currencies without decimals (yen, won, rial) being stored at the wrong scale; amounts typed in them before must be entered again ([#1822](https://github.com/azimul-kabir/actua/pull/1822))
+- Fixed OFX and QFX amounts with a comma decimal mark importing 100 times too large ([#1828](https://github.com/azimul-kabir/actua/pull/1828))
+- Fixed syncing a budget with a very long history failing because the upload was too large ([#1826](https://github.com/azimul-kabir/actua/pull/1826))
+- Fixed dashboard widgets from another device not showing, and dashboard page order not matching Actual ([#1824](https://github.com/azimul-kabir/actua/pull/1824))
+- Fixed the message shown when the server refuses changes from a device whose clock was ahead ([#1823](https://github.com/azimul-kabir/actua/pull/1823))
+- Fixed captured card alerts shaped "Card name, 1234 MERCHANT $12.34" missing the payee and card account ([#1834](https://github.com/azimul-kabir/actua/pull/1834))
+- Fixed Move money and Cover overspending opening at zero, and Hold for next month and the To Budget actions to match Actual ([#1776](https://github.com/azimul-kabir/actua/pull/1776), [#1777](https://github.com/azimul-kabir/actua/pull/1777))
+- Fixed hidden categories missing from the Move money and Move to a category target lists ([#1778](https://github.com/azimul-kabir/actua/pull/1778))
+- Fixed saved Sankey reports in budgeted mode showing spending instead of budget assignments ([#1782](https://github.com/azimul-kabir/actua/pull/1782))
+- Fixed the Accounts tab row separator not lining up with the name when type icons are off ([#1781](https://github.com/azimul-kabir/actua/pull/1781))
+- Fixed the smallest Quick transaction widget's Expense label wrapping at large font sizes ([#1768](https://github.com/azimul-kabir/actua/pull/1768))
+- Fixed the notification status bar icon looking small and faint ([#1765](https://github.com/azimul-kabir/actua/pull/1765))
+- Fixed hard-to-read values on Accent-tinted widget tiles with a bright custom accent in dark mode ([#1732](https://github.com/azimul-kabir/actua/pull/1732))
 
 ## [2.8.0] - 2026-11-20
 

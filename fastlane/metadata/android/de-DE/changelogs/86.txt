@@ -1,0 +1,9 @@
+• Sechs neue App-Sprachen
+• Belege zu bestehenden Buchungen scannen
+• Zeitplan aus einer Buchung erstellen
+• Neuigkeiten nach Updates
+• Übersichtlichere Budget-Tabelle
+• Neue Option: Akzentfarbe verwenden
+• Mehr Berichtsoptionen aus Actual
+• Neue Supporter-Symbole und Widget-Stile
+• Beträge in Yen, Won und Rial korrigiert

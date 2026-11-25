@@ -1,0 +1,9 @@
+• Six new app languages
+• Scan receipts onto existing transactions
+• Create a schedule from a transaction
+• What's new card after updates
+• Clearer Budget table view
+• New Use accent color option
+• More report options from Actual
+• New supporter icons and widget styles
+• Fixed yen, won and rial amounts

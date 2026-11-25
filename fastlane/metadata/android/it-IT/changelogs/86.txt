@@ -1,0 +1,9 @@
+• Sei nuove lingue dell’app
+• Scansiona ricevute su transazioni esistenti
+• Crea una pianificazione da una transazione
+• Scheda Novità dopo gli aggiornamenti
+• Vista tabella del budget più chiara
+• Nuova opzione Usa il colore d’accento
+• Più opzioni dei report di Actual
+• Nuove icone e stili dei widget
+• Importi in yen, won e rial corretti
