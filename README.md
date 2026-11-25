@@ -167,6 +167,40 @@ A 30-second tour of the budget, accounts and loans, credit cards, reports and wi
       </a>
     </td>
   </tr>
+  <tr>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/light/budget-accent.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/budget-accent.png">
+          <img src="artwork/screenshots/light/budget-accent.png" width="200" alt="Actua budget table in the accent color, with overspending still in red">
+        </picture>
+      </a>
+    </td>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/light/loan.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/loan.png">
+          <img src="artwork/screenshots/light/loan.png" width="200" alt="Actua loan account with payoff progress, interest and the payoff planner">
+        </picture>
+      </a>
+    </td>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/light/schedules.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/schedules.png">
+          <img src="artwork/screenshots/light/schedules.png" width="200" alt="Actua scheduled transactions with recurring bills and income">
+        </picture>
+      </a>
+    </td>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/light/receipt-split.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/receipt-split.png">
+          <img src="artwork/screenshots/light/receipt-split.png" width="200" alt="Actua receipt scan that fills in the amount and splits tax and items">
+        </picture>
+      </a>
+    </td>
+  </tr>
 </table>
 
 Screenshots use a demo budget and follow your GitHub light or dark theme.
@@ -181,7 +215,7 @@ Optional and cosmetic, bought in the Google Play version. Under Settings → Sup
       <a href="artwork/screenshots/light/accent-colors.png">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/accent-colors.png">
-          <img src="artwork/screenshots/light/accent-colors.png" width="200" alt="Actua accent color picker with Violet, Teal, Amber, Rose, Forest, Ocean and Mono">
+          <img src="artwork/screenshots/light/accent-colors.png" width="200" alt="Actua accent color picker with Material You, Violet, Teal, Amber, Rose, Forest, Ocean, Mono and Custom">
         </picture>
       </a>
     </td>
@@ -197,7 +231,7 @@ Optional and cosmetic, bought in the Google Play version. Under Settings → Sup
       <a href="artwork/screenshots/light/app-icon.png">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/app-icon.png">
-          <img src="artwork/screenshots/light/app-icon.png" width="200" alt="Actua app icon picker with Default, Dark, Mono and Light">
+          <img src="artwork/screenshots/light/app-icon.png" width="200" alt="Actua app icon picker with all 14 icons, from Default and Dark to Gradient, Midnight and Paper">
         </picture>
       </a>
     </td>
@@ -205,7 +239,7 @@ Optional and cosmetic, bought in the Google Play version. Under Settings → Sup
       <a href="artwork/screenshots/light/widget-styles.png">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/widget-styles.png">
-          <img src="artwork/screenshots/light/widget-styles.png" width="200" alt="Actua widget style picker with Default, Translucent, Solid dark, Solid light and Accent-tinted">
+          <img src="artwork/screenshots/light/widget-styles.png" width="200" alt="Actua widget style picker with all eight styles, including Gradient accent, Outline and Midnight">
         </picture>
       </a>
     </td>

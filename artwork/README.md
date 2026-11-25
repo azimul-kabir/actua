@@ -18,7 +18,15 @@ and dark themes. They carry no buttons or calls to action, since an image can't 
 README's real Google Play badge sits below them. `screenshots/light/` and `screenshots/dark/` hold framed 720 × 1280
 screenshots of the same screens in each theme. All of them were captured from the
 built-in demo budget (Manage → Connection & Data → Try demo budget), so they contain
-no real financial data. Recapture them when the UI changes noticeably.
+no real financial data. The receipt screens use a synthetic receipt image. Recapture them when
+the UI changes noticeably.
+
+They were last recaptured on 25 Nov 2026 on a 1080 × 2400 display with Android's demo status
+bar (9:41, full battery and Wi-Fi), then framed at 720 × 1280. `widgets.png` (a home-screen
+widget showcase) and `supporter-extras.png` (a drawn infographic) were not part of that
+refresh.
+
+`actua-promo-poster.png` is the poster frame of the README and website promo video.
 
 The Google Play listing uses eight of the light screenshots, copied to
 `fastlane/metadata/android/en-US/images/phoneScreenshots/`, and `featureGraphic.png` there, a
