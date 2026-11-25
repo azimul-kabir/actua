@@ -117,6 +117,7 @@ import androidx.compose.ui.semantics.heading
 import com.azimulkabir.actua.model.ReportRange
 import com.azimulkabir.actua.ui.reports.charts.LocalChartScale
 import com.azimulkabir.actua.ui.reports.charts.BudgetAnalysisChart
+import com.azimulkabir.actua.ui.reports.charts.GroupDonutChart
 import com.azimulkabir.actua.ui.reports.charts.LineChartBand
 import com.azimulkabir.actua.ui.reports.charts.SankeyChart
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -1499,6 +1500,7 @@ private fun CustomReport(
         return
     }
     when {
+        widget.graphType == "DonutGraph" && segments.any { it.children.isNotEmpty() } -> GroupDonutChart(segments, hideDecimals, onDrillDown)
         widget.graphType == "DonutGraph" && segments.isNotEmpty() -> DonutChart(segments, hideDecimals, onDrillDown)
         widget.timeMode && widget.graphType == "StackedBarGraph" && widget.points.any { it.segments.isNotEmpty() } ->
             StackedIntervalBars(widget.points, hideDecimals, onDrillDown)
