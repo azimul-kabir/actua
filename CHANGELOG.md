@@ -31,6 +31,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed the message shown when the server refuses changes made while a device clock was set ahead, which now says how to fix it ([#1823](https://github.com/azimul-kabir/actua/pull/1823))
 - Fixed saved Sankey reports in budgeted mode showing spending instead of budget assignments ([#1782](https://github.com/azimul-kabir/actua/pull/1782))
 
 - Fixed the Accounts tab row separator not lining up with the account name when account type icons are off ([#1781](https://github.com/azimul-kabir/actua/pull/1781))
