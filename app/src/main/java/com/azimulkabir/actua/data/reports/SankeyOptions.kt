@@ -6,8 +6,9 @@ import kotlin.math.absoluteValue
 
 /**
  * The Sankey card options Actua applies to its income and expense columns, read from the saved
- * widget's `meta` (`SankeyWidget` in `loot-core/.../dashboard.ts`). Options for layers and
- * accounts (`groupAccounts`, `layerFrom`, `layerTo`) need a layered chart and are not read.
+ * widget's `meta` (`SankeyWidget` in `loot-core/.../dashboard.ts`). `layerFrom` and `layerTo`
+ * only choose between Actua's group and category columns; the payee, account and budget layers need
+ * a layered chart and are not drawn.
  */
 internal data class SankeyOptions(
     /** `topNcategories`: most nodes a column keeps before the smallest fold into "Other"; null shows all. */
@@ -18,6 +19,10 @@ internal data class SankeyOptions(
     val otherLast: Boolean = false,
     /** `showPercentages`: label nodes with their share of the column instead of an amount. */
     val showPercentages: Boolean = false,
+    /** `groupAccounts`: net each category (and income payee) across accounts instead of per account. */
+    val groupAccounts: Boolean = false,
+    /** `layerTo = category`: the expense column lists categories instead of category groups. */
+    val categoryLayer: Boolean = false,
 ) {
     companion object {
         const val OTHER = "Other"
@@ -30,6 +35,8 @@ internal data class SankeyOptions(
                 budgetOrder = sort == "budget-order",
                 otherLast = sort == "global",
                 showPercentages = meta.optBoolean("showPercentages", false),
+                groupAccounts = meta.optBoolean("groupAccounts", false),
+                categoryLayer = meta.optString("layerTo") == "category",
             )
         }
     }

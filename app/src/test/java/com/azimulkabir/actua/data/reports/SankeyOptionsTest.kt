@@ -115,4 +115,40 @@ class SankeyOptionsTest {
         assertEquals(listOf("Salary", "Bonus"), budgetOrder.incomeCategories.map { it.name })
         assertEquals(true, budgetOrder.sankeyShowPercentages)
     }
+
+    @Test fun `groupAccounts nets a category across accounts and layerTo category lists categories`() {
+        val groups = listOf(
+            ActualCategoryGroup("gi", "Income", true, false, 1.0, listOf(ActualCategory("salary", "Salary", "gi", true, false, 1.0))),
+            ActualCategoryGroup("g1", "Bills", false, false, 2.0, listOf(
+                ActualCategory("rent", "Rent", "g1", false, false, 1.0),
+                ActualCategory("power", "Power", "g1", false, false, 2.0),
+            )),
+        )
+        val context = RuleContext(
+            categoryNames = groups.flatMap { it.categories }.associate { it.id to it.name },
+            categoryGroupIds = groups.flatMap { it.categories }.associate { it.id to it.groupId },
+            categoryGroupNames = groups.associate { it.id to it.name },
+        )
+        fun tx(id: String, account: String, amount: Long, cat: String) = ActualTransaction(
+            id, account, 20260410, amount, null, null, cat, null, null, false, false, null, false, null, false, null, null, null, null)
+        val rows = listOf(
+            tx("1", "a", 500_000, "salary"), tx("2", "a", -300_000, "rent"), tx("3", "b", 100_000, "rent"), tx("4", "a", -40_000, "power"),
+        )
+        val frame = """"timeFrame":{"mode":"static","start":"2026-04","end":"2026-04"}"""
+        fun widget(extra: String) = CoreReportEngine.compute(
+            DashboardWidgetRow("w", "sankey-card", "{$frame$extra}"), rows, context, setOf("salary"),
+        )
+
+        val perAccount = widget("")
+        assertEquals(listOf("Salary" to 500_000L, "Rent" to 100_000L), perAccount.incomeCategories.map { it.name to it.spentCents })
+        assertEquals(listOf("Bills" to 340_000L), perAccount.categories.map { it.name to it.spentCents })
+
+        val grouped = widget(""","groupAccounts":true""")
+        assertEquals(listOf("Salary" to 500_000L), grouped.incomeCategories.map { it.name to it.spentCents })
+        assertEquals(listOf("Bills" to 240_000L), grouped.categories.map { it.name to it.spentCents })
+
+        val byCategory = widget(""","layerTo":"category","groupAccounts":true""")
+        assertEquals(listOf("Rent" to 200_000L, "Power" to 40_000L), byCategory.categories.map { it.name to it.spentCents })
+        assertEquals(setOf("rent"), byCategory.categories.first().drillDownQuery!!.categoryIds)
+    }
 }
