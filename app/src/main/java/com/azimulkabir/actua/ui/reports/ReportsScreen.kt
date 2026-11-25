@@ -1781,16 +1781,19 @@ private fun Sankey(
     widget: ReportWidget,
     hideDecimals: Boolean,
     onDrillDown: ((ReportCategory) -> Unit)? = null,
-) = SankeyChart(
-    income = widget.valueCents ?: 0,
-    categories = widget.categories,
-    incomeCategories = widget.incomeCategories,
-    budgeted = widget.sankeyBudgeted,
-    showPercentages = widget.sankeyShowPercentages,
-    subtitle = widget.subtitle,
-    hideDecimals = hideDecimals,
-    onDrillDown = onDrillDown,
-)
+) {
+    val diagram = widget.sankey
+    if (diagram == null) {
+        Text("No transactions match this report's filters.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    } else {
+        SankeyChart(
+            diagram = diagram,
+            subtitle = widget.subtitle,
+            hideDecimals = hideDecimals,
+            onDrillDown = onDrillDown,
+        )
+    }
+}
 
 @Composable
 private fun MonteCarlo(points: List<ReportPoint>, hideDecimals: Boolean) {

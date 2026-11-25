@@ -25,6 +25,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added support for the Sankey card's top categories limit, sort order and show-as-percentages options ([#1786](https://github.com/azimul-kabir/actua/pull/1786))
 - Added a two-ring donut for saved reports grouped by category group, with groups inside and their categories outside ([#1785](https://github.com/azimul-kabir/actua/pull/1785))
 - Added support for the Sankey card's group accounts option and for ending it at categories ([#1787](https://github.com/azimul-kabir/actua/pull/1787))
+- Changed the Sankey card to a layered chart with payee, account and budget layers, the saved layer range and transfers between accounts ([#1789](https://github.com/azimul-kabir/actua/pull/1789))
 
 ### Fixed
 

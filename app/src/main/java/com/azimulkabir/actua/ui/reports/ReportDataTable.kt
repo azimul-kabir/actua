@@ -83,9 +83,13 @@ fun reportDataTable(widget: ReportWidget, money: (Long) -> String, csv: Boolean 
             },
         )
         ReportWidgetKind.SANKEY -> ReportDataTable(
-            listOf("Type", "Name", "Amount"),
-            widget.incomeCategories.filter { it.spentCents > 0 }.map { ReportTableRow(listOf("Income", it.name, money(it.spentCents)), it) } +
-                widget.categories.filter { it.spentCents > 0 }.map { ReportTableRow(listOf("Expense", it.name, money(it.spentCents)), it) },
+            listOf("Layer", "Name", "Amount"),
+            widget.sankey?.nodes.orEmpty().filter { it.valueCents > 0 }.sortedBy { it.layer }.map { node ->
+                ReportTableRow(
+                    listOf(node.layer.title, node.name, money(node.valueCents)),
+                    ReportCategory(node.name, node.valueCents, drillDownQuery = node.drillDownQuery),
+                )
+            },
         )
         ReportWidgetKind.SPENDING -> ReportDataTable(
             listOf("Period", "Amount"),

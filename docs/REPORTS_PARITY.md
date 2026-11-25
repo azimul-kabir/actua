@@ -287,20 +287,23 @@ Upstream: [`S/sankey-spreadsheet.ts#L173-L838`][sankey], [`W/SankeyCard.tsx#L53-
 
 | Setting / behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
-| `mode = spent`: categorized rows only, netted per category and account (and payee for income), split by net sign | per-category queries | same | Match (#950) |
-| Income broken down per income category | | same | Match |
-| `mode = budgeted` | calendar-month budget cells and received income | same amounts in Actua’s grouped chart, including envelope adjustments | Match for grouped flows (#1357) |
-| `topNcategories` "Other" | per layer, the smallest nodes fold into one "Other" ([`groupOtherCategories`][sankey-other]); an unset value is capped at 15 and by the card height | read when set: each of Actua's two columns keeps `topN - 1` nodes plus "Other", totals exact in cents, drill-down merged. No default cap, and `budgeted` mode is not folded | Match when set (#1358) |
-| `categorySort` | `per-group`, `global` (Other last), `budget-order` ([`sortGraph`][sankey-sort]) | read: value order, Other last, or the budget's group and category order. `per-group` has no group layer to nest categories under, so it sorts by value | Match for the two columns Actua draws (#1358) |
-| `showPercentages` | "Show as percentages" | labels and legend rows show each node's share of its column instead of amounts | Match (#1358) |
-| `groupAccounts` | nets each category and income payee across accounts, leaving one "Income" account node ([`aggregateCategoryData`][sankey-aggregate]); off, it nets per account | read: on, flows net per category (and income payee) across accounts, so a refund in one account offsets spending in another; off keeps per-account netting | Match for the flows (#1358) |
-| `layerTo = category` | ends the chart at categories, after the group layer | the expense column lists categories instead of groups; with `layerTo` unset or `category_group`, groups | Partial: no group column beside the categories (#1358) |
-| `layerFrom`, other `layerTo` values, `showTransfers` | choose from payee, income category, account, budget, category group and category; transfers between accounts | not read: Actua draws income categories, one hub and expense nodes, with no payee, account or budget layer | **Not ported** (needs a layered chart; #1115) |
-| Account column | optional `GraphLayers.Account` layer, only with `groupAccounts` (default off; [`GRAPH_LAYER_ORDER`][sankey-layers]) | not drawn; Actuali's account column is not copied because Actual only shows it when `groupAccounts` is on | **Not ported** (#1115) |
-| Drill-down | none | tap a node or ribbon opens its transactions via `DrillDownQuery`; long-press focuses a flow | Android addition |
+| `mode = spent` | categorized rows only, netted per category, account and payee, split by net sign; refunds flow in from their payee ([`fetchCategoryData`][sankey], [`createTransactionsGraph`][sankey]) | same, in integer cents; unnamed accounts read "(Unnamed account)" rather than dropping the row | Match (#950, #1788) |
+| Layers | payee, income category, account, budget (budgeted mode only), category group, category ([`GRAPH_LAYER_ORDER`][sankey-layers]) | the same graph, drawn as one column per layer that has nodes, left to right; net-negative income, "To budget", "Overbudgeted" and `From <category>` sit where upstream puts them | Match (#1788) |
+| `layerFrom`, `layerTo` | a saved range is used only when both are layers; defaults are payee to category (spent) and income category to category (budgeted); [`filterGraphByLayers`][sankey-layers] keeps the layers between them | same; a range that runs backwards draws nothing, as upstream | Match (#1788) |
+| `mode = budgeted` | income and money carried in flow into "Available funds", then "Budgeted", the groups and categories, "To budget", `For <next month>` and "Overspent" | same graph and layers over the range's calendar-month budget cells, with the envelope adjustments from #1357 | Match for the flows (#1357, #1788) |
+| `topNcategories` "Other" | per layer, the smallest nodes fold into one "Other" ([`groupOtherCategories`][sankey-other]); a category folds into its group's "Other" and a payee into its income category's unless `categorySort = global`; an unset value is capped at 15 and by the card height | the same fold, per layer, with a default of 15; no card-height cap, because the chart grows tall enough for its fullest column instead. The legend row of an "Other" lists what it holds, and tapping it opens the merged transactions | Match; the height cap is **Intentional** (#1788) |
+| `categorySort` | `per-group` (a group's categories under it, an income category's payees above it), `global` (by value, "Other" last), `budget-order` ([`sortGraph`][sankey-sort]) | all three, ordering each column | Match (#1358, #1788) |
+| `showPercentages` | "Show as percentages" | bars and legend rows show each node's share of its layer instead of an amount | Match (#1358) |
+| `groupAccounts` | nets each category and payee across accounts into one "Income" account node ([`aggregateCategoryData`][sankey-aggregate]); off, one account node per account | same | Match (#1358, #1788) |
+| Account layer | part of the default range, between income categories and category groups | same; there is no hub or "Remaining" node: an account bar is as tall as the larger of what flows in and out | Match (#1115, #1788) |
+| `showTransfers` | transfers between on-budget accounts drawn account to account, paired by `transfer_id`, cycles cancelled ([`aggregateTransferPairs`][sankey]); ignored with `groupAccounts` | same, in integer cents; each transfer in a chain adds an account column | Match (#1788) |
+| Hidden layout nodes | `addHiddenNodes` pads chains so the charting library's columns line up | not needed: columns are assigned per layer, and the account layer widens by its longest chain of transfers | **Intentional** implementation difference |
+| Chart layout and colours | the charting library places nodes; colours hash the node key | Actua's own d3-style layout (one scale for every column, columns centred, flows stacked by the position of the bar at the other end); colours hash the key onto the chart palette, and "To budget", "Overspent", negative and carry-over nodes keep upstream's meaning | Android addition |
+| Drill-down | none | tap a node or ribbon opens its transactions via `DrillDownQuery` (budgeted flows have none); long-press focuses a node and its flows | Android addition |
+| Small screens | n/a | the chart grows with its fullest column and scrolls sideways when its columns do not fit; the legend below names every node by layer for TalkBack and large fonts | Android addition |
 | Default range | last 6 months | same | Match (#948) |
 
-Tests: `SankeyTest`, `src/androidTest/.../ui/reports/ReportsChartInteractionTest.sankeyRendersACategoryPerNodeAndARemainingNodeForUnspentIncome`.
+Tests: `SankeyTest`, `SankeyGraphTest`, `SankeyOptionsTest`, `SankeyLayoutTest`, `src/androidTest/.../ui/reports/SankeyDrillDownTest` and `ReportsChartInteractionTest`. The fixtures are hand-worked from the upstream functions linked above; none is generated by upstream yet.
 
 ### Balance Forecast (`balance-forecast-card`)
 
@@ -402,8 +405,7 @@ stays open.
 - Condition operators the rules engine doesn't support fall back to no condition, unlike upstream's
   AQL filters.
 - Formula cards evaluate only arithmetic and `QUERY()`.
-- Monte Carlo is a simplified port (see above). The Sankey payee, account and budget layers
-  and the layer range are not ported.
+- Monte Carlo is a simplified port (see above).
 - Fixtures: the report tests use synthetic budgets; no fixture is generated by upstream's
   spreadsheets yet.
 
