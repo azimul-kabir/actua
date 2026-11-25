@@ -124,6 +124,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.semantics.Role
@@ -2368,7 +2369,7 @@ private fun CategoryRow(
                             tint = if (LocalCategoryStatusColors.current?.showDots ?: true) {
                                 categoryStatusColor(category.statusState(scheduleFunding))
                             } else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(end = 6.dp).size(TargetIconSize),
+                            modifier = Modifier.padding(end = 6.dp).size(TargetIconSize).testTag("goalIcon"),
                         )
                     } else {
                         CategoryStatusDot(category.statusState(scheduleFunding), modifier = Modifier.padding(end = 6.dp))
