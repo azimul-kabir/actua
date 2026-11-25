@@ -32,6 +32,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Fixed
 
 - Fixed syncing a budget with a very long history failing because the upload was too large for the server ([#1826](https://github.com/azimul-kabir/actua/pull/1826))
+- Fixed amounts in currencies without decimals (yen, won, rial) being stored at the wrong scale, so they match Actual; amounts typed in these currencies before this fix must be entered again ([#1822](https://github.com/azimul-kabir/actua/pull/1822))
 - Fixed saved Sankey reports in budgeted mode showing spending instead of budget assignments ([#1782](https://github.com/azimul-kabir/actua/pull/1782))
 
 - Fixed the Accounts tab row separator not lining up with the account name when account type icons are off ([#1781](https://github.com/azimul-kabir/actua/pull/1781))
