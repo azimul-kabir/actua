@@ -101,6 +101,23 @@ class ActualEntityWriterReorderTest {
         assertEquals(false, database.fetchCategoryGroups().flatMap { it.categories }.single { it.id == id }.hidden)
     }
 
+    /** actualbudget/actual#9374: a category must never be pointed at a group that is missing or deleted. */
+    @Test
+    fun noWriterSetsACategoryGroupThatIsMissingOrDeleted() = withDatabase { database, _ ->
+        val writer = ActualEntityWriter(database, nodeId = "f0f0f0f0f0f0f0f0")
+        val deleted = writer.createCategoryGroup("Temp")
+        writer.deleteCategoryGroup(deleted, "bills")
+        val before = database.fetchCategoryGroups().flatMap { it.categories }.associate { it.id to it.groupId }
+
+        listOf("nope", "", deleted).forEach { group ->
+            assertThrows(IllegalStateException::class.java) { writer.createCategory("Games", group) }
+            assertThrows(IllegalStateException::class.java) { writer.moveCategory("rent", group, null) }
+            assertThrows(IllegalStateException::class.java) { writer.deleteCategoryGroup("fun", group) }
+        }
+
+        assertEquals(before, database.fetchCategoryGroups().flatMap { it.categories }.associate { it.id to it.groupId })
+    }
+
     @Test
     fun moveCategoryToEndOfGroupWhenBeforeIdNull() = withDatabase { database, _ ->
         val writer = ActualEntityWriter(database, nodeId = "cccccccccccccccc")
