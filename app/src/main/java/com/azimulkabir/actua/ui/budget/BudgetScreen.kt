@@ -44,7 +44,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
@@ -465,7 +467,7 @@ fun BudgetScreen(
 
             // One decision for every table header and row, so their columns stay lined up.
             val tableLayout = rememberTableLayout(
-                screenWidth - (Spacing.screenHorizontal + TableRowPadding) * 2,
+                screenWidth - TableRowPadding * 2,
                 visibleGroups, showSpent, showGroupTotals, hideDecimalPlaces,
                 overview = overview.takeIf { showOverview && budgetView != "Plan" },
             )
@@ -482,6 +484,8 @@ fun BudgetScreen(
                         IncomeBudgetCategoryRow(
                             category = category,
                             position = GroupPosition.of(index, count),
+                            flat = budgetView != "Plan",
+                            roundTop = favoritesOnly,
                             hideDecimalPlaces = hideDecimalPlaces,
                             onClick = { onShowCategoryTransactions(category, true, false) },
                             onLongClick = { selectedCategory = category },
@@ -504,6 +508,7 @@ fun BudgetScreen(
                             stacked = tableStacked,
                             showProgressBar = showProgressBars,
                             position = GroupPosition.of(index, count),
+                            roundTop = favoritesOnly,
                             onLongClick = { selectedCategory = category },
                             onOpen = { editingBudget = group to category },
                             hideDecimalPlaces = hideDecimalPlaces,
@@ -629,6 +634,8 @@ fun BudgetScreen(
                             IncomeBudgetGroupHeader(
                                 group = headerGroup,
                                 collapsed = collapsed,
+                                flat = budgetView != "Plan",
+                                joinsRows = visibleCategories.isNotEmpty() && !collapsed,
                                 hideDecimalPlaces = hideDecimalPlaces,
                                 onClick = onGroupClick,
                                 onLongClick = { selectedGroup = group },
@@ -649,6 +656,7 @@ fun BudgetScreen(
                                 showSpent = showSpent,
                                 showTotals = showGroupTotals,
                                 stacked = tableStacked,
+                                joinsRows = visibleCategories.isNotEmpty() && !collapsed,
                                 hideDecimalPlaces = hideDecimalPlaces,
                                 onClick = onGroupClick,
                                 onLongClick = { selectedGroup = group },
@@ -1693,6 +1701,9 @@ private fun PlanBudgetCategoryRow(
 private fun IncomeBudgetGroupHeader(
     group: BudgetGroup,
     collapsed: Boolean,
+    /** The table view's flat style (see [BudgetGroupHeader]); false in the Plan view. */
+    flat: Boolean,
+    joinsRows: Boolean,
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -1703,11 +1714,14 @@ private fun IncomeBudgetGroupHeader(
         label = "income group chevron",
     )
     val received = group.categories.sumOf { it.balanceCents }
+    val headerShape = tableGroupHeaderShape(joinsRows)
+    val headerColor = TableGroupHeaderColor
     Surface(color = MaterialTheme.colorScheme.background) {
         Row(
             modifier = Modifier.fillMaxWidth()
-                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.md)
-                .clip(MaterialTheme.shapes.large)
+                .then(if (flat) Modifier.padding(top = Spacing.md) else Modifier.padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.md))
+                .clip(if (flat) headerShape else MaterialTheme.shapes.large)
+                .then(if (flat) Modifier.background(headerColor) else Modifier)
                 .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick)
                 .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
@@ -1742,13 +1756,16 @@ private fun IncomeBudgetGroupHeader(
 private fun IncomeBudgetCategoryRow(
     category: BudgetCategory,
     position: GroupPosition,
+    /** The table view's flat style (see [CategoryRow]); false in the Plan view. */
+    flat: Boolean,
+    roundTop: Boolean,
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    ActuaGroupedItem(position = position, dividerInset = Spacing.lg) {
+    TableGroupedItem(flat = flat, position = position, roundTop = roundTop, dividerInset = Spacing.lg) {
         Row(
-            modifier = Modifier.fillMaxWidth().heightIn(min = Sizes.compactRowMinHeight).combinedClickable(
+            modifier = Modifier.fillMaxWidth().heightIn(min = if (flat) TableRowMinHeight else Sizes.compactRowMinHeight).combinedClickable(
                 role = Role.Button, onClick = onClick, onLongClick = onLongClick,
             ).padding(horizontal = Spacing.lg, vertical = Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
@@ -1781,7 +1798,7 @@ private fun BudgetOverviewRow(
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
         shape = MaterialTheme.shapes.large,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = TableRowPadding, vertical = Spacing.md)) {
             val leadLabel = overviewLeadLabel(overview, R.string.budget_to_budget)
@@ -1823,15 +1840,14 @@ private fun BudgetOverviewRow(
                     ),
                 )
                 if (fits) {
-                    val balanceWeight = stackedBalanceWeight()
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                         // The To budget chip is a button (Material's 48dp minimum height), so every value gets
                         // that height: the four labels and amounts then share one row.
                         leadCell(Modifier.weight(LeadColumnWeight), OverviewButtonHeight)
                         // Same columns as the table below, so the totals line up with its amounts.
                         amountCells({ column ->
                             when {
-                                layout == null -> Modifier.weight(if (column == 2) balanceWeight else 1f)
+                                layout == null -> Modifier.weight(1f)
                                 column == 0 -> Modifier.width(layout.budgeted)
                                 column == 1 -> Modifier.width(layout.spent)
                                 else -> Modifier.width(layout.balance)
@@ -1843,9 +1859,8 @@ private fun BudgetOverviewRow(
                     // own line so the other amounts share the full width.
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         leadCell(Modifier.fillMaxWidth(), OverviewButtonHeight)
-                        val balanceWeight = stackedBalanceWeight()
-                        StackedTableAmounts {
-                            Row(verticalAlignment = Alignment.CenterVertically) { amountCells({ column -> Modifier.weight(if (column == 2) balanceWeight else 1f) }, OverviewStackedValueHeight) }
+                                    StackedTableAmounts {
+                            Row(verticalAlignment = Alignment.CenterVertically) { amountCells({ column -> Modifier.weight(1f) }, OverviewStackedValueHeight) }
                         }
                     }
                 }
@@ -1969,7 +1984,7 @@ private fun TableAmountText(
     fontWeight: FontWeight,
     color: Color,
     modifier: Modifier = Modifier,
-    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyMedium,
+    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyMedium.asTableAmount(),
     textAlign: TextAlign? = null,
 ) {
     val layout = LocalTableLayout.current
@@ -2010,16 +2025,6 @@ private val TableAmountGap = 6.dp
 /** An amount in a table column, plus the [padding] (a pill's, or [TableAmountGap]) beside it. */
 private data class TableAmount(val text: String, val padding: androidx.compose.ui.unit.Dp = TableAmountGap)
 
-/** Extra share of a weighted (stacked) row for the balance cell, so a target icon doesn't crowd the spent amount. */
-internal const val StackedBalanceWeight = 1.25f
-
-/** The balance cell's share in a weighted (stacked) row; [StackedBalanceWeight] when goal icons need room, else 1f. */
-internal fun stackedBalanceWeight(showGoalIcons: Boolean): Float =
-    if (showGoalIcons) StackedBalanceWeight else 1f
-
-@Composable
-private fun stackedBalanceWeight(): Float = stackedBalanceWeight(LocalShowGoalIcons.current)
-
 /** The category table's balance pill padding (each side); see [CategoryRow]. */
 private val CategoryPillPadding = 10.dp
 
@@ -2038,7 +2043,7 @@ private fun tableAmountsFit(
 ): Boolean {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
-    val base = MaterialTheme.typography.bodyMedium
+    val base = MaterialTheme.typography.bodyMedium.asTableAmount()
     val style = base.copy(fontSize = base.fontSize * TableAmountMinScale, fontWeight = FontWeight.Bold)
     return remember(maxWidth, columns, lead?.text, lead?.padding, amounts, density, style) {
         val unit = maxWidth / (LeadColumnWeight + columns)
@@ -2057,6 +2062,57 @@ private fun tableAmountsFit(
 
 /** Horizontal padding inside a table card or group header, between its edge and its content. */
 private val TableRowPadding = Spacing.lg
+
+/** Table amounts are 13 sp, with tabular digits so the columns line up from row to row. */
+private val TableAmountFontSize = 13.sp
+
+private fun androidx.compose.ui.text.TextStyle.asTableAmount() =
+    copy(fontSize = TableAmountFontSize, fontFeatureSettings = "tnum")
+
+/** A table row's minimum height: denser than the 56 dp [Sizes.compactRowMinHeight] used elsewhere. */
+private val TableRowMinHeight = 48.dp
+
+/** The table's group header and rows are flat, edge to edge, and only the outer corners of a group round. */
+private val TableGroupHeaderColor: Color @Composable get() = MaterialTheme.colorScheme.surfaceContainerHigh
+
+/** A group header's shape: rounded on top, and on the bottom too when no rows follow it. */
+@Composable
+private fun tableGroupHeaderShape(joinsRows: Boolean): CornerBasedShape {
+    val base = MaterialTheme.shapes.large
+    return if (joinsRows) base.copy(bottomStart = ZeroCornerSize, bottomEnd = ZeroCornerSize) else base
+}
+
+/**
+ * A row of a flat table group: full width, square except the bottom corners of a group's last row
+ * (and the top of its first row when no header sits above it, as in the Favorites list).
+ * With [flat] false it is the usual inset card row.
+ */
+@Composable
+private fun TableGroupedItem(
+    flat: Boolean,
+    position: GroupPosition,
+    roundTop: Boolean,
+    dividerInset: androidx.compose.ui.unit.Dp,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    if (!flat) {
+        ActuaGroupedItem(position = position, dividerInset = dividerInset, content = content)
+        return
+    }
+    val base = MaterialTheme.shapes.large
+    val shape = base.copy(
+        topStart = if (roundTop && position.isFirst) base.topStart else ZeroCornerSize,
+        topEnd = if (roundTop && position.isFirst) base.topEnd else ZeroCornerSize,
+        bottomStart = if (position.isLast) base.bottomStart else ZeroCornerSize,
+        bottomEnd = if (position.isLast) base.bottomEnd else ZeroCornerSize,
+    )
+    Column(
+        Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surfaceContainer),
+    ) {
+        if (!position.isFirst) ActuaCardDivider(inset = dividerInset)
+        content()
+    }
+}
 
 /** The smallest scale the table's amounts shrink to side by side; below it rows stack instead. */
 internal const val TableLayoutMinScale = 0.60f
@@ -2098,10 +2154,10 @@ private fun rememberTableLayout(
     val density = LocalDensity.current
     val typography = MaterialTheme.typography
     return remember(availableWidth, groups, showSpent, showGroupTotals, hideDecimalPlaces, overview, density, typography, showGoalIcons) {
-        // Every amount shares one size (bodyMedium), so only the weight differs between them.
-        val headerStyle = typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-        val balanceStyle = typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
-        val rowStyle = typography.bodyMedium
+        // Every amount shares one size (13 sp), so only the weight differs between them.
+        val headerStyle = typography.bodyMedium.asTableAmount().copy(fontWeight = FontWeight.SemiBold)
+        val balanceStyle = typography.bodyMedium.asTableAmount().copy(fontWeight = FontWeight.Bold)
+        val rowStyle = typography.bodyMedium.asTableAmount()
         // A whole table has many amounts; only the longest can be the widest.
         fun widest(texts: List<String>, style: androidx.compose.ui.text.TextStyle): Float {
             val longest = texts.maxOfOrNull { it.length } ?: return 0f
@@ -2113,7 +2169,6 @@ private fun rememberTableLayout(
         val headerBalance = mutableListOf<String>()
         val rowBudgeted = mutableListOf<String>(); val rowSpent = mutableListOf<String>()
         val rowBalance = mutableListOf<String>()
-        var hasTarget = false
         if (overview != null) {
             headerBudgeted += formatMoneyCents(overview.budgetedCents, hideDecimalPlaces)
             headerSpent += formatMoneyCents(overview.spentCents, hideDecimalPlaces)
@@ -2131,7 +2186,6 @@ private fun rememberTableLayout(
                 rowBudgeted += formatMoneyCents(it.assignedCents, hideDecimalPlaces)
                 rowSpent += formatMoneyCents(-it.spentCents, hideDecimalPlaces)
                 rowBalance += formatMoneyCents(it.balanceCents, hideDecimalPlaces)
-                if (it.target != null) hasTarget = true
             }
         }
         tableLayoutFor(
@@ -2142,7 +2196,6 @@ private fun rememberTableLayout(
             showSpent = showSpent,
             gap = TableAmountGap.value,
             pillPadding = CategoryPillPadding.value,
-            iconWidth = if (hasTarget && showGoalIcons) TargetIconWidth.value else 0f,
         )
     }
 }
@@ -2153,7 +2206,7 @@ private fun rememberTableLayout(
  * The scale is the largest (up to 1) that leaves the name column [TableNameMinShare] of the width;
  * null when that falls under [TableLayoutMinScale], or when there are no amounts to size.
  * Each column also holds a [gap] before its text and a little slack; the balance column holds the
- * balance pill's [pillPadding] on its left, plus [iconWidth] when its rows lead with a target icon.
+ * balance pill's [pillPadding] on its left.
  */
 internal fun tableLayoutFor(
     budgetedText: Float,
@@ -2163,12 +2216,11 @@ internal fun tableLayoutFor(
     showSpent: Boolean,
     gap: Float,
     pillPadding: Float,
-    iconWidth: Float = 0f,
 ): TableLayout? {
     val slack = 2f
     val textTotal = budgetedText + spentText + balanceText
     if (textTotal <= 0f) return null
-    val fixed = (if (showSpent) 3 else 2) * (gap + slack) + pillPadding + iconWidth
+    val fixed = (if (showSpent) 3 else 2) * (gap + slack) + pillPadding
     val nameMin = availableWidth * TableNameMinShare
     val scale = ((availableWidth - nameMin - fixed) / textTotal).coerceAtMost(1f)
     if (scale < TableLayoutMinScale) return null
@@ -2177,7 +2229,7 @@ internal fun tableLayoutFor(
         scale = scale,
         budgeted = column(budgetedText),
         spent = if (showSpent) column(spentText) else 0.dp,
-        balance = column(balanceText, pillPadding + iconWidth),
+        balance = column(balanceText, pillPadding),
     )
 }
 
@@ -2190,6 +2242,8 @@ private fun BudgetGroupHeader(
     showTotals: Boolean,
     /** The table is too narrow for its columns: totals go under the name; see [rememberTableLayout]. */
     stacked: Boolean,
+    /** Rows follow the header in the same block, so its bottom corners stay square. */
+    joinsRows: Boolean,
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -2206,8 +2260,9 @@ private fun BudgetGroupHeader(
     Surface(color = MaterialTheme.colorScheme.background) {
         Box(
             modifier = Modifier.fillMaxWidth()
-                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.md)
-                .clip(MaterialTheme.shapes.large)
+                .padding(top = Spacing.md)
+                .clip(tableGroupHeaderShape(joinsRows))
+                .background(TableGroupHeaderColor)
                 .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick)
                 .padding(horizontal = TableRowPadding, vertical = Spacing.sm),
         ) {
@@ -2223,7 +2278,7 @@ private fun BudgetGroupHeader(
                     Text(if (group.hidden) stringResource(R.string.budget_hidden_name, group.name) else group.name,
                         style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
                         color = if (group.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
             if (!showTotals) {
@@ -2236,12 +2291,11 @@ private fun BudgetGroupHeader(
                 // Too narrow for the table's columns: totals go under the name and share the full width.
                 Column {
                     nameRow(Modifier.fillMaxWidth())
-                    val balanceWeight = stackedBalanceWeight()
-                    StackedTableAmounts {
+                            StackedTableAmounts {
                         Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                             AmountColumn(stringResource(R.string.budget_budgeted), budgeted, Modifier.weight(1f), hideDecimalPlaces)
                             if (showSpent) AmountColumn(stringResource(R.string.budget_spent), -spent, Modifier.weight(1f), hideDecimalPlaces, muted = spent == 0L)
-                            AmountColumn(stringResource(R.string.budget_balance), balance, Modifier.weight(balanceWeight), hideDecimalPlaces, balance = true)
+                            AmountColumn(stringResource(R.string.budget_balance), balance, Modifier.weight(1f), hideDecimalPlaces, balance = true)
                         }
                     }
                 }
@@ -2288,21 +2342,37 @@ private fun CategoryRow(
     stacked: Boolean,
     showProgressBar: Boolean,
     position: GroupPosition,
+    /** No group header sits above the first row (the Favorites list), so it rounds its top corners. */
+    roundTop: Boolean,
     onLongClick: () -> Unit,
     onOpen: () -> Unit,
     hideDecimalPlaces: Boolean,
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
 ) {
-    ActuaGroupedItem(position = position, dividerInset = TableRowPadding) {
+    TableGroupedItem(flat = true, position = position, roundTop = roundTop, dividerInset = TableRowPadding) {
         Column(
-            modifier = Modifier.fillMaxWidth().heightIn(min = Sizes.compactRowMinHeight)
+            modifier = Modifier.fillMaxWidth().heightIn(min = TableRowMinHeight)
                 .combinedClickable(onClick = onOpen, onLongClick = onLongClick)
                 .padding(horizontal = TableRowPadding, vertical = Spacing.md),
             verticalArrangement = Arrangement.Center,
         ) {
             val name = @Composable { modifier: Modifier ->
                 Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-                    CategoryStatusDot(category.statusState(scheduleFunding), modifier = Modifier.padding(end = 6.dp))
+                    // A category with a goal shows its goal icon in the status dot's place, so the
+                    // amount columns need no room for it.
+                    val goal = category.targetFunding(scheduleFunding).takeIf { LocalShowGoalIcons.current }
+                    if (goal != null) {
+                        Icon(
+                            targetFundingIcon(goal),
+                            contentDescription = stringResource(targetFundingDescription(goal)),
+                            tint = if (LocalCategoryStatusColors.current?.showDots ?: true) {
+                                categoryStatusColor(category.statusState(scheduleFunding))
+                            } else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(end = 6.dp).size(TargetIconSize),
+                        )
+                    } else {
+                        CategoryStatusDot(category.statusState(scheduleFunding), modifier = Modifier.padding(end = 6.dp))
+                    }
                     Text(if (category.hidden) stringResource(R.string.budget_hidden_name, category.name) else category.name,
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
@@ -2324,21 +2394,19 @@ private fun CategoryRow(
                         status = category.statusState(scheduleFunding),
                         colorByStatus = LocalCategoryStatusColors.current?.colorBudgetedAmounts == true,
                         modifier = Modifier.wrapContentWidth(Alignment.End, unbounded = true).offset(x = CategoryPillPadding),
-                        textStyle = MaterialTheme.typography.bodyMedium,
+                        textStyle = MaterialTheme.typography.bodyMedium.asTableAmount(),
                         fontWeight = FontWeight.Bold,
                         horizontalPadding = CategoryPillPadding,
                         verticalPadding = 3.dp,
                         tableAmount = true,
-                        targetFunding = category.targetFunding(scheduleFunding),
                     )
                 }
             }
-            val balanceWeight = stackedBalanceWeight()
             if (stacked) {
                 name(Modifier.fillMaxWidth())
                 StackedTableAmounts {
                     Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        amounts { column -> Modifier.weight(if (column == 2) balanceWeight else 1f) }
+                        amounts { column -> Modifier.weight(1f) }
                     }
                 }
             } else {
@@ -2347,7 +2415,7 @@ private fun CategoryRow(
                     name(Modifier.weight(1f))
                     amounts { column ->
                         when {
-                            layout == null -> Modifier.weight(if (column == 2) balanceWeight else 1f)
+                            layout == null -> Modifier.weight(1f)
                             column == 0 -> Modifier.width(layout.budgeted)
                             column == 1 -> Modifier.width(layout.spent)
                             else -> Modifier.width(layout.balance)
@@ -2785,7 +2853,7 @@ internal fun BalancePill(
     verticalPadding: androidx.compose.ui.unit.Dp = 2.dp,
     /** In the table view: shrink like the other [TableAmountText]s rather than [ShrinkToFitText]. */
     tableAmount: Boolean = false,
-    /** The category's target state: a small icon leads the amount (the table view reserves its width, see [TargetIconWidth]). */
+    /** The category's target state: a small icon leads the amount . */
     targetFunding: TargetFunding? = null,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -2832,9 +2900,6 @@ internal fun BalancePill(
 private val TargetIconSize = 14.dp
 private val TargetIconGap = 4.dp
 private val TableTargetIconGap = 2.dp
-
-/** The width a table balance pill's target icon adds; the table's balance column reserves it. */
-internal val TargetIconWidth = TargetIconSize + TableTargetIconGap
 
 private fun targetFundingIcon(funding: TargetFunding) = when (funding) {
     TargetFunding.PLAIN -> Icons.Outlined.TrackChanges
