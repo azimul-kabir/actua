@@ -79,4 +79,42 @@ class QifStatementParserTest {
         assertEquals(0, result.candidates.size)
         assertTrue(result.problems.isNotEmpty())
     }
+
+    @Test
+    fun `quicken U amount code does not replace the T amount`() {
+        val qif = """
+            !Type:Bank
+            D03/15/2024
+            U-99.00
+            T-42.50
+            PBefore
+            ^
+            D03/16/2024
+            T-10.00
+            U-77.00
+            PAfter
+            ^
+        """.trimIndent()
+
+        val result = QifStatementParser.parse(qif.toByteArray())
+        assertEquals(listOf(-4250L, -1000L), result.candidates.map { it.amountCents })
+    }
+
+    @Test
+    fun `unknown detail codes are ignored`() {
+        val qif = """
+            !Type:Bank
+            D03/15/2024
+            T-5.00
+            CX
+            LFood
+            PCafe
+            ^
+        """.trimIndent()
+
+        val result = QifStatementParser.parse(qif.toByteArray())
+        assertEquals(1, result.candidates.size)
+        assertEquals(-500L, result.candidates.single().amountCents)
+        assertEquals("Cafe", result.candidates.single().payee)
+    }
 }
