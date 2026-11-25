@@ -92,7 +92,10 @@ object OfxStatementParser {
     }
 
     internal fun parseOfxAmount(raw: String): Long {
-        val clean = raw.trim().replace(",", "").replace("+", "")
+        val trimmed = raw.trim().replace("+", "")
+        // OFX allows a comma as the decimal mark ("-19,78"), as Actual's importer reads it (actual#9527). A
+        // comma in a number that has a point or several commas is a thousands separator.
+        val clean = if ('.' !in trimmed && trimmed.count { it == ',' } == 1) trimmed.replace(',', '.') else trimmed.replace(",", "")
         return BigDecimal(clean).setScale(2, RoundingMode.HALF_UP).movePointRight(2).longValueExact()
     }
 
