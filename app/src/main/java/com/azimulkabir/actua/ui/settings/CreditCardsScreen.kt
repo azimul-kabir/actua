@@ -1,5 +1,7 @@
 package com.azimulkabir.actua.ui.settings
 
+import com.azimulkabir.actua.ui.components.STORED_DECIMALS
+import com.azimulkabir.actua.ui.components.centsToInput
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
@@ -285,13 +287,13 @@ private fun CardEditorSheet(
     var offset by remember { mutableStateOf((card?.config?.dueOffsetDays ?: CreditCardCycle.DEFAULT_DUE_OFFSET_DAYS).toString()) }
     var useFixedDueDay by remember { mutableStateOf(card?.config?.dueDay != null) }
     var dueDay by remember { mutableStateOf((card?.config?.dueDay ?: 1).toString()) }
-    var limit by remember { mutableStateOf(card?.config?.limitCents?.let { BigDecimal(it).movePointLeft(CurrencyDisplay.decimalPlaces).toPlainString() }.orEmpty()) }
+    var limit by remember { mutableStateOf(card?.config?.limitCents?.let { centsToInput(it) }.orEmpty()) }
     val account = accounts.firstOrNull { it.id == accountId }
     val validDay = day.toIntOrNull()?.takeIf { it in 1..31 }
     val validOffset = offset.toIntOrNull()?.takeIf { it in 1..CreditCardCycle.MAX_DUE_OFFSET_DAYS }
     val validDueDay = dueDay.toIntOrNull()?.takeIf { it in 1..31 }
     val limitCents = runCatching { limit.takeIf(String::isNotBlank)?.let {
-        BigDecimal(it).movePointRight(CurrencyDisplay.decimalPlaces).setScale(0, RoundingMode.HALF_UP).longValueExact().takeIf { cents -> cents > 0 }
+        BigDecimal(it).movePointRight(STORED_DECIMALS).setScale(0, RoundingMode.HALF_UP).longValueExact().takeIf { cents -> cents > 0 }
     } }.getOrNull()
     val validPaymentDue = if (useFixedDueDay) validDueDay != null else validOffset != null
     val numberKeyboard = KeyboardOptions(keyboardType = KeyboardType.Number)

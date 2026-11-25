@@ -1,5 +1,7 @@
 package com.azimulkabir.actua.ui.settings
 
+import com.azimulkabir.actua.ui.components.STORED_DECIMALS
+import com.azimulkabir.actua.ui.components.centsToInput
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
@@ -187,7 +189,7 @@ private fun LoanRow(loan: LoanStatus, hideDecimals: Boolean, modifier: Modifier 
 }
 
 private fun centsText(cents: Long?): String =
-    cents?.let { BigDecimal(it).movePointLeft(CurrencyDisplay.decimalPlaces).toPlainString() }.orEmpty()
+    cents?.let(::centsToInput).orEmpty()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -212,7 +214,7 @@ private fun LoanEditorSheet(
     val dayValue = paymentDay.toIntOrNull()?.takeIf { it in 1..31 }
     val secondDayValue = secondPaymentDay.toIntOrNull()?.takeIf { it in 1..31 }
     val account = accounts.firstOrNull { it.id == accountId }
-    val decimals = CurrencyDisplay.decimalPlaces
+    val decimals = STORED_DECIMALS
     val originalCents = parsePositiveCents(original, decimals)
     val paymentCents = parsePositiveCents(payment, decimals)
     val escrowCents = parsePositiveCents(escrow, decimals)
