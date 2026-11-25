@@ -161,6 +161,25 @@ class FinancialMessageParserTest {
     }
 
     @Test
+    fun `a card alert keeps a three-letter last word that is not a currency code`() {
+        val shell = FinancialMessageParser.parse("Sample Rewards Card, 9876 SHELL OIL $40.00", "Sample Banking").candidates.single()
+        assertEquals("SHELL OIL", shell.payee)
+        assertEquals(-4_000L, shell.amountCents)
+        assertEquals("PIZZA HUT", FinancialMessageParser.parse("Sample Rewards Card, 9876 PIZZA HUT $18.20", "Sample Banking")
+            .candidates.single().payee)
+    }
+
+    @Test
+    fun `a card alert drops a currency code before the amount`() {
+        val candidate = FinancialMessageParser.parse(
+            "Sample Bank Gas Mastercard, 1234 EXAMPLE GAS W100 CAD $45.67", "Sample Banking",
+        ).candidates.single()
+        assertEquals("EXAMPLE GAS W100", candidate.payee)
+        assertEquals(-4_567L, candidate.amountCents)
+        assertEquals("Sample Bank Gas Mastercard 1234", candidate.accountHint)
+    }
+
+    @Test
     fun `a card alert with a title keeps the merchant and an explicit refund is money in`() {
         val refund = FinancialMessageParser.parse("Refund Sample Bank Gas Mastercard, 1234 EXAMPLE GAS W100 $45.67",
             "Sample Banking").candidates.single()
