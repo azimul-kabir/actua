@@ -111,9 +111,9 @@ Upstream: `getNumberFormat`, `integerToCurrency`, `amountToInteger`
 | Behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
 | Stored amounts are integers in minor units; formatting never writes | `integerToCurrency` divides for display only | `formatMoneyCents` reads the `Long`; no formatter writes | Match |
-| Typed amounts | `amountToInteger` (`Math.round(amount × 10^dp)`) | `parseInputCents`: `BigDecimal.movePointRight(dp).longValueExact()`, more decimals than the currency has are rejected | Match (no float round trip) |
-| Editing with decimals hidden | edit text still uses the currency's decimals | `centsToInput` always shows both decimals, so a hidden fraction is never lost on save | Match |
-| Decimal places per currency | `useFormat`: `IRR`, `JPY`, `KRW` = 0, others 2, for display, transaction and rule amount entry | the same for display, amount entry (`CalculatorAmountState`, `parseInputCents`), rule amounts and credit-card limits (`CurrencyDisplay.decimalPlaces`) | Match ([#971](https://github.com/azimul-kabir/actua/issues/971)) |
+| Typed amounts | `amountToInteger` (`Math.round(amount × 100)`) | `parseInputCents`: `BigDecimal.movePointRight(2).longValueExact()`, more than two decimals are rejected | Match (no float round trip) |
+| Editing with decimals hidden | edit text shows a stored fraction (¥1,500.50) unless fractions are hidden | `centsToInput` shows both decimals, or whole units for a zero-decimal currency with no fraction, so a stored fraction is never lost on save | Match |
+| Stored scale per currency | Every currency stores two implied decimals, so ¥1,500 is 150000 (the upcoming release, [actual#9313](https://github.com/actualbudget/actual/pull/9313), removed the per-currency scale; earlier versions divided by 10^decimals) | Always two: `STORED_DECIMALS`. `CurrencyDisplay.decimalPlaces` (0 for `IRR`, `JPY`, `KRW`) only sets the fraction digits shown and typed, in display, the keypad, paste, rule amounts, credit-card limits and loan fields | Match ([#971](https://github.com/azimul-kabir/actua/issues/971), [#1794](https://github.com/azimul-kabir/actua/issues/1794)). Amounts typed in Actua for a zero-decimal currency before this change were stored 100 times too small and must be re-entered, as upstream asks for budget, rule and schedule amounts. |
 | Decimal places in search and file import | always 2: `transactionsSearch` and `ImportTransactionsModal` use `amountToInteger(amount)` | always 2 | Match (upstream doesn't apply the currency's places here either) |
 | Hidden fraction rounding | `Intl.NumberFormat` rounds half away from zero; `-0` → `0` | rounds half away from zero (`1,234.56` → `1,235`); an amount that rounds to zero has no minus sign | Match ([#972](https://github.com/azimul-kabir/actua/issues/972)), display only |
 | Separators | five synced formats | the budget's format by default, including `apostrophe-dot` (`1’234.56`); device overrides add system and no-grouping `1234.56`. `space-comma` groups with a plain space instead of U+202F | Match ([#973](https://github.com/azimul-kabir/actua/issues/973)) |
@@ -121,7 +121,7 @@ Upstream: `getNumberFormat`, `integerToCurrency`, `amountToInteger`
 | Currency symbol | `currencies.ts` symbol, before/after with optional narrow space | budget currency by default: short symbol, position and narrow space from the synced prefs | Match ([#973](https://github.com/azimul-kabir/actua/issues/973)). v26.11's additions are present: NOK `kr`, TZS `TSh`, ZAR `R`, and CHF shown as `CHF` instead of `Fr.` ([#1414](https://github.com/azimul-kabir/actua/issues/1414)); BDT already was |
 | Stored dates | `YYYY-MM-DD` strings in the UI, `YYYYMMDD` integers in the database | `parseStoredDate` accepts both; `storageDate` writes `YYYYMMDD` | Match |
 | Date display | synced `dateFormat`: `MM/dd/yyyy` (default), `dd/MM/yyyy`, `yyyy-MM-dd`, `MM.dd.yyyy`, `dd.MM.yyyy`, `dd-MM-yyyy` | the budget's format by default, with all six patterns; device overrides add the system medium date | Match ([#973](https://github.com/azimul-kabir/actua/issues/973)) |
-| Month notes amount text | `integerToCurrency(amount, undefined, currency.decimalPlaces)`: en-US, two fraction digits | `BudgetMovementNote.amountText` (same) | Match (`src/test/.../data/budget/BudgetMovementNoteTest`) |
+| Month notes amount text | `integerToCurrencyWithDecimal(amount, currencyCode)`: the amount divided by 100, en-US, the currency's fraction digits | `BudgetMovementNote.amountText` (same) | Match (`src/test/.../data/budget/BudgetMovementNoteTest`) |
 
 Tests: `src/test/.../ui/components/MoneyFormatterTest` (`hidingDecimalsOnlyChangesPresentation`,
 `inputRequiresAtMostExactCents`), `ActualBudgetReadModelTest.hideReconciledUsesActualSyncedPerAccountPreference`.
@@ -130,7 +130,8 @@ Tests: `src/test/.../ui/components/MoneyFormatterTest` (`hidingDecimalsOnlyChang
 
 | Issue | Severity | Summary |
 | --- | --- | --- |
-| [#971](https://github.com/azimul-kabir/actua/issues/971) | P2 | Zero-decimal currencies (`JPY`, `KRW`, `IRR`) are shown and entered 100× off (fixed) |
+| [#971](https://github.com/azimul-kabir/actua/issues/971) | P2 | Zero-decimal currencies (`JPY`, `KRW`, `IRR`) are shown and entered 100× off (first fixed by scaling stored amounts by the currency's decimals, which upstream has since dropped) |
+| [#1794](https://github.com/azimul-kabir/actua/issues/1794) | P2 | Stored amounts of zero-decimal currencies now keep two implied decimals, as upstream does (fixed) |
 | [#972](https://github.com/azimul-kabir/actua/issues/972) | Lower | Hidden decimals truncate instead of rounding (fixed) |
 | [#973](https://github.com/azimul-kabir/actua/issues/973) | Lower | Display ignores the budget's synced number, date, fraction, privacy and currency preferences (fixed) |
 | [#974](https://github.com/azimul-kabir/actua/issues/974) | Lower | Demo seeder wrote the credit-card limit under the wrong field; `DemoBudgetManager` patched it afterwards (fixed) |

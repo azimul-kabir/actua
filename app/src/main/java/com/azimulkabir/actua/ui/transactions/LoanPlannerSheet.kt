@@ -1,5 +1,7 @@
 package com.azimulkabir.actua.ui.transactions
 
+import com.azimulkabir.actua.ui.components.STORED_DECIMALS
+import com.azimulkabir.actua.ui.components.centsToInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,7 +47,7 @@ import com.azimulkabir.actua.ui.reports.charts.LineChartSeries
 import com.azimulkabir.actua.ui.theme.Spacing
 import java.math.BigDecimal
 
-private fun centsText(cents: Long): String = BigDecimal(cents).movePointLeft(CurrencyDisplay.decimalPlaces).toPlainString()
+private fun centsText(cents: Long): String = centsToInput(cents)
 
 /** "1 year, 3 months", "5 years" or "7 months" for a month count. */
 @Composable
@@ -69,7 +71,7 @@ internal fun loanDurationText(months: Int): String {
 internal fun LoanPlannerSheet(loan: LoanStatus, hideDecimals: Boolean, onDismiss: () -> Unit) {
     val config = loan.config
     val start = remember(loan.accountId, loan.balanceCents) { loan.projectionStart() }
-    val decimals = CurrencyDisplay.decimalPlaces
+    val decimals = STORED_DECIMALS
     var payment by remember { mutableStateOf(centsText(config.minimumPaymentCents)) }
     var targetMonths by remember { mutableStateOf("") }
     var extra by remember { mutableStateOf("") }
