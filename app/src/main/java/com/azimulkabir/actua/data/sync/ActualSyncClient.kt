@@ -121,13 +121,25 @@ class ActualSyncClient(
         // moving during the round trip means the user edited meanwhile.
         val localHighWater = database.maxMessageTimestamp()
 
-        val request = encoder.encode(localMessages, fileId, groupId, encryptionKeyId, sinceTimestamp)
-        val responseBytes = server.postSync(serverUrl, token, request)
-        val response = try {
-            encoder.decode(responseBytes)
-        } catch (_: SyncEncryptionException.DecryptionFailed) {
-            throw ActualSyncException.DecryptionFailed
+        // A large backlog goes out in several requests. Later ones only ask for messages newer than this
+        // pass; older ones came back with the first request or are caught by the Merkle diff below.
+        val passStart = clock.current().toString()
+        val fromServer = LinkedHashMap<String, CrdtMessage>()
+        var serverMerkle: MerkleNode? = null
+        SyncBatches.split(localMessages).forEachIndexed { index, batch ->
+            val request = encoder.encode(
+                batch, fileId, groupId, encryptionKeyId, if (index == 0) sinceTimestamp else passStart,
+            )
+            val responseBytes = server.postSync(serverUrl, token, request)
+            val batchResponse = try {
+                encoder.decode(responseBytes)
+            } catch (_: SyncEncryptionException.DecryptionFailed) {
+                throw ActualSyncException.DecryptionFailed
+            }
+            batchResponse.messages.forEach { fromServer.putIfAbsent(it.timestamp.toString(), it) }
+            serverMerkle = batchResponse.merkle
         }
+        val response = DecodedSyncResponse(fromServer.values.toList(), requireNotNull(serverMerkle))
         totals.received += response.messages.size
         val localChanged = database.maxMessageTimestamp() != localHighWater
 
