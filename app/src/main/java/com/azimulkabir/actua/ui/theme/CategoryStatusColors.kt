@@ -49,7 +49,10 @@ class CategoryStatusColorState(context: Context) {
         preferences.resetToDefaults()
     }
 
-    /** Opt-in: draw the status color as a pill behind the budgeted amount on Budget rows. */
+    /**
+     * Opt-in "Use accent color": progress bars, status dots and balance pills take the accent for the
+     * on-track statuses (see [accentStatusColor]), and balances are colored by status rather than sign.
+     */
     var colorBudgetedAmounts by mutableStateOf(displayPreferences.colorBudgetedAmounts)
         private set
 
@@ -79,10 +82,48 @@ private val NeutralStatusDark = Color(0xFF9CA3AF)
 private val PastGoalBlueLight = Color(0xFF0284C7)
 private val PastGoalBlueDark = Color(0xFF38BDF8)
 
-/** Semantic default, used when the user hasn't overridden a status color. */
+/** Hues from here round through red to [WarningHueEnd] read as red, pink-red or amber. */
+private const val WarningHueStart = 330f
+private const val WarningHueEnd = 60f
+
+/** Below this saturation an accent reads as gray, like the neutral statuses. */
+private const val MinAccentSaturation = 0.25f
+
+/**
+ * Whether [color] can stand for an on-track status without looking like a warning or a neutral
+ * status: not red, pink-red or amber (Rose, the gold preset, a custom red or orange) and not gray.
+ */
+internal fun accentReadsAsOnTrack(color: Color): Boolean {
+    val (hue, saturation) = CustomAccent.toHsv(color.toArgb())
+    return saturation >= MinAccentSaturation && hue > WarningHueEnd && hue < WarningHueStart
+}
+
+/**
+ * The status color "Use accent color" gives [status], or null to keep the semantic default: the
+ * on-track statuses take [primary], Funded past goal takes [tertiary] so it still differs from Funded.
+ * Overspent, Goal in progress, Fully spent and No money assigned always keep red, amber and gray, and
+ * an accent that reads as a warning or gray keeps every default.
+ */
+internal fun accentStatusColor(status: BudgetProgressState, primary: Color, tertiary: Color): Color? {
+    if (!accentReadsAsOnTrack(primary)) return null
+    return when (status) {
+        BudgetProgressState.FUNDED, BudgetProgressState.SPENDING, BudgetProgressState.GOAL_REACHED -> primary
+        BudgetProgressState.GOAL_OVERFUNDED -> tertiary.takeIf(::accentReadsAsOnTrack)
+        BudgetProgressState.OVERSPENT, BudgetProgressState.GOAL_IN_PROGRESS,
+        BudgetProgressState.SPENT, BudgetProgressState.UNASSIGNED -> null
+    }
+}
+
+/**
+ * The default for [status] when the user hasn't overridden its color: the semantic hue, or the
+ * accent where "Use accent color" is on (see [accentStatusColor]).
+ */
 @Composable
 fun defaultCategoryStatusColor(status: BudgetProgressState): Color {
     val colors = MaterialTheme.colorScheme
+    if (LocalCategoryStatusColors.current?.colorBudgetedAmounts == true) {
+        accentStatusColor(status, colors.primary, colors.tertiary)?.let { return it }
+    }
     val light = colors.background.luminance() > 0.5f
     val catppuccin = LocalCatppuccin.current
     val amber = if (catppuccin != null) colors.warning else if (light) GoalAmberLight else GoalAmberDark

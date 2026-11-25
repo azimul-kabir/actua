@@ -228,8 +228,8 @@
     <string name="settings_budget_type_tracking">Suivi (basé sur les rapports)</string>
     <string name="settings_category_status_dot">Pastille d’état des catégories</string>
     <string name="settings_category_status_dot_description">Affiche une pastille d’état à côté des noms de catégories dans Budget et Accueil</string>
-    <string name="settings_color_balances">Colorer les soldes</string>
-    <string name="settings_color_balances_description">Affiche la couleur d’état de la catégorie derrière le solde dans les lignes du budget</string>
+    <string name="settings_color_balances">Utiliser la couleur d’accent</string>
+    <string name="settings_color_balances_description">Les barres de progression, les points d’état et les soldes suivent votre couleur d’accent. Les dépassements restent en rouge, les objectifs en cours en ambre et les catégories vides en gris ; une couleur d’accent rouge ou orange conserve les couleurs standard.</string>
     <string name="settings_hide_income_group">Masquer le groupe des revenus</string>
     <string name="settings_hide_income_group_description">Masque le groupe de catégories de revenus dans l’onglet Budget</string>
     <string name="settings_category_status_colors">Couleurs d’état des catégories</string>

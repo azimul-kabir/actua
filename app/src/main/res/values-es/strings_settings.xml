@@ -220,8 +220,8 @@
 <string name="settings_budget_type_tracking">Seguimiento (basado en informes)</string>
 <string name="settings_category_status_dot">Indicador de estado de la categoría</string>
 <string name="settings_category_status_dot_description">Muestra un punto de estado junto a los nombres de las categorías en Presupuesto e Inicio</string>
-<string name="settings_color_balances">Colorear saldos</string>
-<string name="settings_color_balances_description">Muestra el color de estado de la categoría detrás del saldo en las filas del presupuesto</string>
+<string name="settings_color_balances">Usar color de acento</string>
+<string name="settings_color_balances_description">Las barras de progreso, los puntos de estado y los saldos siguen su color de acento. Los excesos de gasto siguen en rojo, los objetivos en curso en ámbar y las categorías vacías en gris; un color de acento rojo o naranja mantiene los colores estándar.</string>
 <string name="settings_hide_income_group">Ocultar grupo de ingresos</string>
 <string name="settings_hide_income_group_description">Oculta el grupo de categorías de ingresos en la pestaña Presupuesto</string>
 <string name="settings_category_status_colors">Colores de estado de las categorías</string>

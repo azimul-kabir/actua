@@ -228,8 +228,8 @@
     <string name="settings_budget_type_tracking">Monitoraggio (basato sui report)</string>
     <string name="settings_category_status_dot">Indicatore di stato della categoria</string>
     <string name="settings_category_status_dot_description">Mostra un indicatore di stato accanto ai nomi delle categorie in Budget e Home</string>
-    <string name="settings_color_balances">Colora i saldi</string>
-    <string name="settings_color_balances_description">Disegna il colore di stato della categoria dietro il Saldo nelle righe del Budget</string>
+    <string name="settings_color_balances">Usa il colore d’accento</string>
+    <string name="settings_color_balances_description">Barre di avanzamento, punti di stato e saldi seguono il tuo colore d’accento. Le spese oltre il budget restano rosse, gli obiettivi in corso ambra e le categorie vuote grigie; un colore d’accento rosso o arancione mantiene i colori standard.</string>
     <string name="settings_hide_income_group">Nascondi il gruppo delle entrate</string>
     <string name="settings_hide_income_group_description">Nasconde il gruppo di categorie delle entrate nella scheda Budget</string>
     <string name="settings_category_status_colors">Colori di stato delle categorie</string>

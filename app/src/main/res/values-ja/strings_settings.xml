@@ -228,8 +228,8 @@
     <string name="settings_budget_type_tracking">トラッキング（レポート重視）</string>
     <string name="settings_category_status_dot">カテゴリのステータスドット</string>
     <string name="settings_category_status_dot_description">予算とホームで、カテゴリ名の横にステータスドットを表示します</string>
-    <string name="settings_color_balances">残高に色を付ける</string>
-    <string name="settings_color_balances_description">予算の行の残高の背景に、カテゴリのステータス色を表示します</string>
+    <string name="settings_color_balances">アクセントカラーを使用</string>
+    <string name="settings_color_balances_description">進捗バー、ステータスドット、残高がアクセントカラーに合わせて表示されます。使いすぎは赤、進行中の目標は琥珀色、空のカテゴリはグレーのままです。赤やオレンジのアクセントカラーでは標準の色が使われます。</string>
     <string name="settings_hide_income_group">収入グループを非表示</string>
     <string name="settings_hide_income_group_description">予算タブで収入カテゴリのグループを隠します</string>
     <string name="settings_category_status_colors">カテゴリのステータス色</string>
