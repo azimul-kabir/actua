@@ -67,12 +67,16 @@ class MoneyFormatterTest {
         CurrencyDisplay.code = "JPY"
         CurrencyDisplay.symbolOnly = true
         CurrencyDisplay.decimalPlaces = 0
-        assertEquals("¥1,000", formatMoneyCents(1000, hideDecimalPlaces = false))
-        assertEquals("−¥1,000", formatMoneyCents(-1000, hideDecimalPlaces = false))
-        assertEquals("¥1,000", formatMoneyCents(1000, hideDecimalPlaces = true))
-        assertEquals("1000", centsToInput(1000))
-        assertEquals(1000L, parseInputCents("1000"))
-        assertNull(parseInputCents("10.5"))
+        // Amounts keep two implied decimals in every currency: ¥1,000 is stored as 100000.
+        assertEquals("¥1,000", formatMoneyCents(100_000, hideDecimalPlaces = false))
+        assertEquals("−¥1,000", formatMoneyCents(-100_000, hideDecimalPlaces = false))
+        assertEquals("¥1,000", formatMoneyCents(100_000, hideDecimalPlaces = true))
+        assertEquals("¥1,001", formatMoneyCents(100_050, hideDecimalPlaces = false))
+        assertEquals("1000", centsToInput(100_000))
+        assertEquals("1000.50", centsToInput(100_050))
+        assertEquals(100_000L, parseInputCents("1000"))
+        assertEquals(100_050L, parseInputCents("1000.5"))
+        assertNull(parseInputCents("10.555"))
     }
 
     @Test fun supportsEuropeanAndSouthAsianGrouping() {
