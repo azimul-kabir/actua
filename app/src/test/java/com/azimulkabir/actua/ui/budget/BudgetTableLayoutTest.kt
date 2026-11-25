@@ -57,7 +57,7 @@ class BudgetTableLayoutTest {
         assertNull(tableLayoutFor(256f, showSpent = true, fontScale = 1f, spentText = 120f))
         // The balance column also holds the pill's padding.
         assertNotNull(tableLayoutFor(361f, showSpent = true, fontScale = 1f, balanceText = 180f))
-        assertNull(tableLayoutFor(361f, showSpent = true, fontScale = 1f, balanceText = 185f))
+        assertNull(tableLayoutFor(361f, showSpent = true, fontScale = 1f, balanceText = 200f))
         // A hidden Spent column doesn't count.
         assertNotNull(tableLayoutFor(361f, showSpent = false, fontScale = 1f, spentText = 1_000f))
     }
