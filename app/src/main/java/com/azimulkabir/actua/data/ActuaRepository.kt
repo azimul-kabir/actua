@@ -930,7 +930,7 @@ class ActuaRepository(context: Context) {
     fun budgetDisplayFormats(): BudgetDisplayFormats =
         BudgetDisplayFormats.from(actualDatabase?.fetchPreferences(BudgetDisplayFormats.KEYS).orEmpty())
 
-    /** Decimal places of the budget's synced `defaultCurrencyCode`: 0 for JPY, KRW and IRR, otherwise 2. */
+    /** Fraction digits shown for the budget's synced `defaultCurrencyCode`: 0 for JPY, KRW and IRR, otherwise 2. Stored amounts always have two. */
     fun budgetDecimalPlaces(): Int =
         com.azimulkabir.actua.data.budget.CurrencyDecimals.of(actualDatabase?.defaultCurrencyCode())
 
