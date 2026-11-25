@@ -66,6 +66,8 @@ fun SankeyChart(
     onDrillDown: ((ReportCategory) -> Unit)?,
     modifier: Modifier = Modifier,
     budgeted: Boolean = false,
+    /** Sankey `showPercentages`: labels and legend rows show each node's share of its column instead of an amount. */
+    showPercentages: Boolean = false,
 ) {
     val expenses = categories.filter { it.spentCents > 0 }
     val sources = incomeCategories.filter { it.spentCents > 0 }
@@ -110,7 +112,13 @@ fun SankeyChart(
         }
     }
     fun focus(side: SankeySide, i: Int) { selected = side to i }
-    fun share(value: Long) = if (income > 0) "${"%.1f".format(value * 100.0 / income)}%" else ""
+    val leftTotal = leftNodes.sumOf { it.value }.coerceAtLeast(1L)
+    val rightTotal = rightNodes.sumOf { it.value }.coerceAtLeast(1L)
+    fun share(value: Long, side: SankeySide = SankeySide.INCOME) = when {
+        showPercentages -> "${"%.1f".format(value * 100.0 / (if (side == SankeySide.INCOME) leftTotal else rightTotal))}%"
+        income > 0 -> "${"%.1f".format(value * 100.0 / income)}%"
+        else -> ""
+    }
 
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         subtitle?.let {
@@ -129,7 +137,7 @@ fun SankeyChart(
             }
             Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
                 Text(
-                    activeRight?.let { "${rightNodes[it].name} · ${share(rightNodes[it].value)}" } ?: if (budgeted) "Allocations" else "Expenses",
+                    activeRight?.let { "${rightNodes[it].name} · ${share(rightNodes[it].value, SankeySide.EXPENSE)}" } ?: if (budgeted) "Allocations" else "Expenses",
                     style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
@@ -169,9 +177,10 @@ fun SankeyChart(
             )
             val pad = with(density) { 4.dp.toPx() }
             val labelWidth = barW - 2 * pad
-            fun labels(nodes: List<SankeyNode>) = nodes.map { n -> fit(n.name, labelWidth) to textMeasurer.measure(share(n.value), labelStyle) }
-            val leftLabels = remember(leftNodes, labelWidth, income) { labels(leftNodes) }
-            val rightLabels = remember(rightNodes, labelWidth, income) { labels(rightNodes) }
+            fun labels(nodes: List<SankeyNode>, side: SankeySide) =
+                nodes.map { n -> fit(n.name, labelWidth) to textMeasurer.measure(share(n.value, side), labelStyle) }
+            val leftLabels = remember(leftNodes, labelWidth, income, showPercentages) { labels(leftNodes, SankeySide.INCOME) }
+            val rightLabels = remember(rightNodes, labelWidth, income, showPercentages) { labels(rightNodes, SankeySide.EXPENSE) }
 
             Canvas(
                 Modifier.fillMaxWidth().height(chartHeight)
@@ -246,7 +255,7 @@ fun SankeyChart(
             leftNodes.forEachIndexed { i, node ->
                 LegendRow(
                     node = node, selected = i == activeLeft, dimmed = activeLeft != null && activeLeft != i,
-                    share = share(node.value), hideDecimals = hideDecimals,
+                    share = share(node.value), hideDecimals = hideDecimals, percentOnly = showPercentages,
                     canDrill = canDrill(sources.getOrNull(i)),
                     onClick = { activate(SankeySide.INCOME, i) }, onLongClick = { focus(SankeySide.INCOME, i) },
                 )
@@ -255,7 +264,8 @@ fun SankeyChart(
         rightNodes.forEachIndexed { i, node ->
             LegendRow(
                 node = node, selected = i == activeRight, dimmed = activeRight != null && activeRight != i,
-                share = null, hideDecimals = hideDecimals,
+                share = if (showPercentages) share(node.value, SankeySide.EXPENSE) else null, hideDecimals = hideDecimals,
+                percentOnly = showPercentages,
                 canDrill = canDrill(expenses.getOrNull(i)),
                 onClick = { activate(SankeySide.EXPENSE, i) }, onLongClick = { focus(SankeySide.EXPENSE, i) },
             )
@@ -266,12 +276,13 @@ fun SankeyChart(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LegendRow(
-    node: SankeyNode, selected: Boolean, dimmed: Boolean, share: String?, hideDecimals: Boolean,
+    node: SankeyNode, selected: Boolean, dimmed: Boolean, share: String?, hideDecimals: Boolean, percentOnly: Boolean,
     canDrill: Boolean, onClick: () -> Unit, onLongClick: () -> Unit,
 ) {
     val textAlpha = if (dimmed) 0.5f else 1f
     val textColor = MaterialTheme.colorScheme.onSurface.copy(alpha = textAlpha)
-    val amount = (if (!share.isNullOrEmpty()) "$share · " else "") + formatMoneyCents(node.value, hideDecimals)
+    val amount = if (percentOnly && !share.isNullOrEmpty()) share
+        else (if (!share.isNullOrEmpty()) "$share · " else "") + formatMoneyCents(node.value, hideDecimals)
     val nameWeight = if (selected) FontWeight.Bold else FontWeight.Normal
     Row(
         Modifier.fillMaxWidth()

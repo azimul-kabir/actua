@@ -217,7 +217,7 @@ object CoreReportEngine {
                 accountBalances, today)
             "budget-analysis-card" -> budgetAnalysis(row.id, name, meta, context, budgetMonth, start, end)
             "sankey-card" -> sankey(row.id, name, filtered, context, incomeCategoryIds, rangeStart, rangeEnd,
-                exactDates = sankeyPayRange != null)
+                exactDates = sankeyPayRange != null, options = SankeyOptions.from(meta))
             // Upstream's card only uses the tracking-budget source in a tracking budget file.
             // Actual 26.11's `yAxisBase`: `Zero-Based` pins the chart axis to zero, anything else is automatic.
             "balance-forecast-card" -> (if (meta?.optString("source") == "tracking-budget" &&
@@ -714,6 +714,7 @@ object CoreReportEngine {
     private fun sankey(
         id: String, name: String, transactions: List<ActualTransaction>, context: RuleContext,
         incomeCategoryIds: Set<String>, start: LocalDate, end: LocalDate, exactDates: Boolean = false,
+        options: SankeyOptions = SankeyOptions(),
     ): ReportWidget {
         data class Flow(val label: String, val cents: Long)
         val inflows = mutableListOf<Flow>()
@@ -755,15 +756,17 @@ object CoreReportEngine {
                 ReportCategory(label, rows.sumOf { it.cents }, drillDownQuery = query)
             }
             .sortedByDescending { it.spentCents }
-        val incomeCategories = breakdown(inflows, isIncome = true)
-        val categories = breakdown(outflows, isIncome = false)
+        // Upstream's top-N "Other" fold and category sort, applied to each column (`sankey-spreadsheet.ts`
+        // `groupOtherCategories` and `sortGraph`). Budgeted mode keeps its own fixed nodes.
+        val incomeCategories = shapeSankeyColumn(breakdown(inflows, isIncome = true), options, context.categoryNames.values.toList())
+        val categories = shapeSankeyColumn(breakdown(outflows, isIncome = false), options, context.categoryGroupNames.values.toList())
         val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", java.util.Locale.ENGLISH)
         val subtitle = if (exactDates) "$start - $end"
             else if (YearMonth.from(start) == YearMonth.from(end)) start.format(formatter)
             else "${start.format(formatter)} - ${end.format(formatter)}"
         return ReportWidget(id, ReportWidgetKind.SANKEY, name, valueCents = incomeCategories.sumOf { it.spentCents },
             comparisonCents = categories.sumOf { it.spentCents }, categories = categories,
-            incomeCategories = incomeCategories, subtitle = subtitle)
+            incomeCategories = incomeCategories, subtitle = subtitle, sankeyShowPercentages = options.showPercentages)
     }
 
     /**
