@@ -56,7 +56,7 @@ class ReceiptTextParserTest {
     }
 
     @Test fun aCurrencyWithoutDecimalsTakesWholeNumbers() {
-        assertEquals(1500L, parse("TOTAL 1500", decimalPlaces = 0).totalCents)
+        assertEquals(150_000L, parse("TOTAL 1500", decimalPlaces = 0).totalCents)
     }
 
     @Test fun anUnclearTotalIsLeftEmptyInsteadOfGuessed() {

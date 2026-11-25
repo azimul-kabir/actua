@@ -17,6 +17,7 @@ import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.NumberDisplay
 import com.azimulkabir.actua.ui.components.currencyInputPrefix
 import com.azimulkabir.actua.ui.components.formatWholeNumber
+import com.azimulkabir.actua.ui.components.STORED_DECIMALS
 import com.azimulkabir.actua.ui.components.minorUnitsPerWhole
 import kotlin.math.absoluteValue
 import kotlin.math.ceil
@@ -112,8 +113,9 @@ fun formatCompactMoney(
     decimalPlaces: Int = CurrencyDisplay.decimalPlaces,
 ): String {
     val magnitude = cents.absoluteValue
-    val scale = minorUnitsPerWhole(decimalPlaces)
-    val roundsToWhole = hideDecimals && decimalPlaces > 0
+    val scale = minorUnitsPerWhole()
+    val showsFraction = !hideDecimals && decimalPlaces > 0
+    val roundsToWhole = !showsFraction
     val roundsUp = roundsToWhole && magnitude % scale * 2 >= scale
     val wholeUnits = magnitude / scale + (if (roundsUp) 1L else 0L)
 
@@ -127,8 +129,8 @@ fun formatCompactMoney(
         "1.234,56", "1 234,56" -> ","
         else -> "."
     }
-    val decimals = if (hideDecimals || decimalPlaces == 0) "" else
-        "$decimalSeparator${(magnitude % scale).toString().padStart(decimalPlaces, '0')}"
+    val decimals = if (!showsFraction) "" else
+        "$decimalSeparator${(magnitude % scale).toString().padStart(STORED_DECIMALS, '0')}"
 
     val amountString = "$whole$decimals"
     if (currencySymbol.isEmpty()) return "$sign$amountString"

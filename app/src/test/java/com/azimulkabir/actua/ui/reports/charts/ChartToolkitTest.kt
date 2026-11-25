@@ -189,7 +189,7 @@ class ChartToolkitTest {
     @Test
     fun formatCompactMoneyZeroDecimalPlaces() {
         val formatted = formatCompactMoney(
-            cents = 500L, // JPY: 500 is already whole units
+            cents = 50_000L, // JPY: stored with two implied decimals, so ¥500
             currencySymbol = "¥",
             symbolAfterAmount = false,
             numberFormat = "1,234.56",
