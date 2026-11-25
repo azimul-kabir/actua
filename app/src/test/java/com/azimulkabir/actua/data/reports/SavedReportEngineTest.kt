@@ -628,6 +628,11 @@ class SavedReportDisplaySettingsTest {
         assertEquals(listOf("2026-03", "2026-04"), trimmed)
     }
 
+    @Test fun `show_trend_lines carries through to the widget`() {
+        assertEquals(false, SavedReportEngine.compute(saved, rows, accounts, groups, today).showTrendLines)
+        assertEquals(true, SavedReportEngine.compute(saved.copy(showTrendLines = true), rows, accounts, groups, today).showTrendLines)
+    }
+
     @Test fun `a daily this-month report lists every day of the month, future days included`() {
         val daily = saved.copy(dateStatic = false, dateRange = "This month", interval = "Daily", mode = "time")
         val points = SavedReportEngine.compute(daily, listOf(tx("1", 20260902, -100, "rent")), accounts, groups, today).points

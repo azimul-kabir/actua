@@ -33,4 +33,6 @@ data class SavedReportRow(
     val trimIntervals: Boolean = false,
     /** Synced `metadata` JSON, which carries `tagScope` for a report grouped by tag. Never rewritten by Actua. */
     val metadata: String? = null,
+    /** `show_trend_lines`: draw a least-squares trend line over a line chart. */
+    val showTrendLines: Boolean = false,
 )

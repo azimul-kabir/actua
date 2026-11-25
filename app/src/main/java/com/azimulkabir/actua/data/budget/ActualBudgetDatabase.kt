@@ -1833,7 +1833,7 @@ class ActualBudgetDatabase private constructor(
                 "show_offbudget, show_hidden, show_uncategorized, selected_categories, graph_type, conditions, " +
                 "conditions_op, interval, mode, ${optional("include_current", "0")}, " +
                 "${optional("sort_by", "NULL")}, ${optional("show_empty", "0")}, ${optional("trim_intervals", "0")}, " +
-                "${optional("metadata", "NULL")} " +
+                "${optional("metadata", "NULL")}, ${optional("show_trend_lines", "0")} " +
                 "FROM custom_reports WHERE tombstone = 0 OR tombstone IS NULL ORDER BY name",
             null,
         ).use { c ->
@@ -1843,7 +1843,7 @@ class ActualBudgetDatabase private constructor(
                 c.longOrZero(8) == 1L, c.longOrZero(9) == 1L, c.longOrZero(10) == 1L, c.stringOrNull(11),
                 c.stringOrNull(12) ?: "BarGraph", c.stringOrNull(13), c.stringOrNull(14), c.stringOrNull(15) ?: "Monthly", c.stringOrNull(16) ?: "total",
                 c.longOrZero(17) == 1L, c.stringOrNull(18)?.takeIf(String::isNotBlank) ?: "desc",
-                c.longOrZero(19) == 1L, c.longOrZero(20) == 1L, c.stringOrNull(21),
+                c.longOrZero(19) == 1L, c.longOrZero(20) == 1L, c.stringOrNull(21), c.longOrZero(22) == 1L,
             )
         }
         return rows
@@ -1859,7 +1859,7 @@ class ActualBudgetDatabase private constructor(
                 "show_offbudget, show_hidden, show_uncategorized, selected_categories, graph_type, conditions, " +
                 "conditions_op, interval, mode, ${optional("include_current", "0")}, " +
                 "${optional("sort_by", "NULL")}, ${optional("show_empty", "0")}, ${optional("trim_intervals", "0")}, " +
-                "${optional("metadata", "NULL")} " +
+                "${optional("metadata", "NULL")}, ${optional("show_trend_lines", "0")} " +
                 "FROM custom_reports WHERE id = ? AND (tombstone = 0 OR tombstone IS NULL)",
             arrayOf(id),
         ).use { c ->
@@ -1869,7 +1869,7 @@ class ActualBudgetDatabase private constructor(
                 c.longOrZero(8) == 1L, c.longOrZero(9) == 1L, c.longOrZero(10) == 1L, c.stringOrNull(11),
                 c.stringOrNull(12) ?: "BarGraph", c.stringOrNull(13), c.stringOrNull(14), c.stringOrNull(15) ?: "Monthly", c.stringOrNull(16) ?: "total",
                 c.longOrZero(17) == 1L, c.stringOrNull(18)?.takeIf(String::isNotBlank) ?: "desc",
-                c.longOrZero(19) == 1L, c.longOrZero(20) == 1L, c.stringOrNull(21),
+                c.longOrZero(19) == 1L, c.longOrZero(20) == 1L, c.stringOrNull(21), c.longOrZero(22) == 1L,
             ) else null
         }
     }
