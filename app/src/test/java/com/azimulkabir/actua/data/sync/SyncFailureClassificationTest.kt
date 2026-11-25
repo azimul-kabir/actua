@@ -21,7 +21,7 @@ class SyncFailureClassificationTest {
     fun `sync server reasons become typed rejections that are not retried`() {
         listOf(
             "file-old-version", "file-needs-upload", "file-key-mismatch",
-            "file-has-reset", "file-has-new-key", "file-not-found",
+            "file-has-reset", "file-has-new-key", "file-not-found", "clock-drift", "invalid-timestamp",
         ).forEach { reason ->
             val error = postSyncFailure(400, reason)
             assertTrue(reason, error is ActualServerException.SyncRejected)

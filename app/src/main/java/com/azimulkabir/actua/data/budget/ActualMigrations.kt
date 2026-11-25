@@ -75,6 +75,7 @@ internal object ActualMigrations {
         "1780606215001_add_performance_indexes.sql",
         "1783004650757_schedule_sort_order.sql",
         "1787013118115_add_account_groups.sql",
+        "1792441821604_dashboard_page_sort_order.sql",
     )
     private val sqlFileById: Map<Long, String> = SQL_FILES.associateBy { it.substringBefore('_').toLong() }
     private val PORTED = setOf(
