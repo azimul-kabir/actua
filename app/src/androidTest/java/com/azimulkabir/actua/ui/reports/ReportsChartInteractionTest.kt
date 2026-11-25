@@ -122,12 +122,11 @@ class ReportsChartInteractionTest {
     }
 
     @Test fun sankeyRendersANodePerLayerAndGroupsTheLegendByLayer() {
-        val layers = com.azimulkabir.actua.model.SankeyLayer
         val widget = sankeyWidget(
-            sankeyNode("Salary", layers.INCOME_CATEGORY, 0, 500_00),
-            sankeyNode("Checking", layers.ACCOUNT, 1, 500_00),
-            sankeyNode("Rent", layers.CATEGORY, 2, 200_00),
-            sankeyNode("Groceries", layers.CATEGORY, 2, 100_00),
+            sankeyNode("Salary", com.azimulkabir.actua.model.SankeyLayer.INCOME_CATEGORY, 0, 500_00),
+            sankeyNode("Checking", com.azimulkabir.actua.model.SankeyLayer.ACCOUNT, 1, 500_00),
+            sankeyNode("Rent", com.azimulkabir.actua.model.SankeyLayer.CATEGORY, 2, 200_00),
+            sankeyNode("Groceries", com.azimulkabir.actua.model.SankeyLayer.CATEGORY, 2, 100_00),
             links = listOf(0 to 1, 1 to 2, 1 to 3),
         )
         val page = ReportDashboardPage("main", "Main", listOf(widget))
@@ -151,10 +150,9 @@ class ReportsChartInteractionTest {
     }
 
     @Test fun tappingASankeyLegendRowHighlightsItInTheSummary() {
-        val layers = com.azimulkabir.actua.model.SankeyLayer
         val widget = sankeyWidget(
-            sankeyNode("Checking", layers.ACCOUNT, 0, 300_00),
-            sankeyNode("Rent", layers.CATEGORY, 1, 300_00),
+            sankeyNode("Checking", com.azimulkabir.actua.model.SankeyLayer.ACCOUNT, 0, 300_00),
+            sankeyNode("Rent", com.azimulkabir.actua.model.SankeyLayer.CATEGORY, 1, 300_00),
             links = listOf(0 to 1),
         )
         val page = ReportDashboardPage("main", "Main", listOf(widget))
