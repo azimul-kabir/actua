@@ -1,5 +1,7 @@
 package com.azimulkabir.actua.ui.settings
 
+import com.azimulkabir.actua.ui.components.STORED_DECIMALS
+import com.azimulkabir.actua.ui.components.centsToInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -779,8 +781,9 @@ private fun actionSummary(action: Rule.Action, names: Map<String, String>) = whe
 
 /** A rule amount (stored in the budget currency's minor units) as a plain decimal with that currency's places. */
 private fun ruleAmountText(minorUnits: Double): String {
-    val places = CurrencyDisplay.decimalPlaces
-    return "%.${places}f".format(minorUnits / minorUnitsPerWhole(places))
+    // A currency without decimals still shows a stored fraction, so editing the text cannot round it away.
+    val places = if (CurrencyDisplay.decimalPlaces == 0 && minorUnits % minorUnitsPerWhole() == 0.0) 0 else STORED_DECIMALS
+    return "%.${places}f".format(minorUnits / minorUnitsPerWhole())
 }
 
 @Composable

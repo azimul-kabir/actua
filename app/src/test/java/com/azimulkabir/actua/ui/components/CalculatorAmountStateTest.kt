@@ -184,10 +184,10 @@ class CalculatorAmountStateTest {
         val state = CalculatorAmountState(decimalPlaces = 0)
         state.digit(1); state.digit(0); state.digit(0); state.digit(0)
         assertEquals("1000", state.display)
-        assertEquals(1000, state.cents)
+        assertEquals(100_000, state.cents)
         state.operator(CalculatorAmountState.Operator.MULTIPLY)
         state.digit(3)
-        assertEquals(3000, state.finish())
+        assertEquals(300_000, state.finish())
         assertEquals("1000 ×", CalculatorAmountState(decimalPlaces = 0).apply {
             digit(1); digit(0); digit(0); digit(0); operator(CalculatorAmountState.Operator.MULTIPLY)
         }.expressionDisplay)
@@ -196,9 +196,9 @@ class CalculatorAmountStateTest {
     @Test fun conventionalEntryIgnoresTheDecimalPointWithoutMinorUnits() {
         val state = CalculatorAmountState(conventionalAmountEntry = true, decimalPlaces = 0)
         state.digit(1); state.decimalPoint(); state.digit(2)
-        assertEquals(12, state.cents)
+        assertEquals(1_200, state.cents)
         state.backspace()
-        assertEquals(1, state.cents)
+        assertEquals(100, state.cents)
     }
 
     @Test fun conventionalEntryTypesAndDeletesFractionDigits() {
@@ -498,15 +498,12 @@ class CalculatorAmountStateTest {
         assertEquals(12, stock.finish())
     }
 
-    @Test fun budgetKeypadsKeepIntegerMinorUnitsForZeroAndThreeDecimalCurrencies() {
+    @Test fun budgetKeypadsKeepTwoImpliedDecimalsForZeroDecimalCurrencies() {
         val yen = CalculatorAmountState(0L, allowsNegative = true, conventionalAmountEntry = true, decimalPlaces = 0)
         yen.digit(1); yen.digit(5)
-        assertEquals(15, yen.finish())
-        val dinar = CalculatorAmountState(0L, allowsNegative = true, conventionalAmountEntry = true, decimalPlaces = 3)
-        dinar.digit(2); dinar.decimalPoint(); dinar.digit(5)
-        assertEquals(2_500, dinar.finish())
-        val dinarStock = CalculatorAmountState(0L, allowsNegative = true, conventionalAmountEntry = false, decimalPlaces = 3)
-        dinarStock.digit(2); dinarStock.digit(5)
-        assertEquals(25, dinarStock.finish())
+        assertEquals(1_500, yen.finish())
+        val yenStock = CalculatorAmountState(0L, allowsNegative = true, conventionalAmountEntry = false, decimalPlaces = 0)
+        yenStock.digit(2); yenStock.digit(5)
+        assertEquals(2_500, yenStock.finish())
     }
 }

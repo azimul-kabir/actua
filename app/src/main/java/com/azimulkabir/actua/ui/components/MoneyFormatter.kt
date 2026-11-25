@@ -14,8 +14,9 @@ object CurrencyDisplay {
     @Volatile var symbolOnly: Boolean = false
 
     /**
-     * Decimal places of the open budget's synced currency (`CurrencyDecimals`): stored amounts are
-     * integers in these minor units. 0 for JPY, KRW and IRR budgets, otherwise 2.
+     * Fraction digits the open budget's synced currency shows (`CurrencyDecimals`): 0 for JPY, KRW and
+     * IRR, otherwise 2. This only changes how an amount is shown and typed. Stored amounts always keep
+     * [STORED_DECIMALS] implied decimals, so ¥1,500 is stored as 150000.
      */
     @Volatile var decimalPlaces: Int = 2
 
@@ -26,8 +27,14 @@ object CurrencyDisplay {
     @Volatile var spaceBetweenAmountAndSymbol: Boolean = false
 }
 
-/** Stored integer units per whole currency unit: 10^[CurrencyDisplay.decimalPlaces]. */
-internal fun minorUnitsPerWhole(decimalPlaces: Int = CurrencyDisplay.decimalPlaces): Long {
+/**
+ * Implied decimals of every stored amount, whatever the currency (Actual stores ¥1,500 as 150000, as it
+ * does $1,500.00 as 150000).
+ */
+const val STORED_DECIMALS = 2
+
+/** 10^[decimalPlaces]: stored integer units per whole currency unit when left at the default. */
+internal fun minorUnitsPerWhole(decimalPlaces: Int = STORED_DECIMALS): Long {
     var scale = 1L
     repeat(decimalPlaces) { scale *= 10 }
     return scale
@@ -45,9 +52,9 @@ fun formatMoneyCents(
 ): String {
     if (respectBalanceVisibility && BalanceVisibility.hidden) return "••••"
     val magnitude = cents.absoluteValue
-    val decimalPlaces = CurrencyDisplay.decimalPlaces
-    val scale = minorUnitsPerWhole(decimalPlaces)
-    val roundsToWhole = hideDecimalPlaces && decimalPlaces > 0
+    val scale = minorUnitsPerWhole()
+    val showsFraction = !hideDecimalPlaces && CurrencyDisplay.decimalPlaces > 0
+    val roundsToWhole = !showsFraction
     // Hidden decimals round half away from zero, like Actual's Intl.NumberFormat with no fraction digits.
     val roundsUp = roundsToWhole && magnitude % scale * 2 >= scale
     val wholeUnits = magnitude / scale + (if (roundsUp) 1L else 0L)
@@ -62,8 +69,8 @@ fun formatMoneyCents(
         "1.234,56", "1 234,56" -> ","
         else -> "."
     }
-    val decimals = if (hideDecimalPlaces || decimalPlaces == 0) "" else
-        "$decimalSeparator${(magnitude % scale).toString().padStart(decimalPlaces, '0')}"
+    val decimals = if (!showsFraction) "" else
+        "$decimalSeparator${(magnitude % scale).toString().padStart(STORED_DECIMALS, '0')}"
     return sign + withCurrencySymbol("$whole$decimals")
 }
 
@@ -168,16 +175,19 @@ private fun narrowCurrencySymbol(code: String): String = when (code) {
     else -> runCatching { Currency.getInstance(code).symbol }.getOrDefault(code)
 }
 
+/**
+ * An amount for an edit field. Whole units for a currency without decimals (¥1,500 is typed as 1500), but
+ * a stored fraction is kept (1500.50) so saving the text unedited cannot round it away.
+ */
 fun centsToInput(cents: Long): String {
     val magnitude = cents.absoluteValue
-    val decimalPlaces = CurrencyDisplay.decimalPlaces
-    if (decimalPlaces == 0) return magnitude.toString()
-    val scale = minorUnitsPerWhole(decimalPlaces)
-    val decimal = (magnitude % scale).toString().padStart(decimalPlaces, '0')
+    val scale = minorUnitsPerWhole()
+    if (CurrencyDisplay.decimalPlaces == 0 && magnitude % scale == 0L) return (magnitude / scale).toString()
+    val decimal = (magnitude % scale).toString().padStart(STORED_DECIMALS, '0')
     return "${magnitude / scale}.$decimal"
 }
 
-/** Typed amount → stored integer in the budget's minor units; more decimals than the currency has are rejected. */
+/** Typed amount → stored integer ([STORED_DECIMALS] implied decimals); more than two decimals are rejected. */
 fun parseInputCents(value: String): Long? = runCatching {
-    value.trim().toBigDecimal().movePointRight(CurrencyDisplay.decimalPlaces).longValueExact()
+    value.trim().toBigDecimal().movePointRight(STORED_DECIMALS).longValueExact()
 }.getOrNull()
