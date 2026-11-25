@@ -10,9 +10,10 @@ class BudgetMovementNoteTest {
         assertEquals("12.34", BudgetMovementNote.amountText(1_234, null))
         assertEquals("1,234,567.89", BudgetMovementNote.amountText(123_456_789, "EUR"))
         assertEquals("0.05", BudgetMovementNote.amountText(5, ""))
-        // Zero-decimal currencies divide by 1 but still print two fraction digits, as upstream does.
-        assertEquals("1,234.00", BudgetMovementNote.amountText(1_234, "JPY"))
-        assertEquals("1,234.00", BudgetMovementNote.amountText(1_234, "krw"))
+        // Zero-decimal currencies store two implied decimals too and print no fraction digits.
+        assertEquals("1,234", BudgetMovementNote.amountText(123_400, "JPY"))
+        assertEquals("1,234", BudgetMovementNote.amountText(123_400, "krw"))
+        assertEquals("13", BudgetMovementNote.amountText(1_250, "JPY"))
     }
 
     @Test fun lineMatchesUpstream() {

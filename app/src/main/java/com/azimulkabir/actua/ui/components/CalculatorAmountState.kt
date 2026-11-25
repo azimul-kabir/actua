@@ -16,7 +16,7 @@ class CalculatorAmountState(
      */
     private val leadingMinus: Boolean = false,
     private val conventionalAmountEntry: Boolean = false,
-    /** Decimal places of the budget's currency; amounts are integers in these minor units. */
+    /** Fraction digits the budget's currency shows and accepts; amounts always have two implied decimals. */
     private val decimalPlaces: Int = CurrencyDisplay.decimalPlaces,
 ) {
     enum class Operator(val symbol: String) { ADD("+"), SUBTRACT("−"), MULTIPLY("×"), DIVIDE("÷") }
@@ -27,7 +27,7 @@ class CalculatorAmountState(
     private var hasOperand = initialCents != 0L
     private var decimalDigits: Int? = null
     private val expressionParts = mutableListOf<String>()
-    private val scale = minorUnitsPerWhole(decimalPlaces)
+    private val scale = minorUnitsPerWhole()
     /**
      * The number typed after × or ÷, as typed ("3", "1.5"): a plain factor, not an amount, as in
      * Actual's arithmetic amount input (#1028). Null while the operand is an amount.
@@ -99,6 +99,10 @@ class CalculatorAmountState(
                 else -> magnitude
             }
             decimalDigits = typed?.let { minOf(decimalPlaces, it + 1) }
+        } else if (decimalPlaces == 0) {
+            // Digits are whole units (¥1,500), so each one shifts the whole part, not the cents.
+            val whole = magnitude / scale
+            if (whole <= (Long.MAX_VALUE / scale - value) / 10) operandCents = sign * (whole * 10 + value) * scale
         } else if (magnitude <= (Long.MAX_VALUE - value) / 10) {
             operandCents = sign * (magnitude * 10 + value)
         }
@@ -142,6 +146,8 @@ class CalculatorAmountState(
                     }
                 }
                 decimalDigits = typed?.let { if (it == 0) null else it - 1 }
+            } else if (decimalPlaces == 0) {
+                operandCents = (if (operandCents < 0) -1 else 1) * (kotlin.math.abs(operandCents) / (scale * 10) * scale)
             } else operandCents /= 10
             hasOperand = operandCents != 0L
         } else if (pending != null) {
@@ -279,16 +285,17 @@ class CalculatorAmountState(
         return buildString {
             if (value < 0) append('−')
             append(magnitude / scale)
-            if (decimalPlaces > 0) {
+            // A stored fraction stays visible in a currency without decimals, so it is never lost on save.
+            if (decimalPlaces > 0 || magnitude % scale != 0L) {
                 append('.')
-                append((magnitude % scale).toString().padStart(decimalPlaces, '0'))
+                append((magnitude % scale).toString().padStart(STORED_DECIMALS, '0'))
             }
         }
     }
 
     private fun formatCompact(value: Long): String {
         val formatted = format(value)
-        val zeroFraction = "." + "0".repeat(decimalPlaces)
-        return if (decimalPlaces > 0 && formatted.endsWith(zeroFraction)) formatted.dropLast(zeroFraction.length) else formatted
+        val zeroFraction = "." + "0".repeat(STORED_DECIMALS)
+        return if (formatted.endsWith(zeroFraction)) formatted.dropLast(zeroFraction.length) else formatted
     }
 }
