@@ -27,7 +27,9 @@ data class SchedulePrefill(
                 payeeName = transaction.payee,
                 accountName = transaction.account,
                 amountCents = if (transaction.amountCents < 0) -abs(transaction.amountCents) else abs(transaction.amountCents),
-                startDate = DayDate.fromIso(transaction.date) ?: DayDate.today(),
+                // Stored dates are yyyymmdd; ISO is accepted too so a reformatted date still reads.
+                startDate = transaction.date.toIntOrNull()?.let(DayDate::fromYyyymmdd)
+                    ?: DayDate.fromIso(transaction.date) ?: DayDate.today(),
             )
         }
     }
