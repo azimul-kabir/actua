@@ -53,7 +53,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Changed budget balances to green when positive and red when negative, and the category status colors to fixed green, amber, gray, red and blue ([#1838](https://github.com/azimul-kabir/actua/pull/1838))
 - Changed the Budget table view to denser 48 dp rows, 13 sp aligned amounts, two-line group names, and goal icons shown as a small badge on the balance pill ([#1836](https://github.com/azimul-kabir/actua/pull/1836))
-- Changed the Budget table view to equal Budgeted, Spent and Balance columns, shrinking only amounts that don't fit ([#1843](https://github.com/azimul-kabir/actua/issues/1843))
+- Changed the Budget table view to equal Budgeted, Spent and Balance columns, shrinking only amounts that don't fit ([#1845](https://github.com/azimul-kabir/actua/pull/1845))
 - Changed "Accept transactions from Tasker" to "Accept transactions from automation apps", and broadcasts without a source now show as Automation instead of Tasker ([#1757](https://github.com/azimul-kabir/actua/pull/1757))
 - Changed GitHub releases to ship one APK, the Google Play build, as `Actua-v<version>.apk`; the separate Direct Full build is gone and earlier GitHub installs update in place ([#1751](https://github.com/azimul-kabir/actua/pull/1751))
 - Changed the Quick Settings tile label from Add transaction to Transaction ([#1725](https://github.com/azimul-kabir/actua/pull/1725))
