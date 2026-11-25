@@ -8,8 +8,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SchedulePrefillTest {
-    private fun tx(amountCents: Long, transfer: String? = null, upcoming: Boolean = false) = Transaction(
-        id = "t1", date = "2026-11-05", payee = "Landlord", category = "Rent", account = "Checking",
+    private fun tx(amountCents: Long, transfer: String? = null, upcoming: Boolean = false, date: String = "20261105") = Transaction(
+        id = "t1", date = date, payee = "Landlord", category = "Rent", account = "Checking",
         amount = (amountCents / 100).toInt(), cleared = true, amountCents = amountCents,
         transferAccount = transfer, isUpcoming = upcoming,
     )
@@ -21,6 +21,12 @@ class SchedulePrefillTest {
         assertEquals("Checking", prefill.accountName)
         assertEquals(-123_456L, prefill.amountCents)
         assertEquals(DayDate(2026, 11, 5), prefill.startDate)
+    }
+
+    @Test
+    fun readsIsoDatesAndFallsBackToTodayForUnreadableOnes() {
+        assertEquals(DayDate(2026, 11, 5), SchedulePrefill.from(tx(-100, date = "2026-11-05"))!!.startDate)
+        assertEquals(DayDate.today(), SchedulePrefill.from(tx(-100, date = "not a date"))!!.startDate)
     }
 
     @Test
