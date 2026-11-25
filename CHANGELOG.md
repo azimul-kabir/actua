@@ -21,7 +21,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added a widget style pack for supporters: Gradient accent, Outline and Midnight styles, corner radius and background opacity, for all widgets or each widget on its own ([#1733](https://github.com/azimul-kabir/actua/pull/1733))
 - Added a Custom accent color for supporters, with a hex field and hue, saturation and brightness sliders ([#1729](https://github.com/azimul-kabir/actua/pull/1729))
 - Added ten new app icons for supporters: Teal, Amber, Rose, Forest, Ocean, Latte, Mocha, Gradient, Midnight and Paper ([#1730](https://github.com/azimul-kabir/actua/pull/1730))
-- Added support for the Sankey card's top categories limit, sort order and show-as-percentages options ([#PRN](https://github.com/azimul-kabir/actua/pull/PRN))
+- Added support for the Sankey card's top categories limit, sort order and show-as-percentages options ([#1786](https://github.com/azimul-kabir/actua/pull/1786))
 
 ### Fixed
 
