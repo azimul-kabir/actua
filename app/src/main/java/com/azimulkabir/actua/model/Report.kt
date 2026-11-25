@@ -95,6 +95,8 @@ data class ReportWidget(
     val sankeyBudgeted: Boolean = false,
     /** Sankey `showPercentages`: nodes show their share of the column instead of an amount. */
     val sankeyShowPercentages: Boolean = false,
+    /** Saved report's `show_trend_lines`: overlay a trend line on its line chart. */
+    val showTrendLines: Boolean = false,
 )
 
 /** What a custom report's Summary totals, mirroring the labels in upstream `ReportSummary.tsx`. */
