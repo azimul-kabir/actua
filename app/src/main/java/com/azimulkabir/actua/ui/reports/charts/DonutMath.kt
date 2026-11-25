@@ -62,3 +62,10 @@ fun donutHitSlices(arcs: List<DonutSlice>, minSweepDeg: Float = 10f): List<Donut
             DonutSlice(arc.index, mid - minSweepDeg / 2f, minSweepDeg)
         }
     }.sortedBy { it.sweepAngleDeg }
+
+/**
+ * How far toward white the category at [index] of [count] in a group is shaded in the two-ring
+ * donut: upstream's `buildColorMap` uses `0.15 + index / max(count, 1) * 0.5`, so a group's
+ * categories run from its own colour to a lighter tint of it.
+ */
+fun categoryShadeFraction(index: Int, count: Int): Float = 0.15f + index.toFloat() / maxOf(count, 1) * 0.5f

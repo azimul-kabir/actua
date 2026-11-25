@@ -684,3 +684,74 @@ class FirstDayOfWeekTest {
         assertEquals(1, widget.weekStart)
     }
 }
+
+/** `group_by = CategoryGroup` on a donut: groups with their categories nested, as upstream's grouped spreadsheet (actua#1359). */
+class CategoryGroupDonutTest {
+    private val accounts = listOf(
+        com.azimulkabir.actua.data.budget.model.ActualAccount("a", "A", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0.0, 0),
+    )
+    private val groups = listOf(
+        com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("bills", "Bills", false, false, 1.0, listOf(
+            com.azimulkabir.actua.data.budget.model.ActualCategory("rent", "Rent", "bills", false, false, 1.0),
+            com.azimulkabir.actua.data.budget.model.ActualCategory("power", "Power", "bills", false, false, 2.0),
+        )),
+        com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("fun", "Fun", false, false, 2.0, listOf(
+            com.azimulkabir.actua.data.budget.model.ActualCategory("food", "Food", "fun", false, false, 1.0),
+            com.azimulkabir.actua.data.budget.model.ActualCategory("bike", "Bike", "fun", false, false, 2.0),
+        )),
+    )
+    private fun tx(id: String, amount: Long, category: String?) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
+        id, "a", 20260310, amount, null, null, category, null, null, false, false, null, false, null, false, null, null, null, null)
+    private val today = LocalDate.of(2026, 9, 10)
+    private val saved = SavedReportRow("r", "R", "2026-01", "2026-06", true, null, "CategoryGroup", "Payment", false, false, true,
+        null, "DonutGraph", null, "and", "Monthly")
+    private val rows = listOf(
+        tx("1", -100_000, "rent"), tx("2", -30_000, "power"), tx("3", -50_001, "food"), tx("4", -20_000, "bike"), tx("5", -999, null),
+    )
+
+    private fun compute(row: SavedReportRow = saved, data: List<com.azimulkabir.actua.data.budget.model.ActualTransaction> = rows) =
+        SavedReportEngine.compute(row, data, accounts, groups, today)
+
+    @Test fun `groups carry their categories and sum them exactly in cents`() {
+        val rings = compute().categories
+        assertEquals(listOf("Bills", "Fun", "Uncategorized & Off budget"), rings.map { it.name })
+        assertEquals(listOf(-130_000L, -70_001L, -999L), rings.map { it.spentCents })
+        assertEquals(listOf("Rent" to -100_000L, "Power" to -30_000L), rings[0].children.map { it.name to it.spentCents })
+        assertEquals(listOf("Food" to -50_001L, "Bike" to -20_000L), rings[1].children.map { it.name to it.spentCents })
+        assertEquals(listOf("Uncategorized" to -999L), rings[2].children.map { it.name to it.spentCents })
+        rings.forEach { assertEquals(it.spentCents, it.children.sumOf { c -> c.spentCents }) }
+    }
+
+    @Test fun `a group's drill-down covers all of its categories' transactions`() {
+        assertEquals(setOf("1", "2"), compute().categories[0].transactionIds.toSet())
+    }
+
+    @Test fun `groups with no value are left out of the ring`() {
+        val rings = compute(data = rows.filter { it.categoryId != "food" && it.categoryId != "bike" }).categories
+        assertEquals(listOf("Bills", "Uncategorized & Off budget"), rings.map { it.name })
+    }
+
+    @Test fun `show_empty lists empty categories inside a group but still drops an empty group`() {
+        val rings = compute(saved.copy(showEmpty = true), rows.filter { it.categoryId == "rent" }).categories
+        assertEquals(listOf("Bills"), rings.map { it.name })
+        assertEquals(listOf("Rent" to -100_000L, "Power" to 0L), rings[0].children.map { it.name to it.spentCents })
+    }
+
+    @Test fun `sort_by orders groups and the categories inside them`() {
+        val rings = compute(saved.copy(sortBy = "asc")).categories
+        assertEquals(listOf("Uncategorized & Off budget", "Fun", "Bills"), rings.map { it.name })
+        assertEquals(listOf("Power", "Rent"), rings[2].children.map { it.name })
+    }
+
+    @Test fun `other graph types group by category group without nesting`() {
+        val rings = compute(saved.copy(graphType = "BarGraph")).categories
+        assertEquals(listOf("Bills", "Fun", "Uncategorized & Off budget"), rings.map { it.name })
+        assertEquals(true, rings.all { it.children.isEmpty() })
+    }
+
+    @Test fun `category shades run from the group colour to a lighter tint`() {
+        assertEquals(0.15f, com.azimulkabir.actua.ui.reports.charts.categoryShadeFraction(0, 4), 1e-6f)
+        assertEquals(0.4f, com.azimulkabir.actua.ui.reports.charts.categoryShadeFraction(2, 4), 1e-6f)
+        assertEquals(0.15f, com.azimulkabir.actua.ui.reports.charts.categoryShadeFraction(0, 0), 1e-6f)
+    }
+}
