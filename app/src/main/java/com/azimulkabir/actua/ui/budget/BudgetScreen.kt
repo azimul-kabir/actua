@@ -197,6 +197,8 @@ import com.azimulkabir.actua.model.BudgetProgressState
 import com.azimulkabir.actua.model.TargetFunding
 import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
 import com.azimulkabir.actua.ui.theme.categoryStatusColor
+import com.azimulkabir.actua.ui.theme.signedBalanceColor
+import com.azimulkabir.actua.ui.theme.statusTextColor
 import com.azimulkabir.actua.ui.theme.danger
 import com.azimulkabir.actua.ui.theme.warning
 import com.azimulkabir.actua.ui.theme.PillShape
@@ -1396,12 +1398,12 @@ private fun PlanBudgetOverview(
     val leadCents = overview.leadValue
     val ready = leadCents ?: 0L
     val amount = leadCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—"
-    val contentColor = if (ready >= 0L) MaterialTheme.colorScheme.onPrimaryContainer
-        else MaterialTheme.colorScheme.onErrorContainer
+    // Green when there is money to budget, red when over-budgeted, as a category's balance reads.
+    val bannerFill = categoryStatusColor(if (ready >= 0L) BudgetProgressState.FUNDED else BudgetProgressState.OVERSPENT)
+    val contentColor = statusTextColor(bannerFill)
     Surface(
         onClick = onClick,
-        color = if (ready >= 0L) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.errorContainer,
+        color = bannerFill.copy(alpha = 0.16f),
         contentColor = contentColor,
         // The same corner radius as the category group cards below it.
         shape = MaterialTheme.shapes.large,
@@ -1553,7 +1555,7 @@ private fun OverspentCategoriesSheet(
                         title = category.name,
                         subtitle = group.name,
                         value = formatMoneyCents(category.balanceCents, hideDecimalPlaces),
-                        valueColor = MaterialTheme.colorScheme.error,
+                        valueColor = statusTextColor(categoryStatusColor(BudgetProgressState.OVERSPENT), tinted = false),
                         onClick = { onSelect(group, category) },
                     )
                 }
@@ -1790,8 +1792,8 @@ private fun IncomeBudgetCategoryRow(
                 formatMoneyCents(category.balanceCents, hideDecimalPlaces),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = if (category.balanceCents > 0L) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = signedBalanceColor(category.balanceCents)?.let { statusTextColor(it, tinted = false) }
+                    ?: MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -1915,17 +1917,16 @@ private fun OverviewCell(
         ) {
             if (pill) {
                 val pillModifier = Modifier.offset(x = pillOffset)
-                // Same rule as a category's BalancePill: only a negative amount takes color. The To
-                // budget chip ([onClick]) keeps its fill without balance pills; it's a button.
+                // Same sign rule as a category's BalancePill: green when positive, red when negative. The
+                // To budget chip ([onClick]) keeps its fill without balance pills; it's a button.
+                val signColor = signedBalanceColor(if (negative) -1L else if (positive) 1L else 0L)
+                val showFill = onClick != null || LocalShowBalancePills.current
                 val pillColor = when {
-                    onClick == null && !LocalShowBalancePills.current -> Color.Transparent
-                    negative -> colors.danger.copy(alpha = 0.16f)
-                    positive -> colors.surfaceContainerHighest
-                    else -> Color.Transparent
+                    !showFill || signColor == null -> Color.Transparent
+                    else -> signColor.copy(alpha = 0.16f)
                 }
                 val textColor = when {
-                    negative -> colors.danger
-                    positive -> colors.onSurface
+                    signColor != null -> statusTextColor(signColor, tinted = showFill)
                     else -> colors.onSurfaceVariant.copy(alpha = 0.55f)
                 }
                 if (onClick != null) {
@@ -2345,7 +2346,7 @@ private fun AmountColumn(
         TableAmountText(formatMoneyCents(amount, hideDecimalPlaces),
             fontWeight = if (balance) FontWeight.Bold else FontWeight.SemiBold,
             color = when {
-                balance && amount < 0L -> MaterialTheme.colorScheme.danger
+                balance && amount != 0L -> statusTextColor(signedBalanceColor(amount)!!, tinted = false)
                 muted -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
                 else -> MaterialTheme.colorScheme.onSurface
             }, modifier = Modifier.padding(start = TableAmountGap))
@@ -2865,8 +2866,9 @@ internal fun BalancePill(
     targetBadge: TargetFunding? = null,
 ) {
     val colors = MaterialTheme.colorScheme
-    val statusColor = categoryStatusColor(status)
+    val statusColor = categoryStatusColor(balancePillStatus(amount, status, colorByStatus))
     val tone = balancePillTone(amount, status, colorByStatus)
+    val filled = LocalShowBalancePills.current
     val pill = @Composable { pillModifier: Modifier -> Surface(
         modifier = pillModifier,
         shape = CircleShape,
@@ -2880,8 +2882,8 @@ internal fun BalancePill(
         val text = formatMoneyCents(amount, hideDecimalPlaces)
         val weight = if (tone == BalancePillTone.EMPTY) FontWeight.Normal else fontWeight
         val color = when (tone) {
-            BalancePillTone.ALERT -> statusColor
-            BalancePillTone.NEUTRAL -> colors.onSurface
+            BalancePillTone.ALERT -> statusTextColor(statusColor, tinted = filled)
+            BalancePillTone.NEUTRAL -> colors.onSurfaceVariant
             BalancePillTone.EMPTY -> colors.onSurfaceVariant.copy(alpha = 0.55f)
         }
         val padding = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding)
@@ -2964,7 +2966,23 @@ internal fun balancePillTone(
     amount < 0L -> BalancePillTone.ALERT
     amount == 0L && status == BudgetProgressState.UNASSIGNED -> BalancePillTone.EMPTY
     colorByStatus -> BalancePillTone.ALERT
+    amount > 0L -> BalancePillTone.ALERT
     else -> BalancePillTone.NEUTRAL
+}
+
+/**
+ * The status whose color a balance takes. With "Color balances" on it is the category's own status;
+ * off, the color follows the sign alone: Funded's green when positive, Overspent's red when negative.
+ */
+internal fun balancePillStatus(
+    amount: Long,
+    status: BudgetProgressState,
+    colorByStatus: Boolean = false,
+): BudgetProgressState = when {
+    amount < 0L -> BudgetProgressState.OVERSPENT
+    colorByStatus -> status
+    amount > 0L -> BudgetProgressState.FUNDED
+    else -> status
 }
 
 private enum class BudgetSummaryAction { MOVE, HOLD }

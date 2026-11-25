@@ -10,6 +10,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import com.azimulkabir.actua.data.preferences.CategoryStatusColorPreferences
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
@@ -66,19 +69,36 @@ class CategoryStatusColorState(context: Context) {
 // to the theme defaults below instead of reading a real override.
 val LocalCategoryStatusColors = staticCompositionLocalOf<CategoryStatusColorState?> { null }
 
-/** Material You-semantic default, used when the user hasn't overridden a status color. */
+// Budget status colors are fixed semantic hues (green, amber, gray, red, blue), not the accent, so a
+// status reads the same under every accent theme. The goal-in-progress amber is deeper than
+// [warning] so it holds 3:1 on a white surface.
+private val GoalAmberLight = Color(0xFFD97706)
+private val GoalAmberDark = Color(0xFFFBBF24)
+private val NeutralStatusLight = Color(0xFF6B7280)
+private val NeutralStatusDark = Color(0xFF9CA3AF)
+private val PastGoalBlueLight = Color(0xFF0284C7)
+private val PastGoalBlueDark = Color(0xFF38BDF8)
+
+/** Semantic default, used when the user hasn't overridden a status color. */
 @Composable
 fun defaultCategoryStatusColor(status: BudgetProgressState): Color {
     val colors = MaterialTheme.colorScheme
+    val light = colors.background.luminance() > 0.5f
+    val catppuccin = LocalCatppuccin.current
+    val amber = if (catppuccin != null) colors.warning else if (light) GoalAmberLight else GoalAmberDark
+    val neutral = if (catppuccin != null) colors.onSurfaceVariant
+        else if (light) NeutralStatusLight else NeutralStatusDark
+    val blue = catppuccin?.flavor(!light)?.palette?.accents?.get(CatppuccinAccent.Blue)
+        ?: if (light) PastGoalBlueLight else PastGoalBlueDark
     return when (status) {
         BudgetProgressState.OVERSPENT -> colors.danger
-        BudgetProgressState.SPENT -> colors.primary
-        BudgetProgressState.SPENDING -> colors.primary
+        BudgetProgressState.SPENT -> neutral
+        BudgetProgressState.SPENDING -> colors.success
         BudgetProgressState.FUNDED -> colors.success
-        BudgetProgressState.UNASSIGNED -> colors.onSurfaceVariant
-        BudgetProgressState.GOAL_IN_PROGRESS -> colors.primary
+        BudgetProgressState.UNASSIGNED -> neutral
+        BudgetProgressState.GOAL_IN_PROGRESS -> amber
         BudgetProgressState.GOAL_REACHED -> colors.success
-        BudgetProgressState.GOAL_OVERFUNDED -> colors.tertiary
+        BudgetProgressState.GOAL_OVERFUNDED -> blue
     }
 }
 
@@ -89,3 +109,35 @@ fun defaultCategoryStatusColor(status: BudgetProgressState): Color {
 @Composable
 fun categoryStatusColor(status: BudgetProgressState): Color =
     LocalCategoryStatusColors.current?.overrideOrNull(status) ?: defaultCategoryStatusColor(status)
+
+private const val StatusTintAlpha = 0.16f
+private const val MinTextContrast = 4.5
+
+/**
+ * A readable version of a status [fill] for text: [fill] itself when it already reaches 4.5:1, else
+ * the fill pulled toward black or white until it does. The balance pill tints its background with the
+ * fill at 16%, so [tinted] measures against that. Saved overrides and Catppuccin tones go through this too.
+ */
+@Composable
+fun statusTextColor(fill: Color, tinted: Boolean = true): Color {
+    val surface = MaterialTheme.colorScheme.surface
+    val background = if (tinted) fill.copy(alpha = StatusTintAlpha).compositeOver(surface) else surface
+    if (contrastRatio(fill, background) >= MinTextContrast) return fill
+    val target = if (surface.luminance() > 0.5f) Color.Black else Color.White
+    for (step in 1..20) {
+        val candidate = lerp(fill, target, step / 20f)
+        if (contrastRatio(candidate, background) >= MinTextContrast) return candidate
+    }
+    return target
+}
+
+/**
+ * The color of a balance that is shown without a status (sign only): green when positive, red when
+ * negative, null for zero. Reads the Funded and Overspent colors, so a saved override applies.
+ */
+@Composable
+fun signedBalanceColor(amountCents: Long): Color? = when {
+    amountCents < 0L -> categoryStatusColor(BudgetProgressState.OVERSPENT)
+    amountCents > 0L -> categoryStatusColor(BudgetProgressState.FUNDED)
+    else -> null
+}
