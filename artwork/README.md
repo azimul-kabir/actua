@@ -36,5 +36,5 @@ carry calls to action). Run the **Google Play Listing Images** workflow after ch
 # Promo images
 
 `promo/` holds social and announcement images, each in a 16:9 and a square version at two sizes:
-`supporter-extras-*` for the Supporter extras, and `release-2.8.0-*` for the 2.8.0 release. They are not used by the
+`supporter-extras-*` for the Supporter extras, and `release-<version>-*` for each release (2.8.0, 2.9.0). They are not used by the
 app or the Play listing. The release images use the demo budget's icons and drawn illustrations, never real data.
