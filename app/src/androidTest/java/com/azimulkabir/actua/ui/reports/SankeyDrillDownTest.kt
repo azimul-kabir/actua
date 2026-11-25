@@ -11,11 +11,16 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.azimulkabir.actua.model.ReportCategory
+import com.azimulkabir.actua.model.DrillDownQuery
 import com.azimulkabir.actua.model.ReportDashboardPage
 import com.azimulkabir.actua.model.ReportSnapshot
 import com.azimulkabir.actua.model.ReportWidget
 import com.azimulkabir.actua.model.ReportWidgetKind
+import com.azimulkabir.actua.model.SankeyDiagram
+import com.azimulkabir.actua.model.SankeyDiagramLink
+import com.azimulkabir.actua.model.SankeyDiagramNode
+import com.azimulkabir.actua.model.SankeyLayer
+import com.azimulkabir.actua.model.SankeyNodeRole
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import org.junit.Assert.assertEquals
@@ -28,15 +33,27 @@ import org.junit.runner.RunWith
 class SankeyDrillDownTest {
     @get:Rule val compose = createComposeRule()
 
-    private var requested: List<String>? = null
+    private var requested: DrillDownQuery? = null
+
+    private fun node(name: String, layer: SankeyLayer, column: Int, cents: Long, query: DrillDownQuery?) = SankeyDiagramNode(
+        key = name, name = name, layer = layer, role = SankeyNodeRole.NORMAL, column = column, valueCents = cents,
+        share = cents / 300_00.0, drillDownQuery = query,
+    )
+
+    // An account feeding Rent (200) and Groceries (100): the right-hand column is two thirds Rent, one third Groceries.
+    private val diagram = SankeyDiagram(
+        nodes = listOf(
+            node("Checking", SankeyLayer.ACCOUNT, 0, 300_00, DrillDownQuery(accountIds = setOf("chk"))),
+            node("Rent", SankeyLayer.CATEGORY, 1, 200_00, DrillDownQuery(categoryIds = setOf("rent"), categoryName = "Rent")),
+            node("Groceries", SankeyLayer.CATEGORY, 1, 100_00, DrillDownQuery(categoryIds = setOf("groc"), categoryName = "Groceries")),
+        ),
+        links = listOf(SankeyDiagramLink(0, 1, 200_00, true), SankeyDiagramLink(0, 2, 100_00, true)),
+        columnLayers = listOf(SankeyLayer.ACCOUNT, SankeyLayer.CATEGORY),
+    )
 
     private val widget = ReportWidget(
         id = "sankey", kind = ReportWidgetKind.SANKEY, name = "Sankey",
-        valueCents = 500_00, comparisonCents = 300_00,
-        categories = listOf(
-            ReportCategory("Rent", 200_00, listOf("rent-1", "rent-2")),
-            ReportCategory("Groceries", 100_00, listOf("groc-1")),
-        ),
+        valueCents = 300_00, comparisonCents = 300_00, sankey = diagram,
     )
 
     private fun setContent() = compose.setContent {
@@ -44,9 +61,9 @@ class SankeyDrillDownTest {
             ReportsScreen(
                 snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(ReportDashboardPage("o", "Overview", listOf(widget)))),
                 hideDecimalPlaces = false,
-                loadTransactions = { ids ->
-                    requested = ids
-                    if (ids.size == 2) listOf(
+                loadDrillDownTransactions = { query ->
+                    requested = query
+                    if (query.categoryIds == setOf("rent")) listOf(
                         Transaction("rent-1", "2026-05-01", "Landlord", "Rent", "Checking", -150, cleared = true),
                         Transaction("rent-2", "2026-05-02", "Parking", "Rent", "Checking", -50, cleared = true),
                     ) else listOf(Transaction("groc-1", "2026-05-03", "Fresh Market", "Groceries", "Checking", -100, cleared = true))
@@ -55,7 +72,7 @@ class SankeyDrillDownTest {
         }
     }
 
-    // Income is 500 of the column, so Rent (200) fills the top 40% of the bar column, Groceries the next 20%.
+    // Rent (200 of 300) fills the top two thirds of the last column and Groceries the bottom third.
     private fun tapRightBar(fractionDown: Float) = compose.onNodeWithContentDescription("Sankey diagram", substring = true)
         .performTouchInput { click(Offset(width - 10.dp.toPx(), height * fractionDown)) }
 
@@ -64,7 +81,7 @@ class SankeyDrillDownTest {
         setContent()
         tapRightBar(0.2f)
         compose.waitForIdle()
-        assertEquals(listOf("rent-1", "rent-2"), requested)
+        assertEquals(setOf("rent"), requested?.categoryIds)
         compose.onNodeWithText("Landlord").assertIsDisplayed()
         compose.onNodeWithText("Parking").assertIsDisplayed()
         // -150 + -50 = the node's 200.00
@@ -74,21 +91,20 @@ class SankeyDrillDownTest {
     @Test
     fun tappingASecondNodeOpensThatNodeNotItsNeighbour() {
         setContent()
-        tapRightBar(0.5f)
+        tapRightBar(0.85f)
         compose.waitForIdle()
-        assertEquals(listOf("groc-1"), requested)
+        assertEquals(setOf("groc"), requested?.categoryIds)
         compose.onNodeWithText("Fresh Market").assertIsDisplayed()
     }
 
     @Test
     fun tappingARibbonOpensItsNodesTransactions() {
         setContent()
-        // Right-hand ribbons run from the node column inwards to the income bar; aim at Rent's ribbon
-        // in the space left of the node column.
+        // The ribbon runs from the account bar to the Rent bar; aim at the space between the two columns.
         compose.onNodeWithContentDescription("Sankey diagram", substring = true)
-            .performTouchInput { click(Offset(width - 110.dp.toPx(), height * 0.1f)) }
+            .performTouchInput { click(Offset(width / 2f, height * 0.1f)) }
         compose.waitForIdle()
-        assertEquals(listOf("rent-1", "rent-2"), requested)
+        assertEquals(setOf("rent"), requested?.categoryIds)
     }
 
     @Test
@@ -98,6 +114,6 @@ class SankeyDrillDownTest {
             .performTouchInput { longClick(Offset(width - 10.dp.toPx(), height * 0.2f)) }
         compose.waitForIdle()
         assertEquals(null, requested)
-        compose.onNodeWithText("Rent · 40.0%").assertIsDisplayed()
+        compose.onNodeWithText("Categories · Rent · 66.7%").assertIsDisplayed()
     }
 }

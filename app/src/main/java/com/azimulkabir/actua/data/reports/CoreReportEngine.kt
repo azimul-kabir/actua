@@ -165,7 +165,7 @@ object CoreReportEngine {
         // Sankey's month-shaped ranges (the default last 6 months, a saved current/last month or N-month
         // sliding window) become pay periods on this device; every other saved range keeps its meaning.
         if (row.type == "sankey-card" && meta?.optString("mode") == "budgeted") {
-            return budgetedSankey(row.id, name, context, conditions, budgetMonth, YearMonth.from(start), YearMonth.from(end))
+            return budgetedSankey(row.id, name, context, conditions, budgetMonth, YearMonth.from(start), YearMonth.from(end), SankeyOptions.from(meta))
         }
         val sankeyPayRange = if (!monthStart.isCalendarMonth && row.type == "sankey-card") {
             sankeyPayRange(meta?.optJSONObject("timeFrame"), today, monthStart)
@@ -650,10 +650,17 @@ object CoreReportEngine {
             balanceCents = points.lastOrNull()?.tertiaryCents)
     }
 
+    /**
+     * Upstream's `mode = budgeted` Sankey (`createBudgetSpreadsheet` and `createBudgetGraph`): the
+     * range's received income and money carried in flow into "Available funds", then into
+     * "Budgeted", the category groups and categories, "To budget", "For <next month>" and
+     * "Overspent". Amounts add the range's calendar-month budget cells, in integer cents.
+     */
     private fun budgetedSankey(
         id: String, name: String, context: RuleContext,
         conditions: Pair<List<Rule.Condition>, Rule.ConditionsOp>,
         budgetMonth: (YearMonth) -> ActualBudgetMonth?, start: YearMonth, end: YearMonth,
+        options: SankeyOptions,
     ): ReportWidget {
         val months = generateSequence(start) { it.plusMonths(1) }.takeWhile { it <= end }
             .map(budgetMonth).toList()
@@ -661,116 +668,102 @@ object CoreReportEngine {
         fun includes(categoryId: String) = categoryConditions.isEmpty() ||
             categoryMatches(categoryId, categoryConditions, conditions.second, context)
 
-        val available = mutableListOf<ReportCategory>()
-        val allocations = mutableListOf<ReportCategory>()
         val budgets = months.filterNotNull()
+        val entries = mutableListOf<SankeyBudgetEntry>()
         budgets.flatMap { it.incomeCategories + it.hiddenIncomeCategories }
             .filter { includes(it.categoryId) }.groupBy { it.categoryId }.values.forEach { rows ->
-                available += ReportCategory(rows.first().categoryName, rows.sumOf { it.receivedCents })
+                val cents = rows.sumOf { it.receivedCents }
+                if (cents != 0L) entries += SankeyBudgetEntry("Income", "income", rows.first().categoryName, rows.first().categoryId, true, cents)
             }
-        val assignments = budgets.flatMap { it.categories + it.hiddenCategories }
-            .filter { includes(it.categoryId) }.groupBy { it.categoryId }.values.map { rows ->
-                rows.first() to rows.sumOf { it.budgetedCents }
-            }
-        assignments.filter { (_, cents) -> cents < 0 }.forEach { (category, cents) ->
-            available += ReportCategory("From ${category.categoryName}", -cents)
-        }
-        assignments.filter { (_, cents) -> cents > 0 }.groupBy { (category, _) -> category.groupId }
-            .values.forEach { rows ->
-                allocations += ReportCategory(rows.first().first.groupName, rows.sumOf { it.second })
+        budgets.flatMap { it.categories + it.hiddenCategories }
+            .filter { includes(it.categoryId) }.groupBy { it.categoryId }.values.forEach { rows ->
+                val cents = rows.sumOf { it.budgetedCents }
+                val first = rows.first()
+                if (cents != 0L) entries += SankeyBudgetEntry(first.groupName, first.groupId, first.categoryName, first.categoryId, false, cents)
             }
 
         val last = months.lastOrNull()
-        val toBudget = last?.toBudgetCents ?: 0L
         val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", java.util.Locale.ENGLISH)
-        available += ReportCategory("From ${start.minusMonths(1).format(formatter)}", months.firstOrNull()?.fromLastMonthCents ?: 0L)
-        if (toBudget < 0) available += ReportCategory("Overbudgeted", -toBudget)
-        if (toBudget > 0) allocations += ReportCategory("To budget", toBudget)
-        if (last != null && !last.isTracking) {
-            val held = last.bufferedCents.takeIf { it != 0L } ?: last.autoBufferedCents
-            allocations += ReportCategory("For ${end.plusMonths(1).format(formatter)}", held)
-        }
-        allocations += ReportCategory("Overspent", -budgets.sumOf { it.lastMonthOverspentCents })
-
+        val totals = SankeyBudgetTotals(
+            toBudget = last?.toBudgetCents ?: 0L,
+            // Actua carries the held-back amount ("For <next month>") rather than recomputing it from the next month.
+            forNextMonth = if (last != null && !last.isTracking) last.bufferedCents.takeIf { it != 0L } ?: last.autoBufferedCents else 0L,
+            fromPreviousMonth = months.firstOrNull()?.fromLastMonthCents ?: 0L,
+            lastMonthOverspent = budgets.sumOf { it.lastMonthOverspentCents },
+            previousMonthLabel = start.minusMonths(1).format(formatter),
+            nextMonthLabel = end.plusMonths(1).format(formatter),
+        )
+        val diagram = buildSankeyDiagram(
+            createBudgetGraph(entries, totals), options, sankeyBudgetOrder(context), 0, 0, budgeted = true,
+        )
         return ReportWidget(
-            id, ReportWidgetKind.SANKEY, name,
-            valueCents = available.sumOf { it.spentCents },
-            comparisonCents = allocations.sumOf { it.spentCents },
-            categories = allocations.filter { it.spentCents != 0L }.sortedByDescending { it.spentCents },
-            incomeCategories = available.filter { it.spentCents != 0L }.sortedByDescending { it.spentCents },
+            id, ReportWidgetKind.SANKEY, name, valueCents = diagram.inflowCents, comparisonCents = diagram.outflowCents,
             subtitle = if (start == end) start.format(formatter) else "${start.format(formatter)} - ${end.format(formatter)}",
-            sankeyBudgeted = true,
+            sankey = diagram,
         )
     }
 
+    /** The budget's category groups and their categories in order, for `categorySort = budget-order`. */
+    private fun sankeyBudgetOrder(context: RuleContext) = SankeyBudgetOrder(
+        context.categoryGroupNames.keys.map { groupId ->
+            groupId to context.categoryGroupIds.filterValues { it == groupId }.keys.toList()
+        },
+    )
+
     /**
-     * Upstream's Sankey `spent` mode (`sankey-spreadsheet.ts`, `fetchCategoryData` and
-     * `createTransactionsGraph`): only categorized transactions count, netted per category and
-     * account (and payee, for income categories), and each net's sign decides its side. A net-positive
-     * expense category (refunds) flows in and a net-negative income category flows out, so a refund
-     * no longer inflates both totals; uncategorized rows and same-side transfers have no category and
-     * stay out. Income is broken down per income category; outflows per category group.
+     * Upstream's Sankey `spent` mode (`sankey-spreadsheet.ts`, `fetchCategoryData`,
+     * `fetchTransferData` and `createTransactionsGraph`): only categorized transactions count,
+     * netted per category, account and payee, and each net's sign decides its side. Money flows from
+     * payees through income categories and accounts to category groups and categories, with
+     * transfers between accounts drawn account to account when `showTransfers` is on. Uncategorized
+     * rows have no category and stay out.
      */
     private fun sankey(
         id: String, name: String, transactions: List<ActualTransaction>, context: RuleContext,
         incomeCategoryIds: Set<String>, start: LocalDate, end: LocalDate, exactDates: Boolean = false,
         options: SankeyOptions = SankeyOptions(),
     ): ReportWidget {
-        data class Flow(val label: String, val cents: Long)
-        val inflows = mutableListOf<Flow>()
-        val outflows = mutableListOf<Flow>()
-        transactions.filter { it.categoryId != null && it.categoryId in context.categoryNames }
+        val categoryOrder = context.categoryNames.keys.withIndex().associate { (i, id) -> id to i }
+        val entries = transactions.filter { it.categoryId != null && it.categoryId in context.categoryNames }
             .groupBy { tx ->
-                val isIncome = tx.categoryId in incomeCategoryIds
-                // Upstream's `aggregateCategoryData`: with `groupAccounts` a category (and income payee) nets across accounts.
-                Triple(tx.categoryId!!, if (options.groupAccounts) null else tx.accountId, if (isIncome) tx.payeeId else null)
+                // Upstream's `aggregateCategoryData`: with `groupAccounts` a category (and payee) nets across accounts.
+                Triple(tx.categoryId!!, if (options.groupAccounts) null else tx.accountId, tx.payeeId.orEmpty())
             }
-            .forEach { (key, rows) ->
+            .mapNotNull { (key, rows) ->
+                val (categoryId, accountId, payeeId) = key
                 val net = rows.sumOf { it.amountCents }
-                if (net == 0L) return@forEach
-                val categoryName = context.categoryNames[key.first].orEmpty().ifBlank { "Other" }
-                if (net > 0) {
-                    inflows += Flow(categoryName, net)
-                } else {
-                    val label = if (key.first in incomeCategoryIds || options.categoryLayer) categoryName
-                        else key.first.let(context.categoryGroupIds::get)?.let(context.categoryGroupNames::get)
-                            .orEmpty().ifBlank { "Other" }
-                    outflows += Flow(label, -net)
-                }
-            }
-        fun breakdown(flows: List<Flow>, isIncome: Boolean) = flows.groupBy { it.label }
-            .map { (label, rows) ->
-                val catIds = if (isIncome) {
-                    context.categoryNames.filterValues { it == label }.keys
-                } else {
-                    val groupIds = if (options.categoryLayer) emptySet() else context.categoryGroupNames.filterValues { it == label }.keys
-                    val catIdsInGroup = context.categoryGroupIds.filterValues { it in groupIds }.keys
-                    catIdsInGroup + context.categoryNames.filterValues { it == label }.keys
-                }
-                val query = DrillDownQuery(
-                    startDate = start.toYmd(),
-                    endDate = end.toYmd(),
-                    categoryIds = catIds.takeIf { it.isNotEmpty() },
-                    direction = if (isIncome) DrillDownDirection.INCOME else DrillDownDirection.EXPENSE,
-                    categoryName = label,
+                if (options.groupAccounts && net == 0L) return@mapNotNull null
+                val groupId = context.categoryGroupIds[categoryId].orEmpty().ifBlank { "ungrouped" }
+                SankeyEntry(
+                    categoryGroup = context.categoryGroupNames[groupId].orEmpty().ifBlank { "Other" },
+                    categoryGroupId = groupId,
+                    category = context.categoryNames[categoryId].orEmpty().ifBlank { "Other" },
+                    categoryId = categoryId,
+                    value = kotlin.math.abs(net),
+                    isIncome = categoryId in incomeCategoryIds,
+                    isNegative = net < 0,
+                    accountName = if (accountId == null) "Income" else context.accountNames[accountId].orEmpty().ifBlank { "(Unnamed account)" },
+                    accountId = accountId ?: SankeyKeys.ALL_ACCOUNTS,
+                    payeeName = context.payeeNames[payeeId].orEmpty(),
+                    payeeId = payeeId,
                 )
-                ReportCategory(label, rows.sumOf { it.cents }, drillDownQuery = query)
             }
-            .sortedByDescending { it.spentCents }
-        // Upstream's top-N "Other" fold and category sort, applied to each column (`sankey-spreadsheet.ts`
-        // `groupOtherCategories` and `sortGraph`). Budgeted mode keeps its own fixed nodes.
-        val incomeCategories = shapeSankeyColumn(breakdown(inflows, isIncome = true), options, context.categoryNames.values.toList())
-        val categories = shapeSankeyColumn(
-            breakdown(outflows, isIncome = false), options,
-            if (options.categoryLayer) context.categoryNames.values.toList() else context.categoryGroupNames.values.toList(),
+            .sortedBy { categoryOrder[it.categoryId] ?: Int.MAX_VALUE }
+        val transferRows = if (options.showTransfers && !options.groupAccounts) {
+            transactions.filter { it.transferId != null && it.accountId !in context.offBudgetAccountIds }.map {
+                SankeyTransferRow(it.id, it.amountCents, it.accountId, context.accountNames[it.accountId].orEmpty(), it.transferId!!)
+            }
+        } else emptyList()
+        val diagram = buildSankeyDiagram(
+            createTransactionsGraph(entries, aggregateTransferPairs(transferRows), options.groupAccounts),
+            options, sankeyBudgetOrder(context), start.toYmd(), end.toYmd(), budgeted = false,
         )
         val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", java.util.Locale.ENGLISH)
         val subtitle = if (exactDates) "$start - $end"
             else if (YearMonth.from(start) == YearMonth.from(end)) start.format(formatter)
             else "${start.format(formatter)} - ${end.format(formatter)}"
-        return ReportWidget(id, ReportWidgetKind.SANKEY, name, valueCents = incomeCategories.sumOf { it.spentCents },
-            comparisonCents = categories.sumOf { it.spentCents }, categories = categories,
-            incomeCategories = incomeCategories, subtitle = subtitle, sankeyShowPercentages = options.showPercentages)
+        return ReportWidget(id, ReportWidgetKind.SANKEY, name, valueCents = diagram.inflowCents,
+            comparisonCents = diagram.outflowCents, subtitle = subtitle, sankey = diagram)
     }
 
     /**

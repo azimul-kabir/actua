@@ -65,8 +65,6 @@ data class ReportWidget(
     val comparisonCents: Long? = null,
     val points: List<ReportPoint> = emptyList(),
     val categories: List<ReportCategory> = emptyList(),
-    /** Income-side breakdown for the Sankey widget; empty for every other widget kind. */
-    val incomeCategories: List<ReportCategory> = emptyList(),
     val markdown: String? = null,
     val sourceType: String? = null,
     /** Saved-report presentation hint (`DonutGraph`, `BarGraph`, ...). */
@@ -94,9 +92,8 @@ data class ReportWidget(
     val customReportId: String? = null,
     /** Balance Forecast's `yAxisBase = Zero-Based`: the chart's value axis always includes zero. */
     val zeroBasedAxis: Boolean = false,
-    val sankeyBudgeted: Boolean = false,
-    /** Sankey `showPercentages`: nodes show their share of the column instead of an amount. */
-    val sankeyShowPercentages: Boolean = false,
+    /** The layered chart behind a Sankey widget; null for every other widget kind. */
+    val sankey: SankeyDiagram? = null,
     /** Saved report's `show_trend_lines`: overlay a trend line on its line chart. */
     val showTrendLines: Boolean = false,
 )

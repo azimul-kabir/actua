@@ -4,151 +4,180 @@ import com.azimulkabir.actua.data.budget.model.ActualCategory
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.rules.RuleContext
-import com.azimulkabir.actua.model.DrillDownDirection
-import com.azimulkabir.actua.model.DrillDownQuery
-import com.azimulkabir.actua.model.ReportCategory
+import com.azimulkabir.actua.model.ReportWidget
+import com.azimulkabir.actua.model.SankeyLayer
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Sankey `topNcategories`, `categorySort` and `showPercentages` (actua#1358). */
+/** Sankey card options read from the saved widget (actua#1358, actua#1788). */
 class SankeyOptionsTest {
-    private fun node(name: String, cents: Long, vararg ids: String) = ReportCategory(
-        name, cents, drillDownQuery = DrillDownQuery(
-            startDate = 20260401, endDate = 20260430, categoryIds = ids.toSet(),
-            direction = DrillDownDirection.EXPENSE, categoryName = name,
-        ),
+    @Test fun `options are read from the widget meta and default to upstream's`() {
+        val plain = SankeyOptions()
+        assertEquals(plain, SankeyOptions.from(null))
+        assertEquals(plain, SankeyOptions.from(JSONObject("""{"mode":"spent"}""")))
+        assertEquals(15, plain.topN)
+        assertEquals(SankeyLayer.PAYEE, plain.layerFrom)
+        assertEquals(SankeyLayer.CATEGORY, plain.layerTo)
+
+        val read = SankeyOptions.from(JSONObject(
+            """{"topNcategories":5,"categorySort":"budget-order","showPercentages":true,"groupAccounts":true,"showTransfers":true,""" +
+                """"layerFrom":"account","layerTo":"category_group"}""",
+        ))
+        assertEquals(
+            SankeyOptions(
+                topN = 5, sort = SankeySort.BUDGET_ORDER, showPercentages = true, groupAccounts = true, showTransfers = true,
+                layerFrom = SankeyLayer.ACCOUNT, layerTo = SankeyLayer.CATEGORY_GROUP,
+            ),
+            read,
+        )
+        assertEquals(SankeySort.GLOBAL, SankeyOptions.from(JSONObject("""{"categorySort":"global"}""")).sort)
+        assertEquals(SankeySort.PER_GROUP, SankeyOptions.from(JSONObject("""{"categorySort":"per-group"}""")).sort)
+        // A limit that is not positive means the default.
+        assertEquals(15, SankeyOptions.from(JSONObject("""{"topNcategories":0}""")).topN)
+    }
+
+    @Test fun `a layer range needs both ends, and budgeted cards start at income categories`() {
+        // Upstream uses a saved range only when layerFrom and layerTo are both layers.
+        val oneEnd = SankeyOptions.from(JSONObject("""{"layerFrom":"account"}"""))
+        assertEquals(SankeyLayer.PAYEE to SankeyLayer.CATEGORY, oneEnd.layerFrom to oneEnd.layerTo)
+        val bogus = SankeyOptions.from(JSONObject("""{"layerFrom":"nope","layerTo":"category"}"""))
+        assertEquals(SankeyLayer.PAYEE, bogus.layerFrom)
+        val budgeted = SankeyOptions.from(JSONObject("""{"mode":"budgeted"}"""))
+        assertEquals(true, budgeted.budgeted)
+        assertEquals(SankeyLayer.INCOME_CATEGORY to SankeyLayer.CATEGORY, budgeted.layerFrom to budgeted.layerTo)
+        val saved = SankeyOptions.from(JSONObject("""{"mode":"budgeted","layerFrom":"budget","layerTo":"category_group"}"""))
+        assertEquals(SankeyLayer.BUDGET to SankeyLayer.CATEGORY_GROUP, saved.layerFrom to saved.layerTo)
+    }
+
+    private val groups = listOf(
+        ActualCategoryGroup("gi", "Income", true, false, 1.0, listOf(
+            ActualCategory("salary", "Salary", "gi", true, false, 1.0),
+            ActualCategory("bonus", "Bonus", "gi", true, false, 2.0),
+        )),
+        ActualCategoryGroup("g1", "Bills", false, false, 2.0, listOf(
+            ActualCategory("rent", "Rent", "g1", false, false, 1.0),
+            ActualCategory("power", "Power", "g1", false, false, 2.0),
+        )),
+        ActualCategoryGroup("g2", "Fun", false, false, 3.0, listOf(ActualCategory("food", "Food", "g2", false, false, 1.0))),
+    )
+    private val context = RuleContext(
+        accountNames = mapOf("a" to "Checking", "b" to "Savings"),
+        categoryNames = groups.flatMap { it.categories }.associate { it.id to it.name },
+        categoryGroupIds = groups.flatMap { it.categories }.associate { it.id to it.groupId },
+        categoryGroupNames = groups.associate { it.id to it.name },
+        payeeNames = mapOf("acme" to "Acme", "shop" to "Shop"),
+    )
+    private val incomeIds = setOf("salary", "bonus")
+
+    private fun tx(id: String, account: String, amount: Long, cat: String?, payee: String? = null, transferTo: String? = null) = ActualTransaction(
+        id, account, 20260410, amount, payee, null, cat, null, null, false, false, transferTo, false, null, false, null, null,
+        null, null)
+
+    private val frame = """"timeFrame":{"mode":"static","start":"2026-04","end":"2026-04"}"""
+    private fun widget(rows: List<ActualTransaction>, extra: String = ""): ReportWidget = CoreReportEngine.compute(
+        DashboardWidgetRow("w", "sankey-card", "{$frame$extra}"), rows, context, incomeIds,
     )
 
-    private val nodes = listOf(node("Rent", 300_000, "rent"), node("Food", 50_001, "food"), node("Bike", 20_000, "bike"), node("Gym", 1_999, "gym"))
+    private fun ReportWidget.flows() = sankey!!.links.associate { "${sankey!!.nodes[it.source].name}>${sankey!!.nodes[it.target].name}" to it.cents }
 
-    @Test fun `options are read from the widget meta and default to off`() {
-        assertEquals(SankeyOptions(), SankeyOptions.from(null))
-        assertEquals(SankeyOptions(), SankeyOptions.from(JSONObject("""{"mode":"spent"}""")))
-        val read = SankeyOptions.from(JSONObject("""{"topNcategories":5,"categorySort":"budget-order","showPercentages":true}"""))
-        assertEquals(SankeyOptions(topN = 5, budgetOrder = true, showPercentages = true), read)
-        assertEquals(true, SankeyOptions.from(JSONObject("""{"categorySort":"global"}""")).otherLast)
-        assertNull(SankeyOptions.from(JSONObject("""{"topNcategories":0}""")).topN)
+    private val rows = listOf(
+        tx("1", "a", 500_000, "salary", "acme"), tx("2", "a", -300_000, "rent"), tx("3", "b", 100_000, "rent", "shop"),
+        tx("4", "a", -40_000, "power"), tx("5", "a", -20_000, "food"),
+    )
+
+    @Test fun `payees are the first layer by default and each account is drawn`() {
+        val w = widget(rows)
+        assertEquals(
+            listOf(
+                SankeyLayer.PAYEE, SankeyLayer.INCOME_CATEGORY, SankeyLayer.ACCOUNT, SankeyLayer.CATEGORY_GROUP, SankeyLayer.CATEGORY,
+            ),
+            w.sankey!!.columnLayers.distinct(),
+        )
+        // Rent nets per account and payee: 300 000 out of Checking, and 100 000 in on Savings from Shop.
+        assertEquals(
+            mapOf(
+                "Acme>Salary" to 500_000L, "Salary>Checking" to 500_000L,
+                "Shop>Rent" to 100_000L, "Rent>Savings" to 100_000L,
+                "Checking>Bills" to 340_000L, "Checking>Fun" to 20_000L,
+                "Bills>Rent" to 300_000L, "Bills>Power" to 40_000L, "Fun>Food" to 20_000L,
+            ),
+            w.flows(),
+        )
     }
 
-    @Test fun `a column at or under the limit is left alone`() {
-        assertEquals(nodes, shapeSankeyColumn(nodes, SankeyOptions(topN = 4), emptyList()))
-        assertEquals(nodes, shapeSankeyColumn(nodes, SankeyOptions(), emptyList()))
+    @Test fun `layerFrom and layerTo choose the drawn layers`() {
+        val accounts = widget(rows, ""","layerFrom":"account","layerTo":"category_group"""")
+        assertEquals(listOf(SankeyLayer.ACCOUNT, SankeyLayer.CATEGORY_GROUP), accounts.sankey!!.columnLayers)
+        assertEquals(mapOf("Checking>Bills" to 340_000L, "Checking>Fun" to 20_000L), accounts.flows())
+
+        val categories = widget(rows, ""","layerFrom":"category_group","layerTo":"category"""")
+        assertEquals(setOf("Bills>Rent", "Bills>Power", "Fun>Food"), categories.flows().keys)
+        assertEquals(setOf("rent"), categories.sankey!!.nodes.first { it.name == "Rent" }.drillDownQuery!!.categoryIds)
     }
 
-    @Test fun `the smallest nodes fold into one Other that counts toward the limit`() {
-        val shaped = shapeSankeyColumn(nodes, SankeyOptions(topN = 3), emptyList())
-        assertEquals(listOf("Rent" to 300_000L, "Food" to 50_001L, "Other" to 21_999L), shaped.map { it.name to it.spentCents })
-        assertEquals(nodes.sumOf { it.spentCents }, shaped.sumOf { it.spentCents })
+    @Test fun `groupAccounts nets a category across accounts into one Income account`() {
+        val split = listOf(
+            tx("1", "a", 500_000, "salary", "acme"), tx("2", "a", -300_000, "rent"), tx("3", "b", 100_000, "rent"),
+        )
+        val separate = widget(split)
+        assertEquals(setOf("Checking", "Savings"), separate.sankey!!.nodes.filter { it.layer == SankeyLayer.ACCOUNT }.map { it.name }.toSet())
+        assertEquals(300_000L, separate.flows()["Bills>Rent"])
+
+        val grouped = widget(split, ""","groupAccounts":true""")
+        assertEquals(listOf("Income"), grouped.sankey!!.nodes.filter { it.layer == SankeyLayer.ACCOUNT }.map { it.name })
+        // Rent nets across accounts, -300 000 + 100 000, so the refund on Savings no longer shows by itself.
+        assertEquals(200_000L, grouped.flows()["Bills>Rent"])
+        assertEquals(200_000L, grouped.flows()["Income>Bills"])
     }
 
-    @Test fun `Other merges its categories' drill-down`() {
-        val other = shapeSankeyColumn(nodes, SankeyOptions(topN = 3), emptyList()).last()
-        assertEquals(setOf("bike", "gym"), other.drillDownQuery!!.categoryIds)
-        assertEquals("Other", other.drillDownQuery!!.categoryName)
-        assertEquals(DrillDownDirection.EXPENSE, other.drillDownQuery!!.direction)
+    @Test fun `showTransfers draws transfers between accounts and groupAccounts hides them`() {
+        val transfer = listOf(
+            tx("t1", "a", -50_000, null, transferTo = "t2"), tx("t2", "b", 50_000, null, transferTo = "t1"),
+        )
+        val off = widget(rows + transfer)
+        assertTrue(off.flows().keys.none { it == "Checking>Savings" })
+
+        val on = widget(rows + transfer, ""","showTransfers":true""")
+        assertEquals(50_000L, on.flows()["Checking>Savings"])
+        assertEquals(2, on.sankey!!.columnLayers.count { it == SankeyLayer.ACCOUNT })
+
+        val grouped = widget(rows + transfer, ""","showTransfers":true,"groupAccounts":true""")
+        assertTrue(grouped.flows().keys.none { it.endsWith(">Savings") })
     }
 
-    @Test fun `a limit of one folds everything and ties fold the earlier node first`() {
-        val all = shapeSankeyColumn(nodes, SankeyOptions(topN = 1), emptyList())
-        assertEquals(listOf("Other" to 372_000L), all.map { it.name to it.spentCents })
-        val tied = listOf(node("A", 10, "a"), node("B", 10, "b"), node("C", 99, "c"))
-        assertEquals(listOf("C", "Other"), shapeSankeyColumn(tied, SankeyOptions(topN = 2), emptyList()).map { it.name })
+    @Test fun `layers over the default limit of 15 fold into Other`() {
+        val many = (1..18).map { ActualCategory("c$it", "Cat $it", "g", false, false, it.toDouble()) }
+        val manyGroup = listOf(ActualCategoryGroup("g", "Many", false, false, 1.0, many))
+        val ctx = RuleContext(
+            accountNames = mapOf("a" to "Checking"),
+            categoryNames = many.associate { it.id to it.name },
+            categoryGroupIds = many.associate { it.id to "g" },
+            categoryGroupNames = manyGroup.associate { it.id to it.name },
+        )
+        val spending = many.mapIndexed { i, c -> tx("t$i", "a", -(i + 1) * 1_000L, c.id) }
+        val w = CoreReportEngine.compute(DashboardWidgetRow("w", "sankey-card", "{$frame}"), spending, ctx, emptySet())
+        val categories = w.sankey!!.nodes.filter { it.layer == SankeyLayer.CATEGORY }
+        // 14 categories and one "Other" in the group; the cents still add up.
+        assertEquals(15, categories.size)
+        assertEquals(spending.sumOf { -it.amountCents }, categories.sumOf { it.valueCents })
+        assertEquals(4, categories.single { it.name == "Other" }.foldedNames.size)
+
+        val all = CoreReportEngine.compute(
+            DashboardWidgetRow("w", "sankey-card", """{$frame,"topNcategories":100000}"""), spending, ctx, emptySet(),
+        )
+        assertEquals(18, all.sankey!!.nodes.count { it.layer == SankeyLayer.CATEGORY })
     }
 
-    @Test fun `Other sorts by value, or last for the global sort`() {
-        val many = listOf(node("A", 100, "a"), node("B", 90, "b"), node("C", 80, "c"), node("D", 70, "d"))
-        // topN 2 keeps A and folds B, C and D into 240.
-        assertEquals(listOf("Other", "A"), shapeSankeyColumn(many, SankeyOptions(topN = 2), emptyList()).map { it.name })
-        assertEquals(listOf("A", "Other"), shapeSankeyColumn(many, SankeyOptions(topN = 2, otherLast = true), emptyList()).map { it.name })
+    @Test fun `showPercentages is carried to the diagram`() {
+        assertEquals(false, widget(rows).sankey!!.showPercentages)
+        assertEquals(true, widget(rows, ""","showPercentages":true""").sankey!!.showPercentages)
     }
 
-    @Test fun `budget order follows the budget and leaves Other last`() {
-        val order = listOf("Bike", "Rent", "Food", "Gym")
-        assertEquals(listOf("Bike", "Rent", "Food", "Gym"), shapeSankeyColumn(nodes, SankeyOptions(budgetOrder = true), order).map { it.name })
-        assertEquals(listOf("Rent", "Food", "Other"), shapeSankeyColumn(nodes, SankeyOptions(topN = 3, budgetOrder = true), order).map { it.name })
-        assertEquals(listOf("Rent", "Unknown"), shapeSankeyColumn(listOf(node("Unknown", 5, "u"), node("Rent", 1, "rent")), SankeyOptions(budgetOrder = true), order).map { it.name })
-    }
-
-    @Test fun `the card applies the options to its income and expense columns`() {
-        val groups = listOf(
-            ActualCategoryGroup("gi", "Income", true, false, 1.0, listOf(
-                ActualCategory("salary", "Salary", "gi", true, false, 1.0),
-                ActualCategory("bonus", "Bonus", "gi", true, false, 2.0),
-            )),
-            ActualCategoryGroup("g1", "Bills", false, false, 2.0, listOf(ActualCategory("rent", "Rent", "g1", false, false, 1.0))),
-            ActualCategoryGroup("g2", "Fun", false, false, 3.0, listOf(ActualCategory("food", "Food", "g2", false, false, 1.0))),
-            ActualCategoryGroup("g3", "Travel", false, false, 4.0, listOf(ActualCategory("bike", "Bike", "g3", false, false, 1.0))),
-        )
-        val context = RuleContext(
-            categoryNames = groups.flatMap { it.categories }.associate { it.id to it.name },
-            categoryGroupIds = groups.flatMap { it.categories }.associate { it.id to it.groupId },
-            categoryGroupNames = groups.associate { it.id to it.name },
-        )
-        val incomeIds = setOf("salary", "bonus")
-        fun tx(id: String, amount: Long, cat: String) = ActualTransaction(
-            id, "a", 20260410, amount, null, null, cat, null, null, false, false, null, false, null, false, null, null, null, null)
-        val rows = listOf(
-            tx("1", 800_000, "salary"), tx("2", 200_000, "bonus"),
-            tx("3", -300_000, "rent"), tx("4", -50_001, "food"), tx("5", -20_000, "bike"),
-        )
-        val frame = """"timeFrame":{"mode":"static","start":"2026-04","end":"2026-04"}"""
-        fun widget(extra: String) = CoreReportEngine.compute(
-            DashboardWidgetRow("w", "sankey-card", "{$frame$extra}"), rows, context, incomeIds,
-        )
-
-        val plain = widget("")
-        assertEquals(listOf("Bills", "Fun", "Travel"), plain.categories.map { it.name })
-        assertEquals(false, plain.sankeyShowPercentages)
-
-        val folded = widget(""","topNcategories":2""")
-        assertEquals(listOf("Bills" to 300_000L, "Other" to 70_001L), folded.categories.map { it.name to it.spentCents })
-        assertEquals(listOf("Salary" to 800_000L, "Bonus" to 200_000L), folded.incomeCategories.map { it.name to it.spentCents })
-        assertEquals(plain.comparisonCents, folded.comparisonCents)
-        val one = widget(""","topNcategories":1""")
-        assertEquals(listOf("Other" to 1_000_000L), one.incomeCategories.map { it.name to it.spentCents })
-        assertEquals(plain.valueCents, one.valueCents)
-
-        val budgetOrder = widget(""","categorySort":"budget-order","showPercentages":true""")
-        assertEquals(listOf("Bills", "Fun", "Travel"), budgetOrder.categories.map { it.name })
-        assertEquals(listOf("Salary", "Bonus"), budgetOrder.incomeCategories.map { it.name })
-        assertEquals(true, budgetOrder.sankeyShowPercentages)
-    }
-
-    @Test fun `groupAccounts nets a category across accounts and layerTo category lists categories`() {
-        val groups = listOf(
-            ActualCategoryGroup("gi", "Income", true, false, 1.0, listOf(ActualCategory("salary", "Salary", "gi", true, false, 1.0))),
-            ActualCategoryGroup("g1", "Bills", false, false, 2.0, listOf(
-                ActualCategory("rent", "Rent", "g1", false, false, 1.0),
-                ActualCategory("power", "Power", "g1", false, false, 2.0),
-            )),
-        )
-        val context = RuleContext(
-            categoryNames = groups.flatMap { it.categories }.associate { it.id to it.name },
-            categoryGroupIds = groups.flatMap { it.categories }.associate { it.id to it.groupId },
-            categoryGroupNames = groups.associate { it.id to it.name },
-        )
-        fun tx(id: String, account: String, amount: Long, cat: String) = ActualTransaction(
-            id, account, 20260410, amount, null, null, cat, null, null, false, false, null, false, null, false, null, null, null, null)
-        val rows = listOf(
-            tx("1", "a", 500_000, "salary"), tx("2", "a", -300_000, "rent"), tx("3", "b", 100_000, "rent"), tx("4", "a", -40_000, "power"),
-        )
-        val frame = """"timeFrame":{"mode":"static","start":"2026-04","end":"2026-04"}"""
-        fun widget(extra: String) = CoreReportEngine.compute(
-            DashboardWidgetRow("w", "sankey-card", "{$frame$extra}"), rows, context, setOf("salary"),
-        )
-
-        val perAccount = widget("")
-        assertEquals(listOf("Salary" to 500_000L, "Rent" to 100_000L), perAccount.incomeCategories.map { it.name to it.spentCents })
-        assertEquals(listOf("Bills" to 340_000L), perAccount.categories.map { it.name to it.spentCents })
-
-        val grouped = widget(""","groupAccounts":true""")
-        assertEquals(listOf("Salary" to 500_000L), grouped.incomeCategories.map { it.name to it.spentCents })
-        assertEquals(listOf("Bills" to 240_000L), grouped.categories.map { it.name to it.spentCents })
-
-        val byCategory = widget(""","layerTo":"category","groupAccounts":true""")
-        assertEquals(listOf("Rent" to 200_000L, "Power" to 40_000L), byCategory.categories.map { it.name to it.spentCents })
-        assertEquals(setOf("rent"), byCategory.categories.first().drillDownQuery!!.categoryIds)
+    @Test fun `budget order lists groups and categories as the budget does`() {
+        val w = widget(rows, ""","categorySort":"budget-order","layerFrom":"category_group","layerTo":"category"""")
+        assertEquals(listOf("Bills", "Fun"), w.sankey!!.nodes.filter { it.layer == SankeyLayer.CATEGORY_GROUP }.map { it.name })
+        assertEquals(listOf("Rent", "Power", "Food"), w.sankey!!.nodes.filter { it.layer == SankeyLayer.CATEGORY }.map { it.name })
     }
 }

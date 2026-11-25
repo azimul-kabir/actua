@@ -2,8 +2,10 @@ package com.azimulkabir.actua.ui.reports
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -103,17 +105,30 @@ class ReportsChartInteractionTest {
         compose.onNodeWithText("Out", substring = true).assertExists()
     }
 
-    @Test fun sankeyRendersACategoryPerNodeAndARemainingNodeForUnspentIncome() {
-        val widget = ReportWidget(
-            id = "sankey",
-            kind = ReportWidgetKind.SANKEY,
-            name = "Sankey",
-            valueCents = 500_00,
-            comparisonCents = 300_00,
-            categories = listOf(
-                com.azimulkabir.actua.model.ReportCategory("Rent", 200_00),
-                com.azimulkabir.actua.model.ReportCategory("Groceries", 100_00),
-            ),
+    private fun sankeyNode(name: String, layer: com.azimulkabir.actua.model.SankeyLayer, column: Int, cents: Long) =
+        com.azimulkabir.actua.model.SankeyDiagramNode(
+            key = name, name = name, layer = layer, role = com.azimulkabir.actua.model.SankeyNodeRole.NORMAL,
+            column = column, valueCents = cents, share = 1.0,
+        )
+
+    private fun sankeyWidget(vararg nodes: com.azimulkabir.actua.model.SankeyDiagramNode, links: List<Pair<Int, Int>>): ReportWidget {
+        val diagram = com.azimulkabir.actua.model.SankeyDiagram(
+            nodes = nodes.toList(),
+            links = links.map { (from, to) -> com.azimulkabir.actua.model.SankeyDiagramLink(from, to, nodes[to].valueCents, true) },
+            columnLayers = nodes.map { it.layer }.distinct(),
+        )
+        return ReportWidget(id = "sankey", kind = ReportWidgetKind.SANKEY, name = "Sankey", valueCents = diagram.inflowCents,
+            comparisonCents = diagram.outflowCents, sankey = diagram)
+    }
+
+    @Test fun sankeyRendersANodePerLayerAndGroupsTheLegendByLayer() {
+        val layers = com.azimulkabir.actua.model.SankeyLayer
+        val widget = sankeyWidget(
+            sankeyNode("Salary", layers.INCOME_CATEGORY, 0, 500_00),
+            sankeyNode("Checking", layers.ACCOUNT, 1, 500_00),
+            sankeyNode("Rent", layers.CATEGORY, 2, 200_00),
+            sankeyNode("Groceries", layers.CATEGORY, 2, 100_00),
+            links = listOf(0 to 1, 1 to 2, 1 to 3),
         )
         val page = ReportDashboardPage("main", "Main", listOf(widget))
 
@@ -126,21 +141,21 @@ class ReportsChartInteractionTest {
             }
         }
 
+        compose.onNodeWithText("Salary").assertExists()
+        compose.onNodeWithText("Checking").assertExists()
         compose.onNodeWithText("Rent").assertExists()
         compose.onNodeWithText("Groceries").assertExists()
-        // Income (500) exceeds categorized expenses (300), so the diagram should show the
-        // uncategorized/unspent remainder as its own flow node rather than silently dropping it.
-        compose.onNodeWithText("Remaining").assertExists()
+        // The first and last layer title the summary, and the legend groups its rows by layer.
+        compose.onAllNodesWithText("Income categories").assertCountEquals(2)
+        compose.onAllNodesWithText("Accounts").assertCountEquals(1)
     }
 
     @Test fun tappingASankeyLegendRowHighlightsItInTheSummary() {
-        val widget = ReportWidget(
-            id = "sankey",
-            kind = ReportWidgetKind.SANKEY,
-            name = "Sankey",
-            valueCents = 300_00,
-            comparisonCents = 300_00,
-            categories = listOf(com.azimulkabir.actua.model.ReportCategory("Rent", 300_00)),
+        val layers = com.azimulkabir.actua.model.SankeyLayer
+        val widget = sankeyWidget(
+            sankeyNode("Checking", layers.ACCOUNT, 0, 300_00),
+            sankeyNode("Rent", layers.CATEGORY, 1, 300_00),
+            links = listOf(0 to 1),
         )
         val page = ReportDashboardPage("main", "Main", listOf(widget))
 
@@ -153,11 +168,13 @@ class ReportsChartInteractionTest {
             }
         }
 
-        compose.onNodeWithText("Expenses").assertExists()
+        // Summary heads and legend headers both read "Categories" until a node is highlighted.
+        compose.onAllNodesWithText("Categories").assertCountEquals(2)
         compose.onNodeWithText("Rent").performClick()
         compose.waitForIdle()
 
-        compose.onNodeWithText("Expenses").assertDoesNotExist()
+        compose.onAllNodesWithText("Categories").assertCountEquals(1)
+        compose.onNodeWithText("Categories · Rent · 100.0%").assertExists()
     }
 
     /**

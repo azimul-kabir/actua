@@ -14,7 +14,10 @@ import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleAmountOp
 import com.azimulkabir.actua.data.schedules.ScheduleDateCondition
 import com.azimulkabir.actua.data.schedules.ScheduledAmount
+import com.azimulkabir.actua.model.ReportWidget
 import com.azimulkabir.actua.model.ReportWidgetKind
+import com.azimulkabir.actua.model.SankeyLayer
+import com.azimulkabir.actua.model.SankeyNodeRole
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -43,7 +46,10 @@ class SankeyTest {
 
     private fun row(meta: String? = null) = DashboardWidgetRow("w", "sankey-card", meta)
 
-    @Test fun `breaks income down by source category, unlike the group-level expense breakdown`() {
+    private fun ReportWidget.column(c: Int) = sankey!!.nodes.filter { it.column == c }.map { it.name to it.valueCents }
+    private fun ReportWidget.flows() = sankey!!.links.associate { "${sankey!!.nodes[it.source].name}>${sankey!!.nodes[it.target].name}" to it.cents }
+
+    @Test fun `draws income categories, the account, category groups and categories as columns`() {
         val rows = listOf(
             tx("1", 20260405, 800000, "salary"),
             tx("2", 20260406, 200000, "bonus"),
@@ -55,8 +61,15 @@ class SankeyTest {
         )
         assertEquals(ReportWidgetKind.SANKEY, widget.kind)
         assertEquals(1000000L, widget.valueCents)
-        assertEquals(listOf("Salary" to 800000L, "Bonus" to 200000L), widget.incomeCategories.map { it.name to it.spentCents })
-        assertEquals(listOf("Bills" to 300000L), widget.categories.map { it.name to it.spentCents })
+        assertEquals(300000L, widget.comparisonCents)
+        assertEquals(listOf("Salary" to 800000L, "Bonus" to 200000L), widget.column(0))
+        assertEquals(listOf("(Unnamed account)" to 1000000L), widget.column(1))
+        assertEquals(listOf("Bills" to 300000L), widget.column(2))
+        assertEquals(listOf("Rent" to 300000L), widget.column(3))
+        assertEquals(
+            listOf(SankeyLayer.INCOME_CATEGORY, SankeyLayer.ACCOUNT, SankeyLayer.CATEGORY_GROUP, SankeyLayer.CATEGORY),
+            widget.sankey!!.columnLayers,
+        )
     }
 
     @Test fun `budgeted mode aggregates calendar month cells in envelope and tracking budgets`() {
@@ -93,14 +106,19 @@ class SankeyTest {
                 listOf(tx("spent", 20260420, -42, "rent")), context, incomeCategoryIds,
                 budgetMonth = months::get, monthStart = MonthStartRule(25),
             )
-            assertEquals(true, widget.sankeyBudgeted)
-            val sources = mapOf("Salary" to 1900L, "From Fund" to 200L)
-            val destinations = mapOf("Bills" to 1400L)
-            assertEquals(if (tracking) sources else sources + ("From Mar 2026" to 300L),
-                widget.incomeCategories.associate { it.name to it.spentCents })
-            assertEquals(if (tracking) destinations else destinations + mapOf(
-                "To budget" to 100L, "For Jun 2026" to 200L, "Overspent" to 100L,
-            ), widget.categories.associate { it.name to it.spentCents })
+            assertEquals(true, widget.sankey!!.budgeted)
+            val common = mapOf(
+                "Salary>Available funds" to 1900L, "From Fund>Budgeted" to 200L,
+                "Available funds>Budgeted" to 1200L, "Budgeted>Bills" to 1400L, "Bills>Rent" to 1400L,
+            )
+            assertEquals(
+                if (tracking) common else common + mapOf(
+                    "From Mar 2026>Available funds" to 300L, "Available funds>To budget" to 100L,
+                    "Available funds>For Jun 2026" to 200L, "Available funds>Overspent" to 100L,
+                ),
+                widget.flows(),
+            )
+            assertEquals(SankeyNodeRole.NEGATIVE, widget.sankey!!.nodes.first { it.name == "From Fund" }.role)
         }
     }
 
@@ -155,7 +173,7 @@ class SankeyTest {
         )
         val widget = CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds)
         assertEquals(800000L, widget.valueCents)
-        assertEquals(listOf("Bills" to 250000L), widget.categories.map { it.name to it.spentCents })
+        assertEquals(listOf("Bills" to 250000L), widget.column(2))
         assertEquals(250000L, widget.comparisonCents)
     }
 
@@ -171,7 +189,7 @@ class SankeyTest {
         val widget = CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds)
         assertEquals(800000L, widget.valueCents)
         assertEquals(300000L, widget.comparisonCents)
-        assertEquals(listOf("Salary"), widget.incomeCategories.map { it.name })
+        assertEquals(listOf("Salary"), widget.column(0).map { it.first })
     }
 
     @Test fun `a net-positive expense category flows in rather than counting as spending`() {
@@ -180,9 +198,11 @@ class SankeyTest {
             tx("2", 20260412, 30000, "rent"),
         )
         val widget = CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds)
-        assertEquals(listOf("Rent" to 20000L), widget.incomeCategories.map { it.name to it.spentCents })
-        assertEquals(emptyList<Any>(), widget.categories)
-        assertEquals(0L, widget.comparisonCents)
+        // The refund comes in from "(No payee)" through a Rent income-category node to the account;
+        // nothing flows out to a group or category.
+        assertEquals(listOf("(No payee)" to 20000L), widget.column(0))
+        assertEquals(listOf("Rent" to 20000L), widget.column(1))
+        assertEquals(emptyList<Any>(), widget.sankey!!.nodes.filter { it.layer == SankeyLayer.CATEGORY_GROUP || it.layer == SankeyLayer.CATEGORY })
     }
 
     @Test fun `a net-negative income category flows out`() {
@@ -192,7 +212,8 @@ class SankeyTest {
         )
         val widget = CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds)
         assertEquals(800000L, widget.valueCents)
-        assertEquals(listOf("Bonus" to 5000L), widget.categories.map { it.name to it.spentCents })
+        val bonus = widget.sankey!!.nodes.single { it.role == SankeyNodeRole.NEGATIVE }
+        assertEquals(listOf("Bonus", SankeyLayer.CATEGORY_GROUP, 5000L), listOf(bonus.name, bonus.layer, bonus.valueCents))
     }
 
     @Test fun `sets a subtitle with the resolved date range`() {
