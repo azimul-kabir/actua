@@ -126,6 +126,8 @@
     <string name="transactions_mark_cleared">Marcar como confirmadas</string>
     <string name="transactions_mark_uncleared">Marcar como não confirmadas</string>
     <string name="transactions_link_schedule">Vincular a um agendamento</string>
+    <string name="transactions_create_schedule">Criar agendamento</string>
+    <string name="transactions_create_schedule_unavailable">Criar agendamento (indisponível para transferências)</string>
     <string name="transactions_unlink_schedule">Desvincular agendamento</string>
     <string name="transactions_view_schedule">Ver agendamento</string>
     <string name="transactions_edit_schedule">Editar agendamento</string>

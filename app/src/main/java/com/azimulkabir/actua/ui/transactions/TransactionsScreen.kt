@@ -215,6 +215,7 @@ fun TransactionsScreen(
     onLinkSchedule: (List<Transaction>, String) -> Unit = { _, _ -> },
     onUnlinkSchedule: (List<Transaction>) -> Unit = {},
     onViewSchedule: (String) -> Unit = {},
+    onCreateSchedule: ((Transaction) -> Unit)? = null,
     linkableSchedules: List<ScheduleOption> = emptyList(),
     onViewStatements: (() -> Unit)? = null,
     onPayStatement: ((remainingDueCents: Long) -> Unit)? = null,
@@ -582,6 +583,26 @@ fun TransactionsScreen(
                                 bulkMenuOpen = false
                                 showLinkSchedulePicker = true
                             })
+                            if (onCreateSchedule != null && selectedTransactions.size == 1) {
+                                val source = selectedTransactions.first()
+                                val available = com.azimulkabir.actua.data.schedules.SchedulePrefill.isAvailable(source)
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            stringResource(
+                                                if (available) R.string.transactions_create_schedule
+                                                else R.string.transactions_create_schedule_unavailable,
+                                            ),
+                                        )
+                                    },
+                                    enabled = available,
+                                    onClick = {
+                                        bulkMenuOpen = false
+                                        selectionModeOn = false
+                                        onCreateSchedule(source)
+                                    },
+                                )
+                            }
                             if (selectedTransactions.any { it.scheduleId != null }) {
                                 DropdownMenuItem(text = { Text(stringResource(R.string.transactions_unlink_schedule)) }, onClick = {
                                     bulkMenuOpen = false
