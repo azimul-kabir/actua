@@ -666,6 +666,7 @@ fun BudgetScreen(
                                 showSpent = showSpent,
                                 showTotals = showGroupTotals,
                                 stacked = tableStacked,
+                                showProgressBars = showProgressBars,
                                 joinsRows = visibleCategories.isNotEmpty() && !collapsed,
                                 hideDecimalPlaces = hideDecimalPlaces,
                                 onClick = onGroupClick,
@@ -1507,8 +1508,12 @@ private fun BudgetWarningCard(
         onClick = onClick,
         color = containerColor,
         contentColor = contentColor,
-        shape = MaterialTheme.shapes.large,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.xs),
+        // Edge to edge with the table's flat groups: full width, slightly rounded.
+        shape = if (LocalTableStyle.current == TableStyle.Flat) TableFlatShape else MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth().padding(
+            horizontal = if (LocalTableStyle.current == TableStyle.Flat) 0.dp else Spacing.screenHorizontal,
+            vertical = Spacing.xs,
+        ),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().heightIn(min = Sizes.formRowMinHeight)
@@ -1713,6 +1718,7 @@ private fun IncomeBudgetGroupHeader(
     collapsed: Boolean,
     /** The table view's flat style (see [BudgetGroupHeader]); false for cards and in the Plan view. */
     flat: Boolean,
+    /** Rows follow the header in the same block, so its bottom corners stay square. */
     joinsRows: Boolean,
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
@@ -1724,16 +1730,16 @@ private fun IncomeBudgetGroupHeader(
         label = "income group chevron",
     )
     val received = group.categories.sumOf { it.balanceCents }
-    val headerShape = tableGroupHeaderShape(joinsRows)
     val headerColor = TableGroupHeaderColor
     Surface(color = MaterialTheme.colorScheme.background) {
         Row(
             modifier = Modifier.fillMaxWidth()
                 .then(if (flat) Modifier.padding(top = Spacing.md) else Modifier.padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.md))
-                .clip(if (flat) headerShape else MaterialTheme.shapes.large)
+                .clip(if (flat) tableGroupHeaderShape(joinsRows) else MaterialTheme.shapes.large)
                 .then(if (flat) Modifier.background(headerColor) else Modifier)
                 .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick)
-                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                .then(if (flat) Modifier.heightIn(min = TableRowMinHeight) else Modifier)
+                .padding(horizontal = Spacing.lg, vertical = if (flat) Spacing.md else Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -1809,7 +1815,7 @@ private fun BudgetOverviewRow(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = MaterialTheme.shapes.large,
+        shape = if (LocalTableStyle.current == TableStyle.Flat) TableFlatShape else MaterialTheme.shapes.large,
         modifier = Modifier.fillMaxWidth().padding(
             horizontal = if (LocalTableStyle.current == TableStyle.Flat) 0.dp else Spacing.screenHorizontal,
             vertical = Spacing.sm,
@@ -1932,11 +1938,11 @@ private fun OverviewCell(
                 }
                 if (onClick != null) {
                     Surface(onClick = onClick, modifier = pillModifier, color = pillColor,
-                        shape = MaterialTheme.shapes.small) {
+                        shape = TablePillShape) {
                         OverviewPillAmount(amount, textColor)
                     }
                 } else {
-                    Surface(modifier = pillModifier, color = pillColor, shape = MaterialTheme.shapes.small) {
+                    Surface(modifier = pillModifier, color = pillColor, shape = TablePillShape) {
                         OverviewPillAmount(amount, textColor)
                     }
                 }
@@ -1948,8 +1954,8 @@ private fun OverviewCell(
     }
 }
 
-/** The overview pills' padding (each side), as Actuali's `balancePill`. */
-private val OverviewPillPadding = 5.dp
+/** The overview pills' padding (each side); see [TablePillShape]. */
+private val OverviewPillPadding = 3.dp
 
 /** Material's minimum interactive height, which the To budget chip (a button) takes. */
 private val OverviewButtonHeight = 48.dp
@@ -2031,8 +2037,11 @@ private val TableAmountGap = 4.dp
 /** An amount in a table column, plus the [padding] (a pill's, or [TableAmountGap]) beside it. */
 private data class TableAmount(val text: String, val padding: androidx.compose.ui.unit.Dp = TableAmountGap)
 
-/** The category table's balance pill padding (each side), as Actuali's `balancePill`; see [CategoryRow]. */
-private val CategoryPillPadding = 5.dp
+/** The category table's balance pill padding (each side); see [CategoryRow] and [TablePillShape]. */
+private val CategoryPillPadding = 3.dp
+
+/** The table's balance pills: only slightly rounded, so the amount needs little side padding to clear the corners. */
+private val TablePillShape = RoundedCornerShape(6.dp)
 
 /**
  * Lets a balance pill reach [overhang] past its column's end, so its amount still lines up with the
@@ -2092,16 +2101,27 @@ private val TableAmountFontSize = 13.sp
 private fun androidx.compose.ui.text.TextStyle.asTableAmount() =
     copy(fontSize = TableAmountFontSize, fontFeatureSettings = "tnum")
 
+/** A category row's progress bar and the gap above it, which add [TableProgressBarSpace] to the row. */
+private val TableProgressBarGap = 8.dp
+private val TableProgressBarHeight = 4.dp
+private val TableProgressBarSpace = TableProgressBarGap + TableProgressBarHeight
+
 /** A table row's minimum height: denser than the 56 dp [Sizes.compactRowMinHeight] used elsewhere. */
 private val TableRowMinHeight = 48.dp
 
-/** The table's group header and rows are flat, edge to edge, and only the outer corners of a group round. */
+/** The edge-to-edge table's group header color. */
 private val TableGroupHeaderColor: Color @Composable get() = MaterialTheme.colorScheme.surfaceContainerHigh
+
+/**
+ * The edge-to-edge table's outer corners: the theme's small radius, as chips and pills use, so the
+ * full-width blocks round slightly rather than as much as the inset cards.
+ */
+private val TableFlatShape: CornerBasedShape @Composable get() = MaterialTheme.shapes.small
 
 /** A group header's shape: rounded on top, and on the bottom too when no rows follow it. */
 @Composable
 private fun tableGroupHeaderShape(joinsRows: Boolean): CornerBasedShape {
-    val base = MaterialTheme.shapes.large
+    val base = TableFlatShape
     return if (joinsRows) base.copy(bottomStart = ZeroCornerSize, bottomEnd = ZeroCornerSize) else base
 }
 
@@ -2122,7 +2142,7 @@ private fun TableGroupedItem(
         ActuaGroupedItem(position = position, dividerInset = dividerInset, content = content)
         return
     }
-    val base = MaterialTheme.shapes.large
+    val base = TableFlatShape
     val shape = base.copy(
         topStart = if (roundTop && position.isFirst) base.topStart else ZeroCornerSize,
         topEnd = if (roundTop && position.isFirst) base.topEnd else ZeroCornerSize,
@@ -2247,6 +2267,8 @@ private fun BudgetGroupHeader(
     showTotals: Boolean,
     /** The table is too narrow for its columns: totals go under the name; see [rememberTableLayout]. */
     stacked: Boolean,
+    /** Rows then carry a progress bar, so an edge-to-edge header grows by the same to match them. */
+    showProgressBars: Boolean,
     /** Rows follow the header in the same block, so its bottom corners stay square. */
     joinsRows: Boolean,
     hideDecimalPlaces: Boolean,
@@ -2271,7 +2293,10 @@ private fun BudgetGroupHeader(
                 .clip(if (flat) tableGroupHeaderShape(joinsRows) else MaterialTheme.shapes.large)
                 .then(if (flat) Modifier.background(headerColor) else Modifier)
                 .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick)
-                .padding(horizontal = TableRowPadding, vertical = Spacing.sm),
+                // Edge to edge, a header is a category row's height: tighter padding fits its labels and totals in it.
+                .then(if (flat) Modifier.heightIn(min = TableRowMinHeight + if (showProgressBars) TableProgressBarSpace else 0.dp) else Modifier)
+                .padding(horizontal = TableRowPadding, vertical = if (flat) Spacing.xs else Spacing.sm),
+            contentAlignment = Alignment.CenterStart,
         ) {
             val nameRow = @Composable { modifier: Modifier ->
                 Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
@@ -2390,6 +2415,7 @@ private fun CategoryRow(
                         fontWeight = FontWeight.Bold,
                         horizontalPadding = CategoryPillPadding,
                         verticalPadding = 3.dp,
+                        shape = TablePillShape,
                         tableAmount = true,
                         targetBadge = category.targetFunding(scheduleFunding),
                     )
@@ -2418,7 +2444,7 @@ private fun CategoryRow(
             }
             AnimatedVisibility(visible = showProgressBar && category.showsProgressBar) {
                 CategoryProgressBar(category, scheduleFunding,
-                    Modifier.fillMaxWidth().padding(top = 8.dp).height(4.dp))
+                    Modifier.fillMaxWidth().padding(top = TableProgressBarGap).height(TableProgressBarHeight))
             }
         }
     }
@@ -2844,6 +2870,7 @@ internal fun BalancePill(
     fontWeight: FontWeight = FontWeight.SemiBold,
     horizontalPadding: androidx.compose.ui.unit.Dp = 8.dp,
     verticalPadding: androidx.compose.ui.unit.Dp = 2.dp,
+    shape: androidx.compose.ui.graphics.Shape = CircleShape,
     /** In the table view: shrink like the other [TableAmountText]s rather than [ShrinkToFitText]. */
     tableAmount: Boolean = false,
     /** The category's target state: a small icon leads the amount. */
@@ -2857,7 +2884,7 @@ internal fun BalancePill(
     val filled = LocalShowBalancePills.current
     val pill = @Composable { pillModifier: Modifier -> Surface(
         modifier = pillModifier,
-        shape = CircleShape,
+        shape = shape,
         color = when {
             !LocalShowBalancePills.current -> Color.Transparent
             tone == BalancePillTone.ALERT -> statusColor.copy(alpha = 0.16f)
@@ -2897,9 +2924,10 @@ internal fun BalancePill(
     } else {
         Box(modifier) {
             pill(Modifier)
-            // A notch in the row's own colour keeps the badge legible against both the pill and the row.
+            // A notch in the row's own colour keeps the badge legible against both the pill and the row. Centred
+            // on the pill's corner it covers only the corner, above the digits, however little the side padding.
             Box(
-                Modifier.align(Alignment.TopStart).offset(x = (-5).dp, y = (-5).dp).size(TargetBadgeSize)
+                Modifier.align(Alignment.TopStart).offset(x = -TargetBadgeSize / 2, y = -TargetBadgeSize / 2).size(TargetBadgeSize)
                     .clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainer),
                 contentAlignment = Alignment.Center,
             ) {
@@ -2915,7 +2943,7 @@ internal fun BalancePill(
 }
 
 private val TargetIconSize = 14.dp
-private val TargetBadgeSize = 13.dp
+private val TargetBadgeSize = 12.dp
 private val TargetIconGap = 4.dp
 private val TableTargetIconGap = 2.dp
 
