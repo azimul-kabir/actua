@@ -61,6 +61,8 @@
     <string name="budget_held_for_next_month">%1$s für nächsten Monat zurückgehalten</string>
     <string name="budget_expand_group">%1$s ausklappen</string>
     <string name="budget_collapse_group">%1$s einklappen</string>
+    <string name="budget_group_collapsed">Eingeklappt</string>
+    <string name="budget_group_expanded">Ausgeklappt</string>
     <string name="budget_hidden_name">%1$s · Ausgeblendet</string>
     <string name="budget_budgeted">Budgetiert</string>
     <string name="budget_spent">Ausgegeben</string>

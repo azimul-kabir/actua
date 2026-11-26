@@ -61,6 +61,8 @@
     <string name="budget_held_for_next_month">%1$s accantonati per il mese prossimo</string>
     <string name="budget_expand_group">Espandi %1$s</string>
     <string name="budget_collapse_group">Comprimi %1$s</string>
+    <string name="budget_group_collapsed">Compresso</string>
+    <string name="budget_group_expanded">Espanso</string>
     <string name="budget_hidden_name">%1$s · Nascosta</string>
     <string name="budget_budgeted">Assegnato</string>
     <string name="budget_spent">Speso</string>

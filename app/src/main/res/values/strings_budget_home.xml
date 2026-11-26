@@ -61,6 +61,8 @@
     <string name="budget_held_for_next_month">%1$s held for next month</string>
     <string name="budget_expand_group">Expand %1$s</string>
     <string name="budget_collapse_group">Collapse %1$s</string>
+    <string name="budget_group_collapsed">Collapsed</string>
+    <string name="budget_group_expanded">Expanded</string>
     <string name="budget_hidden_name">%1$s · Hidden</string>
     <string name="budget_budgeted">Budgeted</string>
     <string name="budget_spent">Spent</string>

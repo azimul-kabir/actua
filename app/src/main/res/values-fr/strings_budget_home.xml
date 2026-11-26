@@ -61,6 +61,8 @@
     <string name="budget_held_for_next_month">%1$s réservés pour le mois prochain</string>
     <string name="budget_expand_group">Développer %1$s</string>
     <string name="budget_collapse_group">Réduire %1$s</string>
+    <string name="budget_group_collapsed">Réduit</string>
+    <string name="budget_group_expanded">Développé</string>
     <string name="budget_hidden_name">%1$s · Masqué</string>
     <string name="budget_budgeted">Budgété</string>
     <string name="budget_spent">Dépensé</string>
