@@ -112,9 +112,9 @@ class FloatingTabBarTest {
         composeRule.runOnIdle { regular = true }
         composeRule.onNodeWithText("Clearance: 0").assertExists()
         val bar = composeRule.onNodeWithTag("bottomTabBar")
-        val labeledHeight = bar.getUnclippedBoundsInRoot().height
+        val labeledHeight = bar.getUnclippedBoundsInRoot().let { it.bottom - it.top }
         composeRule.runOnIdle { showLabels = false }
-        val iconOnlyHeight = bar.getUnclippedBoundsInRoot().height
+        val iconOnlyHeight = bar.getUnclippedBoundsInRoot().let { it.bottom - it.top }
         assertEquals(8f, (labeledHeight - iconOnlyHeight).value, 1f)
         composeRule.onNodeWithContentDescription("Home").assertIsSelected()
         composeRule.onNodeWithContentDescription("Add").assertIsNotSelected().performClick().assertIsSelected()
