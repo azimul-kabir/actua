@@ -44,9 +44,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
@@ -144,6 +142,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.annotation.StringRes
@@ -494,7 +493,6 @@ fun BudgetScreen(
                             category = category,
                             position = GroupPosition.of(index, count),
                             flat = tableStyle == TableStyle.Flat,
-                            roundTop = favoritesOnly,
                             table = tableStyle != TableStyle.None,
                             hideDecimalPlaces = hideDecimalPlaces,
                             onClick = { onShowCategoryTransactions(category, true, false) },
@@ -518,7 +516,6 @@ fun BudgetScreen(
                             stacked = tableStacked,
                             showProgressBar = showProgressBars,
                             position = GroupPosition.of(index, count),
-                            roundTop = favoritesOnly,
                             onLongClick = { selectedCategory = category },
                             onOpen = { editingBudget = group to category },
                             hideDecimalPlaces = hideDecimalPlaces,
@@ -649,7 +646,6 @@ fun BudgetScreen(
                                 group = headerGroup,
                                 collapsed = collapsed,
                                 flat = tableStyle == TableStyle.Flat,
-                                joinsRows = visibleCategories.isNotEmpty() && !collapsed,
                                 hideDecimalPlaces = hideDecimalPlaces,
                                 onClick = onGroupClick,
                                 onLongClick = { selectedGroup = group },
@@ -671,7 +667,6 @@ fun BudgetScreen(
                                 showTotals = showGroupTotals,
                                 stacked = tableStacked,
                                 showProgressBars = showProgressBars,
-                                joinsRows = visibleCategories.isNotEmpty() && !collapsed,
                                 hideDecimalPlaces = hideDecimalPlaces,
                                 onClick = onGroupClick,
                                 onLongClick = { selectedGroup = group },
@@ -1514,8 +1509,8 @@ private fun BudgetWarningCard(
         onClick = onClick,
         color = containerColor,
         contentColor = contentColor,
-        // Edge to edge with the table's flat groups: full width, slightly rounded.
-        shape = if (LocalTableStyle.current == TableStyle.Flat) TableFlatShape else MaterialTheme.shapes.large,
+        // Match the flat table's full-width, square edges.
+        shape = if (LocalTableStyle.current == TableStyle.Flat) RectangleShape else MaterialTheme.shapes.large,
         modifier = Modifier.fillMaxWidth().padding(
             horizontal = if (LocalTableStyle.current == TableStyle.Flat) 0.dp else Spacing.screenHorizontal,
             vertical = Spacing.xs,
@@ -1724,43 +1719,40 @@ private fun IncomeBudgetGroupHeader(
     collapsed: Boolean,
     /** The table view's flat style (see [BudgetGroupHeader]); false for cards and in the Plan view. */
     flat: Boolean,
-    /** Rows follow the header in the same block, so its bottom corners stay square. */
-    joinsRows: Boolean,
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    val rotation by animateFloatAsState(
-        targetValue = if (collapsed) -90f else 0f,
-        animationSpec = tween(220),
-        label = "income group chevron",
-    )
     val received = group.categories.sumOf { it.balanceCents }
-    val headerColor = TableGroupHeaderColor
     Surface(color = MaterialTheme.colorScheme.background) {
         Row(
             modifier = Modifier.fillMaxWidth()
-                .then(if (flat) Modifier.padding(top = Spacing.md) else Modifier.padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.md))
-                .clip(if (flat) tableGroupHeaderShape(joinsRows) else MaterialTheme.shapes.large)
-                .then(if (flat) Modifier.background(headerColor) else Modifier)
-                .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick)
+                .budgetGroupHeaderSurface(flat)
+                .budgetGroupHeaderClick(flat, collapsed, group.name, onClick, onLongClick)
                 .then(if (flat) Modifier.heightIn(min = TableRowMinHeight) else Modifier)
                 .padding(horizontal = Spacing.lg, vertical = if (flat) Spacing.md else Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                Icons.Outlined.KeyboardArrowDown,
-                contentDescription = if (collapsed) stringResource(R.string.budget_expand_group, group.name)
-                else stringResource(R.string.budget_collapse_group, group.name),
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.width(24.dp).rotate(rotation),
-            )
+            if (!flat) {
+                val rotation by animateFloatAsState(
+                    targetValue = if (collapsed) -90f else 0f,
+                    animationSpec = tween(220),
+                    label = "group chevron",
+                )
+                Icon(
+                    Icons.Outlined.KeyboardArrowDown,
+                    contentDescription = if (collapsed) stringResource(R.string.budget_expand_group, group.name)
+                    else stringResource(R.string.budget_collapse_group, group.name),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.width(24.dp).rotate(rotation),
+                )
+            }
             Text(
                 if (group.hidden) stringResource(R.string.budget_hidden_name, group.name) else group.name,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = if (group.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
-                modifier = Modifier.weight(1f).padding(start = 4.dp),
+                modifier = Modifier.weight(1f).padding(start = if (flat) 0.dp else 4.dp),
             )
             Text(
                 stringResource(R.string.budget_received_amount, formatMoneyCents(received, hideDecimalPlaces)),
@@ -1780,14 +1772,13 @@ private fun IncomeBudgetCategoryRow(
     position: GroupPosition,
     /** The table view's flat style (see [CategoryRow]); false for cards and in the Plan view. */
     flat: Boolean,
-    roundTop: Boolean,
     /** In the table view (either style) rows are the denser [TableRowMinHeight]; the Plan view keeps its height. */
     table: Boolean,
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    TableGroupedItem(flat = flat, position = position, roundTop = roundTop, dividerInset = Spacing.lg) {
+    TableGroupedItem(flat = flat, position = position, dividerInset = Spacing.lg) {
         Row(
             modifier = Modifier.fillMaxWidth().heightIn(min = if (table) TableRowMinHeight else Sizes.compactRowMinHeight).combinedClickable(
                 role = Role.Button, onClick = onClick, onLongClick = onLongClick,
@@ -1821,7 +1812,7 @@ private fun BudgetOverviewRow(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = if (LocalTableStyle.current == TableStyle.Flat) TableFlatShape else MaterialTheme.shapes.large,
+        shape = if (LocalTableStyle.current == TableStyle.Flat) RectangleShape else MaterialTheme.shapes.large,
         modifier = Modifier.fillMaxWidth().padding(
             horizontal = if (LocalTableStyle.current == TableStyle.Flat) 0.dp else Spacing.screenHorizontal,
             vertical = Spacing.sm,
@@ -2115,32 +2106,53 @@ private val TableProgressBarSpace = TableProgressBarGap + TableProgressBarHeight
 /** A table row's minimum height: denser than the 56 dp [Sizes.compactRowMinHeight] used elsewhere. */
 private val TableRowMinHeight = 48.dp
 
-/** The edge-to-edge table's group header color. */
-private val TableGroupHeaderColor: Color @Composable get() = MaterialTheme.colorScheme.surfaceContainerHigh
-
-/**
- * The edge-to-edge table's outer corners: the theme's small radius, as chips and pills use, so the
- * full-width blocks round slightly rather than as much as the inset cards.
- */
-private val TableFlatShape: CornerBasedShape @Composable get() = MaterialTheme.shapes.small
-
-/** A group header's shape: rounded on top, and on the bottom too when no rows follow it. */
 @Composable
-private fun tableGroupHeaderShape(joinsRows: Boolean): CornerBasedShape {
-    val base = TableFlatShape
-    return if (joinsRows) base.copy(bottomStart = ZeroCornerSize, bottomEnd = ZeroCornerSize) else base
+private fun Modifier.budgetGroupHeaderSurface(flat: Boolean): Modifier {
+    if (!flat) {
+        return padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.md)
+            .clip(MaterialTheme.shapes.large)
+    }
+    val colors = MaterialTheme.colorScheme
+    val color = if (colors.background.luminance() > 0.5f) {
+        colors.surfaceContainer
+    } else {
+        colors.surfaceContainerHighest
+    }
+    return clip(RectangleShape).background(color)
 }
 
-/**
- * A row of a flat table group: full width, square except the bottom corners of a group's last row
- * (and the top of its first row when no header sits above it, as in the Favorites list).
- * With [flat] false it is the usual inset card row.
- */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun Modifier.budgetGroupHeaderClick(
+    flat: Boolean,
+    collapsed: Boolean,
+    groupName: String,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+): Modifier {
+    val state = if (flat) {
+        val description = stringResource(if (collapsed) R.string.budget_group_collapsed else R.string.budget_group_expanded)
+        semantics { stateDescription = description }
+    } else {
+        this
+    }
+    return state.combinedClickable(
+        role = Role.Button,
+        onClickLabel = if (flat) {
+            stringResource(if (collapsed) R.string.budget_expand_group else R.string.budget_collapse_group, groupName)
+        } else {
+            null
+        },
+        onClick = onClick,
+        onLongClick = onLongClick,
+    )
+}
+
+/** Flat rows sit on the screen background and retain the dividers within each group. */
 @Composable
 private fun TableGroupedItem(
     flat: Boolean,
     position: GroupPosition,
-    roundTop: Boolean,
     dividerInset: androidx.compose.ui.unit.Dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -2148,16 +2160,7 @@ private fun TableGroupedItem(
         ActuaGroupedItem(position = position, dividerInset = dividerInset, content = content)
         return
     }
-    val base = TableFlatShape
-    val shape = base.copy(
-        topStart = if (roundTop && position.isFirst) base.topStart else ZeroCornerSize,
-        topEnd = if (roundTop && position.isFirst) base.topEnd else ZeroCornerSize,
-        bottomStart = if (position.isLast) base.bottomStart else ZeroCornerSize,
-        bottomEnd = if (position.isLast) base.bottomEnd else ZeroCornerSize,
-    )
-    Column(
-        Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surfaceContainer),
-    ) {
+    Column(Modifier.fillMaxWidth()) {
         if (!position.isFirst) ActuaCardDivider(inset = dividerInset)
         content()
     }
@@ -2275,30 +2278,20 @@ private fun BudgetGroupHeader(
     stacked: Boolean,
     /** Rows then carry a progress bar, so an edge-to-edge header grows by the same to match them. */
     showProgressBars: Boolean,
-    /** Rows follow the header in the same block, so its bottom corners stay square. */
-    joinsRows: Boolean,
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    val rotation by animateFloatAsState(
-        targetValue = if (collapsed) -90f else 0f,
-        animationSpec = tween(220),
-        label = "group chevron",
-    )
     val budgeted = group.categories.sumOf { it.assignedCents }
     val spent = group.categories.sumOf { it.spentCents }
     val balance = group.categories.sumOf { it.balanceCents }
     val flat = LocalTableStyle.current == TableStyle.Flat
-    val headerColor = TableGroupHeaderColor
 
     Surface(color = MaterialTheme.colorScheme.background) {
         Box(
             modifier = Modifier.fillMaxWidth()
-                .then(if (flat) Modifier.padding(top = Spacing.md) else Modifier.padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.md))
-                .clip(if (flat) tableGroupHeaderShape(joinsRows) else MaterialTheme.shapes.large)
-                .then(if (flat) Modifier.background(headerColor) else Modifier)
-                .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick)
+                .budgetGroupHeaderSurface(flat)
+                .budgetGroupHeaderClick(flat, collapsed, group.name, onClick, onLongClick)
                 // Edge to edge, a header is a category row's height: tighter padding fits its labels and totals in it.
                 .then(if (flat) Modifier.heightIn(min = TableRowMinHeight + if (showProgressBars) TableProgressBarSpace else 0.dp) else Modifier)
                 .padding(horizontal = TableRowPadding, vertical = if (flat) Spacing.xs else Spacing.sm),
@@ -2306,13 +2299,20 @@ private fun BudgetGroupHeader(
         ) {
             val nameRow = @Composable { modifier: Modifier ->
                 Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Outlined.KeyboardArrowDown,
-                        contentDescription = if (collapsed) stringResource(R.string.budget_expand_group, group.name)
-                        else stringResource(R.string.budget_collapse_group, group.name),
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.width(24.dp).rotate(rotation),
-                    )
+                    if (!flat) {
+                        val rotation by animateFloatAsState(
+                            targetValue = if (collapsed) -90f else 0f,
+                            animationSpec = tween(220),
+                            label = "group chevron",
+                        )
+                        Icon(
+                            Icons.Outlined.KeyboardArrowDown,
+                            contentDescription = if (collapsed) stringResource(R.string.budget_expand_group, group.name)
+                            else stringResource(R.string.budget_collapse_group, group.name),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.width(24.dp).rotate(rotation),
+                        )
+                    }
                     Text(if (group.hidden) stringResource(R.string.budget_hidden_name, group.name) else group.name,
                         style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
                         color = if (group.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
@@ -2379,14 +2379,12 @@ private fun CategoryRow(
     stacked: Boolean,
     showProgressBar: Boolean,
     position: GroupPosition,
-    /** No group header sits above the first row (the Favorites list), so it rounds its top corners. */
-    roundTop: Boolean,
     onLongClick: () -> Unit,
     onOpen: () -> Unit,
     hideDecimalPlaces: Boolean,
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
 ) {
-    TableGroupedItem(flat = LocalTableStyle.current == TableStyle.Flat, position = position, roundTop = roundTop, dividerInset = TableRowPadding) {
+    TableGroupedItem(flat = LocalTableStyle.current == TableStyle.Flat, position = position, dividerInset = TableRowPadding) {
         Column(
             modifier = Modifier.fillMaxWidth().heightIn(min = TableRowMinHeight)
                 .combinedClickable(onClick = onOpen, onLongClick = onLongClick)

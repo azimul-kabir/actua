@@ -61,6 +61,8 @@
     <string name="budget_held_for_next_month">已为下月预留 %1$s</string>
     <string name="budget_expand_group">展开 %1$s</string>
     <string name="budget_collapse_group">收起 %1$s</string>
+    <string name="budget_group_collapsed">已收起</string>
+    <string name="budget_group_expanded">已展开</string>
     <string name="budget_hidden_name">%1$s · 已隐藏</string>
     <string name="budget_budgeted">已预算</string>
     <string name="budget_spent">已花费</string>

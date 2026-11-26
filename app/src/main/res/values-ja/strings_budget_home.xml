@@ -61,6 +61,8 @@
     <string name="budget_held_for_next_month">来月に%1$s保留</string>
     <string name="budget_expand_group">%1$sを展開</string>
     <string name="budget_collapse_group">%1$sを折りたたむ</string>
+    <string name="budget_group_collapsed">折りたたみ済み</string>
+    <string name="budget_group_expanded">展開済み</string>
     <string name="budget_hidden_name">%1$s · 非表示</string>
     <string name="budget_budgeted">割り当て済み</string>
     <string name="budget_spent">支出</string>
