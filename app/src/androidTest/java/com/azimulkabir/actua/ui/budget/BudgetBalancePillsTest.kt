@@ -101,10 +101,10 @@ class BudgetBalancePillsTest {
 
     /**
      * The row's (or card's) own background just under [amount]'s pill. Sampled below rather than
-     * beside it: rows keep at least 9dp clear under a pill, but a neighbouring column's digits can
-     * sit anywhere to its side.
+     * beside it, since a neighbouring column's digits can sit anywhere to its side. The compact
+     * table overview has less padding below its pill than the category rows do.
      */
-    private fun besidePill(amount: String): Int = pixelBelow(amount, 7)
+    private fun besidePill(amount: String): Int = pixelBelow(amount, if (amount == overviewBalance) 5 else 7)
 
     private fun pixelBelow(amount: String, dp: Int): Int {
         val box = bounds(amount)
