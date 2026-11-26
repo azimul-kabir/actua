@@ -1554,7 +1554,7 @@ fun AppNavigation(
                                     Icon(
                                         Icons.Outlined.Add,
                                         contentDescription = stringResource(tabItem.labelRes()),
-                                        modifier = Modifier.padding(10.dp).size(28.dp),
+                                        modifier = Modifier.padding(if (regularTabBar) 6.dp else 10.dp).size(28.dp),
                                     )
                                 }
                             },

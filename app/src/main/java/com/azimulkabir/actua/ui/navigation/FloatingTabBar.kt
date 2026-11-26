@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -47,6 +48,8 @@ internal val FloatingTabBarIconOnlyHeight = 56.dp
 private val FloatingTabBarSideMargin = 12.dp
 private const val MaxLabelFontScale = 1.3f
 private val FloatingTabBarBottomMargin = 8.dp
+private val RegularTabBarLabeledHeight = 64.dp
+private val RegularTabBarIconOnlyHeight = 56.dp
 
 internal val LocalFloatingTabBar = staticCompositionLocalOf { true }
 
@@ -165,15 +168,23 @@ internal fun BottomTabBar(
     regular: Boolean,
     showLabels: Boolean,
     backdrop: TabBarBackdrop?,
+    modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
     if (regular) {
         val density = LocalDensity.current
         CompositionLocalProvider(LocalDensity provides Density(density.density, minOf(density.fontScale, MaxLabelFontScale))) {
-            NavigationBar(content = content)
+            NavigationBar(
+                modifier = modifier
+                    .background(NavigationBarDefaults.containerColor)
+                    .windowInsetsPadding(NavigationBarDefaults.windowInsets)
+                    .height(if (showLabels) RegularTabBarLabeledHeight else RegularTabBarIconOnlyHeight),
+                windowInsets = WindowInsets(0),
+                content = content,
+            )
         }
     } else {
-        FloatingNavigationBar(showLabels = showLabels, backdrop = backdrop, content = content)
+        FloatingNavigationBar(showLabels = showLabels, modifier = modifier, backdrop = backdrop, content = content)
     }
 }
 
