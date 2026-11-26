@@ -329,7 +329,9 @@
     <string name="home_required">必須</string>
     <string name="home_open_budget">予算を開く</string>
     <string name="home_available_to_assign">割り当て可能額</string>
-    <string name="home_open_current_budget">現在の予算を開く</string>
+    <string name="home_budget_month">%1$sの予算</string>
+    <string name="home_viewing_budget_month">%1$sの予算を表示中</string>
+    <string name="home_current_pay_period">現在の給与期間</string>
     <string name="home_goal_progress">目標に対して%1$d%%充足</string>
     <string name="home_spending_progress">%1$s · %2$d%%支出</string>
     <string name="home_view_calendar">カレンダーを表示</string>

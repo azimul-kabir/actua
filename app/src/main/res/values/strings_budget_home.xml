@@ -337,7 +337,9 @@
     <string name="home_required">Required</string>
     <string name="home_open_budget">Open budget</string>
     <string name="home_available_to_assign">Available to assign</string>
-    <string name="home_open_current_budget">Open current budget</string>
+    <string name="home_budget_month">Budget for %1$s</string>
+    <string name="home_viewing_budget_month">Viewing budget for %1$s</string>
+    <string name="home_current_pay_period">Current pay period</string>
     <string name="home_goal_progress">%1$d%% funded toward goal</string>
     <string name="home_spending_progress">%1$s · %2$d%% spent</string>
     <string name="home_view_calendar">View calendar</string>

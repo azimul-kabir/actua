@@ -13,6 +13,7 @@ import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.model.ReportDashboardPage
 import com.azimulkabir.actua.model.Transaction
 import java.time.LocalDate
+import java.time.YearMonth
 
 /**
  * Read-only inputs for Home. Keeping this boundary deliberately shallow means each Home section
@@ -29,6 +30,8 @@ data class HomeDashboardProjection(
     val recentTransactions: List<Transaction>,
     /** The custom summary period behind [monthTransactions], or null for the budget's calendar month. */
     val summaryPeriod: HomeSummaryPeriod? = null,
+    val budgetMonth: YearMonth? = null,
+    val isOffCurrentMonth: Boolean = false,
 ) {
     companion object {
         fun empty(): HomeDashboardProjection = HomeDashboardProjection(
@@ -55,6 +58,8 @@ data class HomeDashboardProjection(
             monthStart: MonthStartRule = MonthStartRule.CALENDAR_MONTH,
             today: LocalDate = LocalDate.now(),
         ): HomeDashboardProjection {
+            val budgetMonth = YearMonth.parse(month)
+            val monthDigits = month.replace("-", "")
             val period = monthStart.takeUnless { it.isCalendarMonth }?.let { HomeSummaryPeriod.containing(today, it) }
             return HomeDashboardProjection(
                 budgetOverview = budgetOverview,
@@ -70,11 +75,13 @@ data class HomeDashboardProjection(
                 upcomingSchedules = schedules,
                 monthTransactions = transactions.filter {
                     val digits = it.date.filter(Char::isDigit)
-                    if (period == null) digits.startsWith(month.filter(Char::isDigit))
+                    if (period == null) digits.startsWith(monthDigits)
                     else digits.length == 8 && digits.toInt() in period
                 },
                 recentTransactions = transactions.take(10),
                 summaryPeriod = period,
+                budgetMonth = budgetMonth,
+                isOffCurrentMonth = budgetMonth != YearMonth.from(today),
             )
         }
     }
