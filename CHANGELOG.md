@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Fixed
+
+- Fixed a crash while scrolling the Budget tab when two groups or categories share a name ([#1858](https://github.com/azimul-kabir/actua/pull/1858))
+
 ## [2.9.0] - 2026-11-26
 
 ### Added

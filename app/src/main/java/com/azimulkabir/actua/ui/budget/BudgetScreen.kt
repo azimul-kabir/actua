@@ -614,17 +614,21 @@ fun BudgetScreen(
                             )
                         }
                     }
+                    val favoriteKeys = uniqueLazyKeys(flatFavorites.map { (group, category) -> "favorite-${group.name}-${category.id ?: category.name}" })
                     itemsIndexed(
                         flatFavorites,
-                        key = { _, row -> "favorite-${row.first.name}-${row.second.name}" },
+                        key = { index, _ -> favoriteKeys[index] },
                         contentType = { _, row -> categoryRowType(row.second) },
                     ) { index, (group, category) ->
                         categoryRow(group, category, index, flatFavorites.size, true)
                     }
-                } else visibleGroups.forEach { (group, visibleCategories, headerGroup) ->
+                } else {
+                    // Group and category names are not unique (a sync or import can repeat them), and a repeated lazy key crashes.
+                    val headerKeys = uniqueLazyKeys(visibleGroups.map { "header-${it.first.name}" })
+                    visibleGroups.forEachIndexed { groupIndex, (group, visibleCategories, headerGroup) ->
                     val collapsed = group.name in collapsedGroups
                     stickyHeader(
-                        key = "header-${group.name}",
+                        key = headerKeys[groupIndex],
                         // Lets Compose reuse composition slots across the group-header type
                         // boundaries a scroll crosses, instead of diffing incompatible shapes.
                         contentType = when {
@@ -674,12 +678,14 @@ fun BudgetScreen(
                             )
                         }
                     }
+                    val categoryKeys = uniqueLazyKeys(visibleCategories.map { "${headerKeys[groupIndex]}-${it.id ?: it.name}" })
                     itemsIndexed(
                         visibleCategories,
-                        key = { _, category -> "${group.name}-${category.name}" },
+                        key = { index, _ -> categoryKeys[index] },
                         contentType = { _, category -> categoryRowType(category) },
                     ) { index, category ->
                         categoryRow(group, category, index, visibleCategories.size, !collapsed)
+                    }
                     }
                 }
                 item { Spacer(Modifier.height(20.dp)) }
@@ -4059,4 +4065,14 @@ private fun PreviewChangeRow(
 private fun PreviewNote(text: String, color: androidx.compose.ui.graphics.Color) {
     Text(text, style = MaterialTheme.typography.bodySmall, color = color,
         modifier = Modifier.padding(horizontal = Spacing.screenHorizontal + Spacing.xs))
+}
+
+/** [keys] with a repeat suffixed by its occurrence, so every key is unique (a repeated lazy list key crashes). */
+internal fun uniqueLazyKeys(keys: List<String>): List<String> {
+    val seen = HashMap<String, Int>()
+    return keys.map { key ->
+        val count = (seen[key] ?: 0) + 1
+        seen[key] = count
+        if (count == 1) key else "$key#$count"
+    }
 }
