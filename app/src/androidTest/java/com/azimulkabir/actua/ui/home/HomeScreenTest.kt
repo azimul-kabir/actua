@@ -1,16 +1,22 @@
 package com.azimulkabir.actua.ui.home
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import org.junit.Assert.assertEquals
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.performScrollTo
@@ -77,11 +83,16 @@ class HomeScreenTest {
             ),
         )
         compose.setContent {
-            MaterialTheme {
-                HomeScreen(
-                    projection = projection,
-                    sections = listOf(HomeSection.READY_TO_BUDGET, HomeSection.THIS_MONTH),
-                )
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 1.5f)) {
+                MaterialTheme {
+                    Box(Modifier.width(320.dp)) {
+                        HomeScreen(
+                            projection = projection,
+                            sections = listOf(HomeSection.READY_TO_BUDGET, HomeSection.THIS_MONTH),
+                        )
+                    }
+                }
             }
         }
 
