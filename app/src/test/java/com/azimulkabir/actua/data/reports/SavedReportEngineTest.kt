@@ -373,6 +373,14 @@ class IntervalPointsTest {
             "Weekly", LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 14), today)
         assertEquals(listOf("2026-03-01" to -10L, "2026-03-08" to -20L), pts.map { it.period to it.primaryCents })
     }
+
+    @Test fun `monthly buckets follow pay periods with a custom month start day`() {
+        val pts = SavedReportEngine.intervalPoints(
+            listOf(tx(20260125, -1), tx(20260224, -2), tx(20260225, -4), tx(20260324, -8)),
+            "Monthly", LocalDate.of(2026, 1, 25), LocalDate.of(2026, 3, 24), today, monthStart = MonthStartRule(25),
+        )
+        assertEquals(listOf("2026-01" to -3L, "2026-02" to -12L), pts.map { it.period to it.primaryCents })
+    }
 }
 
 class IncomeExpenseTest {
@@ -489,6 +497,22 @@ class SavedReportSummaryTest {
         assertEquals(2, SavedReportEngine.intervalCount("Weekly", LocalDate.of(2026, 9, 20), LocalDate.of(2026, 10, 3)))
         assertEquals(30, SavedReportEngine.intervalCount("Daily", LocalDate.of(2026, 8, 25), LocalDate.of(2026, 9, 23)))
         assertEquals(1, SavedReportEngine.intervalCount("Monthly", LocalDate.of(2026, 9, 1), LocalDate.of(2026, 8, 1)))
+    }
+
+    @Test fun `monthly interval count counts pay periods with a custom month start day`() {
+        // 2026-10-25 is a Sunday, so October's period starts on Friday 2026-10-23: two periods, less than two calendar months apart.
+        val rule = MonthStartRule(25, com.azimulkabir.actua.data.home.StartDayAdjustment.PREVIOUS_WORKING_DAY)
+        assertEquals(2, SavedReportEngine.intervalCount("Monthly", LocalDate.of(2026, 9, 25), LocalDate.of(2026, 11, 24), monthStart = rule))
+        assertEquals(3, SavedReportEngine.intervalCount("Monthly", LocalDate.of(2026, 6, 25), LocalDate.of(2026, 9, 24), monthStart = MonthStartRule(25)))
+    }
+
+    @Test fun `a monthly report with a custom month start day charts one bar per pay period`() {
+        val rows = listOf(tx("1", 20260626, -3000), tx("2", 20260924, -3000), tx("3", 20260925, -500))
+        val shared = SavedReportEngine.Shared(rows, accounts, groups, monthStart = MonthStartRule(25))
+        val widget = SavedReportEngine.compute(report("Last 3 months"), rows, accounts, groups, today, shared = shared)
+        assertEquals(listOf("2026-06" to -3000L, "2026-07" to 0L, "2026-08" to -3000L), widget.points.map { it.period to it.primaryCents })
+        assertEquals(3, widget.summary!!.intervalCount)
+        assertEquals(-2000L, widget.summary!!.averageCents)
     }
 
     @Test fun `include_current adds the current month to the average's interval count`() {
