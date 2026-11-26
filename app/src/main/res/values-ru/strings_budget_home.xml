@@ -351,7 +351,9 @@
     <string name="home_required">Обязательно</string>
     <string name="home_open_budget">Открыть бюджет</string>
     <string name="home_available_to_assign">Доступно для распределения</string>
-    <string name="home_open_current_budget">Открыть текущий бюджет</string>
+    <string name="home_budget_month">Бюджет за %1$s</string>
+    <string name="home_viewing_budget_month">Просмотр бюджета за %1$s</string>
+    <string name="home_current_pay_period">Текущий расчётный период</string>
     <string name="home_goal_progress">Накоплено %1$d%% цели</string>
     <string name="home_spending_progress">%1$s · потрачено %2$d%%</string>
     <string name="home_view_calendar">Показать календарь</string>

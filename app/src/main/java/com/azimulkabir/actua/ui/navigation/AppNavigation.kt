@@ -98,6 +98,9 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -514,6 +517,15 @@ fun AppNavigation(
     val syncDataGeneration by SyncSignals.dataGeneration.collectAsState()
     var syncStatus by remember { mutableStateOf(syncStatusStore.read()) }
     val budgetSelectionState = rememberBudgetSelectionState()
+    var homeToday by remember { mutableStateOf(java.time.LocalDate.now()) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) homeToday = java.time.LocalDate.now()
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
     var budgetMonth by budgetSelectionState.budgetMonth
     // The selected month's data loads off the main thread. The previous month stays on screen
     // until the new one arrives, and the screen reads its month from the data it shows so an edit
@@ -2769,12 +2781,15 @@ fun AppNavigation(
                 MainDestination.Home -> HomeScreen(
                     modifier = contentModifier,
                     projection = remember(
-                        dataVersion,
+                        budgetData,
+                        accounts,
+                        schedules,
+                        transactions,
                         favoriteCategoryIds,
                         favoriteAccountIds,
                         favoriteReportIds,
                         reportSnapshot,
-                        shownBudgetMonth,
+                        homeToday,
                         homeMonthStart,
                     ) {
                         HomeDashboardProjection.from(
@@ -2789,6 +2804,7 @@ fun AppNavigation(
                             favoriteReportIds = favoriteReportIds,
                             month = shownBudgetMonth,
                             monthStart = homeMonthStart,
+                            today = homeToday,
                         )
                     },
                     budgetDisplay = budgetDisplay,

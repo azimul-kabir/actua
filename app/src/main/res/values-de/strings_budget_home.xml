@@ -335,7 +335,9 @@
     <string name="home_required">Erforderlich</string>
     <string name="home_open_budget">Budget öffnen</string>
     <string name="home_available_to_assign">Zuweisbar</string>
-    <string name="home_open_current_budget">Aktuelles Budget öffnen</string>
+    <string name="home_budget_month">Budget für %1$s</string>
+    <string name="home_viewing_budget_month">Budgetansicht für %1$s</string>
+    <string name="home_current_pay_period">Aktueller Abrechnungszeitraum</string>
     <string name="home_goal_progress">%1$d %% des Ziels finanziert</string>
     <string name="home_spending_progress">%1$s · %2$d %% ausgegeben</string>
     <string name="home_view_calendar">Kalender anzeigen</string>

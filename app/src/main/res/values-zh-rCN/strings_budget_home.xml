@@ -327,7 +327,9 @@
     <string name="home_required">必需</string>
     <string name="home_open_budget">打开预算</string>
     <string name="home_available_to_assign">可分配</string>
-    <string name="home_open_current_budget">打开当前预算</string>
+    <string name="home_budget_month">%1$s的预算</string>
+    <string name="home_viewing_budget_month">正在查看%1$s的预算</string>
+    <string name="home_current_pay_period">当前发薪周期</string>
     <string name="home_goal_progress">已为目标筹集 %1$d%%</string>
     <string name="home_spending_progress">%1$s · 已花费 %2$d%%</string>
     <string name="home_view_calendar">查看日历</string>

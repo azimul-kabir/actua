@@ -343,7 +343,9 @@
     <string name="home_required">Obrigatório</string>
     <string name="home_open_budget">Abrir orçamento</string>
     <string name="home_available_to_assign">Disponível para atribuir</string>
-    <string name="home_open_current_budget">Abrir orçamento atual</string>
+    <string name="home_budget_month">Orçamento de %1$s</string>
+    <string name="home_viewing_budget_month">Visualizando o orçamento de %1$s</string>
+    <string name="home_current_pay_period">Período de pagamento atual</string>
     <string name="home_goal_progress">%1$d%% financiado para a meta</string>
     <string name="home_spending_progress">%1$s · %2$d%% gasto</string>
     <string name="home_view_calendar">Ver calendário</string>

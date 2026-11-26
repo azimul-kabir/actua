@@ -90,11 +90,13 @@ class HomeDashboardProjectionTest {
             favoriteCategoryIds = emptySet(),
             favoriteAccountIds = emptySet(),
             favoriteReportIds = emptySet(),
-            month = "2026-10",
+            month = "2026-08",
             monthStart = MonthStartRule(27),
             today = java.time.LocalDate.of(2026, 10, 5),
         )
 
+        assertEquals(java.time.YearMonth.of(2026, 8), projection.budgetMonth)
+        assertEquals(true, projection.isOffCurrentMonth)
         assertEquals(listOf("start", "middle", "end"), projection.monthTransactions.map { it.id })
         assertEquals(
             HomeSummaryPeriod(java.time.LocalDate.of(2026, 9, 27), java.time.LocalDate.of(2026, 10, 26)),
@@ -122,8 +124,11 @@ class HomeDashboardProjectionTest {
             favoriteAccountIds = emptySet(),
             favoriteReportIds = emptySet(),
             month = "2026-09",
+            today = java.time.LocalDate.of(2026, 9, 22),
         )
 
+        assertEquals(java.time.YearMonth.of(2026, 9), projection.budgetMonth)
+        assertEquals(false, projection.isOffCurrentMonth)
         assertEquals(listOf("sep"), projection.monthTransactions.map { it.id })
         assertEquals(null, projection.summaryPeriod)
     }
