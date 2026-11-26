@@ -33,6 +33,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Column
@@ -73,6 +74,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.DisposableEffect
@@ -1469,7 +1471,8 @@ fun AppNavigation(
     }
     val tabBarBackdrop = rememberTabBarBackdrop()
     // A setting (on by default): with the blur off nothing records the content for it, so it costs nothing per frame.
-    val blurTabBar = tabBarScroll.blur && BackdropBlurSupported
+    val regularTabBar = tabBarScroll.useRegularBar
+    val blurTabBar = !regularTabBar && tabBarScroll.blur && BackdropBlurSupported
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         snackbarHost = { ActuaSnackbarHost(snackbarHostState) },
@@ -1528,13 +1531,15 @@ fun AppNavigation(
                 visible = tabBarScroll.visible && detail != DetailDestination.EditTransaction,
                 enter = slideInVertically { it } + expandVertically(),
                 exit = slideOutVertically { it } + shrinkVertically(),
-            ) { FloatingNavigationBar(
+            ) { BottomTabBar(
+                regular = regularTabBar,
                 showLabels = showBottomNavigationLabels,
                 backdrop = tabBarBackdrop.takeIf { blurTabBar },
             ) {
                 tabBarLayout.visibleTabs.forEach { tabItem ->
                     if (tabItem == TabItem.ADD) {
-                        FloatingNavigationBarItem(
+                        BottomTabBarItem(
+                            regular = regularTabBar,
                             selected = false,
                             onClick = {
                                 if (inAccount) openAddTransactionForAccount() else openAddTransaction()
@@ -1549,7 +1554,7 @@ fun AppNavigation(
                                     Icon(
                                         Icons.Outlined.Add,
                                         contentDescription = stringResource(tabItem.labelRes()),
-                                        modifier = Modifier.padding(10.dp).size(28.dp),
+                                        modifier = Modifier.padding(if (regularTabBar) 6.dp else 10.dp).size(28.dp),
                                     )
                                 }
                             },
@@ -1560,7 +1565,8 @@ fun AppNavigation(
                         return@forEach
                     }
                     val item = tabItem.toMainDestination() ?: return@forEach
-                    FloatingNavigationBarItem(
+                    BottomTabBarItem(
+                        regular = regularTabBar,
                         selected = selectedTab == item,
                         onClick = {
                             if (item != MainDestination.Manage && !repository.isUsingActualBudget) {
@@ -1568,7 +1574,7 @@ fun AppNavigation(
                                 selectedTab = MainDestination.Manage
                                 destination = MainDestination.Manage
                                 detail = DetailDestination.Connection
-                                return@FloatingNavigationBarItem
+                                return@BottomTabBarItem
                             }
                             if (item == destination) {
                                 tabSwitchJob?.cancel()
@@ -1655,11 +1661,16 @@ fun AppNavigation(
             } }
         },
     ) { innerPadding ->
+        CompositionLocalProvider(LocalFloatingTabBar provides !regularTabBar) {
         Box(Modifier.fillMaxSize().then(if (blurTabBar) Modifier.recordsBackdrop(tabBarBackdrop, MaterialTheme.colorScheme.background) else Modifier)) {
         // Root list screens run behind the transparent area around the floating pill and clear it
         // with their own bottom padding; every other screen still ends above the bar.
-        val drawsBehindTabBar = detail == DetailDestination.Main || detail in DetailsBehindTabBar
-        val contentModifier = (if (drawsBehindTabBar) Modifier.padding(top = innerPadding.calculateTopPadding()) else Modifier.padding(innerPadding))
+        val drawsBehindTabBar = !regularTabBar && (detail == DetailDestination.Main || detail in DetailsBehindTabBar)
+        val contentModifier = when {
+            drawsBehindTabBar -> Modifier.padding(top = innerPadding.calculateTopPadding())
+            regularTabBar -> Modifier.padding(innerPadding).consumeWindowInsets(innerPadding)
+            else -> Modifier.padding(innerPadding)
+        }
             .nestedScroll(fabScrollConnection)
         val loadReportWidgets: suspend (ReportViewFilter) -> List<ReportWidget> = remember(repository, dataVersion, homeMonthStart) {
             { view -> repository.withBackgroundOperation { repository.savedReportWidgets(view, dataVersion) } }
@@ -3408,6 +3419,7 @@ fun AppNavigation(
                     onSupportPageOpened = { openSupportPage = false },
                 ) }
             }
+        }
         }
         }
         }

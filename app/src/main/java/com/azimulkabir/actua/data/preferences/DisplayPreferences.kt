@@ -334,6 +334,10 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(CONVENTIONAL_AMOUNT_ENTRY, false)
         set(value) { preferences.edit().putBoolean(CONVENTIONAL_AMOUNT_ENTRY, value).apply() }
 
+    var useRegularBottomBar: Boolean
+        get() = preferences.getBoolean(USE_REGULAR_BOTTOM_BAR, false)
+        set(value) { preferences.edit().putBoolean(USE_REGULAR_BOTTOM_BAR, value).apply() }
+
     /** Whether the floating tab bar slides away while scrolling down; on by default. */
     var hideTabBarOnScroll: Boolean
         get() = preferences.getBoolean(HIDE_TAB_BAR_ON_SCROLL, true)
@@ -433,6 +437,7 @@ class DisplayPreferences(context: Context) {
         const val KEEP_LAST_TRANSACTION_DATE = "keep_last_transaction_date"
         const val SHOW_BOTTOM_NAVIGATION_LABELS = "show_bottom_navigation_labels"
         const val HIDE_TAB_BAR_ON_SCROLL = "hide_tab_bar_on_scroll"
+        const val USE_REGULAR_BOTTOM_BAR = "use_regular_bottom_bar"
         const val BLUR_TAB_BAR = "blur_tab_bar"
         const val SHOW_CURRENT_BALANCE_SUMMARY = "show_current_balance_summary"
         const val SHOW_RUNNING_BALANCE = "show_running_balance"

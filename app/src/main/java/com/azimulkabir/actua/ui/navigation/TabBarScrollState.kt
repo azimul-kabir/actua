@@ -15,8 +15,18 @@ class TabBarScrollState(private val preferences: DisplayPreferences) {
     var hideOnScroll by mutableStateOf(preferences.hideTabBarOnScroll)
         private set
 
+    var useRegularBar by mutableStateOf(preferences.useRegularBottomBar)
+        private set
+
+    fun updateUseRegularBar(enabled: Boolean) {
+        preferences.useRegularBottomBar = enabled
+        useRegularBar = enabled
+        show()
+    }
+
     /** Scrolling down (negative [deltaY]) hides the bar when enabled; scrolling up always shows it. */
     fun onScroll(deltaY: Float) {
+        if (useRegularBar) return
         if (deltaY < -2f && hideOnScroll) visible = false
         if (deltaY > 2f) visible = true
     }

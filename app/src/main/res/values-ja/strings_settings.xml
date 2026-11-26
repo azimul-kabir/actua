@@ -175,6 +175,9 @@
     <string name="settings_start_page">開始ページ</string>
     <string name="settings_hide_tab_bar_on_scroll">スクロール中にタブバーを隠す</string>
     <string name="settings_hide_tab_bar_on_scroll_description">下にスクロールするとタブバーが隠れ、上にスクロールすると再び表示されます</string>
+    <string name="settings_bottom_bar_style">下部ナビゲーションのスタイル</string>
+    <string name="settings_bottom_bar_floating">フローティング</string>
+    <string name="settings_bottom_bar_regular">標準</string>
     <string name="settings_blur_tab_bar">タブバーの背景をぼかす</string>
     <string name="settings_blur_tab_bar_description">タブバーと「取引」ボタンの背景にすりガラスの効果を付けます。機種によってはスクロールが滑らかでなくなることがあります</string>
     <string name="settings_bottom_navigation_labels">下部ナビゲーションのラベル</string>

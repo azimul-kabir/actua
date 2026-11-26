@@ -175,6 +175,9 @@
     <string name="settings_start_page">Начальная страница</string>
     <string name="settings_hide_tab_bar_on_scroll">Скрывать панель вкладок при прокрутке</string>
     <string name="settings_hide_tab_bar_on_scroll_description">Панель вкладок уходит вниз при прокрутке вниз и возвращается при прокрутке вверх</string>
+    <string name="settings_bottom_bar_style">Стиль нижней панели</string>
+    <string name="settings_bottom_bar_floating">Плавающая</string>
+    <string name="settings_bottom_bar_regular">Стандартная</string>
     <string name="settings_blur_tab_bar">Размытие за панелью вкладок</string>
     <string name="settings_blur_tab_bar_description">Эффект матового стекла за панелью вкладок и кнопкой «Транзакция». На некоторых телефонах из-за него прокрутка может быть менее плавной</string>
     <string name="settings_bottom_navigation_labels">Подписи нижней навигации</string>

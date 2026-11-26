@@ -25,9 +25,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +48,10 @@ internal val FloatingTabBarIconOnlyHeight = 56.dp
 private val FloatingTabBarSideMargin = 12.dp
 private const val MaxLabelFontScale = 1.3f
 private val FloatingTabBarBottomMargin = 8.dp
+private val RegularTabBarLabeledHeight = 64.dp
+private val RegularTabBarIconOnlyHeight = 56.dp
+
+internal val LocalFloatingTabBar = staticCompositionLocalOf { true }
 
 /**
  * Bottom padding a scrolling screen needs so its last row clears the floating pill. Root screens
@@ -51,9 +59,11 @@ private val FloatingTabBarBottomMargin = 8.dp
  * system navigation inset all count.
  */
 @Composable
-fun floatingBarClearance(): Dp =
-    FloatingTabBarLabeledHeight + FloatingTabBarBottomMargin + 8.dp +
+fun floatingBarClearance(): Dp {
+    if (!LocalFloatingTabBar.current) return 0.dp
+    return FloatingTabBarLabeledHeight + FloatingTabBarBottomMargin + 8.dp +
         WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+}
 
 /**
  * A rounded pill that floats above the system navigation area, in place of a full-width bar.
@@ -152,3 +162,40 @@ internal fun RowScope.FloatingNavigationBarItem(
 
 /** The fill's opacity over the blurred content, which the blur already softens. */
 private const val FloatingTabBarBlurredFillAlpha = 0.6f
+
+@Composable
+internal fun BottomTabBar(
+    regular: Boolean,
+    showLabels: Boolean,
+    backdrop: TabBarBackdrop?,
+    modifier: Modifier = Modifier,
+    content: @Composable RowScope.() -> Unit,
+) {
+    if (regular) {
+        val density = LocalDensity.current
+        CompositionLocalProvider(LocalDensity provides Density(density.density, minOf(density.fontScale, MaxLabelFontScale))) {
+            NavigationBar(
+                modifier = modifier
+                    .background(NavigationBarDefaults.containerColor)
+                    .windowInsetsPadding(NavigationBarDefaults.windowInsets)
+                    .height(if (showLabels) RegularTabBarLabeledHeight else RegularTabBarIconOnlyHeight),
+                windowInsets = WindowInsets(0),
+                content = content,
+            )
+        }
+    } else {
+        FloatingNavigationBar(showLabels = showLabels, modifier = modifier, backdrop = backdrop, content = content)
+    }
+}
+
+@Composable
+internal fun RowScope.BottomTabBarItem(
+    regular: Boolean,
+    selected: Boolean,
+    onClick: () -> Unit,
+    icon: @Composable () -> Unit,
+    label: (@Composable () -> Unit)?,
+) {
+    if (regular) NavigationBarItem(selected = selected, onClick = onClick, icon = icon, label = label)
+    else FloatingNavigationBarItem(selected = selected, onClick = onClick, icon = icon, label = label)
+}
