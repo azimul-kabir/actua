@@ -175,6 +175,9 @@
     <string name="settings_start_page">起始页</string>
     <string name="settings_hide_tab_bar_on_scroll">滚动时隐藏标签栏</string>
     <string name="settings_hide_tab_bar_on_scroll_description">向下滚动时标签栏滑出，向上滚动时返回</string>
+    <string name="settings_bottom_bar_style">底部导航栏样式</string>
+    <string name="settings_bottom_bar_floating">悬浮</string>
+    <string name="settings_bottom_bar_regular">标准</string>
     <string name="settings_blur_tab_bar">标签栏背景模糊</string>
     <string name="settings_blur_tab_bar_description">在标签栏和“交易”按钮后方显示磨砂玻璃效果。在某些手机上可能会让滚动不够流畅</string>
     <string name="settings_bottom_navigation_labels">底部导航标签</string>

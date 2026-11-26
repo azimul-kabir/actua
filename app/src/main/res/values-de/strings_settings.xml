@@ -175,6 +175,9 @@
     <string name="settings_start_page">Startseite</string>
     <string name="settings_hide_tab_bar_on_scroll">Tab-Leiste beim Scrollen ausblenden</string>
     <string name="settings_hide_tab_bar_on_scroll_description">Die Tab-Leiste gleitet weg, wenn du nach unten scrollst, und kommt zurück, wenn du nach oben scrollst</string>
+    <string name="settings_bottom_bar_style">Stil der unteren Navigation</string>
+    <string name="settings_bottom_bar_floating">Schwebend</string>
+    <string name="settings_bottom_bar_regular">Standard</string>
     <string name="settings_blur_tab_bar">Unschärfe hinter der Tab-Leiste</string>
     <string name="settings_blur_tab_bar_description">Ein Milchglas-Effekt hinter der Tab-Leiste und der Schaltfläche „Transaktion“. Auf manchen Smartphones kann das Scrollen dadurch weniger flüssig sein</string>
     <string name="settings_bottom_navigation_labels">Beschriftungen der unteren Navigation</string>

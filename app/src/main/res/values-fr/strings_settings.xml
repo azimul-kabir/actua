@@ -175,6 +175,9 @@
     <string name="settings_start_page">Page de démarrage</string>
     <string name="settings_hide_tab_bar_on_scroll">Masquer la barre d’onglets pendant le défilement</string>
     <string name="settings_hide_tab_bar_on_scroll_description">La barre d’onglets disparaît quand vous faites défiler vers le bas et revient quand vous remontez</string>
+    <string name="settings_bottom_bar_style">Style de la barre inférieure</string>
+    <string name="settings_bottom_bar_floating">Flottante</string>
+    <string name="settings_bottom_bar_regular">Standard</string>
     <string name="settings_blur_tab_bar">Flou derrière la barre d’onglets</string>
     <string name="settings_blur_tab_bar_description">Un effet de verre dépoli derrière la barre d’onglets et le bouton Opération. Il peut rendre le défilement moins fluide sur certains téléphones</string>
     <string name="settings_bottom_navigation_labels">Libellés de la barre de navigation</string>

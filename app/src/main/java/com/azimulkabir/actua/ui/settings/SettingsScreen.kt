@@ -931,20 +931,31 @@ fun SettingsScreen(
                             ),
                         ) { tabBarDisplay?.updateShowLabels(it == NAV_LABELS_ICONS_AND_NAMES) }
                         SettingsDivider()
-                        SettingsToggle(
-                            stringResource(R.string.settings_hide_tab_bar_on_scroll),
-                            stringResource(R.string.settings_hide_tab_bar_on_scroll_description),
-                            tabBarDisplay?.hideOnScroll != false,
-                            { tabBarDisplay?.updateHideOnScroll(it) },
-                        )
-                        if (com.azimulkabir.actua.ui.navigation.BackdropBlurSupported) {
+                        SettingsChoice(
+                            stringResource(R.string.settings_bottom_bar_style),
+                            if (tabBarDisplay?.useRegularBar == true) NAV_STYLE_REGULAR else NAV_STYLE_FLOATING,
+                            listOf(
+                                SettingsChoiceOption(NAV_STYLE_FLOATING, stringResource(R.string.settings_bottom_bar_floating)),
+                                SettingsChoiceOption(NAV_STYLE_REGULAR, stringResource(R.string.settings_bottom_bar_regular)),
+                            ),
+                        ) { tabBarDisplay?.updateUseRegularBar(it == NAV_STYLE_REGULAR) }
+                        if (tabBarDisplay?.useRegularBar != true) {
                             SettingsDivider()
                             SettingsToggle(
-                                stringResource(R.string.settings_blur_tab_bar),
-                                stringResource(R.string.settings_blur_tab_bar_description),
-                                tabBarDisplay?.blur == true,
-                                { tabBarDisplay?.updateBlur(it) },
+                                stringResource(R.string.settings_hide_tab_bar_on_scroll),
+                                stringResource(R.string.settings_hide_tab_bar_on_scroll_description),
+                                tabBarDisplay?.hideOnScroll != false,
+                                { tabBarDisplay?.updateHideOnScroll(it) },
                             )
+                            if (com.azimulkabir.actua.ui.navigation.BackdropBlurSupported) {
+                                SettingsDivider()
+                                SettingsToggle(
+                                    stringResource(R.string.settings_blur_tab_bar),
+                                    stringResource(R.string.settings_blur_tab_bar_description),
+                                    tabBarDisplay?.blur == true,
+                                    { tabBarDisplay?.updateBlur(it) },
+                                )
+                            }
                         }
                         SettingsDivider()
                         SettingsRow(
@@ -1361,6 +1372,8 @@ private fun SettingsGroup(label: String? = null, content: @Composable ColumnScop
 private const val DEFAULT_ACCOUNT_NONE = "\u0000"
 
 /** Locale-neutral values for the bottom-navigation-labels choice; only their labels are translated. */
+private const val NAV_STYLE_FLOATING = "floating"
+private const val NAV_STYLE_REGULAR = "regular"
 private const val NAV_LABELS_ICONS_AND_NAMES = "Icons and names"
 private const val NAV_LABELS_ICONS_ONLY = "Icons only"
 

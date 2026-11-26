@@ -175,6 +175,9 @@
     <string name="settings_start_page">Pagina iniziale</string>
     <string name="settings_hide_tab_bar_on_scroll">Nascondi la barra delle schede durante lo scorrimento</string>
     <string name="settings_hide_tab_bar_on_scroll_description">La barra delle schede scompare quando scorri in basso e ritorna quando scorri in alto</string>
+    <string name="settings_bottom_bar_style">Stile della barra inferiore</string>
+    <string name="settings_bottom_bar_floating">Flottante</string>
+    <string name="settings_bottom_bar_regular">Standard</string>
     <string name="settings_blur_tab_bar">Sfocatura dietro la barra delle schede</string>
     <string name="settings_blur_tab_bar_description">Un effetto vetro smerigliato dietro la barra delle schede e il pulsante Transazione. Su alcuni telefoni può rendere lo scorrimento meno fluido</string>
     <string name="settings_bottom_navigation_labels">Etichette della navigazione inferiore</string>
