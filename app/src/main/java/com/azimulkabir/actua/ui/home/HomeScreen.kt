@@ -113,6 +113,7 @@ import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.theme.categoryStatusColor
 import com.azimulkabir.actua.ui.theme.success
 import com.azimulkabir.actua.ui.theme.warning
+import java.time.format.DateTimeFormatter
 import kotlin.math.round
 import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 
@@ -145,6 +146,12 @@ fun HomeScreen(
     returnToRootRequest: Int = 0,
     hasFab: Boolean = true,
 ) {
+    val locale = LocalConfiguration.current.locales[0]
+    val monthLabel = remember(projection.budgetMonth, locale) {
+        projection.budgetMonth?.format(
+            DateTimeFormatter.ofPattern(android.text.format.DateFormat.getBestDateTimePattern(locale, "yMMMM"), locale),
+        )
+    }
     val listState = rememberLazyListState()
     RootRequestEffect(returnToRootRequest) { listState.animateScrollToItem(0) }
     LazyColumn(
@@ -154,9 +161,23 @@ fun HomeScreen(
         contentPadding = PaddingValues(bottom = floatingBarClearance() + if (hasFab) 96.dp else 0.dp),
     ) {
         item(key = "home-header") {
-            ActuaScreenHeader(title = stringResource(R.string.home_title)) {
-                IconButton(onClick = onCustomizeClick) {
-                    Icon(Icons.Outlined.Tune, contentDescription = stringResource(R.string.home_customize))
+            Column {
+                ActuaScreenHeader(title = stringResource(R.string.home_title)) {
+                    IconButton(onClick = onCustomizeClick) {
+                        Icon(Icons.Outlined.Tune, contentDescription = stringResource(R.string.home_customize))
+                    }
+                }
+                if (monthLabel != null) {
+                    Text(
+                        stringResource(
+                            if (projection.isOffCurrentMonth) R.string.home_viewing_budget_month else R.string.home_budget_month,
+                            monthLabel,
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (projection.isOffCurrentMonth) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = Spacing.screenHorizontal).testTag("homeBudgetMonth"),
+                    )
                 }
             }
         }
@@ -177,7 +198,9 @@ fun HomeScreen(
                     HomeSection.UPCOMING -> UpcomingSection(
                         projection.upcomingSchedules, hideDecimalPlaces, onSchedulesClick)
                     HomeSection.THIS_MONTH -> ThisMonthSection(
-                        projection.monthTransactions, hideDecimalPlaces, onTransactionsClick, projection.summaryPeriod)
+                        projection.monthTransactions, hideDecimalPlaces, onTransactionsClick, projection.summaryPeriod,
+                        monthLabel.takeIf { projection.isOffCurrentMonth },
+                    )
                     HomeSection.REPORTS -> ReportsSection(
                         projection.favoriteReports, onReportClick, onReportsClick)
                     HomeSection.RECENT_ACTIVITY -> RecentActivitySection(
@@ -213,7 +236,7 @@ private fun ReadyToBudgetHero(overview: BudgetOverview, hideDecimals: Boolean, o
                 action = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(if (overview.toBudgetCents == null) stringResource(R.string.home_no_budget_month)
-                        else stringResource(R.string.home_open_current_budget),
+                        else stringResource(R.string.home_open_budget),
                             style = MaterialTheme.typography.labelLarge)
                         Spacer(Modifier.width(Spacing.xs))
                         Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(18.dp))
@@ -384,13 +407,18 @@ private fun UpcomingRow(item: ScheduleListItem, hideDecimals: Boolean, onClick: 
 
 @Composable
 private fun ThisMonthSection(transactions: List<Transaction>, hideDecimals: Boolean, onClick: () -> Unit,
-    period: HomeSummaryPeriod? = null) {
+    period: HomeSummaryPeriod?, offCurrentMonthLabel: String?,
+) {
     val summary = homeMonthActivity(transactions)
     val income = summary.incomeCents
     val spending = summary.expenseCents
     val net = income - spending
     val scale = maxOf(income, spending, 1L).toFloat()
-    DashboardSectionHeader(stringResource(HomeSection.THIS_MONTH.titleRes))
+    DashboardSectionHeader(when {
+        period != null -> stringResource(R.string.home_current_pay_period)
+        offCurrentMonthLabel != null -> offCurrentMonthLabel
+        else -> stringResource(HomeSection.THIS_MONTH.titleRes)
+    })
     CollapsibleBody {
         Surface(modifier = Modifier.padding(horizontal = Spacing.screenHorizontal).fillMaxWidth()
             .clip(MaterialTheme.shapes.large).clickable(onClick = onClick), shape = MaterialTheme.shapes.large,

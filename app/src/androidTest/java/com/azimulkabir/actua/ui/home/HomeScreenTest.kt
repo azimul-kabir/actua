@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.assertIsNotDisplayed
@@ -29,6 +30,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.home.HomeSection
+import com.azimulkabir.actua.data.home.HomeSummaryPeriod
 import com.azimulkabir.actua.data.schedules.ActualScheduleSummary
 import com.azimulkabir.actua.data.schedules.ScheduleAmountOp
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
@@ -39,6 +41,10 @@ import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.model.ReportDashboardPage
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.ui.components.BalanceVisibility
+import com.azimulkabir.actua.ui.components.formatMoneyCents
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -54,6 +60,57 @@ class HomeScreenTest {
 
     @After fun resetBalanceVisibility() {
         BalanceVisibility.hidden = false
+    }
+
+    @Test fun budgetMonthAndOverviewUpdateTogetherWhileThePayPeriodKeepsItsOwnLabel() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val locale = context.resources.configuration.locales[0]
+        val formatter = DateTimeFormatter.ofPattern(
+            android.text.format.DateFormat.getBestDateTimePattern(locale, "yMMMM"), locale,
+        )
+        val november = YearMonth.of(2026, 11)
+        val october = november.minusMonths(1)
+        var projection by mutableStateOf(
+            HomeDashboardProjection.empty().copy(
+                budgetMonth = november,
+                budgetOverview = BudgetOverview(12_300, 0, 0, 0),
+            ),
+        )
+        compose.setContent {
+            MaterialTheme {
+                HomeScreen(
+                    projection = projection,
+                    sections = listOf(HomeSection.READY_TO_BUDGET, HomeSection.THIS_MONTH),
+                )
+            }
+        }
+
+        val month = compose.onNodeWithTag("homeBudgetMonth")
+        month.assertTextEquals(context.getString(R.string.home_budget_month, november.format(formatter)))
+        compose.onNodeWithText(formatMoneyCents(12_300, false)).assertIsDisplayed()
+
+        compose.runOnIdle {
+            projection = projection.copy(
+                budgetMonth = october,
+                isOffCurrentMonth = true,
+                budgetOverview = BudgetOverview(45_600, 0, 0, 0),
+            )
+        }
+        month.assertTextEquals(context.getString(R.string.home_viewing_budget_month, october.format(formatter)))
+        compose.onNodeWithText(formatMoneyCents(45_600, false)).assertIsDisplayed()
+        val list = compose.onNodeWithTag("homeList")
+        list.performScrollToNode(hasText(october.format(formatter)))
+        compose.onNodeWithText(october.format(formatter)).assertIsDisplayed()
+
+        compose.runOnIdle {
+            projection = projection.copy(
+                summaryPeriod = HomeSummaryPeriod(LocalDate.of(2026, 10, 27), LocalDate.of(2026, 11, 26)),
+            )
+        }
+        list.performScrollToNode(hasText(label(R.string.home_current_pay_period)))
+        compose.onNodeWithText(label(R.string.home_current_pay_period)).assertIsDisplayed()
+        list.performScrollToNode(hasTestTag("homeSummaryPeriod"))
+        compose.onNodeWithTag("homeSummaryPeriod").assertIsDisplayed()
     }
 
     @Test fun homeScreenShowsItsRootTitle() {

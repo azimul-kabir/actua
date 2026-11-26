@@ -343,7 +343,9 @@
     <string name="home_required">Obligatoire</string>
     <string name="home_open_budget">Ouvrir le budget</string>
     <string name="home_available_to_assign">Disponible à affecter</string>
-    <string name="home_open_current_budget">Ouvrir le budget en cours</string>
+    <string name="home_budget_month">Budget pour %1$s</string>
+    <string name="home_viewing_budget_month">Affichage du budget pour %1$s</string>
+    <string name="home_current_pay_period">Période de paie en cours</string>
     <string name="home_goal_progress">%1$d %% financé pour l’objectif</string>
     <string name="home_spending_progress">%1$s · %2$d %% dépensé</string>
     <string name="home_view_calendar">Afficher le calendrier</string>
