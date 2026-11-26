@@ -1818,7 +1818,14 @@ private fun BudgetOverviewRow(
             vertical = Spacing.xs,
         ),
     ) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = TableRowPadding, vertical = Spacing.xs)) {
+        Column(
+            Modifier.fillMaxWidth().padding(
+                start = TableRowPadding,
+                end = TableRowPadding,
+                top = Spacing.sm,
+                bottom = Spacing.xs,
+            ),
+        ) {
             val leadLabel = overviewLeadLabel(overview, R.string.budget_to_budget)
             val leadCents = overview.leadValue
             val leadAmount = leadCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—"
