@@ -48,6 +48,7 @@ import com.azimulkabir.actua.model.ReportDashboardPage
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.ui.components.BalanceVisibility
 import com.azimulkabir.actua.ui.components.formatMoneyCents
+import com.azimulkabir.actua.ui.components.formatDate
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -113,15 +114,14 @@ class HomeScreenTest {
         list.performScrollToNode(hasText(october.format(formatter)))
         compose.onNodeWithText(october.format(formatter)).assertIsDisplayed()
 
-        compose.runOnIdle {
-            projection = projection.copy(
-                summaryPeriod = HomeSummaryPeriod(LocalDate.of(2026, 10, 27), LocalDate.of(2026, 11, 26)),
-            )
-        }
+        val period = HomeSummaryPeriod(LocalDate.of(2026, 10, 27), LocalDate.of(2026, 11, 26))
+        compose.runOnIdle { projection = projection.copy(summaryPeriod = period) }
         list.performScrollToNode(hasText(label(R.string.home_current_pay_period)))
         compose.onNodeWithText(label(R.string.home_current_pay_period)).assertIsDisplayed()
-        list.performScrollToNode(hasTestTag("homeSummaryPeriod"))
-        compose.onNodeWithTag("homeSummaryPeriod").assertIsDisplayed()
+        compose.onNodeWithTag("homeSummaryPeriod", useUnmergedTree = true)
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assertTextEquals("${formatDate(period.start)} – ${formatDate(period.endInclusive)}")
     }
 
     @Test fun homeScreenShowsItsRootTitle() {
