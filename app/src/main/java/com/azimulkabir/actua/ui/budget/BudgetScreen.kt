@@ -1858,8 +1858,9 @@ private fun BudgetOverviewRow(
                 }
             }
             val layout = LocalTableLayout.current
+            val canUseColumns = LocalDensity.current.fontScale <= TableStackFontScale
             BoxWithConstraints {
-                val fits = layout != null || tableAmountsFit(
+                val fits = canUseColumns && (layout != null || tableAmountsFit(
                     maxWidth,
                     lead = TableAmount(leadAmount, OverviewPillPadding * 2),
                     amounts = listOfNotNull(
@@ -1867,7 +1868,7 @@ private fun BudgetOverviewRow(
                         if (showSpent) TableAmount(spent) else null,
                         TableAmount(balance, OverviewPillPadding * 2),
                     ),
-                )
+                ))
                 if (fits) {
                     Row {
                         OverviewCell(leadLabel, Modifier.weight(LeadColumnWeight).then(summaryAction), Alignment.Start, leadValue)
@@ -1920,7 +1921,11 @@ private fun OverviewCell(
     value: @Composable () -> Unit,
 ) {
     Column(modifier = modifier, horizontalAlignment = alignment, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        ColumnLabel(label, MaterialTheme.typography.labelMedium)
+        ColumnLabel(
+            label,
+            MaterialTheme.typography.labelMedium,
+            modifier = if (alignment == Alignment.End) Modifier.padding(start = TableAmountGap) else Modifier,
+        )
         Box(
             Modifier.heightIn(min = OverviewValueHeight),
             contentAlignment = if (alignment == Alignment.Start) Alignment.CenterStart else Alignment.CenterEnd,
@@ -2015,9 +2020,10 @@ private fun TableAmountText(
 
 /** A column's label over its amount: one line, shrinking to 65% to fit, as Actuali's `minimumScaleFactor(0.65)`. */
 @Composable
-private fun ColumnLabel(label: String, style: androidx.compose.ui.text.TextStyle) {
+private fun ColumnLabel(label: String, style: androidx.compose.ui.text.TextStyle, modifier: Modifier = Modifier) {
     Text(label, style = style, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, softWrap = false,
-        autoSize = TextAutoSize.StepBased(minFontSize = style.fontSize * 0.65f, maxFontSize = style.fontSize))
+        autoSize = TextAutoSize.StepBased(minFontSize = style.fontSize * 0.65f, maxFontSize = style.fontSize),
+        modifier = modifier)
 }
 
 /** Space kept before a table amount, as Actuali's `amountColumnSpacing`, so neighbours never touch. */
