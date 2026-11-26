@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Changed
+
+- Made the Budget table overview more compact ([#1871](https://github.com/azimul-kabir/actua/pull/1871))
+
 ### Fixed
 
 - Fixed a crash while scrolling the Budget tab when two groups or categories share a name ([#1858](https://github.com/azimul-kabir/actua/pull/1858))

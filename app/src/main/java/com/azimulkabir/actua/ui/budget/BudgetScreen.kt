@@ -1890,7 +1890,7 @@ private fun BudgetOverviewRow(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Box(Modifier.weight(1f)) { ColumnLabel(leadLabel, MaterialTheme.typography.labelMedium) }
-                                Box(Modifier.widthIn(max = maxWidth * 0.65f)) { leadValue() }
+                                Box(Modifier.widthIn(max = this@BoxWithConstraints.maxWidth * 0.65f)) { leadValue() }
                             }
                             Row { amountCells { Modifier.weight(1f) } }
                         }
