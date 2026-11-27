@@ -13,7 +13,7 @@ data class BudgetDisplayOptions(
     val showGroupTotals: Boolean = true,
     val showBalancePills: Boolean = true,
     val showGoalIcons: Boolean = true,
-    val flatTable: Boolean = false,
+    val flatTable: Boolean = true,
     val hideFullySpent: Boolean = false,
     val showHidden: Boolean = false,
 )

@@ -33,6 +33,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -535,6 +537,17 @@ fun BudgetScreen(
             val flatFavorites = remember(visibleGroups, favoritesOnly) {
                 if (favoritesOnly) visibleGroups.flatMap { (group, categories, _) -> categories.map { group to it } } else null
             }
+            val pinColumnLabels = tableStyle == TableStyle.Flat && tableLayout != null &&
+                visibleGroups.any { (group, _, _) -> !group.isIncome }
+            var columnLabelHeight by remember { mutableStateOf(0) }
+            val columnLabelsPinned by remember(listState) {
+                androidx.compose.runtime.derivedStateOf {
+                    // The overview and two status banners precede the column labels.
+                    listState.firstVisibleItemIndex > 3 ||
+                        (listState.firstVisibleItemIndex == 3 && listState.firstVisibleItemScrollOffset > 0)
+                }
+            }
+            Box(Modifier.fillMaxSize()) {
             CompositionLocalProvider(LocalTableLayout provides tableLayout) { LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
@@ -542,7 +555,7 @@ fun BudgetScreen(
             ) {
                 // The Ready to Budget hero and warnings scroll with the categories; the toolbar stays.
                 item(key = "budget-overview", contentType = "budget-overview") {
-                    AnimatedVisibility(
+                    this@Column.AnimatedVisibility(
                         visible = showOverview,
                         enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
                         exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
@@ -564,7 +577,7 @@ fun BudgetScreen(
                     }
                 }
                 item(key = "overspent-warning", contentType = "overspent-warning") {
-                    AnimatedVisibility(
+                    this@Column.AnimatedVisibility(
                         visible = showBudgetStatusBanners && overspentCategories.isNotEmpty(),
                         enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
                         exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
@@ -585,7 +598,7 @@ fun BudgetScreen(
                     }
                 }
                 item(key = "uncategorized-warning", contentType = "uncategorized-warning") {
-                    AnimatedVisibility(
+                    this@Column.AnimatedVisibility(
                         visible = showBudgetStatusBanners && uncategorizedTransactions.isNotEmpty(),
                         enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
                         exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
@@ -596,6 +609,11 @@ fun BudgetScreen(
                             hideDecimalPlaces = hideDecimalPlaces,
                             onClick = onShowUncategorizedTransactions,
                         )
+                    }
+                }
+                if (pinColumnLabels) {
+                    item(key = "budget-table-columns", contentType = "budget-table-columns") {
+                        BudgetTableColumnLabels(tableLayout, showSpent)
                     }
                 }
                 if (flatFavorites != null) {
@@ -624,16 +642,12 @@ fun BudgetScreen(
                     val headerKeys = uniqueLazyKeys(visibleGroups.map { "header-${it.first.name}" })
                     visibleGroups.forEachIndexed { groupIndex, (group, visibleCategories, headerGroup) ->
                     val collapsed = group.name in collapsedGroups
-                    stickyHeader(
-                        key = headerKeys[groupIndex],
-                        // Lets Compose reuse composition slots across the group-header type
-                        // boundaries a scroll crosses, instead of diffing incompatible shapes.
-                        contentType = when {
-                            group.isIncome -> "income-header"
-                            budgetView == "Plan" -> "plan-header"
-                            else -> "table-header"
-                        },
-                    ) {
+                    val headerType = when {
+                        group.isIncome -> "income-header"
+                        budgetView == "Plan" -> "plan-header"
+                        else -> "table-header"
+                    }
+                    val groupHeader: @Composable () -> Unit = {
                         val onGroupClick = {
                                 saveCollapsedGroups(if (collapsed) {
                                     collapsedGroups - group.name
@@ -673,6 +687,25 @@ fun BudgetScreen(
                             )
                         }
                     }
+                    val headerKey = headerKeys[groupIndex]
+                    stickyHeader(key = headerKey, contentType = headerType) {
+                        if (pinColumnLabels) {
+                            Box(Modifier.offset {
+                                if (!columnLabelsPinned) return@offset IntOffset.Zero
+                                val headers = listState.layoutInfo.visibleItemsInfo.filter {
+                                    it.contentType == "income-header" || it.contentType == "table-header"
+                                }
+                                val index = headers.indexOfFirst { it.key == headerKey }
+                                val current = headers.getOrNull(index) ?: return@offset IntOffset.Zero
+                                if (current.offset > columnLabelHeight) return@offset IntOffset.Zero
+                                val next = headers.getOrNull(index + 1)
+                                val top = minOf(columnLabelHeight, next?.let { it.offset - current.size } ?: columnLabelHeight)
+                                IntOffset(0, (top - current.offset).coerceAtLeast(0))
+                            }) { groupHeader() }
+                        } else {
+                            groupHeader()
+                        }
+                    }
                     val categoryKeys = uniqueLazyKeys(visibleCategories.map { "${headerKeys[groupIndex]}-${it.id ?: it.name}" })
                     itemsIndexed(
                         visibleCategories,
@@ -685,6 +718,14 @@ fun BudgetScreen(
                 }
                 item { Spacer(Modifier.height(20.dp)) }
             } }
+                if (pinColumnLabels && columnLabelsPinned) {
+                    BudgetTableColumnLabels(
+                        tableLayout,
+                        showSpent,
+                        Modifier.onSizeChanged { columnLabelHeight = it.height },
+                    )
+                }
+            }
         }
     } }
 
@@ -1505,15 +1546,16 @@ private fun BudgetWarningCard(
     contentColor: androidx.compose.ui.graphics.Color,
     onClick: () -> Unit,
 ) {
+    val flat = LocalTableStyle.current == TableStyle.Flat
     Surface(
         onClick = onClick,
         color = containerColor,
         contentColor = contentColor,
         // Match the flat table's full-width, square edges.
-        shape = if (LocalTableStyle.current == TableStyle.Flat) RectangleShape else MaterialTheme.shapes.large,
+        shape = if (flat) RectangleShape else MaterialTheme.shapes.large,
         modifier = Modifier.fillMaxWidth().padding(
-            horizontal = if (LocalTableStyle.current == TableStyle.Flat) 0.dp else Spacing.screenHorizontal,
-            vertical = Spacing.xs,
+            horizontal = if (flat) 0.dp else Spacing.screenHorizontal,
+            vertical = if (flat) 0.dp else Spacing.xs,
         ),
     ) {
         Row(
@@ -1810,12 +1852,13 @@ private fun BudgetOverviewRow(
     hideDecimalPlaces: Boolean,
     onToBudgetClick: () -> Unit,
 ) {
+    val flat = LocalTableStyle.current == TableStyle.Flat
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = if (LocalTableStyle.current == TableStyle.Flat) RectangleShape else MaterialTheme.shapes.large,
+        shape = if (flat) RectangleShape else MaterialTheme.shapes.large,
         modifier = Modifier.fillMaxWidth().padding(
-            horizontal = if (LocalTableStyle.current == TableStyle.Flat) 0.dp else Spacing.screenHorizontal,
-            vertical = Spacing.xs,
+            horizontal = if (flat) 0.dp else Spacing.screenHorizontal,
+            vertical = if (flat) 0.dp else Spacing.xs,
         ),
     ) {
         Column(
@@ -2022,6 +2065,31 @@ private fun ColumnLabel(label: String, style: androidx.compose.ui.text.TextStyle
     Text(label, style = style, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, softWrap = false,
         autoSize = TextAutoSize.StepBased(minFontSize = style.fontSize * 0.65f, maxFontSize = style.fontSize),
         modifier = modifier)
+}
+
+@Composable
+private fun BudgetTableColumnLabels(layout: TableLayout, showSpent: Boolean, modifier: Modifier = Modifier) {
+    val style = MaterialTheme.typography.labelSmall
+    Row(
+        modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = TableRowPadding, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.weight(1f)) {
+            ColumnLabel(stringResource(R.string.budget_category), style)
+        }
+        Box(Modifier.width(layout.budgeted).padding(start = TableAmountGap), contentAlignment = Alignment.CenterEnd) {
+            ColumnLabel(stringResource(R.string.budget_budgeted), style)
+        }
+        if (showSpent) {
+            Box(Modifier.width(layout.spent).padding(start = TableAmountGap), contentAlignment = Alignment.CenterEnd) {
+                ColumnLabel(stringResource(R.string.budget_spent), style)
+            }
+        }
+        Box(Modifier.width(layout.balance).padding(start = TableAmountGap), contentAlignment = Alignment.CenterEnd) {
+            ColumnLabel(stringResource(R.string.budget_balance), style)
+        }
+    }
 }
 
 /** Space kept before a table amount, as Actuali's `amountColumnSpacing`, so neighbours never touch. */
@@ -2337,9 +2405,9 @@ private fun BudgetGroupHeader(
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 nameRow(Modifier.weight(1f).padding(end = 4.dp))
-                AmountColumn(stringResource(R.string.budget_budgeted), budgeted, Modifier.width(layout.budgeted), hideDecimalPlaces)
-                if (showSpent) AmountColumn(stringResource(R.string.budget_spent), -spent, Modifier.width(layout.spent), hideDecimalPlaces, muted = spent == 0L)
-                AmountColumn(stringResource(R.string.budget_balance), balance, Modifier.width(layout.balance), hideDecimalPlaces, balance = true)
+                AmountColumn(stringResource(R.string.budget_budgeted), budgeted, Modifier.width(layout.budgeted), hideDecimalPlaces, showLabel = !flat)
+                if (showSpent) AmountColumn(stringResource(R.string.budget_spent), -spent, Modifier.width(layout.spent), hideDecimalPlaces, muted = spent == 0L, showLabel = !flat)
+                AmountColumn(stringResource(R.string.budget_balance), balance, Modifier.width(layout.balance), hideDecimalPlaces, balance = true, showLabel = !flat)
             }
         }
     }
@@ -2353,13 +2421,19 @@ private fun AmountColumn(
     hideDecimalPlaces: Boolean,
     balance: Boolean = false,
     muted: Boolean = false,
+    showLabel: Boolean = true,
 ) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.End) {
-        ColumnLabel(label, MaterialTheme.typography.labelSmall)
+    Column(
+        modifier = if (showLabel) modifier else modifier.semantics(mergeDescendants = true) {
+            contentDescription = label
+        },
+        horizontalAlignment = Alignment.End,
+    ) {
+        if (showLabel) ColumnLabel(label, MaterialTheme.typography.labelSmall)
         TableAmountText(formatMoneyCents(amount, hideDecimalPlaces),
             fontWeight = if (balance) FontWeight.Bold else FontWeight.SemiBold,
             color = when {
-                balance && amount != 0L -> statusTextColor(signedBalanceColor(amount)!!, tinted = false)
+                showLabel && balance && amount != 0L -> statusTextColor(signedBalanceColor(amount)!!, tinted = false)
                 muted -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
                 else -> MaterialTheme.colorScheme.onSurface
             }, modifier = Modifier.padding(start = TableAmountGap))

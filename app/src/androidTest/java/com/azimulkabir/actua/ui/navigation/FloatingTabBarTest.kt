@@ -131,7 +131,7 @@ class FloatingTabBarTest {
             override fun getApplicationContext() = this
         }
         try {
-            val preferences = DisplayPreferences(context)
+            val preferences = DisplayPreferences(context).apply { useRegularBottomBar = false }
             val state = TabBarScrollState(preferences)
             assertFalse(state.useRegularBar)
             state.onScroll(-4f)

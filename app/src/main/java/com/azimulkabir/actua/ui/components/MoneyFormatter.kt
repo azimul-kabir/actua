@@ -10,8 +10,8 @@ object BalanceVisibility {
 }
 
 object CurrencyDisplay {
-    @Volatile var code: String = "BDT"
-    @Volatile var symbolOnly: Boolean = false
+    @Volatile var code: String = "USD"
+    @Volatile var symbolOnly: Boolean = true
 
     /**
      * Fraction digits the open budget's synced currency shows (`CurrencyDecimals`): 0 for JPY, KRW and
