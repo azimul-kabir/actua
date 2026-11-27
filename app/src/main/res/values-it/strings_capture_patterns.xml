@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="capture_patterns_title">Regole di acquisizione</string>
+    <string name="capture_patterns_help">Viene usata la prima regola corrispondente con campi validi. In caso contrario, Actua usa il parser integrato.</string>
+    <string name="capture_pattern_add">Aggiungi regola</string>
+    <string name="capture_pattern_edit">Modifica regola</string>
+    <string name="capture_pattern_name">Nome della regola</string>
+    <string name="capture_pattern_expression">Espressione regolare</string>
+    <string name="capture_pattern_expression_help">Usa il gruppo denominato (?&lt;amount&gt;…) per l’importo. Puoi rilevare anche payee, date, account, reference e direction. Lookaround e riferimenti all’indietro non sono supportati.</string>
+    <string name="capture_pattern_source">App di origine</string>
+    <string name="capture_pattern_direction">Tipo di movimento</string>
+    <string name="capture_pattern_keywords">Usa parole chiave</string>
+    <string name="capture_pattern_expense">Uscita</string>
+    <string name="capture_pattern_income">Entrata</string>
+    <string name="capture_pattern_global">Qualsiasi origine</string>
+    <string name="capture_pattern_date_format">Formato data (vuoto per YYYY-MM-DD)</string>
+    <string name="capture_pattern_decimal">Separatore decimale</string>
+    <string name="capture_pattern_grouping">Separatore delle migliaia (facoltativo)</string>
+    <string name="capture_pattern_move_earlier">Sposta una posizione in alto</string>
+    <string name="capture_pattern_choice">%1$s: %2$s</string>
+    <string name="capture_pattern_test_source">Origine del test</string>
+    <string name="capture_pattern_test">Prova le regole di acquisizione</string>
+    <string name="capture_pattern_builtin">Parser integrato</string>
+    <string name="capture_pattern_matched">Regola applicata: %1$s</string>
+    <string name="capture_pattern_preview_amount">Importo: %1$s</string>
+    <string name="capture_pattern_preview_date">Data: %1$s</string>
+    <string name="capture_pattern_preview_payee">Beneficiario: %1$s</string>
+    <string name="capture_pattern_preview_account">Indizio sul conto: %1$s</string>
+    <string name="capture_pattern_preview_reference">Riferimento: %1$s</string>
+    <string name="capture_patterns_import">Importa JSON</string>
+    <string name="capture_patterns_export">Esporta JSON</string>
+    <string name="capture_patterns_imported">Regole di acquisizione importate.</string>
+    <string name="capture_patterns_exported">Regole di acquisizione esportate.</string>
+    <string name="capture_pattern_import_error">Impossibile leggere il file JSON delle regole di acquisizione.</string>
+    <string name="capture_pattern_import_rule_error">Regola %1$d: %2$s</string>
+    <string name="capture_pattern_export_error">Impossibile esportare le regole di acquisizione.</string>
+    <string name="capture_pattern_limit">Puoi salvare fino a %1$d regole di acquisizione.</string>
+    <string name="capture_pattern_error_name">Inserisci un nome di massimo 80 caratteri.</string>
+    <string name="capture_pattern_error_expression">Inserisci un’espressione regolare valida di massimo 768 caratteri. Lookaround e riferimenti all’indietro non sono supportati.</string>
+    <string name="capture_pattern_error_amount">L’espressione deve contenere un gruppo denominato amount.</string>
+    <string name="capture_pattern_error_date">Inserisci un formato con mese e giorno, come MMM d, oppure lascia il campo vuoto.</string>
+    <string name="capture_pattern_error_separators">Inserisci un separatore decimale e, se vuoi, un carattere diverso come separatore delle migliaia.</string>
+    <string name="capture_pattern_error_package">Scegli un’app di origine valida.</string>
+    <string name="capture_pattern_substring_keywords">Cerca parole chiave all’interno delle parole</string>
+    <string name="capture_pattern_substring_caption">Usa questa opzione per gli avvisi scritti senza spazi fra le parole.</string>
+</resources>

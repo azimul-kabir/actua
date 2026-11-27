@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="capture_patterns_title">取り込みルール</string>
+    <string name="capture_patterns_help">有効な項目が得られる最初の一致ルールを使用します。該当するルールがなければ、Actua の標準パーサーを使用します。</string>
+    <string name="capture_pattern_add">ルールを追加</string>
+    <string name="capture_pattern_edit">ルールを編集</string>
+    <string name="capture_pattern_name">ルール名</string>
+    <string name="capture_pattern_expression">正規表現</string>
+    <string name="capture_pattern_expression_help">金額には名前付きグループ (?&lt;amount&gt;…) を使います。payee、date、account、reference、direction も取得できます。先読み・後読みと後方参照には対応していません。</string>
+    <string name="capture_pattern_source">通知元アプリ</string>
+    <string name="capture_pattern_direction">入出金の種別</string>
+    <string name="capture_pattern_keywords">キーワードで判定</string>
+    <string name="capture_pattern_expense">支出</string>
+    <string name="capture_pattern_income">収入</string>
+    <string name="capture_pattern_global">すべての通知元</string>
+    <string name="capture_pattern_date_format">日付形式（空欄は YYYY-MM-DD）</string>
+    <string name="capture_pattern_decimal">小数点の記号</string>
+    <string name="capture_pattern_grouping">桁区切りの記号（任意）</string>
+    <string name="capture_pattern_move_earlier">1 つ上に移動</string>
+    <string name="capture_pattern_choice">%1$s：%2$s</string>
+    <string name="capture_pattern_test_source">テストする通知元</string>
+    <string name="capture_pattern_test">取り込みルールをテスト</string>
+    <string name="capture_pattern_builtin">標準パーサー</string>
+    <string name="capture_pattern_matched">一致したルール：%1$s</string>
+    <string name="capture_pattern_preview_amount">金額：%1$s</string>
+    <string name="capture_pattern_preview_date">日付：%1$s</string>
+    <string name="capture_pattern_preview_payee">取引先：%1$s</string>
+    <string name="capture_pattern_preview_account">口座の手がかり：%1$s</string>
+    <string name="capture_pattern_preview_reference">参照番号：%1$s</string>
+    <string name="capture_patterns_import">JSON をインポート</string>
+    <string name="capture_patterns_export">JSON をエクスポート</string>
+    <string name="capture_patterns_imported">取り込みルールをインポートしました。</string>
+    <string name="capture_patterns_exported">取り込みルールをエクスポートしました。</string>
+    <string name="capture_pattern_import_error">取り込みルールの JSON ファイルを読み込めませんでした。</string>
+    <string name="capture_pattern_import_rule_error">ルール %1$d：%2$s</string>
+    <string name="capture_pattern_export_error">取り込みルールをエクスポートできませんでした。</string>
+    <string name="capture_pattern_limit">取り込みルールは %1$d 件まで保存できます。</string>
+    <string name="capture_pattern_error_name">80 文字以内のルール名を入力してください。</string>
+    <string name="capture_pattern_error_expression">768 文字以内の有効な正規表現を入力してください。先読み・後読みと後方参照には対応していません。</string>
+    <string name="capture_pattern_error_amount">正規表現に amount という名前のグループが必要です。</string>
+    <string name="capture_pattern_error_date">MMM d など、月と日を含む日付形式を入力するか、空欄にしてください。</string>
+    <string name="capture_pattern_error_separators">小数点の記号を 1 文字入力してください。桁区切りを指定する場合は、異なる 1 文字を入力してください。</string>
+    <string name="capture_pattern_error_package">有効な通知元アプリを選んでください。</string>
+    <string name="capture_pattern_substring_keywords">単語の途中でもキーワードに一致させる</string>
+    <string name="capture_pattern_substring_caption">単語の間に空白を入れない言語の通知に使います。</string>
+</resources>

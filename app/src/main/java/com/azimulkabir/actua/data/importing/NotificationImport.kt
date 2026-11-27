@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.data.importing
 
+import android.app.Notification
 import android.content.Context
 import android.content.SharedPreferences
 import android.service.notification.NotificationListenerService
@@ -37,19 +38,20 @@ object FinancialMessageParser {
     val defaultProfile = FinancialMessageProfile()
 
     fun parse(text: String, source: String = "Shared text", today: LocalDate = LocalDate.now(),
-        profile: FinancialMessageProfile = defaultProfile): ImportParseResult {
+        profile: FinancialMessageProfile = defaultProfile, sourcePackage: String? = null): ImportParseResult {
+        parseCapturePattern(text, source, sourcePackage, today, profile)?.let { return it }
         val normalized = text.replace(Regex("\\s+"), " ").trim()
         val wording = directionWording(normalized, source)
-        val debit = profile.debitKeywords.firstOrNull { wording.containsWord(it) }
-        val credit = profile.creditKeywords.firstOrNull { wording.containsWord(it) }
         val card = cardPurchase.find(normalized)
         // A card alert that says nothing about direction is a purchase; an explicit credit word still wins.
-        if (debit == null && credit == null && card == null) return failure(ImportProblemCode.DEBIT_OR_CREDIT_NOT_RECOGNIZED)
-        val outgoing = debit != null || credit == null
+        val outgoing = profile.outgoing(wording) ?: if (card != null) true
+            else return failure(ImportProblemCode.DEBIT_OR_CREDIT_NOT_RECOGNIZED)
         val parsedAmount = (currencyAmount.find(normalized) ?: labeledAmount.find(normalized))?.groupValues?.get(1)
             ?.replace(",", "")?.toBigDecimalOrNull()
             ?: return failure(ImportProblemCode.TRANSACTION_AMOUNT_NOT_RECOGNIZED)
-        val cents = parsedAmount.setScale(2).movePointRight(2).longValueExact() * if (outgoing) -1 else 1
+        val magnitude = runCatching { parsedAmount.movePointRight(2).longValueExact() }.getOrNull()
+            ?: return failure(ImportProblemCode.AMOUNT_TOO_LARGE)
+        val cents = if (outgoing) -magnitude else magnitude
         val parsedDate = date.find(normalized)?.destructured?.let { (day, month, year) ->
             runCatching { LocalDate.of(year.toInt(), month.toInt(), day.toInt()) }.getOrNull()
         } ?: today
@@ -81,10 +83,6 @@ object FinancialMessageParser {
         return wording
     }
 
-    /** Whether [keyword] appears as whole words, so "credit" doesn't match inside another word. */
-    private fun String.containsWord(keyword: String): Boolean =
-        Regex("(?<![\\p{L}\\p{N}])${Regex.escape(keyword.lowercase(Locale.ROOT))}(?![\\p{L}\\p{N}])").containsMatchIn(this)
-
     private val party = Regex("(?i)\\b(at|to|from)\\s+(.+?)(?=\\s+(?:at|to|from|on|ref|trx|txn|using|card|a/c|account)\\b|[.;]|$)")
 
     /** "your wallet", "card ending 1234", "account XX5678": where the money came from or went, not who. */
@@ -112,7 +110,24 @@ data class FinancialMessageProfile(
     val blankUnknownPayee: Boolean = false,
     /** Leave notes empty instead of "Imported from <source>" (#1761). */
     val blankNotes: Boolean = false,
+    val substringKeywords: Boolean = false,
+    val patterns: List<FinancialCapturePattern> = emptyList(),
 ) {
+    internal fun outgoing(wording: String): Boolean? {
+        fun matches(keyword: String): Boolean = if (substringKeywords) wording.contains(keyword, ignoreCase = true)
+            else wording.containsWord(keyword)
+        return when {
+            debitKeywords.any(::matches) -> true
+            creditKeywords.any(::matches) -> false
+            else -> null
+        }
+    }
+
+    /** Whether [keyword] appears as whole words, so "credit" doesn't match inside another word. */
+    private fun String.containsWord(keyword: String): Boolean =
+        Regex("(?<![\\p{L}\\p{N}])${Regex.escape(keyword.lowercase(Locale.ROOT))}(?![\\p{L}\\p{N}])").containsMatchIn(this)
+
+
     fun fallbackPayee(source: String): String = if (blankUnknownPayee) "" else source
     fun importedNotes(source: String): String = if (blankNotes) "" else "Imported from $source"
 }
@@ -172,6 +187,28 @@ class NotificationImportPreferences(context: Context) {
         return { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
     }
 
+    private var cachedPatternsJson: String? = null
+    private var cachedPatterns = emptyList<FinancialCapturePattern>()
+
+    @Synchronized
+    fun capturePatterns(): List<FinancialCapturePattern> {
+        val json = preferences.getString("capturePatterns", null)
+        if (json != cachedPatternsJson) {
+            cachedPatterns = json?.let { runCatching { CapturePatternJson.decode(it) }.getOrNull() }.orEmpty()
+            cachedPatternsJson = json
+        }
+        return cachedPatterns
+    }
+
+    fun saveCapturePatterns(patterns: List<FinancialCapturePattern>) {
+        require(patterns.size <= MAX_CAPTURE_PATTERNS && patterns.all { capturePatternProblem(it) == null })
+        preferences.edit().putString("capturePatterns", CapturePatternJson.encode(patterns)).apply()
+    }
+
+    var substringKeywords: Boolean
+        get() = preferences.getBoolean("substringKeywords", false)
+        set(value) { preferences.edit().putBoolean("substringKeywords", value).apply() }
+
     fun profile(): FinancialMessageProfile = FinancialMessageProfile(
         preferences.getStringSet("debitKeywords", FinancialMessageParser.defaultProfile.debitKeywords)
             ?: FinancialMessageParser.defaultProfile.debitKeywords,
@@ -179,6 +216,8 @@ class NotificationImportPreferences(context: Context) {
             ?: FinancialMessageParser.defaultProfile.creditKeywords,
         blankUnknownPayee = blankUnknownPayee,
         blankNotes = blankNotes,
+        substringKeywords = substringKeywords,
+        patterns = capturePatterns(),
     )
 
     var blankUnknownPayee: Boolean
@@ -285,15 +324,37 @@ class NotificationImportPreferences(context: Context) {
 }
 
 class FinancialNotificationListenerService : NotificationListenerService() {
+    private val store by lazy { NotificationImportPreferences(this) }
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        val store = NotificationImportPreferences(this)
         if (!shouldCaptureNotification(store.enabled, store.allowedPackages, sbn.packageName, packageName)) return
         val extras = sbn.notification.extras
-        val content = listOfNotNull(extras.getCharSequence("android.title"), extras.getCharSequence("android.text"))
-            .joinToString(" ").trim()
-        FinancialMessageParser.parse(content, notificationAppLabel(sbn.packageName), profile = store.profile()).candidates
-            .forEach { CapturedTransactionNotifications.queue(this, store, it) }
+        val content = notificationCaptureText(
+            title = extras.getCharSequence(Notification.EXTRA_TITLE),
+            text = extras.getCharSequence(Notification.EXTRA_TEXT),
+            bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT),
+            lines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.asList().orEmpty(),
+        )
+        FinancialMessageParser.parse(
+            content, notificationAppLabel(sbn.packageName), profile = store.profile(), sourcePackage = sbn.packageName,
+        ).candidates.forEach { CapturedTransactionNotifications.queue(this, store, it) }
     }
+}
+
+/** Expanded content often repeats the collapsed text, so prefer the detailed copy. */
+internal fun notificationCaptureText(
+    title: CharSequence?,
+    text: CharSequence?,
+    bigText: CharSequence?,
+    lines: List<CharSequence?>,
+): String {
+    val expanded = (listOf(bigText) + lines).mapNotNull { it?.toString()?.trim()?.takeIf(String::isNotEmpty) }.distinct()
+    if (expanded.isEmpty()) return listOfNotNull(title, text).joinToString(" ").trim()
+    val collapsed = text?.toString()?.trim()
+    val body = (expanded + listOfNotNull(collapsed)).distinct()
+    return (listOfNotNull(title?.toString()?.trim()) + body.filter { part ->
+        part.isNotEmpty() && body.none { other -> other.length > part.length && other.contains(part) }
+    }).filter(String::isNotEmpty).distinct().joinToString("\n")
 }
 
 /** The app's name as the launcher shows it, so a payee-less alert reads "Chase", not its package. */

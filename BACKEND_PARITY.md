@@ -193,6 +193,11 @@ lists what was ported, what was only checked by reading, and what is not ported.
   card or source, or a device-local default account, with "Account for all" for the rest; the
   queue is reachable from the Accounts header, a badge on the Accounts tab and a "Review captured"
   launcher shortcut (see [docs/TRANSACTION_IMPORTS.md](docs/TRANSACTION_IMPORTS.md))
+- Local capture can apply ordered global or app-specific regex patterns to expanded notifications,
+  pasted text, and authenticated automation text before falling back to the built-in parser.
+  Settings supports previewing and exchanging pattern-only JSON. An automation can use its
+  existing source extra to select a pattern by package name. Candidates still enter the existing
+  import/review path without changes to budget storage or sync.
 - Single-page Add/Edit transaction form where the amount's sign selects expense or income and
   choosing an account as the payee makes a transfer, backed by transaction form planning and
   atomic transaction mutations, including split
@@ -559,6 +564,7 @@ lists what was ported, what was only checked by reading, and what is not ported.
   Crossover, Budget Analysis, Sankey, Balance Forecast, and Monte Carlo cards
   with unknown future widget-type disclosure; budgets created in Actua, and existing Actua-created
   budgets without a dashboard after syncing, get Actual's default reports dashboard
+
 
 - Opt-in foreground-only location-aware payees: automatic picker lookup after permission using
   a recent valid cached fix or concurrent enabled Android providers; distance-labelled 500-metre
