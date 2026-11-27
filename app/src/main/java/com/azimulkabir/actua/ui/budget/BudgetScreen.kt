@@ -2325,8 +2325,8 @@ private fun BudgetGroupHeader(
                 // Too narrow for the table's columns: totals go under the name and share the full width.
                 Column {
                     nameRow(Modifier.fillMaxWidth())
-                            StackedTableAmounts {
-                        Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                    StackedTableAmounts {
+                        Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                             AmountColumn(stringResource(R.string.budget_budgeted), budgeted, Modifier.weight(1f), hideDecimalPlaces)
                             if (showSpent) AmountColumn(stringResource(R.string.budget_spent), -spent, Modifier.weight(1f), hideDecimalPlaces, muted = spent == 0L)
                             AmountColumn(stringResource(R.string.budget_balance), balance, Modifier.weight(1f), hideDecimalPlaces, balance = true)
@@ -2336,7 +2336,7 @@ private fun BudgetGroupHeader(
                 return@Box
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                nameRow(Modifier.weight(1f))
+                nameRow(Modifier.weight(1f).padding(end = 4.dp))
                 AmountColumn(stringResource(R.string.budget_budgeted), budgeted, Modifier.width(layout.budgeted), hideDecimalPlaces)
                 if (showSpent) AmountColumn(stringResource(R.string.budget_spent), -spent, Modifier.width(layout.spent), hideDecimalPlaces, muted = spent == 0L)
                 AmountColumn(stringResource(R.string.budget_balance), balance, Modifier.width(layout.balance), hideDecimalPlaces, balance = true)

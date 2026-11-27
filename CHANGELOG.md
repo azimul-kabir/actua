@@ -11,6 +11,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Added a little space between category group titles and their totals in the Budget table ([#1878](https://github.com/azimul-kabir/actua/pull/1878))
 - Simplified the Budget table with a compact overview, square edge-to-edge headers and plain category rows ([#1869](https://github.com/azimul-kabir/actua/pull/1869))
 
 ### Fixed
