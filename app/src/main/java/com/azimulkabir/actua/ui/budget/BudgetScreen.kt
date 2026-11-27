@@ -2363,12 +2363,12 @@ private fun BudgetGroupHeader(
         ) {
             val nameRow = @Composable { modifier: Modifier ->
                 Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+                    val rotation by animateFloatAsState(
+                        targetValue = if (collapsed) -90f else 0f,
+                        animationSpec = tween(220),
+                        label = "group chevron",
+                    )
                     if (!flat) {
-                        val rotation by animateFloatAsState(
-                            targetValue = if (collapsed) -90f else 0f,
-                            animationSpec = tween(220),
-                            label = "group chevron",
-                        )
                         Icon(
                             Icons.Outlined.KeyboardArrowDown,
                             contentDescription = if (collapsed) stringResource(R.string.budget_expand_group, group.name)
@@ -2380,7 +2380,19 @@ private fun BudgetGroupHeader(
                     Text(if (group.hidden) stringResource(R.string.budget_hidden_name, group.name) else group.name,
                         style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
                         color = if (group.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
-                        maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        maxLines = 2, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false))
+                    if (flat) {
+                        // Edge to edge the name stays flush with the category names below it, so the
+                        // expand/collapse hint goes after it. The click label and state description
+                        // on the header already announce the state, so the icon itself is decorative.
+                        Icon(
+                            Icons.Outlined.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 2.dp).size(16.dp).rotate(rotation),
+                        )
+                    }
                 }
             }
             if (!showTotals) {
