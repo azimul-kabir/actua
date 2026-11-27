@@ -11,6 +11,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Added a collapse/expand chevron after group names in the edge-to-edge Budget table ([#1885](https://github.com/azimul-kabir/actua/pull/1885))
 - Polished the edge-to-edge Budget table and made it, the US dollar symbol, and the regular bottom navigation bar the defaults ([#1880](https://github.com/azimul-kabir/actua/pull/1880))
 
 - Added a little space between category group titles and their totals in the Budget table ([#1878](https://github.com/azimul-kabir/actua/pull/1878))
