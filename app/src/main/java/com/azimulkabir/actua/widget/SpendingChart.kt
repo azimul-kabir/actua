@@ -54,13 +54,19 @@ internal fun chartColorsFor(colors: WidgetStyleColors): ChartColors {
             .filter { contrast(it, backdrop) >= MIN_SHAPE_CONTRAST }
         second = (candidates + dimmed).maxByOrNull { contrast(it, colors.primary) } ?: colors.secondary
     }
-    val past = blendArgb(second, backdrop, PAST_BAR_STRENGTH).takeIf { contrast(it, backdrop) >= MIN_SHAPE_CONTRAST } ?: second
+    fun pastTone(color: Int): Int {
+        val softened = blendArgb(color, backdrop, PAST_BAR_STRENGTH)
+        return softened.takeIf {
+            contrast(it, backdrop) >= MIN_SHAPE_CONTRAST &&
+                contrast(it, colors.backgroundEnd) >= MIN_SHAPE_CONTRAST
+        } ?: color
+    }
     return ChartColors(
         highlight = colors.primary,
-        bar = blendArgb(colors.primary, backdrop, PAST_BAR_STRENGTH),
+        bar = pastTone(colors.primary),
         label = colors.secondary,
         second = second,
-        secondPast = past,
+        secondPast = pastTone(second),
     )
 }
 

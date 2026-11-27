@@ -289,8 +289,27 @@ class WidgetStyleTest {
     }
 
     @Test
-    fun onlyTheAccentStylesFollowTheAccent() {
-        assertEquals(listOf(WidgetStyle.AccentTinted, WidgetStyle.GradientAccent), WidgetStyle.entries.filter { it.followsAccent })
+    fun supporterLooksUseTheAccentForBarsValuesAndActions() {
+        for (style in WidgetStyle.entries.filter { it != WidgetStyle.Default }) {
+            for (night in listOf(false, true)) {
+                val teal = style.colors(night, AccentPalette.Teal.colorScheme(night))!!
+                val violet = style.colors(night, AccentPalette.Violet.colorScheme(night))!!
+                val name = "$style night=$night"
+                assertTrue("$name values follow the accent", teal.primary != violet.primary)
+                assertTrue("$name normal progress follows the accent", teal.progressFill(ProgressStatus.Normal) != violet.progressFill(ProgressStatus.Normal))
+                val tealChart = chartColorsFor(teal)
+                val violetChart = chartColorsFor(violet)
+                assertTrue("$name chart bars follow the accent", tealChart.highlight != violetChart.highlight)
+                assertTrue("$name earlier chart bars are visible", contrast(tealChart.bar, teal.background) >= 3.0)
+                assertTrue("$name actions follow the accent", teal.button != violet.button || teal.buttonText != violet.buttonText)
+                if (style != WidgetStyle.AccentTinted && style != WidgetStyle.GradientAccent) {
+                    assertEquals("$name background stays the same", teal.background, violet.background)
+                    assertEquals("$name warning stays the same", teal.warning, violet.warning)
+                    assertEquals("$name overspent stays the same", teal.danger, violet.danger)
+                }
+            }
+        }
+        assertNull(WidgetStyle.Default.colors(false, AccentPalette.Teal.colorScheme(false)))
     }
 
     @Test

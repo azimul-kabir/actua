@@ -42,6 +42,17 @@ class WidgetStylesAccentSchemeTest {
         }
     }
 
+    @Test fun aFixedLookReadsTheCurrentPreferenceOnEachRender() {
+        preferences.accent = AccentPalette.Teal
+        val teal = WidgetStyles.styleColors(context, WidgetStyle.SolidLight, night = false)!!
+        preferences.accent = AccentPalette.Violet
+        val violet = WidgetStyles.styleColors(context, WidgetStyle.SolidLight, night = false)!!
+
+        assertEquals(teal.background, violet.background)
+        assertNotEquals(teal.primary, violet.primary)
+        assertNotEquals(teal.progressFill(ProgressStatus.Normal), violet.progressFill(ProgressStatus.Normal))
+    }
+
     @Test fun lightAndDarkDeviceThemesGiveDifferentContainers() {
         preferences.accent = AccentPalette.Teal
         val light = WidgetStyles.accentScheme(context, preferences, night = false)

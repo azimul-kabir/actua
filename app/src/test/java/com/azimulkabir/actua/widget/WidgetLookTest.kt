@@ -44,7 +44,7 @@ class WidgetLookTest {
         )
     }
 
-    /** Every style's colors in both themes, Gradient accent and Accent-tinted for every palette and some custom colors. */
+    /** Every supporter look in both themes for every palette and some custom colors. */
     private fun everyStyleColors(): List<Pair<String, WidgetStyleColors>> {
         val schemes = AccentPalette.entries.flatMap { palette ->
             listOf(false, true).map { "$palette dark=$it" to palette.colorScheme(it) }
@@ -52,10 +52,8 @@ class WidgetLookTest {
             listOf(false, true).map { "custom ${CustomAccent.formatHex(seed)} dark=$it" to AccentPalette.Custom.colorScheme(it, seed) }
         }
         return WidgetStyle.entries.filter { it != WidgetStyle.Default }.flatMap { style ->
-            if (style.followsAccent) {
-                schemes.map { (name, scheme) -> "$style $name" to style.colors(night = name.endsWith("true"), accent = scheme)!! }
-            } else {
-                listOf(false, true).map { "$style night=$it" to style.colors(it, null)!! }
+            schemes.map { (name, scheme) ->
+                "$style $name" to style.colors(night = name.endsWith("true"), accent = scheme)!!
             }
         }
     }

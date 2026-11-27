@@ -96,12 +96,11 @@ internal object WidgetStyles {
      * accent always takes the light scheme's saturated primary.
      */
     internal fun styleColors(context: Context, style: WidgetStyle, night: Boolean): WidgetStyleColors? {
+        if (!style.followsAccent) return null
         val preferences = DisplayPreferences(context)
-        return when (style) {
-            WidgetStyle.AccentTinted -> style.colors(night, accentScheme(context, preferences, night), accentStatus(context, preferences, night))
-            WidgetStyle.GradientAccent -> style.colors(night, accentScheme(context, preferences, night = false))
-            else -> style.colors(night, null)
-        }
+        val scheme = accentScheme(context, preferences, night = night && style != WidgetStyle.GradientAccent)
+        val status = if (style == WidgetStyle.AccentTinted) accentStatus(context, preferences, night) else null
+        return style.colors(night, scheme, status)
     }
 
     /** The lowest opacity [style] can be drawn at and stay readable, in both device themes. */
