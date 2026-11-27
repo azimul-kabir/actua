@@ -11,6 +11,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Polished the edge-to-edge Budget table and made it, the US dollar symbol, and the regular bottom navigation bar the defaults ([#1880](https://github.com/azimul-kabir/actua/pull/1880))
+
 - Added a little space between category group titles and their totals in the Budget table ([#1878](https://github.com/azimul-kabir/actua/pull/1878))
 - Simplified the Budget table with a compact overview, square edge-to-edge headers and plain category rows ([#1869](https://github.com/azimul-kabir/actua/pull/1869))
 
