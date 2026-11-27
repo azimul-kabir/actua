@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.ui.budget
 
 import com.azimulkabir.actua.ui.navigation.RootRequestEffect
+import com.azimulkabir.actua.ui.navigation.detailNavigationMotion
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -17,10 +18,14 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -34,7 +39,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -109,6 +116,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -125,6 +133,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
@@ -369,7 +378,10 @@ fun BudgetScreen(
     var renamingGroup by remember { mutableStateOf<BudgetGroup?>(null) }
     var movingBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var fundingCategory by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
-    var categoryDetails by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
+    var categoryDetails by remember {
+        // A returning detail route already has the outer navigation transition.
+        mutableStateOf(requestedCategoryDetails?.let { findCategory(groups, it) })
+    }
     var autoAssignBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var budgetSummaryOpen by remember { mutableStateOf(false) }
     var overspentSheetOpen by remember { mutableStateOf(false) }
@@ -519,7 +531,10 @@ fun BudgetScreen(
                             showProgressBar = showProgressBars,
                             position = GroupPosition.of(index, count),
                             onLongClick = { selectedCategory = category },
-                            onOpen = { editingBudget = group to category },
+                            onOpenDetails = { categoryDetails = group to category },
+                            onEditBudget = { editingBudget = group to category },
+                            onOpenSpending = { onShowCategoryTransactions(category, true, false) },
+                            onMoveMoney = { movingBudget = group to category },
                             hideDecimalPlaces = hideDecimalPlaces,
                             scheduleFunding = scheduleFunding,
                         )
@@ -974,7 +989,17 @@ fun BudgetScreen(
             },
         )
     }
-    categoryDetails?.let { (group, category) ->
+    val detailsDirection = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1 else -1
+    AnimatedContent(
+        targetState = categoryDetails,
+        modifier = Modifier.fillMaxSize(),
+        contentKey = { it?.second?.categoryKey },
+        transitionSpec = {
+            detailNavigationMotion(opening = targetState != null, direction = detailsDirection)
+        },
+        label = "Category details motion",
+    ) { shownDetails ->
+        val (group, category) = shownDetails ?: return@AnimatedContent
         // Otherwise this filters and sorts the whole transaction list on every recomposition
         // of BudgetScreen while the details sheet is open, to keep only the top 3.
         val recentCategoryTransactions = remember(allTransactions, category.name) {
@@ -982,6 +1007,7 @@ fun BudgetScreen(
         }
         CategoryDetailsScreen(
             modifier = modifier,
+            active = categoryDetails?.second?.categoryKey == category.categoryKey,
             category = category,
             month = month,
             hideDecimalPlaces = hideDecimalPlaces,
@@ -994,12 +1020,8 @@ fun BudgetScreen(
             onEditTarget = { onEditAutomations(group, category) },
             transactions = recentCategoryTransactions,
             onRename = { categoryDetails = null; renamingCategory = group to category },
-            onTransactionsThisMonth = {
-                categoryDetails = null; onShowCategoryTransactions(category, true, true)
-            },
-            onAllTransactions = {
-                categoryDetails = null; onShowCategoryTransactions(category, false, true)
-            },
+            onTransactionsThisMonth = { onShowCategoryTransactions(category, true, true) },
+            onAllTransactions = { onShowCategoryTransactions(category, false, true) },
             hidden = category.hidden,
             favorite = category.id in favoriteCategoryIds,
             onFavoriteChange = { favorite ->
@@ -2103,6 +2125,8 @@ private val CategoryPillPadding = 3.dp
 
 /** The table's balance pills: only slightly rounded, so the amount needs little side padding to clear the corners. */
 private val TablePillShape = RoundedCornerShape(6.dp)
+private val AmountFeedbackHeight = 34.dp
+private val AmountFeedbackLeadingPadding = 6.dp
 
 /**
  * Lets a balance pill reach [overhang] past its column's end, so its amount still lines up with the
@@ -2112,7 +2136,7 @@ private fun Modifier.overhangEnd(overhang: androidx.compose.ui.unit.Dp) = layout
     val extra = overhang.roundToPx()
     val maxWidth = if (constraints.hasBoundedWidth) constraints.maxWidth + extra else constraints.maxWidth
     val placeable = measurable.measure(constraints.copy(minWidth = 0, maxWidth = maxWidth))
-    val width = if (constraints.hasBoundedWidth) constraints.maxWidth else placeable.width
+    val width = (placeable.width - extra).coerceIn(constraints.minWidth, constraints.maxWidth)
     layout(width, placeable.height) { placeable.place(width + extra - placeable.width, 0) }
 }
 
@@ -2462,77 +2486,158 @@ private fun CategoryRow(
     showProgressBar: Boolean,
     position: GroupPosition,
     onLongClick: () -> Unit,
-    onOpen: () -> Unit,
+    onOpenDetails: () -> Unit,
+    onEditBudget: () -> Unit,
+    onOpenSpending: () -> Unit,
+    onMoveMoney: () -> Unit,
     hideDecimalPlaces: Boolean,
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
 ) {
+    val actionsLabel = stringResource(R.string.budget_category_options)
+    val detailsLabel = stringResource(R.string.budget_budget_details)
+    val editLabel = stringResource(R.string.budget_edit_budgeted)
+    val spentLabel = stringResource(R.string.budget_transactions_month)
+    val balanceLabel = stringResource(
+        if (category.balanceCents < 0L) R.string.budget_cover_overspending else R.string.budget_move_money_plain,
+    )
+
     TableGroupedItem(flat = LocalTableStyle.current == TableStyle.Flat, position = position, dividerInset = TableRowPadding) {
-        Column(
-            modifier = Modifier.fillMaxWidth().heightIn(min = TableRowMinHeight)
-                .combinedClickable(onClick = onOpen, onLongClick = onLongClick)
-                .padding(horizontal = TableRowPadding, vertical = Spacing.md),
-            verticalArrangement = Arrangement.Center,
-        ) {
-            val name = @Composable { modifier: Modifier ->
-                Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-                    CategoryStatusDot(category.statusState(scheduleFunding), modifier = Modifier.padding(end = 6.dp))
-                    Text(if (category.hidden) stringResource(R.string.budget_hidden_name, category.name) else category.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                        maxLines = if (stacked) 1 else 2, overflow = TextOverflow.Ellipsis)
-                }
-            }
-            val amounts = @Composable { cell: (Int) -> Modifier ->
-                CategoryAmount(category.assignedCents, cell(0), hideDecimalPlaces)
-                if (showSpent) CategoryAmount(
-                    -category.spentCents,
-                    cell(1),
-                    hideDecimalPlaces,
-                    muted = category.spentCents == 0L,
-                )
-                Box(modifier = cell(2).padding(start = TableAmountGap), contentAlignment = Alignment.CenterEnd) {
-                    BalancePill(
-                        category.balanceCents,
-                        hideDecimalPlaces,
-                        status = category.statusState(scheduleFunding),
-                        colorByStatus = LocalCategoryStatusColors.current?.colorBudgetedAmounts == true,
-                        modifier = Modifier.overhangEnd(CategoryPillPadding),
-                        textStyle = MaterialTheme.typography.bodyMedium.asTableAmount(),
-                        fontWeight = FontWeight.Bold,
-                        horizontalPadding = CategoryPillPadding,
-                        verticalPadding = 3.dp,
-                        shape = TablePillShape,
-                        tableAmount = true,
-                        targetBadge = category.targetFunding(scheduleFunding),
-                    )
-                }
-            }
-            if (stacked) {
-                name(Modifier.fillMaxWidth())
-                StackedTableAmounts {
-                    Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        amounts { column -> Modifier.weight(1f) }
+        CategoryTableTarget(Modifier.fillMaxWidth(), detailsLabel, actionsLabel, onOpenDetails, onLongClick, rowFeedback = true) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = TableRowPadding),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                val name = @Composable { modifier: Modifier ->
+                    Row(modifier = modifier.heightIn(min = TableRowMinHeight), verticalAlignment = Alignment.CenterVertically) {
+                        CategoryStatusDot(category.statusState(scheduleFunding), modifier = Modifier.padding(end = 6.dp))
+                        Text(if (category.hidden) stringResource(R.string.budget_hidden_name, category.name) else category.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                            maxLines = if (stacked) 1 else 2, overflow = TextOverflow.Ellipsis)
                     }
                 }
-            } else {
-                val layout = LocalTableLayout.current
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    name(Modifier.weight(1f))
-                    amounts { column ->
-                        when {
-                            layout == null -> Modifier.weight(1f)
-                            column == 0 -> Modifier.width(layout.budgeted)
-                            column == 1 -> Modifier.width(layout.spent)
-                            else -> Modifier.width(layout.balance)
+                val amounts = @Composable { cell: (Int) -> Modifier ->
+                    CategoryTableTarget(cell(0), editLabel, actionsLabel, onEditBudget, onLongClick) { interaction ->
+                        AmountPressFeedback(interaction, Modifier.padding(start = TableAmountGap)) {
+                            CategoryAmount(category.assignedCents, hideDecimalPlaces)
+                        }
+                    }
+                    if (showSpent) {
+                        CategoryTableTarget(cell(1), spentLabel, actionsLabel, onOpenSpending, onLongClick) { interaction ->
+                            AmountPressFeedback(interaction, Modifier.padding(start = TableAmountGap)) {
+                                CategoryAmount(
+                                    -category.spentCents,
+                                    hideDecimalPlaces,
+                                    muted = category.spentCents == 0L,
+                                )
+                            }
+                        }
+                    }
+                    CategoryTableTarget(cell(2), balanceLabel, actionsLabel, onMoveMoney, onLongClick) { interaction ->
+                        AmountPressFeedback(
+                            interaction,
+                            Modifier.padding(start = TableAmountGap).overhangEnd(CategoryPillPadding),
+                        ) {
+                            BalancePill(
+                                category.balanceCents,
+                                hideDecimalPlaces,
+                                status = category.statusState(scheduleFunding),
+                                colorByStatus = LocalCategoryStatusColors.current?.colorBudgetedAmounts == true,
+                                textStyle = MaterialTheme.typography.bodyMedium.asTableAmount(),
+                                fontWeight = FontWeight.Bold,
+                                horizontalPadding = CategoryPillPadding,
+                                verticalPadding = 3.dp,
+                                shape = TablePillShape,
+                                tableAmount = true,
+                                targetBadge = category.targetFunding(scheduleFunding),
+                            )
                         }
                     }
                 }
-            }
-            AnimatedVisibility(visible = showProgressBar && category.showsProgressBar) {
-                CategoryProgressBar(category, scheduleFunding,
-                    Modifier.fillMaxWidth().padding(top = TableProgressBarGap).height(TableProgressBarHeight))
+                if (stacked) {
+                    name(Modifier.fillMaxWidth())
+                    StackedTableAmounts {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            amounts { column -> Modifier.weight(1f) }
+                        }
+                    }
+                } else {
+                    val layout = LocalTableLayout.current
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        name(Modifier.weight(1f))
+                        amounts { column ->
+                            when {
+                                layout == null -> Modifier.weight(1f)
+                                column == 0 -> Modifier.width(layout.budgeted)
+                                column == 1 -> Modifier.width(layout.spent)
+                                else -> Modifier.width(layout.balance)
+                            }
+                        }
+                    }
+                }
+                AnimatedVisibility(visible = showProgressBar && category.showsProgressBar) {
+                    CategoryProgressBar(category, scheduleFunding,
+                        Modifier.fillMaxWidth().padding(bottom = TableProgressBarGap).height(TableProgressBarHeight))
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun CategoryTableTarget(
+    modifier: Modifier,
+    clickLabel: String,
+    longClickLabel: String,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    rowFeedback: Boolean = false,
+    content: @Composable (InteractionSource) -> Unit,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Box(
+        modifier.heightIn(min = TableRowMinHeight).combinedClickable(
+            interactionSource = interactionSource,
+            indication = null,
+            onClickLabel = clickLabel,
+            onLongClickLabel = longClickLabel,
+            onClick = onClick,
+            onLongClick = onLongClick,
+        ),
+        contentAlignment = Alignment.CenterEnd,
+    ) {
+        content(interactionSource)
+        if (rowFeedback) {
+            Box(
+                Modifier.matchParentSize().clip(TablePillShape)
+                    .indication(interactionSource, LocalIndication.current),
+            )
+        }
+    }
+}
+
+@Composable
+private fun AmountPressFeedback(
+    interactionSource: InteractionSource,
+    modifier: Modifier,
+    content: @Composable () -> Unit,
+) {
+    Box(modifier) {
+        content()
+        Box(
+            Modifier.matchParentSize()
+                .layout { measurable, constraints ->
+                    // Measure the highlight around the amount instead of the wider tap target.
+                    val leadingPadding = AmountFeedbackLeadingPadding.roundToPx()
+                    val height = AmountFeedbackHeight.roundToPx()
+                    val highlight = measurable.measure(Constraints.fixed(constraints.maxWidth + leadingPadding, height))
+                    layout(constraints.maxWidth, constraints.maxHeight) {
+                        highlight.placeRelative(-leadingPadding, (constraints.maxHeight - height) / 2)
+                    }
+                }
+                .clip(TablePillShape)
+                .indication(interactionSource, ripple(bounded = false)),
+        )
     }
 }
 
@@ -2895,13 +3000,13 @@ private fun InlineCalculatorAmount(label: String, amount: Long, modifier: Modifi
 }
 
 @Composable
-private fun CategoryAmount(amount: Long, modifier: Modifier, hideDecimalPlaces: Boolean, muted: Boolean = false) {
+private fun CategoryAmount(amount: Long, hideDecimalPlaces: Boolean, muted: Boolean = false) {
     TableAmountText(
         formatMoneyCents(amount, hideDecimalPlaces),
         fontWeight = FontWeight.Normal,
         color = if (muted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
         else MaterialTheme.colorScheme.onSurface,
-        textAlign = TextAlign.End, modifier = modifier.padding(start = TableAmountGap),
+        textAlign = TextAlign.End,
     )
 }
 
@@ -3318,6 +3423,7 @@ private data class MoveEndpoint(
 @Composable
 private fun CategoryDetailsScreen(
     modifier: Modifier = Modifier,
+    active: Boolean,
     category: BudgetCategory,
     month: String,
     hideDecimalPlaces: Boolean,
@@ -3349,7 +3455,7 @@ private fun CategoryDetailsScreen(
     var deleteConfirmOpen by remember(category) { mutableStateOf(false) }
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
     var overflowOpen by remember(category) { mutableStateOf(false) }
-    BackHandler(onBack = onDismiss)
+    BackHandler(enabled = active, onBack = onDismiss)
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {
             ActuaScreenHeader(title = category.name, onBack = onDismiss) {

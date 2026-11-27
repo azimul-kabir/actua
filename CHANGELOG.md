@@ -11,6 +11,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Tap Budgeted to edit, Spent for monthly transactions, Balance to move money, or a category name for Details ([#1889](https://github.com/azimul-kabir/actua/pull/1889))
 - Added a collapse/expand chevron after group names in the edge-to-edge Budget table ([#1885](https://github.com/azimul-kabir/actua/pull/1885))
 - Polished the edge-to-edge Budget table and made it, the US dollar symbol, and the regular bottom navigation bar the defaults ([#1880](https://github.com/azimul-kabir/actua/pull/1880))
 

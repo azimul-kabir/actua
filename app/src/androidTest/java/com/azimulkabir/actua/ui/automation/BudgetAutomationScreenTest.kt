@@ -1,9 +1,10 @@
 package com.azimulkabir.actua.ui.automation
 
+import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -28,9 +29,30 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class BudgetAutomationScreenTest {
     @get:Rule
-    val compose = createComposeRule()
+    val compose = createAndroidComposeRule<ComponentActivity>()
 
     private val group = BudgetGroup(name = "Bills", categories = emptyList())
+
+    @Test
+    fun systemBackReturnsFromGoalEditorToTheAutomationsList() {
+        val category = BudgetCategory(name = "Rent", assigned = 0, spent = 0)
+        var leftAutomations = false
+        compose.setContent {
+            MaterialTheme {
+                BudgetAutomationScreen(
+                    group = group, category = category, month = "2026-09", hideDecimalPlaces = false,
+                    onBack = { leftAutomations = true }, onSave = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("+ Add long-term goal").performScrollTo().performClick()
+        compose.onNodeWithText("Add long-term goal").assertExists()
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.onNodeWithText("Budget Automation").assertExists()
+        compose.onNodeWithText("+ Add long-term goal").assertExists()
+        compose.runOnIdle { assertEquals(false, leftAutomations) }
+    }
 
     @Test
     fun listsExistingAutomationsWithTypeAndPriority() {
