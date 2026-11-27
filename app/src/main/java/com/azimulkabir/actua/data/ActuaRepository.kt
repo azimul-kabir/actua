@@ -1785,6 +1785,7 @@ class ActuaRepository(context: Context) {
     fun spendingTrend(
         months: Int = com.azimulkabir.actua.data.reports.SpendingTrendBuilder.DEFAULT_MONTHS,
         today: java.time.LocalDate = java.time.LocalDate.now(),
+        monthStart: com.azimulkabir.actua.data.home.MonthStartRule = reportMonthStart,
     ): com.azimulkabir.actua.data.reports.SpendingTrend? {
         val data = reportDataForWidgets() ?: return null
         return com.azimulkabir.actua.data.reports.SpendingTrendBuilder.build(
@@ -1793,6 +1794,7 @@ class ActuaRepository(context: Context) {
             incomeCategoryIds = data.incomeCategoryIds,
             today = today,
             months = months,
+            monthStart = monthStart,
         )
     }
 
@@ -1804,6 +1806,7 @@ class ActuaRepository(context: Context) {
     fun incomeSpending(
         months: Int = com.azimulkabir.actua.data.reports.IncomeSpendingBuilder.DEFAULT_MONTHS,
         today: java.time.LocalDate = java.time.LocalDate.now(),
+        monthStart: com.azimulkabir.actua.data.home.MonthStartRule = reportMonthStart,
     ): com.azimulkabir.actua.data.reports.IncomeSpending? {
         val data = reportDataForWidgets() ?: return null
         return com.azimulkabir.actua.data.reports.IncomeSpendingBuilder.build(
@@ -1812,6 +1815,7 @@ class ActuaRepository(context: Context) {
             groups = data.groups,
             today = today,
             months = months,
+            monthStart = monthStart,
         )
     }
 

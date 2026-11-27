@@ -537,13 +537,18 @@ object SavedReportEngine {
 
     /**
      * Income and expenses (as a positive amount) for [month], in integer cents, counted exactly as the
-     * Income vs expenses report counts a month. [monthStart] is not applied: the widget shows calendar months.
+     * Income vs expenses report counts a month. Pay periods go through [cashFlowBetween].
      */
     fun monthlyCashFlow(
         transactions: List<ActualTransaction>, month: YearMonth, aggregator: ReportAggregator,
+    ): Pair<Long, Long> = cashFlowBetween(transactions, month.atDay(1), month.atEndOfMonth(), aggregator)
+
+    /** Income and expenses (as a positive amount) from [start] through [end], counted as [monthlyCashFlow] counts a month. */
+    fun cashFlowBetween(
+        transactions: List<ActualTransaction>, start: LocalDate, end: LocalDate, aggregator: ReportAggregator,
     ): Pair<Long, Long> {
         val filter = ReportFilter(
-            startDate = month.atDay(1).toYmd(), endDate = month.atEndOfMonth().toYmd(),
+            startDate = start.toYmd(), endDate = end.toYmd(),
             showOffBudget = false, showHiddenCategories = true, balanceType = ReportBalanceType.NET,
         )
         val (income, expenses) = splitIncomeAndExpenses(cashFlowRows(transactions, filter, aggregator), aggregator)

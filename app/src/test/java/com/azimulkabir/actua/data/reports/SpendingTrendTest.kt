@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.data.reports
 
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
+import com.azimulkabir.actua.data.home.MonthStartRule
 import java.time.LocalDate
 import java.time.YearMonth
 import org.junit.Assert.assertEquals
@@ -93,5 +94,27 @@ class SpendingTrendTest {
         assertEquals(listOf(YearMonth.of(2026, 10), YearMonth.of(2026, 11)), trend.months.map { it.month })
         assertEquals(300L, trend.previousCents)
         assertEquals(200L, trend.currentCents)
+    }
+
+    @Test
+    fun aCustomMonthStartBucketsByPayPeriodLabelledByItsAnchorMonth() {
+        // Today is Nov 11, so with a start day of 15 the current period runs Oct 15 - Nov 14.
+        val trend = SpendingTrendBuilder.build(
+            listOf(
+                tx("a", 20261014, -900), tx("b", 20261015, -300), tx("c", 20261101, -200),
+                tx("d", 20261114, -50), tx("e", 20261115, -700),
+            ),
+            offBudget, income, today, months = 2, monthStart = MonthStartRule(15),
+        )
+        assertEquals(listOf(YearMonth.of(2026, 9), YearMonth.of(2026, 10)), trend.months.map { it.month })
+        assertEquals(listOf(900L, 550L), trend.months.map { it.spentCents })
+        assertEquals(listOf(false, true), trend.months.map { it.current })
+    }
+
+    @Test
+    fun theDefaultMonthStartKeepsCalendarMonths() {
+        val rows = listOf(tx("1", 20261015, -300), tx("2", 20261101, -200))
+        val calendar = SpendingTrendBuilder.build(rows, offBudget, income, today, 2, MonthStartRule.CALENDAR_MONTH)
+        assertEquals(listOf(300L, 200L), calendar.months.map { it.spentCents })
     }
 }
