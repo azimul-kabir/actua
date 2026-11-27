@@ -7,7 +7,7 @@ import com.azimulkabir.actua.R
 /**
  * A widget's corner radius (a supporter extra, Android 12+). RemoteViews can't set a radius, so each step is its own
  * shape drawable: [shape] is a white fill the style's color tints, [gradient] the Gradient accent's white-to-grey fill,
- * and [outline] the Outline style's scrim and border, which follow the device theme by themselves.
+ * and [outline] the stroke drawn over the Outline style's scrim.
  */
 enum class WidgetCornerRadius(@DrawableRes val shape: Int, @DrawableRes val gradient: Int, @DrawableRes val outline: Int) {
     /** The launcher's own widget radius. */

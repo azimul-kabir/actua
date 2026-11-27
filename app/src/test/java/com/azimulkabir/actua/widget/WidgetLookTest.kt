@@ -44,7 +44,7 @@ class WidgetLookTest {
         )
     }
 
-    /** Every style's colors in both themes, Gradient accent and Accent-tinted for every palette and some custom colors. */
+    /** Every supporter look in both themes for every palette and some custom colors. */
     private fun everyStyleColors(): List<Pair<String, WidgetStyleColors>> {
         val schemes = AccentPalette.entries.flatMap { palette ->
             listOf(false, true).map { "$palette dark=$it" to palette.colorScheme(it) }
@@ -52,10 +52,8 @@ class WidgetLookTest {
             listOf(false, true).map { "custom ${CustomAccent.formatHex(seed)} dark=$it" to AccentPalette.Custom.colorScheme(it, seed) }
         }
         return WidgetStyle.entries.filter { it != WidgetStyle.Default }.flatMap { style ->
-            if (style.followsAccent) {
-                schemes.map { (name, scheme) -> "$style $name" to style.colors(night = name.endsWith("true"), accent = scheme)!! }
-            } else {
-                listOf(false, true).map { "$style night=$it" to style.colors(it, null)!! }
+            schemes.map { (name, scheme) ->
+                "$style $name" to style.colors(night = name.endsWith("true"), accent = scheme)!!
             }
         }
     }
@@ -83,8 +81,6 @@ class WidgetLookTest {
         val alphaPercent = ((tint ushr 24) and 0xFF) * 100 / 255
         assertTrue("alpha $alphaPercent", alphaPercent + 1 >= minimumOpacity(colors))
         assertEquals(colors.background and 0xFFFFFF, tint and 0xFFFFFF)
-        val outline = WidgetStyles.backgroundTint(WidgetLook(WidgetStyle.Outline, WidgetCornerRadius.System, 100), WidgetStyle.Outline.colors(false, null)!!)
-        assertEquals("Outline keeps its own colors and only takes an alpha", 0xFFFFFFFF.toInt(), outline)
     }
 
     @Test
@@ -98,11 +94,16 @@ class WidgetLookTest {
     }
 
     @Test
-    fun theOutlineFillMatchesTheTranslucentScrimItsTextIsCheckedOn() {
-        fun fill(dir: String) = listOf(File("src/main/res/$dir/widget_outline_colors.xml"), File("app/src/main/res/$dir/widget_outline_colors.xml"))
-            .first { it.exists() }.readText().let { Regex("""widget_outline_fill">#([0-9A-F]{8})""").find(it)!!.groupValues[1].toLong(16).toInt() }
-        assertEquals(WidgetStyle.Translucent.colors(night = false, accent = null)!!.background, fill("values"))
-        assertEquals(WidgetStyle.Translucent.colors(night = true, accent = null)!!.background, fill("values-night"))
+    fun theOutlineBorderTracksAccentIndependentlyOfTheScrim() {
+        val look = WidgetLook(WidgetStyle.Outline, WidgetCornerRadius.System, 100)
+        for (night in listOf(false, true)) {
+            val teal = WidgetStyle.Outline.colors(night, AccentPalette.Teal.colorScheme(night))!!
+            val violet = WidgetStyle.Outline.colors(night, AccentPalette.Violet.colorScheme(night))!!
+            assertEquals(teal.background, WidgetStyles.backgroundTint(look, teal))
+            assertEquals(teal.background, WidgetStyles.backgroundTint(look, violet))
+            assertEquals(teal.primary, WidgetStyles.outlineTint(look, teal))
+            assertEquals(violet.primary, WidgetStyles.outlineTint(look, violet))
+            assertTrue(WidgetStyles.outlineTint(look, teal) != WidgetStyles.outlineTint(look, violet))
+        }
     }
 }
-

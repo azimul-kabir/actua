@@ -5,7 +5,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.toArgb
 
 /** The colors a non-default [WidgetStyle] gives every widget (ARGB ints, as RemoteViews takes them). */
-class WidgetStyleColors(
+data class WidgetStyleColors(
     val background: Int,
     val onBackground: Int,
     val secondary: Int,
@@ -20,7 +20,7 @@ class WidgetStyleColors(
     /** A category's progress bar once it is overspent, readable on [background]. */
     val danger: Int,
     /**
-     * The color of the usual progress bar. It is [primary] for every style except [WidgetStyle.AccentTinted], which
+     * The color of the usual progress bar. It is [primary] except in [WidgetStyle.AccentTinted], which
      * uses the accent here at the 3:1 that a graphic needs. Chart bars stay on [primary], because the earlier months'
      * softer bars are blended from it and have to remain a clear shape.
      */
@@ -64,14 +64,14 @@ enum class WidgetStyle {
     ;
 
     /** Whether this style is drawn from the app's accent, so a new accent has to reach the widgets. */
-    val followsAccent: Boolean get() = this == AccentTinted || this == GradientAccent
+    val followsAccent: Boolean get() = this != Default
 
     /** Styles that tint the widget's background, which RemoteViews can only do from Android 12. */
     val needsAndroid12: Boolean get() = this == AccentTinted || this == GradientAccent || this == Outline || this == Midnight
 
     /**
      * The colors for this style, or null for [Default], which changes nothing. [night] is the device's
-     * dark mode, which [Translucent] follows; [accent] and [status] are only used by [AccentTinted]. [status] is the
+     * dark mode, which [Translucent] follows. [accent] supplies the foreground for every styled widget. [status] is the
      * Catppuccin theme's warning and overspent colors when one is on, so the progress bars match the app's Budget tab.
      */
     fun colors(night: Boolean, accent: ColorScheme?, status: CatppuccinStatusColors? = null): WidgetStyleColors? = when (this) {
@@ -105,7 +105,7 @@ enum class WidgetStyle {
             progressTrack = 0xFFDFE4FF.toInt(), tile = 0xFFDFE4FF.toInt(),
             warning = LIGHT_WARNING, danger = LIGHT_DANGER,
         )
-        Outline -> Translucent.colors(night, accent, status)
+        Outline -> Translucent.colors(night, null)
         Midnight -> WidgetStyleColors(
             background = 0xFF000000.toInt(), onBackground = 0xFFF2EEF7.toInt(), secondary = 0xFFB9B3C2.toInt(),
             primary = 0xFFC9B8FF.toInt(), button = 0xFF2A2238.toInt(), buttonText = 0xFFC9B8FF.toInt(),
@@ -153,12 +153,34 @@ enum class WidgetStyle {
                 danger = dangerTone,
             )
         }
+    }?.let { colors ->
+        if (accent == null || this == AccentTinted) colors else colors.withForegroundAccent(accent.primary.toArgb())
     }
 
     companion object {
         fun fromName(name: String?): WidgetStyle = entries.firstOrNull { it.name == name } ?: Default
     }
 }
+
+/** Tune the accent against the look's surfaces, including translucent scrims over light or dark wallpaper. */
+private fun WidgetStyleColors.withForegroundAccent(seed: Int): WidgetStyleColors {
+    val backgrounds = listOf(background, backgroundEnd).distinct().flatMap { surface ->
+        listOf(0xFF000000.toInt(), 0xFFFFFFFF.toInt()).map { overWithOpacity(surface, 100, it) }
+    }.distinct()
+    val tiles = backgrounds.map { overWithOpacity(tile, 100, it) }
+    val buttons = backgrounds.map { overWithOpacity(button, 100, it) }
+    val values = accentTone(seed, onBackground, backgrounds + tiles)
+    return copy(
+        primary = values,
+        accent = values,
+        buttonText = accentTone(seed, buttonText, buttons),
+    )
+}
+
+private fun accentTone(seed: Int, fallback: Int, surfaces: List<Int>): Int =
+    (10 downTo 0).asSequence().map { blendArgb(seed, fallback, it / 10f) }
+        .firstOrNull { tone -> surfaces.all { contrast(tone, it) >= MIN_TEXT_CONTRAST } }
+        ?: fallback
 
 /**
  * How far a [WidgetStyle.GradientAccent] background darkens from corner to corner: the grey its drawable ends on, out of

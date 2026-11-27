@@ -343,8 +343,8 @@ internal fun WidgetPreview(
     val look = WidgetLook(style, radius, opacity)
     val tint = colors?.let { WidgetStyles.backgroundTint(look, it) }
     val alpha = tint?.let { ((it ushr 24) and 0xFF) / 255f } ?: 1f
-    // The tint carries the opacity (and, except for Outline, the style's own alpha), so the brush colors are opaque.
-    fun brushColor(argb: Int) = if (style == WidgetStyle.Outline) Color(argb) else Color(argb).copy(alpha = 1f)
+    // The tint carries the opacity and the style's own alpha, so the brush colors are opaque.
+    fun brushColor(argb: Int) = Color(argb).copy(alpha = 1f)
     val background = colors?.let { brushColor(it.background) } ?: colorResource(R.color.widget_background)
     val backgroundEnd = colors?.let { brushColor(it.backgroundEnd) } ?: background
     val corner = when (radius) {
@@ -353,7 +353,7 @@ internal fun WidgetPreview(
         WidgetCornerRadius.Medium -> 8.dp
         WidgetCornerRadius.Large -> 16.dp
     }
-    val outline = if (style == WidgetStyle.Outline) colorResource(R.color.widget_outline_stroke) else null
+    val outline = colors?.takeIf { style == WidgetStyle.Outline }?.let { Color(WidgetStyles.outlineTint(look, it)) }
     val onBackground = colors?.let { Color(it.onBackground) } ?: colorResource(R.color.widget_on_background)
     val primary = colors?.let { Color(it.primary) } ?: colorResource(R.color.widget_primary)
     Box(
