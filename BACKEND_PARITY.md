@@ -565,7 +565,6 @@ lists what was ported, what was only checked by reading, and what is not ported.
   with unknown future widget-type disclosure; budgets created in Actua, and existing Actua-created
   budgets without a dashboard after syncing, get Actual's default reports dashboard
 
-
 - Opt-in foreground-only location-aware payees: automatic picker lookup after permission using
   a recent valid cached fix or concurrent enabled Android providers; distance-labelled 500-metre
   ranking; inline closest-payee selection and per-payee Save actions; eligible new-transaction
