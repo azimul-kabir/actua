@@ -21,6 +21,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -109,6 +111,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -2480,95 +2483,110 @@ private fun CategoryRow(
         if (category.balanceCents < 0L) R.string.budget_cover_overspending else R.string.budget_move_money_plain,
     )
 
-    fun Modifier.categoryCell(label: String, action: () -> Unit): Modifier =
-        heightIn(min = TableRowMinHeight).combinedClickable(
-            onClickLabel = label,
-            onLongClickLabel = actionsLabel,
-            onClick = action,
-            onLongClick = onLongClick,
-        )
-
     TableGroupedItem(flat = LocalTableStyle.current == TableStyle.Flat, position = position, dividerInset = TableRowPadding) {
-        Column(
-            modifier = Modifier.fillMaxWidth().heightIn(min = TableRowMinHeight)
-                .combinedClickable(
-                    onClickLabel = detailsLabel,
-                    onLongClickLabel = actionsLabel,
-                    onClick = onOpenDetails,
-                    onLongClick = onLongClick,
-                )
-                .padding(horizontal = TableRowPadding),
-            verticalArrangement = Arrangement.Center,
-        ) {
-            val name = @Composable { modifier: Modifier ->
-                Row(modifier = modifier.heightIn(min = TableRowMinHeight), verticalAlignment = Alignment.CenterVertically) {
-                    CategoryStatusDot(category.statusState(scheduleFunding), modifier = Modifier.padding(end = 6.dp))
-                    Text(if (category.hidden) stringResource(R.string.budget_hidden_name, category.name) else category.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                        maxLines = if (stacked) 1 else 2, overflow = TextOverflow.Ellipsis)
+        CategoryTableTarget(Modifier.fillMaxWidth(), detailsLabel, actionsLabel, onOpenDetails, onLongClick, feedbackOnRow = true) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = TableRowPadding),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                val name = @Composable { modifier: Modifier ->
+                    Row(modifier = modifier.heightIn(min = TableRowMinHeight), verticalAlignment = Alignment.CenterVertically) {
+                        CategoryStatusDot(category.statusState(scheduleFunding), modifier = Modifier.padding(end = 6.dp))
+                        Text(if (category.hidden) stringResource(R.string.budget_hidden_name, category.name) else category.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                            maxLines = if (stacked) 1 else 2, overflow = TextOverflow.Ellipsis)
+                    }
                 }
-            }
-            val amounts = @Composable { cell: (Int) -> Modifier ->
-                Box(cell(0).categoryCell(editLabel, onEditBudget), contentAlignment = Alignment.CenterEnd) {
-                    CategoryAmount(category.assignedCents, Modifier.fillMaxWidth(), hideDecimalPlaces)
-                }
-                if (showSpent) {
-                    Box(cell(1).categoryCell(spentLabel, onOpenSpending), contentAlignment = Alignment.CenterEnd) {
-                        CategoryAmount(
-                            -category.spentCents,
-                            Modifier.fillMaxWidth(),
+                val amounts = @Composable { cell: (Int) -> Modifier ->
+                    CategoryTableTarget(cell(0), editLabel, actionsLabel, onEditBudget, onLongClick) { feedback ->
+                        CategoryAmount(category.assignedCents, feedback, hideDecimalPlaces)
+                    }
+                    if (showSpent) {
+                        CategoryTableTarget(cell(1), spentLabel, actionsLabel, onOpenSpending, onLongClick) { feedback ->
+                            CategoryAmount(
+                                -category.spentCents,
+                                feedback,
+                                hideDecimalPlaces,
+                                muted = category.spentCents == 0L,
+                            )
+                        }
+                    }
+                    CategoryTableTarget(cell(2), balanceLabel, actionsLabel, onMoveMoney, onLongClick) { feedback ->
+                        BalancePill(
+                            category.balanceCents,
                             hideDecimalPlaces,
-                            muted = category.spentCents == 0L,
+                            status = category.statusState(scheduleFunding),
+                            colorByStatus = LocalCategoryStatusColors.current?.colorBudgetedAmounts == true,
+                            modifier = Modifier.padding(start = TableAmountGap).overhangEnd(CategoryPillPadding),
+                            textStyle = MaterialTheme.typography.bodyMedium.asTableAmount(),
+                            fontWeight = FontWeight.Bold,
+                            horizontalPadding = CategoryPillPadding,
+                            verticalPadding = 3.dp,
+                            shape = TablePillShape,
+                            tableAmount = true,
+                            targetBadge = category.targetFunding(scheduleFunding),
+                            pressFeedback = feedback,
                         )
                     }
                 }
-                Box(
-                    modifier = cell(2).categoryCell(balanceLabel, onMoveMoney).padding(start = TableAmountGap),
-                    contentAlignment = Alignment.CenterEnd,
-                ) {
-                    BalancePill(
-                        category.balanceCents,
-                        hideDecimalPlaces,
-                        status = category.statusState(scheduleFunding),
-                        colorByStatus = LocalCategoryStatusColors.current?.colorBudgetedAmounts == true,
-                        modifier = Modifier.overhangEnd(CategoryPillPadding),
-                        textStyle = MaterialTheme.typography.bodyMedium.asTableAmount(),
-                        fontWeight = FontWeight.Bold,
-                        horizontalPadding = CategoryPillPadding,
-                        verticalPadding = 3.dp,
-                        shape = TablePillShape,
-                        tableAmount = true,
-                        targetBadge = category.targetFunding(scheduleFunding),
-                    )
-                }
-            }
-            if (stacked) {
-                name(Modifier.fillMaxWidth())
-                StackedTableAmounts {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        amounts { column -> Modifier.weight(1f) }
+                if (stacked) {
+                    name(Modifier.fillMaxWidth())
+                    StackedTableAmounts {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            amounts { column -> Modifier.weight(1f) }
+                        }
                     }
-                }
-            } else {
-                val layout = LocalTableLayout.current
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    name(Modifier.weight(1f))
-                    amounts { column ->
-                        when {
-                            layout == null -> Modifier.weight(1f)
-                            column == 0 -> Modifier.width(layout.budgeted)
-                            column == 1 -> Modifier.width(layout.spent)
-                            else -> Modifier.width(layout.balance)
+                } else {
+                    val layout = LocalTableLayout.current
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        name(Modifier.weight(1f))
+                        amounts { column ->
+                            when {
+                                layout == null -> Modifier.weight(1f)
+                                column == 0 -> Modifier.width(layout.budgeted)
+                                column == 1 -> Modifier.width(layout.spent)
+                                else -> Modifier.width(layout.balance)
+                            }
                         }
                     }
                 }
-            }
-            AnimatedVisibility(visible = showProgressBar && category.showsProgressBar) {
-                CategoryProgressBar(category, scheduleFunding,
-                    Modifier.fillMaxWidth().padding(bottom = TableProgressBarGap).height(TableProgressBarHeight))
+                AnimatedVisibility(visible = showProgressBar && category.showsProgressBar) {
+                    CategoryProgressBar(category, scheduleFunding,
+                        Modifier.fillMaxWidth().padding(bottom = TableProgressBarGap).height(TableProgressBarHeight))
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun CategoryTableTarget(
+    modifier: Modifier,
+    clickLabel: String,
+    longClickLabel: String,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    feedbackOnRow: Boolean = false,
+    content: @Composable (feedback: Modifier) -> Unit,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Box(
+        modifier.heightIn(min = TableRowMinHeight).combinedClickable(
+            interactionSource = interactionSource,
+            indication = null,
+            onClickLabel = clickLabel,
+            onLongClickLabel = longClickLabel,
+            onClick = onClick,
+            onLongClick = onLongClick,
+        ),
+        contentAlignment = Alignment.CenterEnd,
+    ) {
+        // The press position is relative to the full target. Center the ripple on the visible value.
+        val feedback = Modifier.clip(MaterialTheme.shapes.small)
+            .indication(interactionSource, ripple(bounded = feedbackOnRow))
+        content(if (feedbackOnRow) Modifier else feedback)
+        if (feedbackOnRow) Box(Modifier.matchParentSize().then(feedback))
     }
 }
 
@@ -2937,7 +2955,7 @@ private fun CategoryAmount(amount: Long, modifier: Modifier, hideDecimalPlaces: 
         fontWeight = FontWeight.Normal,
         color = if (muted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
         else MaterialTheme.colorScheme.onSurface,
-        textAlign = TextAlign.End, modifier = modifier.padding(start = TableAmountGap),
+        textAlign = TextAlign.End, modifier = Modifier.padding(start = TableAmountGap).then(modifier),
     )
 }
 
@@ -2999,13 +3017,14 @@ internal fun BalancePill(
     targetFunding: TargetFunding? = null,
     /** The table view's goal marker: a small badge on the pill's top-left corner, taking no layout width. */
     targetBadge: TargetFunding? = null,
+    pressFeedback: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
     val statusColor = categoryStatusColor(balancePillStatus(amount, status, colorByStatus))
     val tone = balancePillTone(amount, status, colorByStatus)
     val filled = LocalShowBalancePills.current
     val pill = @Composable { pillModifier: Modifier -> Surface(
-        modifier = pillModifier,
+        modifier = pillModifier.then(pressFeedback),
         shape = shape,
         color = when {
             !LocalShowBalancePills.current -> Color.Transparent
