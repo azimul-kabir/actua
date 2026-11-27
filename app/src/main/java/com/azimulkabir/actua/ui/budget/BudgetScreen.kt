@@ -17,6 +17,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -111,7 +112,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -2484,7 +2484,7 @@ private fun CategoryRow(
     )
 
     TableGroupedItem(flat = LocalTableStyle.current == TableStyle.Flat, position = position, dividerInset = TableRowPadding) {
-        CategoryTableTarget(Modifier.fillMaxWidth(), detailsLabel, actionsLabel, onOpenDetails, onLongClick, feedbackOnRow = true) {
+        CategoryTableTarget(Modifier.fillMaxWidth(), detailsLabel, actionsLabel, onOpenDetails, onLongClick) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = TableRowPadding),
                 verticalArrangement = Arrangement.Center,
@@ -2499,20 +2499,20 @@ private fun CategoryRow(
                     }
                 }
                 val amounts = @Composable { cell: (Int) -> Modifier ->
-                    CategoryTableTarget(cell(0), editLabel, actionsLabel, onEditBudget, onLongClick) { feedback ->
-                        CategoryAmount(category.assignedCents, feedback, hideDecimalPlaces)
+                    CategoryTableTarget(cell(0), editLabel, actionsLabel, onEditBudget, onLongClick) {
+                        CategoryAmount(category.assignedCents, Modifier.fillMaxWidth(), hideDecimalPlaces)
                     }
                     if (showSpent) {
-                        CategoryTableTarget(cell(1), spentLabel, actionsLabel, onOpenSpending, onLongClick) { feedback ->
+                        CategoryTableTarget(cell(1), spentLabel, actionsLabel, onOpenSpending, onLongClick) {
                             CategoryAmount(
                                 -category.spentCents,
-                                feedback,
+                                Modifier.fillMaxWidth(),
                                 hideDecimalPlaces,
                                 muted = category.spentCents == 0L,
                             )
                         }
                     }
-                    CategoryTableTarget(cell(2), balanceLabel, actionsLabel, onMoveMoney, onLongClick) { feedback ->
+                    CategoryTableTarget(cell(2), balanceLabel, actionsLabel, onMoveMoney, onLongClick) {
                         BalancePill(
                             category.balanceCents,
                             hideDecimalPlaces,
@@ -2526,7 +2526,6 @@ private fun CategoryRow(
                             shape = TablePillShape,
                             tableAmount = true,
                             targetBadge = category.targetFunding(scheduleFunding),
-                            pressFeedback = feedback,
                         )
                     }
                 }
@@ -2567,8 +2566,7 @@ private fun CategoryTableTarget(
     longClickLabel: String,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
-    feedbackOnRow: Boolean = false,
-    content: @Composable (feedback: Modifier) -> Unit,
+    content: @Composable () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     Box(
@@ -2582,11 +2580,12 @@ private fun CategoryTableTarget(
         ),
         contentAlignment = Alignment.CenterEnd,
     ) {
-        // The press position is relative to the full target. Center the ripple on the visible value.
-        val feedback = Modifier.clip(MaterialTheme.shapes.small)
-            .indication(interactionSource, ripple(bounded = feedbackOnRow))
-        content(if (feedbackOnRow) Modifier else feedback)
-        if (feedbackOnRow) Box(Modifier.matchParentSize().then(feedback))
+        content()
+        // Match the To Budget ripple without clipping the balance pill's overhang.
+        Box(
+            Modifier.matchParentSize().clip(TablePillShape)
+                .indication(interactionSource, LocalIndication.current),
+        )
     }
 }
 
@@ -2955,7 +2954,7 @@ private fun CategoryAmount(amount: Long, modifier: Modifier, hideDecimalPlaces: 
         fontWeight = FontWeight.Normal,
         color = if (muted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
         else MaterialTheme.colorScheme.onSurface,
-        textAlign = TextAlign.End, modifier = Modifier.padding(start = TableAmountGap).then(modifier),
+        textAlign = TextAlign.End, modifier = modifier.padding(start = TableAmountGap),
     )
 }
 
@@ -3017,14 +3016,13 @@ internal fun BalancePill(
     targetFunding: TargetFunding? = null,
     /** The table view's goal marker: a small badge on the pill's top-left corner, taking no layout width. */
     targetBadge: TargetFunding? = null,
-    pressFeedback: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
     val statusColor = categoryStatusColor(balancePillStatus(amount, status, colorByStatus))
     val tone = balancePillTone(amount, status, colorByStatus)
     val filled = LocalShowBalancePills.current
     val pill = @Composable { pillModifier: Modifier -> Surface(
-        modifier = pillModifier.then(pressFeedback),
+        modifier = pillModifier,
         shape = shape,
         color = when {
             !LocalShowBalancePills.current -> Color.Transparent
