@@ -15,7 +15,9 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -38,6 +40,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -128,6 +131,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
@@ -980,7 +984,18 @@ fun BudgetScreen(
             },
         )
     }
-    categoryDetails?.let { (group, category) ->
+    val detailsDirection = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1 else -1
+    AnimatedContent(
+        targetState = categoryDetails,
+        modifier = Modifier.fillMaxSize(),
+        contentKey = { it?.second?.categoryKey },
+        transitionSpec = {
+            (fadeIn(tween(220)) + slideInHorizontally(tween(300)) { detailsDirection * it / 5 }) togetherWith
+                (fadeOut(tween(140)) + slideOutHorizontally(tween(220)) { detailsDirection * it / 10 })
+        },
+        label = "Category details motion",
+    ) { shownDetails ->
+        val (group, category) = shownDetails ?: return@AnimatedContent
         // Otherwise this filters and sorts the whole transaction list on every recomposition
         // of BudgetScreen while the details sheet is open, to keep only the top 3.
         val recentCategoryTransactions = remember(allTransactions, category.name) {
@@ -988,6 +1003,7 @@ fun BudgetScreen(
         }
         CategoryDetailsScreen(
             modifier = modifier,
+            active = categoryDetails?.second?.categoryKey == category.categoryKey,
             category = category,
             month = month,
             hideDecimalPlaces = hideDecimalPlaces,
@@ -3380,6 +3396,7 @@ private data class MoveEndpoint(
 @Composable
 private fun CategoryDetailsScreen(
     modifier: Modifier = Modifier,
+    active: Boolean,
     category: BudgetCategory,
     month: String,
     hideDecimalPlaces: Boolean,
@@ -3411,7 +3428,7 @@ private fun CategoryDetailsScreen(
     var deleteConfirmOpen by remember(category) { mutableStateOf(false) }
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
     var overflowOpen by remember(category) { mutableStateOf(false) }
-    BackHandler(onBack = onDismiss)
+    BackHandler(enabled = active, onBack = onDismiss)
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {
             ActuaScreenHeader(title = category.name, onBack = onDismiss) {

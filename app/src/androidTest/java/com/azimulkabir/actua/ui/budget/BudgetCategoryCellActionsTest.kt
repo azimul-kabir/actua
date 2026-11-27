@@ -14,6 +14,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -25,6 +26,7 @@ import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -102,6 +104,32 @@ class BudgetCategoryCellActionsTest {
         showTable()
         compose.onNodeWithText(category.name, useUnmergedTree = true).performTouchInput { click() }
         compose.runOnIdle { assertEquals(category.id, details) }
+    }
+
+    @Test fun detailsSlidesInAndOut() {
+        showTable()
+        val back = compose.onNodeWithContentDescription(context.getString(R.string.fs_back))
+        val name = compose.onNodeWithText(category.name, useUnmergedTree = true)
+        name.performTouchInput { click() }
+        val settledLeft = back.fetchSemanticsNode().boundsInRoot.left
+        compose.mainClock.autoAdvance = false
+        try {
+            back.performClick()
+            compose.mainClock.advanceTimeByFrame()
+            compose.mainClock.advanceTimeBy(80)
+            assertTrue(back.fetchSemanticsNode().boundsInRoot.left > settledLeft)
+            compose.mainClock.advanceTimeBy(350)
+            back.assertDoesNotExist()
+
+            name.performTouchInput { click() }
+            compose.mainClock.advanceTimeByFrame()
+            compose.mainClock.advanceTimeBy(80)
+            val enteringLeft = back.fetchSemanticsNode().boundsInRoot.left
+            compose.mainClock.advanceTimeBy(350)
+            assertTrue(enteringLeft > back.fetchSemanticsNode().boundsInRoot.left)
+        } finally {
+            compose.mainClock.autoAdvance = true
+        }
     }
 
     @Test fun blankRowSpaceOpensDetails() {
