@@ -6,6 +6,7 @@ import android.graphics.BlendMode
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.os.Build
+import android.view.View
 import android.widget.RemoteViews
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -146,23 +147,36 @@ internal object WidgetStyles {
 
     /**
      * The root background for [look]: a white shape the style's color tints by multiplying ([backgroundTint]), the
-     * Gradient accent's white-to-grey one, or the Outline style's own scrim and border.
+     * or the Gradient accent's white-to-grey one.
      */
     private fun backgroundFor(look: WidgetLook): Int = when (look.style) {
         WidgetStyle.GradientAccent -> look.radius.gradient
-        WidgetStyle.Outline -> look.radius.outline
         else -> look.radius.shape
     }
 
     /**
      * What [backgroundFor] is multiplied by: the style's background with its alpha scaled to the look's opacity, which is
-     * never below what keeps the text readable. The Outline drawable has its own colors, so only its alpha is set.
+     * never below what keeps the text readable.
      */
     internal fun backgroundTint(look: WidgetLook, colors: WidgetStyleColors): Int {
         val opacity = look.opacity.coerceAtLeast(minimumOpacity(colors))
-        val base = if (look.style == WidgetStyle.Outline) 0xFFFFFFFF.toInt() else colors.background
-        val alpha = (((base ushr 24) and 0xFF) * opacity / 100f).toInt().coerceIn(0, 255)
+        val base = colors.background
+        val alpha = ((base ushr 24) * opacity / 100).coerceIn(0, 255)
         return (alpha shl 24) or (base and 0xFFFFFF)
+    }
+
+    internal fun outlineTint(look: WidgetLook, colors: WidgetStyleColors): Int {
+        val opacity = look.opacity.coerceAtLeast(minimumOpacity(colors))
+        return ((255 * opacity / 100) shl 24) or (colors.primary and 0xFFFFFF)
+    }
+
+    private fun showOutline(views: RemoteViews, look: WidgetLook): Boolean {
+        val visible = look.style == WidgetStyle.Outline
+        views.setViewVisibility(R.id.widget_outline_overlay, if (visible) View.VISIBLE else View.GONE)
+        if (visible) {
+            views.setInt(R.id.widget_outline_overlay, "setBackgroundResource", look.radius.outline)
+        }
+        return visible
     }
 
     /** Android 14+: each color is a (light, dark) pair resolved by the launcher. */
@@ -178,6 +192,9 @@ internal object WidgetStyles {
         views.setInt(R.id.widget_root, "setBackgroundResource", backgroundFor(look))
         views.setBlendMode(R.id.widget_root, "setBackgroundTintBlendMode", BlendMode.MULTIPLY)
         tint(R.id.widget_root, "setBackgroundTintList", backgroundTint(look, light), backgroundTint(look, dark))
+        if (showOutline(views, look)) {
+            tint(R.id.widget_outline_overlay, "setBackgroundTintList", outlineTint(look, light), outlineTint(look, dark))
+        }
         buttonIds.forEach {
             views.setInt(it, "setBackgroundResource", R.drawable.widget_button_background)
             tint(it, "setBackgroundTintList", light.button, dark.button)
@@ -202,6 +219,9 @@ internal object WidgetStyles {
         views.setInt(R.id.widget_root, "setBackgroundResource", backgroundFor(look))
         views.setBlendMode(R.id.widget_root, "setBackgroundTintBlendMode", BlendMode.MULTIPLY)
         tint(views, R.id.widget_root, "setBackgroundTintList", backgroundTint(look, colors))
+        if (showOutline(views, look)) {
+            tint(views, R.id.widget_outline_overlay, "setBackgroundTintList", outlineTint(look, colors))
+        }
         buttonIds.forEach {
             views.setInt(it, "setBackgroundResource", R.drawable.widget_button_background)
             tint(views, it, "setBackgroundTintList", colors.button)

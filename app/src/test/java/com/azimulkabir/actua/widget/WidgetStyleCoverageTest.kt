@@ -91,6 +91,15 @@ class WidgetStyleCoverageTest {
     }
 
     @Test
+    fun everyStyledWidgetHasTheOutlineOverlay() {
+        val styled = widgetLayouts().filter { it.name.endsWith("_styled.xml") }
+        assertTrue(styled.isNotEmpty())
+        styled.forEach { layout ->
+            assertTrue(layout.name, layout.readText().contains("@layout/widget_outline_overlay"))
+        }
+    }
+
+    @Test
     fun aNewTextViewThatIsInNoStyleListIsReportedWithItsLayoutAndId() {
         val layout = """
             <FrameLayout xmlns:android="$android">
