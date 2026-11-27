@@ -29,6 +29,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.R
@@ -97,6 +98,7 @@ internal fun CapturePatternSettings(
     onChange: (List<FinancialCapturePattern>) -> Unit,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     val currentPatterns by rememberUpdatedState(patterns)
     val update by rememberUpdatedState(onChange)
@@ -119,18 +121,18 @@ internal fun CapturePatternSettings(
             result.onSuccess { imported ->
                 val combined = (currentPatterns + imported).distinct()
                 if (combined.size > MAX_CAPTURE_PATTERNS) {
-                    notice = context.getString(R.string.capture_pattern_limit, MAX_CAPTURE_PATTERNS)
+                    notice = resources.getString(R.string.capture_pattern_limit, MAX_CAPTURE_PATTERNS)
                 } else {
                     update(combined)
-                    notice = context.getString(R.string.capture_patterns_imported)
+                    notice = resources.getString(R.string.capture_patterns_imported)
                 }
             }.onFailure { error ->
                 notice = if (error is InvalidCapturePattern) {
-                    context.getString(
+                    resources.getString(
                         R.string.capture_pattern_import_rule_error,
-                        error.index + 1, context.getString(error.problem.labelRes),
+                        error.index + 1, resources.getString(error.problem.labelRes),
                     )
-                } else context.getString(R.string.capture_pattern_import_error)
+                } else resources.getString(R.string.capture_pattern_import_error)
             }
         }
     }
@@ -146,7 +148,7 @@ internal fun CapturePatternSettings(
                         ?: error("Cannot write capture patterns")
                 }
             }
-            notice = context.getString(
+            notice = resources.getString(
                 if (result.isSuccess) R.string.capture_patterns_exported else R.string.capture_pattern_export_error,
             )
             transferring = false
