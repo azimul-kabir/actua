@@ -15,6 +15,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed the Spending trend and Income and spending widgets ignoring the custom month start day ([#1876](https://github.com/azimul-kabir/actua/pull/1876))
 - Fixed a crash while scrolling the Budget tab when two groups or categories share a name ([#1858](https://github.com/azimul-kabir/actua/pull/1858))
 - Fixed monthly custom reports and Income vs expenses splitting bars by calendar month when a custom month start day is set ([#1868](https://github.com/azimul-kabir/actua/pull/1868))
 

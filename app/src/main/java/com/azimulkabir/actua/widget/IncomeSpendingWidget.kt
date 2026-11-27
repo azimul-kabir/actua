@@ -6,6 +6,7 @@ import android.view.View
 import android.widget.RemoteViews
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
+import com.azimulkabir.actua.data.preferences.HomePreferences
 import com.azimulkabir.actua.data.reports.IncomeSpending
 import com.azimulkabir.actua.data.reports.IncomeSpendingMonth
 import java.time.YearMonth
@@ -36,6 +37,9 @@ internal object IncomeSpendingWidget {
         val repository = sharedRepository ?: ActuaRepository(context)
         val data = try {
             loadBudgetFormats(repository)
+            // Pay periods follow the month start day chosen on this device, as Home and Reports do.
+            repository.reportMonthStart = HomePreferences(context)
+                .monthStartRule(repository.activeMetadata?.id ?: "no-budget")
             val using = repository.isUsingActualBudget
             IncomeSpendingData(using, if (using) repository.incomeSpending() else null)
         } finally {

@@ -3,6 +3,8 @@ package com.azimulkabir.actua.data.reports
 import com.azimulkabir.actua.data.budget.model.ActualAccount
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
+import com.azimulkabir.actua.data.home.HomeSummaryPeriod
+import com.azimulkabir.actua.data.home.MonthStartRule
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -43,9 +45,21 @@ object IncomeSpendingBuilder {
         groups: List<ActualCategoryGroup>,
         today: LocalDate,
         months: Int = DEFAULT_MONTHS,
+        monthStart: MonthStartRule = MonthStartRule.CALENDAR_MONTH,
     ): IncomeSpending {
         require(months >= 1) { "A series needs at least one month" }
         val aggregator = ReportAggregator(accounts, groups)
+        if (!monthStart.isCalendarMonth) {
+            // A custom month start: each bar is a pay period, labelled by the month it starts in.
+            val current = HomeSummaryPeriod.containing(today, monthStart)
+            return IncomeSpending(
+                (months - 1 downTo 0).map { back ->
+                    val period = current.shiftedByMonths(monthStart, -back.toLong())
+                    val (income, spent) = SavedReportEngine.cashFlowBetween(transactions, period.start, period.endInclusive, aggregator)
+                    IncomeSpendingMonth(period.anchorMonth(monthStart), income, spent, current = back == 0)
+                },
+            )
+        }
         val currentMonth = YearMonth.from(today)
         return IncomeSpending(
             (months - 1 downTo 0).map { back ->

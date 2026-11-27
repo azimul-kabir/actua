@@ -1,6 +1,8 @@
 package com.azimulkabir.actua.data.reports
 
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
+import com.azimulkabir.actua.data.home.HomeSummaryPeriod
+import com.azimulkabir.actua.data.home.MonthStartRule
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -26,7 +28,8 @@ object SpendingTrendBuilder {
     /**
      * The spending trend for the [months] months up to and including the month of [today]. It counts
      * spending exactly as the Spending dashboard widget does ([CoreReportEngine.spendingTransactions] and
-     * [CoreReportEngine.spentInMonth]), so the widget and Reports always agree. The current month is the
+     * [CoreReportEngine.spentInMonth]), so the widget and Reports always agree. With a custom [monthStart] each
+     * "month" is a pay period. The current month is the
      * spending so far, and is flagged so the widget can highlight it.
      */
     fun build(
@@ -35,9 +38,20 @@ object SpendingTrendBuilder {
         incomeCategoryIds: Set<String>,
         today: LocalDate,
         months: Int = DEFAULT_MONTHS,
+        monthStart: MonthStartRule = MonthStartRule.CALENDAR_MONTH,
     ): SpendingTrend {
         require(months >= 1) { "A trend needs at least one month" }
         val spending = CoreReportEngine.spendingTransactions(transactions, offBudgetAccountIds, incomeCategoryIds)
+        if (!monthStart.isCalendarMonth) {
+            // A custom month start: each bar is a pay period, labelled by the month it starts in.
+            val current = HomeSummaryPeriod.containing(today, monthStart)
+            return SpendingTrend(
+                (months - 1 downTo 0).map { back ->
+                    val period = current.shiftedByMonths(monthStart, -back.toLong())
+                    SpendingTrendMonth(period.anchorMonth(monthStart), CoreReportEngine.spentInPeriod(spending, period), current = back == 0)
+                },
+            )
+        }
         val currentMonth = YearMonth.from(today)
         return SpendingTrend(
             (months - 1 downTo 0).map { back ->

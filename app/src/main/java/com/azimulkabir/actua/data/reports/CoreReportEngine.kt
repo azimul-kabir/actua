@@ -1249,6 +1249,10 @@ object CoreReportEngine {
         }
     }
 
+    /** Spending, as positive integer cents, on the days of [period] (a pay period under a custom month start). */
+    fun spentInPeriod(rows: List<ActualTransaction>, period: com.azimulkabir.actua.data.home.HomeSummaryPeriod): Long =
+        -rows.sumOf { if (it.date in period) it.amountCents else 0L }
+
     private fun spending(
         id: String, name: String, meta: JSONObject?, transactions: List<ActualTransaction>,
         context: RuleContext, incomeCategoryIds: Set<String>,

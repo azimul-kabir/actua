@@ -5,6 +5,7 @@ import com.azimulkabir.actua.data.budget.model.ActualAccountType
 import com.azimulkabir.actua.data.budget.model.ActualCategory
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
+import com.azimulkabir.actua.data.home.MonthStartRule
 import java.time.LocalDate
 import java.time.YearMonth
 import org.junit.Assert.assertEquals
@@ -130,6 +131,23 @@ class IncomeSpendingTest {
         val series = series(listOf(tx("1", 20261015, -300), tx("2", 20261101, -200)), months = 1)
         assertEquals(listOf(YearMonth.of(2026, 11)), series.months.map { it.month })
         assertEquals(200L, series.months.single().spentCents)
+    }
+
+    @Test
+    fun aCustomMonthStartBucketsIncomeAndSpendingByPayPeriod() {
+        // Today is Nov 11, so with a start day of 15 the current period runs Oct 15 - Nov 14.
+        val series = IncomeSpendingBuilder.build(
+            listOf(
+                tx("a", 20261014, -900), tx("b", 20261015, -300), tx("c", 20261101, -200),
+                tx("pay", 20261102, 500_000, category = "salary"), tx("old", 20261010, 400_000, category = "salary"),
+                tx("later", 20261115, -700),
+            ),
+            accounts, groups, today, months = 2, monthStart = MonthStartRule(15),
+        )
+        assertEquals(listOf(YearMonth.of(2026, 9), YearMonth.of(2026, 10)), series.months.map { it.month })
+        assertEquals(listOf(400_000L, 500_000L), series.months.map { it.incomeCents })
+        assertEquals(listOf(900L, 500L), series.months.map { it.spentCents })
+        assertTrue(series.months.last().current)
     }
 
     private fun account(id: String, offBudget: Boolean) = ActualAccount(id, id, ActualAccountType.CHECKING, offBudget, false, 0.0, 0L)
