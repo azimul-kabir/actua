@@ -25,6 +25,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
@@ -39,6 +40,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.layout.padding
@@ -115,6 +117,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -2125,7 +2128,8 @@ private val CategoryPillPadding = 3.dp
 
 /** The table's balance pills: only slightly rounded, so the amount needs little side padding to clear the corners. */
 private val TablePillShape = RoundedCornerShape(6.dp)
-private val AmountFeedbackVerticalInset = 7.dp
+private val AmountFeedbackHeight = 34.dp
+private val AmountFeedbackLeadingPadding = 6.dp
 
 /**
  * Lets a balance pill reach [overhang] past its column's end, so its amount still lines up with the
@@ -2135,7 +2139,7 @@ private fun Modifier.overhangEnd(overhang: androidx.compose.ui.unit.Dp) = layout
     val extra = overhang.roundToPx()
     val maxWidth = if (constraints.hasBoundedWidth) constraints.maxWidth + extra else constraints.maxWidth
     val placeable = measurable.measure(constraints.copy(minWidth = 0, maxWidth = maxWidth))
-    val width = if (constraints.hasBoundedWidth) constraints.maxWidth else placeable.width
+    val width = (placeable.width - extra).coerceIn(constraints.minWidth, constraints.maxWidth)
     layout(width, placeable.height) { placeable.place(width + extra - placeable.width, 0) }
 }
 
@@ -2501,7 +2505,7 @@ private fun CategoryRow(
     )
 
     TableGroupedItem(flat = LocalTableStyle.current == TableStyle.Flat, position = position, dividerInset = TableRowPadding) {
-        CategoryTableTarget(Modifier.fillMaxWidth(), detailsLabel, actionsLabel, onOpenDetails, onLongClick) {
+        CategoryTableTarget(Modifier.fillMaxWidth(), detailsLabel, actionsLabel, onOpenDetails, onLongClick, rowFeedback = true) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = TableRowPadding),
                 verticalArrangement = Arrangement.Center,
@@ -2516,44 +2520,41 @@ private fun CategoryRow(
                     }
                 }
                 val amounts = @Composable { cell: (Int) -> Modifier ->
-                    CategoryTableTarget(
-                        cell(0), editLabel, actionsLabel, onEditBudget, onLongClick,
-                        feedbackVerticalInset = AmountFeedbackVerticalInset,
-                    ) {
-                        CategoryAmount(category.assignedCents, Modifier.fillMaxWidth(), hideDecimalPlaces)
-                    }
-                    if (showSpent) {
-                        CategoryTableTarget(
-                            cell(1), spentLabel, actionsLabel, onOpenSpending, onLongClick,
-                            feedbackVerticalInset = AmountFeedbackVerticalInset,
-                        ) {
-                            CategoryAmount(
-                                -category.spentCents,
-                                Modifier.fillMaxWidth(),
-                                hideDecimalPlaces,
-                                muted = category.spentCents == 0L,
-                            )
+                    CategoryTableTarget(cell(0), editLabel, actionsLabel, onEditBudget, onLongClick) { interaction ->
+                        AmountPressFeedback(interaction, Modifier.padding(start = TableAmountGap)) {
+                            CategoryAmount(category.assignedCents, hideDecimalPlaces)
                         }
                     }
-                    CategoryTableTarget(
-                        cell(2), balanceLabel, actionsLabel, onMoveMoney, onLongClick,
-                        feedbackVerticalInset = AmountFeedbackVerticalInset,
-                        feedbackOverhang = CategoryPillPadding,
-                    ) {
-                        BalancePill(
-                            category.balanceCents,
-                            hideDecimalPlaces,
-                            status = category.statusState(scheduleFunding),
-                            colorByStatus = LocalCategoryStatusColors.current?.colorBudgetedAmounts == true,
-                            modifier = Modifier.padding(start = TableAmountGap).overhangEnd(CategoryPillPadding),
-                            textStyle = MaterialTheme.typography.bodyMedium.asTableAmount(),
-                            fontWeight = FontWeight.Bold,
-                            horizontalPadding = CategoryPillPadding,
-                            verticalPadding = 3.dp,
-                            shape = TablePillShape,
-                            tableAmount = true,
-                            targetBadge = category.targetFunding(scheduleFunding),
-                        )
+                    if (showSpent) {
+                        CategoryTableTarget(cell(1), spentLabel, actionsLabel, onOpenSpending, onLongClick) { interaction ->
+                            AmountPressFeedback(interaction, Modifier.padding(start = TableAmountGap)) {
+                                CategoryAmount(
+                                    -category.spentCents,
+                                    hideDecimalPlaces,
+                                    muted = category.spentCents == 0L,
+                                )
+                            }
+                        }
+                    }
+                    CategoryTableTarget(cell(2), balanceLabel, actionsLabel, onMoveMoney, onLongClick) { interaction ->
+                        AmountPressFeedback(
+                            interaction,
+                            Modifier.padding(start = TableAmountGap).overhangEnd(CategoryPillPadding),
+                        ) {
+                            BalancePill(
+                                category.balanceCents,
+                                hideDecimalPlaces,
+                                status = category.statusState(scheduleFunding),
+                                colorByStatus = LocalCategoryStatusColors.current?.colorBudgetedAmounts == true,
+                                textStyle = MaterialTheme.typography.bodyMedium.asTableAmount(),
+                                fontWeight = FontWeight.Bold,
+                                horizontalPadding = CategoryPillPadding,
+                                verticalPadding = 3.dp,
+                                shape = TablePillShape,
+                                tableAmount = true,
+                                targetBadge = category.targetFunding(scheduleFunding),
+                            )
+                        }
                     }
                 }
                 if (stacked) {
@@ -2593,9 +2594,8 @@ private fun CategoryTableTarget(
     longClickLabel: String,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
-    feedbackVerticalInset: androidx.compose.ui.unit.Dp = 0.dp,
-    feedbackOverhang: androidx.compose.ui.unit.Dp = 0.dp,
-    content: @Composable () -> Unit,
+    rowFeedback: Boolean = false,
+    content: @Composable (InteractionSource) -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     Box(
@@ -2609,16 +2609,37 @@ private fun CategoryTableTarget(
         ),
         contentAlignment = Alignment.CenterEnd,
     ) {
-        content()
-        // Match the To Budget ripple, including any pill drawn beyond the column.
-        val overhang = if (feedbackOverhang > 0.dp) {
-            Modifier.overhangEnd(feedbackOverhang).fillMaxWidth()
-        } else {
-            Modifier
+        content(interactionSource)
+        if (rowFeedback) {
+            Box(
+                Modifier.matchParentSize().clip(TablePillShape)
+                    .indication(interactionSource, LocalIndication.current),
+            )
         }
+    }
+}
+
+@Composable
+private fun AmountPressFeedback(
+    interactionSource: InteractionSource,
+    modifier: Modifier,
+    content: @Composable () -> Unit,
+) {
+    Box(modifier) {
+        content()
         Box(
-            Modifier.matchParentSize().then(overhang).padding(vertical = feedbackVerticalInset).clip(TablePillShape)
-                .indication(interactionSource, LocalIndication.current),
+            Modifier.matchParentSize()
+                .layout { measurable, constraints ->
+                    // Measure the highlight around the amount instead of the wider tap target.
+                    val leadingPadding = AmountFeedbackLeadingPadding.roundToPx()
+                    val height = AmountFeedbackHeight.roundToPx()
+                    val highlight = measurable.measure(Constraints.fixed(constraints.maxWidth + leadingPadding, height))
+                    layout(constraints.maxWidth, constraints.maxHeight) {
+                        highlight.placeRelative(-leadingPadding, (constraints.maxHeight - height) / 2)
+                    }
+                }
+                .clip(TablePillShape)
+                .indication(interactionSource, ripple(bounded = false)),
         )
     }
 }
@@ -2982,13 +3003,13 @@ private fun InlineCalculatorAmount(label: String, amount: Long, modifier: Modifi
 }
 
 @Composable
-private fun CategoryAmount(amount: Long, modifier: Modifier, hideDecimalPlaces: Boolean, muted: Boolean = false) {
+private fun CategoryAmount(amount: Long, hideDecimalPlaces: Boolean, muted: Boolean = false) {
     TableAmountText(
         formatMoneyCents(amount, hideDecimalPlaces),
         fontWeight = FontWeight.Normal,
         color = if (muted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
         else MaterialTheme.colorScheme.onSurface,
-        textAlign = TextAlign.End, modifier = modifier.padding(start = TableAmountGap),
+        textAlign = TextAlign.End,
     )
 }
 
