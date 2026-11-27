@@ -2512,7 +2512,10 @@ private fun CategoryRow(
                             )
                         }
                     }
-                    CategoryTableTarget(cell(2), balanceLabel, actionsLabel, onMoveMoney, onLongClick) {
+                    CategoryTableTarget(
+                        cell(2), balanceLabel, actionsLabel, onMoveMoney, onLongClick,
+                        feedbackOverhang = CategoryPillPadding,
+                    ) {
                         BalancePill(
                             category.balanceCents,
                             hideDecimalPlaces,
@@ -2566,6 +2569,7 @@ private fun CategoryTableTarget(
     longClickLabel: String,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    feedbackOverhang: androidx.compose.ui.unit.Dp = 0.dp,
     content: @Composable () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -2581,9 +2585,14 @@ private fun CategoryTableTarget(
         contentAlignment = Alignment.CenterEnd,
     ) {
         content()
-        // Match the To Budget ripple without clipping the balance pill's overhang.
+        // Match the To Budget ripple, including any pill drawn beyond the column.
+        val overhang = if (feedbackOverhang > 0.dp) {
+            Modifier.overhangEnd(feedbackOverhang).fillMaxWidth()
+        } else {
+            Modifier
+        }
         Box(
-            Modifier.matchParentSize().clip(TablePillShape)
+            Modifier.matchParentSize().then(overhang).clip(TablePillShape)
                 .indication(interactionSource, LocalIndication.current),
         )
     }
