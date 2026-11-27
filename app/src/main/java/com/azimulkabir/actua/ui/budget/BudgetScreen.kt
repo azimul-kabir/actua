@@ -519,7 +519,10 @@ fun BudgetScreen(
                             showProgressBar = showProgressBars,
                             position = GroupPosition.of(index, count),
                             onLongClick = { selectedCategory = category },
-                            onOpen = { editingBudget = group to category },
+                            onOpenDetails = { categoryDetails = group to category },
+                            onEditBudget = { editingBudget = group to category },
+                            onOpenSpending = { onShowCategoryTransactions(category, true, false) },
+                            onMoveMoney = { movingBudget = group to category },
                             hideDecimalPlaces = hideDecimalPlaces,
                             scheduleFunding = scheduleFunding,
                         )
@@ -2462,19 +2465,43 @@ private fun CategoryRow(
     showProgressBar: Boolean,
     position: GroupPosition,
     onLongClick: () -> Unit,
-    onOpen: () -> Unit,
+    onOpenDetails: () -> Unit,
+    onEditBudget: () -> Unit,
+    onOpenSpending: () -> Unit,
+    onMoveMoney: () -> Unit,
     hideDecimalPlaces: Boolean,
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
 ) {
+    val actionsLabel = stringResource(R.string.budget_category_options)
+    val detailsLabel = stringResource(R.string.budget_budget_details)
+    val editLabel = stringResource(R.string.budget_edit_budgeted)
+    val spentLabel = stringResource(R.string.budget_transactions_month)
+    val balanceLabel = stringResource(
+        if (category.balanceCents < 0L) R.string.budget_cover_overspending else R.string.budget_move_money_plain,
+    )
+
+    fun Modifier.categoryCell(label: String, action: () -> Unit): Modifier =
+        heightIn(min = TableRowMinHeight).combinedClickable(
+            onClickLabel = label,
+            onLongClickLabel = actionsLabel,
+            onClick = action,
+            onLongClick = onLongClick,
+        )
+
     TableGroupedItem(flat = LocalTableStyle.current == TableStyle.Flat, position = position, dividerInset = TableRowPadding) {
         Column(
             modifier = Modifier.fillMaxWidth().heightIn(min = TableRowMinHeight)
-                .combinedClickable(onClick = onOpen, onLongClick = onLongClick)
-                .padding(horizontal = TableRowPadding, vertical = Spacing.md),
+                .combinedClickable(
+                    onClickLabel = detailsLabel,
+                    onLongClickLabel = actionsLabel,
+                    onClick = onOpenDetails,
+                    onLongClick = onLongClick,
+                )
+                .padding(horizontal = TableRowPadding),
             verticalArrangement = Arrangement.Center,
         ) {
             val name = @Composable { modifier: Modifier ->
-                Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+                Row(modifier = modifier.heightIn(min = TableRowMinHeight), verticalAlignment = Alignment.CenterVertically) {
                     CategoryStatusDot(category.statusState(scheduleFunding), modifier = Modifier.padding(end = 6.dp))
                     Text(if (category.hidden) stringResource(R.string.budget_hidden_name, category.name) else category.name,
                         style = MaterialTheme.typography.bodyMedium,
@@ -2483,14 +2510,23 @@ private fun CategoryRow(
                 }
             }
             val amounts = @Composable { cell: (Int) -> Modifier ->
-                CategoryAmount(category.assignedCents, cell(0), hideDecimalPlaces)
-                if (showSpent) CategoryAmount(
-                    -category.spentCents,
-                    cell(1),
-                    hideDecimalPlaces,
-                    muted = category.spentCents == 0L,
-                )
-                Box(modifier = cell(2).padding(start = TableAmountGap), contentAlignment = Alignment.CenterEnd) {
+                Box(cell(0).categoryCell(editLabel, onEditBudget), contentAlignment = Alignment.CenterEnd) {
+                    CategoryAmount(category.assignedCents, Modifier.fillMaxWidth(), hideDecimalPlaces)
+                }
+                if (showSpent) {
+                    Box(cell(1).categoryCell(spentLabel, onOpenSpending), contentAlignment = Alignment.CenterEnd) {
+                        CategoryAmount(
+                            -category.spentCents,
+                            Modifier.fillMaxWidth(),
+                            hideDecimalPlaces,
+                            muted = category.spentCents == 0L,
+                        )
+                    }
+                }
+                Box(
+                    modifier = cell(2).categoryCell(balanceLabel, onMoveMoney).padding(start = TableAmountGap),
+                    contentAlignment = Alignment.CenterEnd,
+                ) {
                     BalancePill(
                         category.balanceCents,
                         hideDecimalPlaces,
@@ -2510,7 +2546,7 @@ private fun CategoryRow(
             if (stacked) {
                 name(Modifier.fillMaxWidth())
                 StackedTableAmounts {
-                    Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         amounts { column -> Modifier.weight(1f) }
                     }
                 }
@@ -2530,7 +2566,7 @@ private fun CategoryRow(
             }
             AnimatedVisibility(visible = showProgressBar && category.showsProgressBar) {
                 CategoryProgressBar(category, scheduleFunding,
-                    Modifier.fillMaxWidth().padding(top = TableProgressBarGap).height(TableProgressBarHeight))
+                    Modifier.fillMaxWidth().padding(bottom = TableProgressBarGap).height(TableProgressBarHeight))
             }
         }
     }
