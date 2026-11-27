@@ -48,7 +48,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 ## Budget and category flows
 
 - [ ] Budget opens in the configured default Plan/Table view and month navigation works.
-- [ ] In the Budget table, tap a category name or blank row space for Details, Budgeted to edit, Spent to open that category's transactions for the selected month, and Balance to move money or cover overspending. Verify Details slides in and out, and long-press the name or any amount for category actions. Repeat with a stacked row at a large font scale and check the tap and long-press labels with TalkBack.
+- [ ] In the Budget table, tap a category name or blank row space for Details, Budgeted to edit, Spent to open that category's transactions for the selected month, and Balance to move money or cover overspending. Verify Details uses the same Back animation as the other screens, including opening Goals and returning to the same category. Long-press the name or any amount for category actions. Repeat with a stacked row at a large font scale and check the tap and long-press labels with TalkBack.
 - [ ] Ready to Budget/To Budget, Budgeted and Balance values agree with Actual for the test month.
 - [ ] Verify ordinary category progress bars show spending (including carryover) and match Actual/Actuali for a category with carryover, and that goal-only/save-by-date targets still show balance-funded progress.
 - [ ] Category rows/cards show a status dot matching the progress bar's color; customize a status color (and reset to defaults) from Settings → Budget → Category status colors and verify it updates everywhere immediately; toggle the "Category status dot" switch off/on and verify the dot stops/resumes composing.

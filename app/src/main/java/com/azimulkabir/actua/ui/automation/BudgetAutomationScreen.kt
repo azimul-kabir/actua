@@ -1,5 +1,7 @@
 package com.azimulkabir.actua.ui.automation
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,9 +48,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.ui.navigation.detailNavigationMotion
 import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.model.BudgetAutomationDocument
 import com.azimulkabir.actua.model.BudgetCategory
@@ -109,6 +114,7 @@ fun BudgetAutomationScreen(
     onBack: () -> Unit,
     onSave: (List<BudgetTarget>) -> Unit,
     modifier: Modifier = Modifier,
+    active: Boolean = true,
 ) {
     if (category.hasUnsupportedTarget) {
         UnsupportedAutomationNotice(category = category, onBack = onBack, modifier = modifier)
@@ -119,85 +125,99 @@ fun BudgetAutomationScreen(
     var editingIndex by remember { mutableStateOf<Int?>(null) }
     var addingType by remember { mutableStateOf<BudgetTarget.Type?>(null) }
 
-    if (editingIndex != null || addingType != null) {
-        val index = editingIndex
-        val existing = index?.let(entries::get)
-        val usedSingletons = entries.withIndex()
-            .filter { (i, e) -> i != index && e.type.isSingleton }
-            .map { it.value.type }
-            .toSet()
-        AutomationEntryEditor(
-            initial = existing,
-            initialType = existing?.type ?: addingType!!,
-            month = month,
-            hideDecimalPlaces = hideDecimalPlaces,
-            scheduleFunding = scheduleFunding,
-            incomeCategories = incomeCategories,
-            usedSingletonTypes = usedSingletons,
-            conventionalAmountEntry = conventionalAmountEntry,
-            onBack = { editingIndex = null; addingType = null },
-            onDelete = if (existing != null) {
-                {
-                    entries = entries.toMutableList().also { it.removeAt(requireNotNull(index)) }
-                    editingIndex = null; addingType = null
-                }
-            } else null,
-            onSave = { target ->
-                entries = when (index) {
-                    null -> entries + target
-                    else -> entries.toMutableList().also { it[index] = target }
-                }
-                editingIndex = null; addingType = null
-            },
-            modifier = modifier,
-        )
-        return
-    }
-
-    val contributionEntries = entries.withIndex().filterNot { it.value.type.isOption }
-    val optionEntries = entries.withIndex().filter { it.value.type.isOption }
-    val hasLimit = entries.any { it.type == BudgetTarget.Type.LIMIT }
-    val hasGoal = entries.any { it.type == BudgetTarget.Type.GOAL }
-    val errors = BudgetAutomationDocument.validate(entries)
-    Column(modifier.fillMaxSize()) {
-        ActuaScreenHeader(title = "Budget Automation", onBack = onBack)
-        Text(
-            "${group.name} · ${category.name}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = Spacing.screenHorizontal + Spacing.xs),
-        )
-        Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.sm,
-                    bottom = Spacing.sm + floatingBarClearance()),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            SectionHeader("Automations")
-            if (contributionEntries.isEmpty()) EmptyAutomationsNote()
-            contributionEntries.forEach { (index, target) ->
-                AutomationSummaryCard(target = target, hideDecimalPlaces = hideDecimalPlaces, onClick = { editingIndex = index })
-            }
-            AddButton(enabled = entries.size < 20, onClick = { addingType = BudgetTarget.Type.FIXED }) { Text("+ Add an automation") }
-
-            SectionHeader("Options", modifier = Modifier.padding(top = Spacing.md))
-            optionEntries.forEach { (index, target) ->
-                AutomationSummaryCard(target = target, hideDecimalPlaces = hideDecimalPlaces, onClick = { editingIndex = index })
-            }
-            if (!hasLimit) AddButton(onClick = { addingType = BudgetTarget.Type.LIMIT }) { Text("+ Add balance cap") }
-            if (!hasGoal) AddButton(onClick = { addingType = BudgetTarget.Type.GOAL }) { Text("+ Add long-term goal") }
-
-            errors.forEach { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-            Spacer(Modifier.height(8.dp))
-            SaveButton(
-                text = if (entries.isEmpty()) "Save (remove automations)" else "Save automations",
-                enabled = errors.isEmpty(),
-                onClick = { onSave(entries); onBack() },
+    val editor = editingIndex?.let { index ->
+        entries.getOrNull(index)?.let { AutomationSelection(index, it.type, it) }
+    } ?: addingType?.let { AutomationSelection(null, it, null) }
+    val closeEditor = { editingIndex = null; addingType = null }
+    val listScrollState = rememberScrollState()
+    val direction = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1 else -1
+    BackHandler(enabled = active && editor != null, onBack = closeEditor)
+    AnimatedContent(
+        targetState = editor,
+        modifier = Modifier.fillMaxSize(),
+        transitionSpec = { detailNavigationMotion(opening = targetState != null, direction = direction) },
+        label = "Budget automation motion",
+    ) { selection ->
+        if (selection != null) {
+            val (index, _, existing) = selection
+            val usedSingletons = entries.withIndex()
+                .filter { (i, e) -> i != index && e.type.isSingleton }
+                .map { it.value.type }
+                .toSet()
+            AutomationEntryEditor(
+                initial = existing,
+                initialType = selection.type,
+                month = month,
+                hideDecimalPlaces = hideDecimalPlaces,
+                scheduleFunding = scheduleFunding,
+                incomeCategories = incomeCategories,
+                usedSingletonTypes = usedSingletons,
+                conventionalAmountEntry = conventionalAmountEntry,
+                onBack = closeEditor,
+                onDelete = if (existing != null) {
+                    {
+                        entries = entries.toMutableList().also { it.removeAt(requireNotNull(index)) }
+                        closeEditor()
+                    }
+                } else null,
+                onSave = { target ->
+                    entries = when (index) {
+                        null -> entries + target
+                        else -> entries.toMutableList().also { it[index] = target }
+                    }
+                    closeEditor()
+                },
+                modifier = modifier,
             )
-            Spacer(Modifier.height(20.dp))
+        } else {
+            val contributionEntries = entries.withIndex().filterNot { it.value.type.isOption }
+            val optionEntries = entries.withIndex().filter { it.value.type.isOption }
+            val hasLimit = entries.any { it.type == BudgetTarget.Type.LIMIT }
+            val hasGoal = entries.any { it.type == BudgetTarget.Type.GOAL }
+            val errors = BudgetAutomationDocument.validate(entries)
+            Column(modifier.fillMaxSize()) {
+                ActuaScreenHeader(title = "Budget Automation", onBack = onBack)
+                Text(
+                    "${group.name} · ${category.name}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Spacing.screenHorizontal + Spacing.xs),
+                )
+                Column(
+                    Modifier.fillMaxSize().verticalScroll(listScrollState)
+                        .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.sm,
+                            bottom = Spacing.sm + floatingBarClearance()),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                ) {
+                    SectionHeader("Automations")
+                    if (contributionEntries.isEmpty()) EmptyAutomationsNote()
+                    contributionEntries.forEach { (index, target) ->
+                        AutomationSummaryCard(target = target, hideDecimalPlaces = hideDecimalPlaces, onClick = { editingIndex = index })
+                    }
+                    AddButton(enabled = entries.size < 20, onClick = { addingType = BudgetTarget.Type.FIXED }) { Text("+ Add an automation") }
+
+                    SectionHeader("Options", modifier = Modifier.padding(top = Spacing.md))
+                    optionEntries.forEach { (index, target) ->
+                        AutomationSummaryCard(target = target, hideDecimalPlaces = hideDecimalPlaces, onClick = { editingIndex = index })
+                    }
+                    if (!hasLimit) AddButton(onClick = { addingType = BudgetTarget.Type.LIMIT }) { Text("+ Add balance cap") }
+                    if (!hasGoal) AddButton(onClick = { addingType = BudgetTarget.Type.GOAL }) { Text("+ Add long-term goal") }
+
+                    errors.forEach { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                    Spacer(Modifier.height(8.dp))
+                    SaveButton(
+                        text = if (entries.isEmpty()) "Save (remove automations)" else "Save automations",
+                        enabled = errors.isEmpty(),
+                        onClick = { onSave(entries); onBack() },
+                    )
+                    Spacer(Modifier.height(20.dp))
+                }
+            }
         }
     }
 }
+
+private data class AutomationSelection(val index: Int?, val type: BudgetTarget.Type, val existing: BudgetTarget?)
 
 @Composable
 private fun EmptyAutomationsNote() {

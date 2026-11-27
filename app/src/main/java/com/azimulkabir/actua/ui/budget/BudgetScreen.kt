@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.ui.budget
 
 import com.azimulkabir.actua.ui.navigation.RootRequestEffect
+import com.azimulkabir.actua.ui.navigation.detailNavigationMotion
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -15,9 +16,7 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -379,7 +378,10 @@ fun BudgetScreen(
     var renamingGroup by remember { mutableStateOf<BudgetGroup?>(null) }
     var movingBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var fundingCategory by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
-    var categoryDetails by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
+    var categoryDetails by remember {
+        // A returning detail route already has the outer navigation transition.
+        mutableStateOf(requestedCategoryDetails?.let { findCategory(groups, it) })
+    }
     var autoAssignBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var budgetSummaryOpen by remember { mutableStateOf(false) }
     var overspentSheetOpen by remember { mutableStateOf(false) }
@@ -993,8 +995,7 @@ fun BudgetScreen(
         modifier = Modifier.fillMaxSize(),
         contentKey = { it?.second?.categoryKey },
         transitionSpec = {
-            (fadeIn(tween(220)) + slideInHorizontally(tween(300)) { detailsDirection * it / 5 }) togetherWith
-                (fadeOut(tween(260, delayMillis = 40)) + slideOutHorizontally(tween(300)) { detailsDirection * it / 3 })
+            detailNavigationMotion(opening = targetState != null, direction = detailsDirection)
         },
         label = "Category details motion",
     ) { shownDetails ->
@@ -1019,12 +1020,8 @@ fun BudgetScreen(
             onEditTarget = { onEditAutomations(group, category) },
             transactions = recentCategoryTransactions,
             onRename = { categoryDetails = null; renamingCategory = group to category },
-            onTransactionsThisMonth = {
-                categoryDetails = null; onShowCategoryTransactions(category, true, true)
-            },
-            onAllTransactions = {
-                categoryDetails = null; onShowCategoryTransactions(category, false, true)
-            },
+            onTransactionsThisMonth = { onShowCategoryTransactions(category, true, true) },
+            onAllTransactions = { onShowCategoryTransactions(category, false, true) },
             hidden = category.hidden,
             favorite = category.id in favoriteCategoryIds,
             onFavoriteChange = { favorite ->

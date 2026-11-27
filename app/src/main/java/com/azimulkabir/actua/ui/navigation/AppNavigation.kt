@@ -28,8 +28,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -1827,17 +1825,17 @@ fun AppNavigation(
             }
         }
         AnimatedContent(
-            targetState = detail to destination,
+            // Keep the category key with the displayed route while the Goals screen slides out.
+            targetState = Triple(detail, destination, editingAutomationCategory.takeIf { detail == DetailDestination.BudgetAutomation }),
+            contentKey = { it.first to it.second },
             transitionSpec = {
                 val openingDetail = initialState.first == DetailDestination.Main &&
                     targetState.first != DetailDestination.Main
                 val closingDetail = initialState.first != DetailDestination.Main &&
                     targetState.first == DetailDestination.Main
                 when {
-                    openingDetail -> (fadeIn(tween(220)) + slideInHorizontally(tween(300)) { it / 5 }) togetherWith
-                        (fadeOut(tween(140)) + slideOutHorizontally(tween(220)) { -it / 10 })
-                    closingDetail -> (fadeIn(tween(220)) + slideInHorizontally(tween(300)) { -it / 5 }) togetherWith
-                        (fadeOut(tween(140)) + slideOutHorizontally(tween(220)) { it / 10 })
+                    openingDetail -> detailNavigationMotion(opening = true)
+                    closingDetail -> detailNavigationMotion(opening = false)
                     else -> (fadeIn(tween(220)) + scaleIn(tween(260), initialScale = 0.985f)) togetherWith
                         (fadeOut(tween(140)) + scaleOut(tween(180), targetScale = 1.015f))
                 // Detail destinations can differ radically in height. Animating their bounds
@@ -1845,7 +1843,7 @@ fun AppNavigation(
                 }.using(SizeTransform(sizeAnimationSpec = { _, _ -> snap() }, clip = false))
             },
             label = "Main navigation motion",
-        ) { (shownDetail, shownDestination) ->
+        ) { (shownDetail, shownDestination, shownAutomationCategory) ->
         tabStateHolder.SaveableStateProvider("${shownDestination.name}:${shownDetail.name}") {
         when (shownDetail) {
             DetailDestination.Reports -> NavigationReportsScreen(
@@ -2702,7 +2700,7 @@ fun AppNavigation(
                 },
                 modifier = contentModifier,
             )
-            DetailDestination.BudgetAutomation -> editingAutomationCategory?.let { findCategory(budgetGroups, it) }?.let { (group, category) ->
+            DetailDestination.BudgetAutomation -> shownAutomationCategory?.let { findCategory(budgetGroups, it) }?.let { (group, category) ->
                 BudgetAutomationScreen(
                     group = group,
                     category = category,
@@ -2712,8 +2710,9 @@ fun AppNavigation(
                     incomeCategories = budgetGroups.filter { it.isIncome }.flatMap { it.categories }
                         .map { it.name }.filter { it.isNotBlank() }.distinct(),
                     conventionalAmountEntry = conventionalAmountEntry,
+                    active = detail == DetailDestination.BudgetAutomation,
                     onBack = {
-                        reopenBudgetCategory = editingAutomationCategory
+                        reopenBudgetCategory = shownAutomationCategory
                         editingAutomationCategory = null
                         detail = DetailDestination.Main
                     },
@@ -2722,7 +2721,7 @@ fun AppNavigation(
                     },
                     modifier = contentModifier,
                 )
-            } ?: run { detail = DetailDestination.Main }
+            } ?: run { if (detail == DetailDestination.BudgetAutomation) detail = DetailDestination.Main }
             DetailDestination.Schedules,
             DetailDestination.PayeeLocations,
             DetailDestination.ManagePayees,

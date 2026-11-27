@@ -2,6 +2,9 @@ package com.azimulkabir.actua.ui.budget
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.test.platform.app.InstrumentationRegistry
+import com.azimulkabir.actua.R
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
@@ -54,5 +57,28 @@ class BudgetRequestedCategoryTest {
 
     @Test fun aNameFromAStateSavedBeforeKeysStillOpensTheFirstMatch() {
         assertEquals("wardrobe-1", openedFor("Wardrobe"))
+    }
+
+    @Test fun returningFromAnEditorDoesNotReplayTheCategoryEntrance() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        compose.mainClock.autoAdvance = false
+        try {
+            compose.setContent {
+                MaterialTheme {
+                    BudgetScreen(
+                        groups = groups,
+                        overview = BudgetOverview(0, 0, 0, 0),
+                        requestedCategoryDetails = "wardrobe-3",
+                    )
+                }
+            }
+            compose.mainClock.advanceTimeBy(80)
+            val back = compose.onNodeWithContentDescription(context.getString(R.string.fs_back))
+            val initialLeft = back.fetchSemanticsNode().boundsInRoot.left
+            compose.mainClock.advanceTimeBy(350)
+            assertEquals(initialLeft, back.fetchSemanticsNode().boundsInRoot.left, 1f)
+        } finally {
+            compose.mainClock.autoAdvance = true
+        }
     }
 }
