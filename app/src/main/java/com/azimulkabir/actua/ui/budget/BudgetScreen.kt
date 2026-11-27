@@ -991,7 +991,7 @@ fun BudgetScreen(
         contentKey = { it?.second?.categoryKey },
         transitionSpec = {
             (fadeIn(tween(220)) + slideInHorizontally(tween(300)) { detailsDirection * it / 5 }) togetherWith
-                (fadeOut(tween(140)) + slideOutHorizontally(tween(220)) { detailsDirection * it / 10 })
+                (fadeOut(tween(260, delayMillis = 40)) + slideOutHorizontally(tween(300)) { detailsDirection * it / 3 })
         },
         label = "Category details motion",
     ) { shownDetails ->
@@ -2125,6 +2125,7 @@ private val CategoryPillPadding = 3.dp
 
 /** The table's balance pills: only slightly rounded, so the amount needs little side padding to clear the corners. */
 private val TablePillShape = RoundedCornerShape(6.dp)
+private val AmountFeedbackVerticalInset = 7.dp
 
 /**
  * Lets a balance pill reach [overhang] past its column's end, so its amount still lines up with the
@@ -2515,11 +2516,17 @@ private fun CategoryRow(
                     }
                 }
                 val amounts = @Composable { cell: (Int) -> Modifier ->
-                    CategoryTableTarget(cell(0), editLabel, actionsLabel, onEditBudget, onLongClick) {
+                    CategoryTableTarget(
+                        cell(0), editLabel, actionsLabel, onEditBudget, onLongClick,
+                        feedbackVerticalInset = AmountFeedbackVerticalInset,
+                    ) {
                         CategoryAmount(category.assignedCents, Modifier.fillMaxWidth(), hideDecimalPlaces)
                     }
                     if (showSpent) {
-                        CategoryTableTarget(cell(1), spentLabel, actionsLabel, onOpenSpending, onLongClick) {
+                        CategoryTableTarget(
+                            cell(1), spentLabel, actionsLabel, onOpenSpending, onLongClick,
+                            feedbackVerticalInset = AmountFeedbackVerticalInset,
+                        ) {
                             CategoryAmount(
                                 -category.spentCents,
                                 Modifier.fillMaxWidth(),
@@ -2530,6 +2537,7 @@ private fun CategoryRow(
                     }
                     CategoryTableTarget(
                         cell(2), balanceLabel, actionsLabel, onMoveMoney, onLongClick,
+                        feedbackVerticalInset = AmountFeedbackVerticalInset,
                         feedbackOverhang = CategoryPillPadding,
                     ) {
                         BalancePill(
@@ -2585,6 +2593,7 @@ private fun CategoryTableTarget(
     longClickLabel: String,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    feedbackVerticalInset: androidx.compose.ui.unit.Dp = 0.dp,
     feedbackOverhang: androidx.compose.ui.unit.Dp = 0.dp,
     content: @Composable () -> Unit,
 ) {
@@ -2608,7 +2617,7 @@ private fun CategoryTableTarget(
             Modifier
         }
         Box(
-            Modifier.matchParentSize().then(overhang).clip(TablePillShape)
+            Modifier.matchParentSize().then(overhang).padding(vertical = feedbackVerticalInset).clip(TablePillShape)
                 .indication(interactionSource, LocalIndication.current),
         )
     }

@@ -1356,7 +1356,9 @@ fun AppNavigation(
         creditCardsReturnToBills = false
     }
 
-    BackHandler(enabled = detail != DetailDestination.Main || destination != backGestureHomeDestination) {
+    val inBudgetCategory = detail == DetailDestination.Main &&
+        destination == MainDestination.Budget && activeBudgetCategory != null
+    BackHandler(enabled = !inBudgetCategory && (detail != DetailDestination.Main || destination != backGestureHomeDestination)) {
         when {
             detail == DetailDestination.EditTransaction -> leaveEditor()
             detail == DetailDestination.CreditCards -> leaveCreditCards()
@@ -1413,8 +1415,6 @@ fun AppNavigation(
         MainDestination.Reports,
     )
     val inAccount = detail == DetailDestination.Transactions && transactionAccount != null
-    val inBudgetCategory = detail == DetailDestination.Main &&
-        destination == MainDestination.Budget && activeBudgetCategory != null
     // When the configured tab bar includes the "+ Add" pseudo-tab, it replaces the floating
     // Transaction button entirely (see Slice 3, #481): no FAB on any screen, and the bottom
     // scroll padding each screen otherwise reserves to clear the FAB collapses to zero.

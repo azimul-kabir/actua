@@ -1,6 +1,8 @@
 package com.azimulkabir.actua.ui.budget
 
 import android.content.Context
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.geometry.Offset
@@ -10,7 +12,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.click
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -33,16 +35,18 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class BudgetCategoryCellActionsTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val context get() = ApplicationProvider.getApplicationContext<Context>()
     private val category = BudgetCategory(name = "Cell actions fixture", assigned = 25, spent = 40, id = "cell-actions")
     private var transactions: Triple<BudgetCategory, Boolean, Boolean>? = null
     private var details: String? = null
+    private var rootBackPresses = 0
 
     private fun showTable(fontScale: Float = 1f) {
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
                 MaterialTheme {
+                    BackHandler { rootBackPresses++ }
                     BudgetScreen(
                         groups = listOf(BudgetGroup("Cell actions group", listOf(category))),
                         overview = BudgetOverview(0, 0, 0, 0),
@@ -127,6 +131,26 @@ class BudgetCategoryCellActionsTest {
             val enteringLeft = back.fetchSemanticsNode().boundsInRoot.left
             compose.mainClock.advanceTimeBy(350)
             assertTrue(enteringLeft > back.fetchSemanticsNode().boundsInRoot.left)
+        } finally {
+            compose.mainClock.autoAdvance = true
+        }
+    }
+
+    @Test fun systemBackSlidesDetailsAwayBeforeReturningToTheTable() {
+        showTable()
+        val back = compose.onNodeWithContentDescription(context.getString(R.string.fs_back))
+        compose.onNodeWithText(category.name, useUnmergedTree = true).performTouchInput { click() }
+        val settledLeft = back.fetchSemanticsNode().boundsInRoot.left
+        compose.mainClock.autoAdvance = false
+        try {
+            compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+            compose.mainClock.advanceTimeByFrame()
+            compose.mainClock.advanceTimeBy(120)
+            assertTrue(back.fetchSemanticsNode().boundsInRoot.left > settledLeft)
+            compose.mainClock.advanceTimeBy(350)
+            back.assertDoesNotExist()
+            assertEquals(0, rootBackPresses)
+            assertEquals(null, details)
         } finally {
             compose.mainClock.autoAdvance = true
         }
