@@ -27,12 +27,11 @@ class DisplayPreferences(context: Context) {
 
     /** A currency code, "" for none, or Same as budget (the budget's synced `defaultCurrencyCode`). */
     var currencyCode: String
-        get() = preferences.getString(CURRENCY_CODE, EffectiveDisplayFormats.FOLLOW_BUDGET)
-            ?: EffectiveDisplayFormats.FOLLOW_BUDGET
+        get() = preferences.getString(CURRENCY_CODE, "USD") ?: "USD"
         set(value) { preferences.edit().putString(CURRENCY_CODE, value).apply() }
 
     var currencySymbolOnly: Boolean
-        get() = preferences.getBoolean(CURRENCY_SYMBOL_ONLY, false)
+        get() = preferences.getBoolean(CURRENCY_SYMBOL_ONLY, true)
         set(value) { preferences.edit().putBoolean(CURRENCY_SYMBOL_ONLY, value).apply() }
 
     /** Before amount, After amount, or Same as budget (the budget's synced `currencySymbolPosition`). */
@@ -106,7 +105,7 @@ class DisplayPreferences(context: Context) {
 
     /** On draws the Budget table view's groups flat and edge to edge, instead of as inset cards. */
     var flatBudgetTable: Boolean
-        get() = preferences.getBoolean(FLAT_BUDGET_TABLE, false)
+        get() = preferences.getBoolean(FLAT_BUDGET_TABLE, true)
         set(value) { preferences.edit().putBoolean(FLAT_BUDGET_TABLE, value).apply() }
 
     var hideFullySpentCategories: Boolean
@@ -335,7 +334,7 @@ class DisplayPreferences(context: Context) {
         set(value) { preferences.edit().putBoolean(CONVENTIONAL_AMOUNT_ENTRY, value).apply() }
 
     var useRegularBottomBar: Boolean
-        get() = preferences.getBoolean(USE_REGULAR_BOTTOM_BAR, false)
+        get() = preferences.getBoolean(USE_REGULAR_BOTTOM_BAR, true)
         set(value) { preferences.edit().putBoolean(USE_REGULAR_BOTTOM_BAR, value).apply() }
 
     /** Whether the floating tab bar slides away while scrolling down; on by default. */

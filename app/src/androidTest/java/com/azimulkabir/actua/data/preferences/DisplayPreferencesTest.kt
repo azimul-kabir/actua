@@ -64,16 +64,21 @@ class DisplayPreferencesTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         assertEquals("Same as budget", DisplayPreferences(context).dateFormat)
         assertEquals("Same as budget", DisplayPreferences(context).numberFormat)
-        assertEquals("Same as budget", DisplayPreferences(context).currencyCode)
+        assertEquals("USD", DisplayPreferences(context).currencyCode)
+        assertTrue(DisplayPreferences(context).currencySymbolOnly)
         assertEquals("Same as budget", DisplayPreferences(context).decimalPlacesMode)
         assertEquals("Same as budget", DisplayPreferences(context).privacyMode)
 
         DisplayPreferences(context).dateFormat = "DD/MM/YYYY"
         DisplayPreferences(context).numberFormat = "1,23,456.78"
+        DisplayPreferences(context).currencyCode = "Same as budget"
+        DisplayPreferences(context).currencySymbolOnly = false
 
         val restored = DisplayPreferences(context)
         assertEquals("DD/MM/YYYY", restored.dateFormat)
         assertEquals("1,23,456.78", restored.numberFormat)
+        assertEquals("Same as budget", restored.currencyCode)
+        assertFalse(restored.currencySymbolOnly)
     }
 
     @Test fun legacyDecimalAndBalanceTogglesKeepTheirChoice() {
@@ -138,7 +143,7 @@ class DisplayPreferencesTest {
         val options = BudgetDisplayOptions(
             showOverview = false, showBudgetStatusBanners = false, showCategoryFilters = false, showSpent = false,
             showProgressBars = false, showGroupTotals = false, showBalancePills = false, showGoalIcons = false,
-            hideFullySpent = true, showHidden = true,
+            flatTable = false, hideFullySpent = true, showHidden = true,
         )
 
         preferences.budgetDisplayOptions = options
@@ -151,7 +156,7 @@ class DisplayPreferencesTest {
 
     @Test fun budgetDisplayOptionsDefaultToTheStoredDefaults() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        assertEquals(BudgetDisplayOptions(), DisplayPreferences(context).budgetDisplayOptions)
+        assertEquals(BudgetDisplayOptions(flatTable = true), DisplayPreferences(context).budgetDisplayOptions)
     }
 
     @Test fun categoryStatusDotsDefaultOnAndPersistWhenDisabled() {
@@ -187,6 +192,15 @@ class DisplayPreferencesTest {
         DisplayPreferences(context).keepLastTransactionDate = true
 
         assertTrue(DisplayPreferences(context).keepLastTransactionDate)
+    }
+
+    @Test fun regularBottomBarDefaultsOnAndPersistsWhenDisabled() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        assertTrue(DisplayPreferences(context).useRegularBottomBar)
+
+        DisplayPreferences(context).useRegularBottomBar = false
+
+        assertFalse(DisplayPreferences(context).useRegularBottomBar)
     }
 
     @Test fun tabBarBlurIsOnByDefaultAndPersistsWhenDisabled() {
