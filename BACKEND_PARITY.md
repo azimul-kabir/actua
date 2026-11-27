@@ -193,6 +193,11 @@ lists what was ported, what was only checked by reading, and what is not ported.
   card or source, or a device-local default account, with "Account for all" for the rest; the
   queue is reachable from the Accounts header, a badge on the Accounts tab and a "Review captured"
   launcher shortcut (see [docs/TRANSACTION_IMPORTS.md](docs/TRANSACTION_IMPORTS.md))
+- Local capture can apply ordered global or app-specific regex patterns to expanded notifications,
+  pasted text, and authenticated automation text before falling back to the built-in parser.
+  Settings supports previewing and exchanging pattern-only JSON. An automation can use its
+  existing source extra to select a pattern by package name. Candidates still enter the existing
+  import/review path without changes to budget storage or sync.
 - Single-page Add/Edit transaction form where the amount's sign selects expense or income and
   choosing an account as the payee makes a transfer, backed by transaction form planning and
   atomic transaction mutations, including split

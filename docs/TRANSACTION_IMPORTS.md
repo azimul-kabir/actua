@@ -120,6 +120,30 @@ broadcasts, including the Tasker plugin; `payee` and `notes` sent by an automati
 Rows already waiting in review keep their values. A row with no payee imports without one, as in
 Actual. Statement files are not affected.
 
+### Custom capture patterns
+
+In **Import transactions → Capture patterns**, add a pattern for any source or one of the apps
+allowed under **Notification apps**. Rules are tested in the displayed order. A match must
+produce a usable amount, direction, and date if the pattern captures one. The built-in
+parser handles alerts that match no usable rule.
+
+Use a named group for the amount, such as `(?<amount>[\d.,]+)`. Optional groups are
+`payee`, `date`, `account`, `reference`, and `direction`. Fix the rule to Expense or Income,
+or let Actua match the debit and credit keywords. Turn on **Match keywords inside words**
+for languages that do not put spaces between words. Set the number separators to match
+the alert. Leave the date format blank for ISO dates, or use a format such as
+`MMM d` for a month and day. With no year, Actua uses the most recent matching
+date on or before today. Patterns use RE2 syntax. Use `(?s)` when a dot should also
+match line breaks in expanded notifications.
+
+Paste a fictional or redacted alert into the message box, select its **Test source**,
+and tap **Test capture patterns** to preview the rule and extracted fields. Export rules to
+a JSON file to share them. Import appends new rules after the existing rules and skips
+exact duplicates. These files contain rule definitions only.
+
+An automation using the `text` extra can use global rules, or pass the app package ID
+in its existing `source` extra to select an app-specific rule.
+
 ## Tasker and other automation apps
 
 Automation apps such as Tasker, MacroDroid, or Automate can do their own notification parsing and

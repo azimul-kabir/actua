@@ -214,6 +214,9 @@ fun ImportTransactionsScreen(
     var allowedPackages by remember { mutableStateOf(notificationPreferences.allowedPackages) }
     var blankUnknownPayee by remember { mutableStateOf(notificationPreferences.blankUnknownPayee) }
     var blankNotes by remember { mutableStateOf(notificationPreferences.blankNotes) }
+    var substringKeywords by remember { mutableStateOf(notificationPreferences.substringKeywords) }
+    var capturePatterns by remember { mutableStateOf(notificationPreferences.capturePatterns()) }
+    var captureTestPackage by rememberSaveable { mutableStateOf<String?>(null) }
     var appMenu by remember { mutableStateOf(false) }
     val notificationApps = remember {
         val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
@@ -221,6 +224,11 @@ fun ImportTransactionsScreen(
             info.activityInfo.packageName to info.loadLabel(context.packageManager).toString()
         }.distinctBy { it.first }.sortedBy { it.second.lowercase() }
     }
+    val allowedApps = remember(notificationApps, allowedPackages) {
+        val appLabels = notificationApps.toMap()
+        allowedPackages.associateWith { appLabels[it] ?: it }
+    }
+    val testPackage = captureTestPackage?.takeIf { it in allowedPackages }
     // Queued notifications and broadcasts can belong to different accounts, so each row picks its
     // own (#1037); statement files and pasted text import into the one chosen account.
     // Read from state on every call, so handlers that switch the source see the new value.
@@ -293,8 +301,8 @@ fun ImportTransactionsScreen(
         reviewCandidates(result.candidates, result.problems)
     }
 
-    fun reviewText(value: String, source: String, format: StatementFormat) {
-        val result = FinancialMessageParser.parse(value, source, profile = notificationPreferences.profile())
+    fun reviewText(value: String, source: String, format: StatementFormat, sourcePackage: String? = null) {
+        val result = FinancialMessageParser.parse(value, source, profile = notificationPreferences.profile(), sourcePackage = sourcePackage)
         sourceName = source; sourceFormat = format; table = null; mapping = null
         reviewCandidates(result.candidates, result.problems)
     }
@@ -403,11 +411,20 @@ fun ImportTransactionsScreen(
                         minLines = 3, modifier = Modifier.fillMaxWidth())
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         TextButton(enabled = pastedText.isNotBlank(), onClick = {
-                            reviewText(pastedText, resources.getString(R.string.pasted_message), StatementFormat.SHARED_TEXT)
+                            reviewText(
+                                pastedText, allowedApps[testPackage] ?: resources.getString(R.string.pasted_message),
+                                StatementFormat.SHARED_TEXT, sourcePackage = testPackage,
+                            )
                         }) { Text(stringResource(R.string.review_text)) }
                         if (queued.isNotEmpty()) TextButton(onClick = onOpenCapturedReview) {
                             Text(pluralStringResource(R.plurals.review_captured, queued.size, queued.size))
                         }
+                    }
+                    if (capturePatterns.isNotEmpty()) {
+                        CapturePatternTest(
+                            pastedText, allowedApps, notificationPreferences.profile(), testPackage,
+                            onSourceChange = { captureTestPackage = it },
+                        )
                     }
                     ActuaGroupLabel(stringResource(R.string.bank_notifications))
                     ActuaFormCard {
@@ -504,6 +521,18 @@ fun ImportTransactionsScreen(
                             },
                         )
                         ActuaCardDivider()
+                        ActuaFormRow(
+                            icon = Icons.Outlined.Edit,
+                            label = stringResource(R.string.capture_pattern_substring_keywords),
+                            value = null,
+                            caption = stringResource(R.string.capture_pattern_substring_caption),
+                            checked = substringKeywords,
+                            onClick = {
+                                substringKeywords = !substringKeywords
+                                notificationPreferences.substringKeywords = substringKeywords
+                            },
+                        )
+                        ActuaCardDivider()
                         ActuaFormTextField(icon = Icons.AutoMirrored.Outlined.TrendingDown, label = stringResource(R.string.debit_keywords),
                             value = debitKeywords, onValueChange = { debitKeywords = it })
                         ActuaCardDivider()
@@ -528,8 +557,16 @@ fun ImportTransactionsScreen(
                             notificationPreferences.clearAll(); captureEnabled = false; confirmNotifications = false; queued = emptyList()
                             automationEnabled = false; automationToken = null
                             blankUnknownPayee = false; blankNotes = false
+                            substringKeywords = false; capturePatterns = emptyList(); captureTestPackage = null
+                            allowedPackages = emptySet()
+                            debitKeywords = notificationPreferences.profile().debitKeywords.joinToString(", ")
+                            creditKeywords = notificationPreferences.profile().creditKeywords.joinToString(", ")
                             message = resources.getString(R.string.deleted_notification_data)
                         }) { Text(stringResource(R.string.delete_notification_data)) }
+                    }
+                    CapturePatternSettings(capturePatterns, allowedApps) {
+                        notificationPreferences.saveCapturePatterns(it)
+                        capturePatterns = it
                     }
                     ActuaGroupLabel(stringResource(R.string.automation_apps))
                     ActuaFormCard {
@@ -936,7 +973,7 @@ private fun ReviewRow.toQueuedCandidateOrNull(): ImportCandidate? =
 
 private fun formatDate(value: Int): String = formatIsoDay(value)
 
-private fun InputStream.readLimitedStatement(maxBytes: Int = 25 * 1024 * 1024): ByteArray {
+internal fun InputStream.readLimitedStatement(maxBytes: Int = 25 * 1024 * 1024): ByteArray {
     val output = ByteArrayOutputStream()
     val buffer = ByteArray(8 * 1024)
     while (true) {

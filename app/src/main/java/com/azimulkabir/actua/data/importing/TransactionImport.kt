@@ -77,6 +77,7 @@ internal class ImportParseException(val code: ImportProblemCode, val detail: Str
 data class ImportParseResult(
     val candidates: List<ImportCandidate>,
     val problems: List<ImportProblem>,
+    val matchedPattern: String? = null,
 )
 
 enum class ImportColumnRole { IGNORE, DATE, PAYEE, NOTES, REFERENCE, AMOUNT, DEBIT, CREDIT }

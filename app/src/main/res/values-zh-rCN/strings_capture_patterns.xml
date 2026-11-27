@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="capture_patterns_title">通知捕获规则</string>
+    <string name="capture_patterns_help">按顺序使用第一个匹配且字段有效的规则。如果没有符合条件的规则，Actua 会使用内置解析器。</string>
+    <string name="capture_pattern_add">添加规则</string>
+    <string name="capture_pattern_edit">编辑规则</string>
+    <string name="capture_pattern_name">规则名称</string>
+    <string name="capture_pattern_expression">正则表达式</string>
+    <string name="capture_pattern_expression_help">用命名捕获组 (?&lt;amount&gt;…) 提取金额。也可以提取 payee（交易对象）、date（日期）、account（账户）、reference（参考编号）和 direction（收支方向）。不支持环视和反向引用。</string>
+    <string name="capture_pattern_source">来源应用</string>
+    <string name="capture_pattern_direction">收支方向</string>
+    <string name="capture_pattern_keywords">匹配关键词</string>
+    <string name="capture_pattern_expense">支出</string>
+    <string name="capture_pattern_income">收入</string>
+    <string name="capture_pattern_global">任意来源</string>
+    <string name="capture_pattern_date_format">日期格式（留空使用 YYYY-MM-DD）</string>
+    <string name="capture_pattern_decimal">小数分隔符</string>
+    <string name="capture_pattern_grouping">千位分隔符（可选）</string>
+    <string name="capture_pattern_move_earlier">上移一位</string>
+    <string name="capture_pattern_choice">%1$s：%2$s</string>
+    <string name="capture_pattern_test_source">测试来源</string>
+    <string name="capture_pattern_test">测试捕获规则</string>
+    <string name="capture_pattern_builtin">内置解析器</string>
+    <string name="capture_pattern_matched">匹配规则：%1$s</string>
+    <string name="capture_pattern_preview_amount">金额：%1$s</string>
+    <string name="capture_pattern_preview_date">日期：%1$s</string>
+    <string name="capture_pattern_preview_payee">交易对象：%1$s</string>
+    <string name="capture_pattern_preview_account">账户提示：%1$s</string>
+    <string name="capture_pattern_preview_reference">参考编号：%1$s</string>
+    <string name="capture_patterns_import">导入 JSON</string>
+    <string name="capture_patterns_export">导出 JSON</string>
+    <string name="capture_patterns_imported">已导入捕获规则。</string>
+    <string name="capture_patterns_exported">已导出捕获规则。</string>
+    <string name="capture_pattern_import_error">无法读取捕获规则 JSON 文件。</string>
+    <string name="capture_pattern_import_rule_error">规则 %1$d：%2$s</string>
+    <string name="capture_pattern_export_error">无法导出捕获规则。</string>
+    <string name="capture_pattern_limit">最多可保存 %1$d 条捕获规则。</string>
+    <string name="capture_pattern_error_name">请输入不超过 80 个字符的规则名称。</string>
+    <string name="capture_pattern_error_expression">请输入不超过 768 个字符的有效正则表达式。不支持环视和反向引用。</string>
+    <string name="capture_pattern_error_amount">表达式必须包含名为 amount 的捕获组。</string>
+    <string name="capture_pattern_error_date">请输入包含月份和日期的格式（例如 MMM d），或留空。</string>
+    <string name="capture_pattern_error_separators">请输入一个小数分隔符，并可选择输入一个与其不同的千位分隔符。</string>
+    <string name="capture_pattern_error_package">请选择有效的来源应用。</string>
+    <string name="capture_pattern_substring_keywords">匹配文本中的关键词</string>
+    <string name="capture_pattern_substring_caption">适用于词与词之间没有空格的通知。</string>
+</resources>

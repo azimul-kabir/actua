@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="capture_patterns_title">Capture patterns</string>
+    <string name="capture_patterns_help">The first matching pattern with valid fields wins. Otherwise Actua uses the built-in parser.</string>
+    <string name="capture_pattern_add">Add pattern</string>
+    <string name="capture_pattern_edit">Edit pattern</string>
+    <string name="capture_pattern_name">Pattern name</string>
+    <string name="capture_pattern_expression">Regular expression</string>
+    <string name="capture_pattern_expression_help">Use a named group (?&lt;amount&gt;…) for the amount. You can also capture payee, date, account, reference, and direction. Lookarounds and backreferences are unsupported.</string>
+    <string name="capture_pattern_source">Source app</string>
+    <string name="capture_pattern_direction">Direction</string>
+    <string name="capture_pattern_keywords">Match keywords</string>
+    <string name="capture_pattern_expense">Expense</string>
+    <string name="capture_pattern_income">Income</string>
+    <string name="capture_pattern_global">Any source</string>
+    <string name="capture_pattern_date_format">Date format (blank for YYYY-MM-DD)</string>
+    <string name="capture_pattern_decimal">Decimal separator</string>
+    <string name="capture_pattern_grouping">Thousands separator (optional)</string>
+    <string name="capture_pattern_move_earlier">Move one place earlier</string>
+    <string name="capture_pattern_choice">%1$s: %2$s</string>
+    <string name="capture_pattern_test_source">Test source</string>
+    <string name="capture_pattern_test">Test capture patterns</string>
+    <string name="capture_pattern_builtin">Built-in parser</string>
+    <string name="capture_pattern_matched">Matched: %1$s</string>
+    <string name="capture_pattern_preview_amount">Amount: %1$s</string>
+    <string name="capture_pattern_preview_date">Date: %1$s</string>
+    <string name="capture_pattern_preview_payee">Payee: %1$s</string>
+    <string name="capture_pattern_preview_account">Account hint: %1$s</string>
+    <string name="capture_pattern_preview_reference">Reference: %1$s</string>
+    <string name="capture_patterns_import">Import JSON</string>
+    <string name="capture_patterns_export">Export JSON</string>
+    <string name="capture_patterns_imported">Capture patterns imported.</string>
+    <string name="capture_patterns_exported">Capture patterns exported.</string>
+    <string name="capture_pattern_import_error">Could not read the capture patterns JSON file.</string>
+    <string name="capture_pattern_import_rule_error">Pattern %1$d: %2$s</string>
+    <string name="capture_pattern_export_error">Could not export capture patterns.</string>
+    <string name="capture_pattern_limit">You can save up to %1$d capture patterns.</string>
+    <string name="capture_pattern_error_name">Enter a pattern name of up to 80 characters.</string>
+    <string name="capture_pattern_error_expression">Enter a valid regular expression of up to 768 characters. Lookarounds and backreferences are unsupported.</string>
+    <string name="capture_pattern_error_amount">The expression needs a named amount group.</string>
+    <string name="capture_pattern_error_date">Enter a date format that includes month and day, such as MMM d, or leave it blank.</string>
+    <string name="capture_pattern_error_separators">Enter one decimal separator and, optionally, a different single thousands separator.</string>
+    <string name="capture_pattern_error_package">Choose a valid source app.</string>
+    <string name="capture_pattern_substring_keywords">Match keywords inside words</string>
+    <string name="capture_pattern_substring_caption">Use this for alerts written without spaces between words.</string>
+</resources>

@@ -106,7 +106,7 @@ fun parseAutomationExtras(
     if (rawAmount == null) {
         val text = value(AutomationIntent.EXTRA_TEXT)
             ?: return automationFailure(ImportProblemCode.NO_AMOUNT_OR_TEXT)
-        return FinancialMessageParser.parse(text, source, today, profile)
+        return FinancialMessageParser.parse(text, source, today, profile, sourcePackage = value(AutomationIntent.EXTRA_SOURCE))
     }
     val amount = rawAmount.replace(",", "").replace(" ", "").toBigDecimalOrNull()
         ?.stripTrailingZeros()?.takeIf { it.scale() <= 2 }

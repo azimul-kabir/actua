@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="capture_patterns_title">Regras de captura</string>
+    <string name="capture_patterns_help">A primeira regra correspondente com campos válidos é usada. Caso contrário, o Actua usa o analisador integrado.</string>
+    <string name="capture_pattern_add">Adicionar regra</string>
+    <string name="capture_pattern_edit">Editar regra</string>
+    <string name="capture_pattern_name">Nome da regra</string>
+    <string name="capture_pattern_expression">Expressão regular</string>
+    <string name="capture_pattern_expression_help">Use o grupo nomeado (?&lt;amount&gt;…) para o valor. Você também pode capturar payee, date, account, reference e direction. Asserções e referências retroativas não são compatíveis.</string>
+    <string name="capture_pattern_source">Aplicativo de origem</string>
+    <string name="capture_pattern_direction">Tipo de transação</string>
+    <string name="capture_pattern_keywords">Usar palavras-chave</string>
+    <string name="capture_pattern_expense">Despesa</string>
+    <string name="capture_pattern_income">Receita</string>
+    <string name="capture_pattern_global">Qualquer origem</string>
+    <string name="capture_pattern_date_format">Formato de data (vazio para YYYY-MM-DD)</string>
+    <string name="capture_pattern_decimal">Separador decimal</string>
+    <string name="capture_pattern_grouping">Separador de milhares (opcional)</string>
+    <string name="capture_pattern_move_earlier">Mover uma posição para cima</string>
+    <string name="capture_pattern_choice">%1$s: %2$s</string>
+    <string name="capture_pattern_test_source">Origem do teste</string>
+    <string name="capture_pattern_test">Testar regras de captura</string>
+    <string name="capture_pattern_builtin">Analisador integrado</string>
+    <string name="capture_pattern_matched">Regra usada: %1$s</string>
+    <string name="capture_pattern_preview_amount">Valor: %1$s</string>
+    <string name="capture_pattern_preview_date">Data: %1$s</string>
+    <string name="capture_pattern_preview_payee">Beneficiário: %1$s</string>
+    <string name="capture_pattern_preview_account">Indício da conta: %1$s</string>
+    <string name="capture_pattern_preview_reference">Referência: %1$s</string>
+    <string name="capture_patterns_import">Importar JSON</string>
+    <string name="capture_patterns_export">Exportar JSON</string>
+    <string name="capture_patterns_imported">Regras de captura importadas.</string>
+    <string name="capture_patterns_exported">Regras de captura exportadas.</string>
+    <string name="capture_pattern_import_error">Não foi possível ler o arquivo JSON de regras de captura.</string>
+    <string name="capture_pattern_import_rule_error">Regra %1$d: %2$s</string>
+    <string name="capture_pattern_export_error">Não foi possível exportar as regras de captura.</string>
+    <string name="capture_pattern_limit">Você pode salvar até %1$d regras de captura.</string>
+    <string name="capture_pattern_error_name">Insira um nome de até 80 caracteres.</string>
+    <string name="capture_pattern_error_expression">Insira uma expressão regular válida de até 768 caracteres. Asserções e referências retroativas não são compatíveis.</string>
+    <string name="capture_pattern_error_amount">A expressão precisa de um grupo nomeado amount.</string>
+    <string name="capture_pattern_error_date">Insira um formato de data com mês e dia, como MMM d, ou deixe em branco.</string>
+    <string name="capture_pattern_error_separators">Insira um separador decimal e, opcionalmente, outro caractere como separador de milhares.</string>
+    <string name="capture_pattern_error_package">Escolha um aplicativo de origem válido.</string>
+    <string name="capture_pattern_substring_keywords">Buscar palavras-chave dentro de palavras</string>
+    <string name="capture_pattern_substring_caption">Use em alertas escritos sem espaços entre as palavras.</string>
+</resources>

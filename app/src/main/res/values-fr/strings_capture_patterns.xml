@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="capture_patterns_title">Règles de capture</string>
+    <string name="capture_patterns_help">La première règle correspondante dont les champs sont valides est utilisée. À défaut, Actua utilise son analyseur intégré.</string>
+    <string name="capture_pattern_add">Ajouter une règle</string>
+    <string name="capture_pattern_edit">Modifier la règle</string>
+    <string name="capture_pattern_name">Nom de la règle</string>
+    <string name="capture_pattern_expression">Expression régulière</string>
+    <string name="capture_pattern_expression_help">Utilisez le groupe nommé (?&lt;amount&gt;…) pour le montant. Vous pouvez aussi extraire payee, date, account, reference et direction. Les assertions avant ou arrière et les références arrière ne sont pas prises en charge.</string>
+    <string name="capture_pattern_source">Application source</string>
+    <string name="capture_pattern_direction">Sens de l’opération</string>
+    <string name="capture_pattern_keywords">Utiliser les mots-clés</string>
+    <string name="capture_pattern_expense">Dépense</string>
+    <string name="capture_pattern_income">Revenu</string>
+    <string name="capture_pattern_global">Toutes les sources</string>
+    <string name="capture_pattern_date_format">Format de date (vide pour YYYY-MM-DD)</string>
+    <string name="capture_pattern_decimal">Séparateur décimal</string>
+    <string name="capture_pattern_grouping">Séparateur de milliers (facultatif)</string>
+    <string name="capture_pattern_move_earlier">Remonter d’une position</string>
+    <string name="capture_pattern_choice">%1$s : %2$s</string>
+    <string name="capture_pattern_test_source">Source du test</string>
+    <string name="capture_pattern_test">Tester les règles de capture</string>
+    <string name="capture_pattern_builtin">Analyseur intégré</string>
+    <string name="capture_pattern_matched">Règle utilisée : %1$s</string>
+    <string name="capture_pattern_preview_amount">Montant : %1$s</string>
+    <string name="capture_pattern_preview_date">Date : %1$s</string>
+    <string name="capture_pattern_preview_payee">Bénéficiaire : %1$s</string>
+    <string name="capture_pattern_preview_account">Indice de compte : %1$s</string>
+    <string name="capture_pattern_preview_reference">Référence : %1$s</string>
+    <string name="capture_patterns_import">Importer un JSON</string>
+    <string name="capture_patterns_export">Exporter en JSON</string>
+    <string name="capture_patterns_imported">Règles de capture importées.</string>
+    <string name="capture_patterns_exported">Règles de capture exportées.</string>
+    <string name="capture_pattern_import_error">Impossible de lire le fichier JSON des règles de capture.</string>
+    <string name="capture_pattern_import_rule_error">Règle %1$d : %2$s</string>
+    <string name="capture_pattern_export_error">Impossible d’exporter les règles de capture.</string>
+    <string name="capture_pattern_limit">Vous pouvez enregistrer jusqu’à %1$d règles de capture.</string>
+    <string name="capture_pattern_error_name">Saisissez un nom de 80 caractères maximum.</string>
+    <string name="capture_pattern_error_expression">Saisissez une expression régulière valide de 768 caractères maximum. Les assertions avant ou arrière et les références arrière ne sont pas prises en charge.</string>
+    <string name="capture_pattern_error_amount">L’expression doit contenir un groupe nommé amount.</string>
+    <string name="capture_pattern_error_date">Saisissez un format contenant le mois et le jour, comme MMM d, ou laissez le champ vide.</string>
+    <string name="capture_pattern_error_separators">Saisissez un séparateur décimal et, si besoin, un caractère différent comme séparateur de milliers.</string>
+    <string name="capture_pattern_error_package">Choisissez une application source valide.</string>
+    <string name="capture_pattern_substring_keywords">Chercher les mots-clés à l’intérieur des mots</string>
+    <string name="capture_pattern_substring_caption">Utile pour les alertes écrites sans espaces entre les mots.</string>
+</resources>

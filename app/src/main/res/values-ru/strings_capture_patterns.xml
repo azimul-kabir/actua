@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="capture_patterns_title">Правила захвата</string>
+    <string name="capture_patterns_help">Применяется первое подходящее правило с корректными полями. Если такого правила нет, Actua использует встроенный анализатор.</string>
+    <string name="capture_pattern_add">Добавить правило</string>
+    <string name="capture_pattern_edit">Изменить правило</string>
+    <string name="capture_pattern_name">Название правила</string>
+    <string name="capture_pattern_expression">Регулярное выражение</string>
+    <string name="capture_pattern_expression_help">Для суммы используйте именованную группу (?&lt;amount&gt;…). Можно также извлечь payee, date, account, reference и direction. Проверки контекста и обратные ссылки не поддерживаются.</string>
+    <string name="capture_pattern_source">Приложение-источник</string>
+    <string name="capture_pattern_direction">Тип операции</string>
+    <string name="capture_pattern_keywords">По ключевым словам</string>
+    <string name="capture_pattern_expense">Расход</string>
+    <string name="capture_pattern_income">Доход</string>
+    <string name="capture_pattern_global">Любой источник</string>
+    <string name="capture_pattern_date_format">Формат даты (пусто для YYYY-MM-DD)</string>
+    <string name="capture_pattern_decimal">Десятичный разделитель</string>
+    <string name="capture_pattern_grouping">Разделитель тысяч (необязательно)</string>
+    <string name="capture_pattern_move_earlier">Переместить на одну позицию выше</string>
+    <string name="capture_pattern_choice">%1$s: %2$s</string>
+    <string name="capture_pattern_test_source">Источник для проверки</string>
+    <string name="capture_pattern_test">Проверить правила захвата</string>
+    <string name="capture_pattern_builtin">Встроенный анализатор</string>
+    <string name="capture_pattern_matched">Применено правило: %1$s</string>
+    <string name="capture_pattern_preview_amount">Сумма: %1$s</string>
+    <string name="capture_pattern_preview_date">Дата: %1$s</string>
+    <string name="capture_pattern_preview_payee">Получатель: %1$s</string>
+    <string name="capture_pattern_preview_account">Подсказка для счёта: %1$s</string>
+    <string name="capture_pattern_preview_reference">Номер операции: %1$s</string>
+    <string name="capture_patterns_import">Импорт JSON</string>
+    <string name="capture_patterns_export">Экспорт JSON</string>
+    <string name="capture_patterns_imported">Правила захвата импортированы.</string>
+    <string name="capture_patterns_exported">Правила захвата экспортированы.</string>
+    <string name="capture_pattern_import_error">Не удалось прочитать JSON-файл с правилами захвата.</string>
+    <string name="capture_pattern_import_rule_error">Правило %1$d: %2$s</string>
+    <string name="capture_pattern_export_error">Не удалось экспортировать правила захвата.</string>
+    <string name="capture_pattern_limit">Можно сохранить не более %1$d правил захвата.</string>
+    <string name="capture_pattern_error_name">Введите название длиной не более 80 символов.</string>
+    <string name="capture_pattern_error_expression">Введите допустимое регулярное выражение длиной не более 768 символов. Проверки контекста и обратные ссылки не поддерживаются.</string>
+    <string name="capture_pattern_error_amount">Выражение должно содержать именованную группу amount.</string>
+    <string name="capture_pattern_error_date">Введите формат с месяцем и днём, например MMM d, или оставьте поле пустым.</string>
+    <string name="capture_pattern_error_separators">Введите десятичный разделитель и, при необходимости, другой символ для разделителя тысяч.</string>
+    <string name="capture_pattern_error_package">Выберите допустимое приложение-источник.</string>
+    <string name="capture_pattern_substring_keywords">Искать ключевые слова внутри слов</string>
+    <string name="capture_pattern_substring_caption">Для уведомлений, в которых нет пробелов между словами.</string>
+</resources>

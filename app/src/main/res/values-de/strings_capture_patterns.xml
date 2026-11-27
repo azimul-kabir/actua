@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="capture_patterns_title">Erfassungsregeln</string>
+    <string name="capture_patterns_help">Die erste passende Regel mit gültigen Feldern wird angewendet. Andernfalls verwendet Actua die integrierte Auswertung.</string>
+    <string name="capture_pattern_add">Regel hinzufügen</string>
+    <string name="capture_pattern_edit">Regel bearbeiten</string>
+    <string name="capture_pattern_name">Regelname</string>
+    <string name="capture_pattern_expression">Regulärer Ausdruck</string>
+    <string name="capture_pattern_expression_help">Verwende die benannte Gruppe (?&lt;amount&gt;…) für den Betrag. Du kannst auch payee, date, account, reference und direction erfassen. Lookarounds und Rückverweise werden nicht unterstützt.</string>
+    <string name="capture_pattern_source">Quell-App</string>
+    <string name="capture_pattern_direction">Buchungsrichtung</string>
+    <string name="capture_pattern_keywords">Schlüsselwörter verwenden</string>
+    <string name="capture_pattern_expense">Ausgabe</string>
+    <string name="capture_pattern_income">Einnahme</string>
+    <string name="capture_pattern_global">Beliebige Quelle</string>
+    <string name="capture_pattern_date_format">Datumsformat (leer für YYYY-MM-DD)</string>
+    <string name="capture_pattern_decimal">Dezimaltrennzeichen</string>
+    <string name="capture_pattern_grouping">Tausendertrennzeichen (optional)</string>
+    <string name="capture_pattern_move_earlier">Eine Position nach oben</string>
+    <string name="capture_pattern_choice">%1$s: %2$s</string>
+    <string name="capture_pattern_test_source">Testquelle</string>
+    <string name="capture_pattern_test">Erfassungsregeln testen</string>
+    <string name="capture_pattern_builtin">Integrierte Auswertung</string>
+    <string name="capture_pattern_matched">Verwendete Regel: %1$s</string>
+    <string name="capture_pattern_preview_amount">Betrag: %1$s</string>
+    <string name="capture_pattern_preview_date">Datum: %1$s</string>
+    <string name="capture_pattern_preview_payee">Zahlungspartner: %1$s</string>
+    <string name="capture_pattern_preview_account">Kontohinweis: %1$s</string>
+    <string name="capture_pattern_preview_reference">Referenz: %1$s</string>
+    <string name="capture_patterns_import">JSON importieren</string>
+    <string name="capture_patterns_export">JSON exportieren</string>
+    <string name="capture_patterns_imported">Erfassungsregeln importiert.</string>
+    <string name="capture_patterns_exported">Erfassungsregeln exportiert.</string>
+    <string name="capture_pattern_import_error">Die JSON-Datei mit den Erfassungsregeln konnte nicht gelesen werden.</string>
+    <string name="capture_pattern_import_rule_error">Regel %1$d: %2$s</string>
+    <string name="capture_pattern_export_error">Erfassungsregeln konnten nicht exportiert werden.</string>
+    <string name="capture_pattern_limit">Du kannst bis zu %1$d Erfassungsregeln speichern.</string>
+    <string name="capture_pattern_error_name">Gib einen Namen mit höchstens 80 Zeichen ein.</string>
+    <string name="capture_pattern_error_expression">Gib einen gültigen regulären Ausdruck mit höchstens 768 Zeichen ein. Lookarounds und Rückverweise werden nicht unterstützt.</string>
+    <string name="capture_pattern_error_amount">Der Ausdruck benötigt eine benannte Gruppe amount.</string>
+    <string name="capture_pattern_error_date">Gib ein Format mit Monat und Tag ein, etwa MMM d, oder lass das Feld leer.</string>
+    <string name="capture_pattern_error_separators">Gib ein Dezimaltrennzeichen und optional ein anderes Zeichen als Tausendertrennzeichen ein.</string>
+    <string name="capture_pattern_error_package">Wähle eine gültige Quell-App.</string>
+    <string name="capture_pattern_substring_keywords">Schlüsselwörter innerhalb von Wörtern finden</string>
+    <string name="capture_pattern_substring_caption">Für Benachrichtigungen ohne Leerzeichen zwischen Wörtern.</string>
+</resources>

@@ -165,6 +165,7 @@ dependencies {
     implementation(libs.pdfbox.android)
     // WebDAV backups need PROPFIND, MKCOL and MOVE, which HttpURLConnection rejects.
     implementation(libs.okhttp)
+    implementation(libs.re2j)
     add("playstoreImplementation", libs.android.billing.ktx)
     // Google's in-app review sheet for the one-time rating request; playstore only.
     add("playstoreImplementation", libs.play.review.ktx)
