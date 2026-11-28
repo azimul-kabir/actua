@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Choose a custom emoji for each account ([#1894](https://github.com/azimul-kabir/actua/pull/1894))
 - Set a transaction back to Uncategorized while editing ([#1893](https://github.com/azimul-kabir/actua/pull/1893))
 - Added optional emoji icons for categories ([#1892](https://github.com/azimul-kabir/actua/pull/1892))
 
