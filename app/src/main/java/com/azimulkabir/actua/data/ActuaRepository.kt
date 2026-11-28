@@ -2146,7 +2146,9 @@ class ActuaRepository(context: Context) {
                             val destAccount = accounts.byIdOrName(null, lineTransferTarget, { it.id }, { it.name })
                             destAccount != null && account.offBudget != destAccount.offBudget
                         } else categoriesAllowed
-                        val lineCategory = if (lineCategoriesAllowed) {
+                        val existingUncategorizedLine = original?.isParent == true &&
+                            line.childId != null && line.category.isBlank() && line.categoryId == null
+                        val lineCategory = if (lineCategoriesAllowed && !existingUncategorizedLine) {
                             categories.byIdOrName(line.categoryId, line.category, { it.id }, { it.name })
                                 ?: error("Select a category for every split")
                         } else null
