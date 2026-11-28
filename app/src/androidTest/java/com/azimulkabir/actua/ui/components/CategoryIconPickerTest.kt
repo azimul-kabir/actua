@@ -54,6 +54,13 @@ class CategoryIconPickerTest {
         }
 
         node(R.string.category_icon).performClick()
+        compose.onNodeWithText("💵").performScrollTo().performClick()
+        compose.runOnIdle {
+            assertEquals("emoji:💵", key.value)
+            assertEquals(0, renameCount)
+        }
+
+        node(R.string.category_icon).performClick()
         node(R.string.category_icon_none).performClick()
         node(R.string.category_icon_remove).performClick()
         compose.runOnIdle {
