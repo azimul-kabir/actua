@@ -219,6 +219,8 @@ import com.azimulkabir.actua.data.budget.BudgetMetadata
 import com.azimulkabir.actua.data.bank.NewBankTransactions
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.preferences.LocationPreferences
+import com.azimulkabir.actua.data.preferences.CategoryIcon
+import com.azimulkabir.actua.data.preferences.IconPreferences
 import com.azimulkabir.actua.data.notifications.CapturedTransactionNotifications
 import com.azimulkabir.actua.data.notifications.CreditCardDueLaunch
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
@@ -235,6 +237,9 @@ import com.azimulkabir.actua.ui.components.TransactionImpactCue
 import com.azimulkabir.actua.ui.components.TransactionImpactPopup
 import com.azimulkabir.actua.ui.components.findTagOccurrences
 import com.azimulkabir.actua.ui.components.applyDisplayFormats
+import com.azimulkabir.actua.ui.components.CategoryIconEditor
+import com.azimulkabir.actua.ui.components.LocalCategoryEmojis
+import com.azimulkabir.actua.ui.components.LocalCategoryIconEditor
 import com.azimulkabir.actua.AppLaunchRequest
 import com.azimulkabir.actua.SHARED_IMPORT_ACTION
 import com.azimulkabir.actua.SHARED_IMPORT_FILE_ACTION
@@ -768,6 +773,31 @@ fun AppNavigation(
     var numberFormat by settingsPreferenceState.numberFormat
     var budgetView by settingsPreferenceState.budgetView
     var budgetDisplay by settingsPreferenceState.budgetDisplay
+    val iconPreferences = remember(context) { IconPreferences(context) }
+    var categoryIconKeys by remember(activeBudgetId) {
+        mutableStateOf(activeBudgetId?.let(iconPreferences::categories).orEmpty())
+    }
+    val categoryEmojis = remember(activeBudgetId, rootLists.budgetId, categoryChoices, categoryIconKeys) {
+        if (rootLists.budgetId != activeBudgetId || categoryIconKeys.isEmpty()) emptyMap()
+        else categoryChoices.choices.mapNotNull { category ->
+            // The live category snapshot filters out deleted entries without discarding
+            // preferences during a temporary read failure or a budget switch.
+            val icon = categoryIconKeys[category.id]?.let(CategoryIcon::parse)
+            icon?.takeIf { it.source == "emoji" }?.let { category.id to it.value }
+        }.toMap()
+    }
+    val categoryIconEditor = remember(activeBudgetId, categoryEmojis, iconPreferences, budgetDisplay.showCategoryIcons) {
+        activeBudgetId?.let { budgetId ->
+            CategoryIconEditor(
+                emojis = categoryEmojis,
+                set = { id, key ->
+                    iconPreferences.setCategory(budgetId, id, key)
+                    categoryIconKeys = iconPreferences.categories(budgetId)
+                },
+                showIcons = budgetDisplay.showCategoryIcons,
+            )
+        }
+    }
     val onBudgetDisplayChange: (BudgetDisplayOptions) -> Unit = {
         displayPreferences.budgetDisplayOptions = it
         budgetDisplay = it
@@ -1659,7 +1689,11 @@ fun AppNavigation(
             } }
         },
     ) { innerPadding ->
-        CompositionLocalProvider(LocalFloatingTabBar provides !regularTabBar) {
+        CompositionLocalProvider(
+            LocalFloatingTabBar provides !regularTabBar,
+            LocalCategoryEmojis provides if (budgetDisplay.showCategoryIcons) categoryEmojis else emptyMap(),
+            LocalCategoryIconEditor provides categoryIconEditor,
+        ) {
         Box(Modifier.fillMaxSize().then(if (blurTabBar) Modifier.recordsBackdrop(tabBarBackdrop, MaterialTheme.colorScheme.background) else Modifier)) {
         // Root list screens run behind the transparent area around the floating pill and clear it
         // with their own bottom padding; every other screen still ends above the bar.
@@ -2006,6 +2040,7 @@ fun AppNavigation(
                     }
                 },
                 categoryOptions = categoryChoices.labels,
+                categorizeChoices = categoryChoices,
                 onCategorizeMultiple = { transactionsToCategorize, category ->
                     val picked = categoryChoices.choice(category)
                     val updated = transactionsToCategorize.map {
@@ -2708,7 +2743,8 @@ fun AppNavigation(
                     hideDecimalPlaces = hideDecimalPlaces,
                     scheduleFunding = budgetScheduleFunding,
                     incomeCategories = budgetGroups.filter { it.isIncome }.flatMap { it.categories }
-                        .map { it.name }.filter { it.isNotBlank() }.distinct(),
+                        .filter { it.name.isNotBlank() }.groupBy { it.name }
+                        .mapValues { (_, categories) -> categories.singleOrNull()?.id },
                     conventionalAmountEntry = conventionalAmountEntry,
                     active = detail == DetailDestination.BudgetAutomation,
                     onBack = {
@@ -3201,6 +3237,7 @@ fun AppNavigation(
                         }
                     },
                     categoryOptions = categoryChoices.labels,
+                    categorizeChoices = categoryChoices,
                     onCategorizeMultiple = { transactionsToCategorize, category ->
                         val picked = categoryChoices.choice(category)
                         val updated = transactionsToCategorize.map {

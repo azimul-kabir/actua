@@ -18,6 +18,14 @@
     <string name="budget_show_group_totals">Show group totals</string>
     <string name="budget_show_balance_pills">Show balance pills</string>
     <string name="budget_show_goal_icons">Show goal icons</string>
+    <string name="budget_show_category_icons">Show category icons</string>
+    <string name="category_icon">Category icon</string>
+    <string name="category_icon_emoji">Emoji</string>
+    <string name="category_icon_none">None</string>
+    <string name="category_icon_remove">Remove icon</string>
+    <string name="category_icon_enter_emoji">Enter an emoji</string>
+    <string name="category_icon_invalid_emoji">Enter one emoji</string>
+    <string name="category_icon_use_emoji">Use emoji</string>
     <string name="budget_flat_table">Edge-to-edge groups</string>
     <string name="budget_flat_table_description">Draw each group flat from edge to edge, with rounded corners only at its ends. Table view only.</string>
     <string name="budget_display_options_menu">Display options</string>

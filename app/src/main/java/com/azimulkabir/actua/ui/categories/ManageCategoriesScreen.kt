@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
@@ -36,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
@@ -43,6 +45,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.ui.navigation.floatingBarClearance
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.budget.CategoryDeletePlan
 import com.azimulkabir.actua.data.budget.CategoryDragReorder
 import com.azimulkabir.actua.data.budget.CategoryReorderPlanner
@@ -56,7 +59,13 @@ import com.azimulkabir.actua.ui.components.MoveCategoryDialog
 import com.azimulkabir.actua.ui.components.NewCategoryDialog
 import com.azimulkabir.actua.ui.components.RenameDialog
 import com.azimulkabir.actua.ui.components.dragReorderHandle
+import com.azimulkabir.actua.ui.components.CategoryIconLabel
+import com.azimulkabir.actua.ui.components.EditCategoryDialog
+import com.azimulkabir.actua.ui.components.EditCategoryIconSheet
+import com.azimulkabir.actua.ui.components.LocalCategoryIconEditor
+import com.azimulkabir.actua.ui.components.LocalCategoryEmojis
 import kotlinx.coroutines.launch
+import com.azimulkabir.actua.data.preferences.reservesCategoryIconSlot
 
 private const val ROW_HEIGHT_DP = 56
 private const val EDGE_SCROLL_ZONE_PX = 100f
@@ -108,6 +117,8 @@ fun ManageCategoriesScreen(
     val rowHeightPx = with(density) { ROW_HEIGHT_DP.dp.toPx() }
 
     var renamingGroup by remember { mutableStateOf<ActualCategoryGroup?>(null) }
+    var editingCategoryIconId by remember { mutableStateOf<String?>(null) }
+    val showCategoryIcons = LocalCategoryIconEditor.current?.showIcons == true
     var renamingCategory by remember { mutableStateOf<Pair<ActualCategoryGroup, ActualCategory>?>(null) }
     var addingCategoryTo by remember { mutableStateOf<ActualCategoryGroup?>(null) }
     var addingGroup by remember { mutableStateOf(false) }
@@ -116,6 +127,11 @@ fun ManageCategoriesScreen(
     var deletingGroup by remember { mutableStateOf<ActualCategoryGroup?>(null) }
 
     val rows = remember(localGroups) { flatten(localGroups) }
+    val categoryEmojis = LocalCategoryEmojis.current
+    val reserveCategoryIconSlot = remember(categoryEmojis, localGroups) {
+        reservesCategoryIconSlot(categoryEmojis, localGroups.asSequence()
+            .flatMap { group -> group.categories.asSequence().map { it.id } })
+    }
 
     fun onDragStart(categoryId: String) {
         draggingCategoryId = categoryId
@@ -201,6 +217,8 @@ fun ManageCategoriesScreen(
                         ) {
                             CategoryManageRow(
                                 category = category,
+                                emoji = categoryEmojis[category.id],
+                                reserveIconSlot = reserveCategoryIconSlot,
                                 isFirstInGroup = indexInGroup == 0,
                                 isLastInGroup = indexInGroup == group.categories.lastIndex,
                                 modifier = Modifier
@@ -212,6 +230,7 @@ fun ManageCategoriesScreen(
                                 onMoveUp = { stepByButton(category.id, -1) },
                                 onMoveDown = { stepByButton(category.id, +1) },
                                 onRename = { renamingCategory = group to category },
+                                onEditIcon = if (showCategoryIcons) ({ editingCategoryIconId = category.id }) else null,
                                 onMoveToGroup = { movingCategory = group to category },
                                 onToggleHidden = { onSetCategoryHidden(group.name, category.name, !category.hidden) },
                                 onDelete = { deletingCategory = group to category },
@@ -223,6 +242,7 @@ fun ManageCategoriesScreen(
         }
     }
 
+    editingCategoryIconId?.let { EditCategoryIconSheet(it) { editingCategoryIconId = null } }
     renamingGroup?.let { group ->
         RenameDialog(
             title = "Rename group",
@@ -232,11 +252,12 @@ fun ManageCategoriesScreen(
         )
     }
     renamingCategory?.let { (group, category) ->
-        RenameDialog(
+        EditCategoryDialog(
             title = "Rename category",
+            categoryId = category.id,
             currentName = category.name,
             onDismiss = { renamingCategory = null },
-            onSave = { name -> onRenameCategory(group.name, category.name, name); renamingCategory = null },
+            onRename = { name -> onRenameCategory(group.name, category.name, name); renamingCategory = null },
         )
     }
     addingCategoryTo?.let { group ->
@@ -348,6 +369,8 @@ private fun GroupManageRow(
 @Composable
 private fun CategoryManageRow(
     category: ActualCategory,
+    emoji: String?,
+    reserveIconSlot: Boolean,
     isFirstInGroup: Boolean,
     isLastInGroup: Boolean,
     modifier: Modifier = Modifier,
@@ -357,6 +380,7 @@ private fun CategoryManageRow(
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
     onRename: () -> Unit,
+    onEditIcon: (() -> Unit)?,
     onMoveToGroup: () -> Unit,
     onToggleHidden: () -> Unit,
     onDelete: () -> Unit,
@@ -377,12 +401,16 @@ private fun CategoryManageRow(
                     onDragEnd = onDragEnd,
                 ),
         )
-        Text(
+        CategoryIconLabel(
             category.name,
+            emoji = emoji,
+            reserveSlot = reserveIconSlot,
             style = MaterialTheme.typography.bodyLarge,
             overflow = TextOverflow.Ellipsis,
             color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f).padding(start = 8.dp),
+            modifier = Modifier.weight(1f)
+                .combinedClickable(onClick = onRename, onLongClick = if (onEditIcon != null) ({ menuExpanded = true }) else onRename)
+                .padding(start = 8.dp),
         )
         if (category.hidden) {
             Icon(Icons.Outlined.VisibilityOff, "Hidden category",
@@ -391,6 +419,12 @@ private fun CategoryManageRow(
         Box {
             IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "${category.name} category options") }
             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                if (onEditIcon != null) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.category_icon)) },
+                        onClick = { menuExpanded = false; onEditIcon() },
+                    )
+                }
                 DropdownMenuItem(text = { Text("Rename") }, onClick = { menuExpanded = false; onRename() })
                 DropdownMenuItem(text = { Text("Move to group") }, onClick = { menuExpanded = false; onMoveToGroup() })
                 DropdownMenuItem(

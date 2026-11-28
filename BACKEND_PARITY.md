@@ -598,6 +598,10 @@ lists what was ported, what was only checked by reading, and what is not ported.
 
 ## Actua-only features (not in Actual)
 
+- **Category emoji icons** are device-local preferences scoped to a budget and category ID.
+  Actual has no category icon field. Icons are excluded from budget backups and exports,
+  just like favorites, and do not enter the budget database or CRDT messages.
+
 - **Receipt photos** (scanning in every build: Google Play and the GitHub APK): kept photos live outside
   `db.sqlite` under `files/ReceiptPhotos/<budget id>/<transaction id>.jpg`, or in the optional
   user-selected `Actua receipts/<budget id>/<transaction id>.jpg` folder. Actual has no attachment

@@ -107,6 +107,7 @@ import com.azimulkabir.actua.model.Type
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.model.LoanStatus
+import com.azimulkabir.actua.model.PickerChoices
 import java.math.BigDecimal
 import com.azimulkabir.actua.ui.settings.payoffMonthText
 import com.azimulkabir.actua.ui.settings.paidOffPercentText
@@ -133,6 +134,7 @@ import com.azimulkabir.actua.ui.components.ActuaSheetAction
 import com.azimulkabir.actua.ui.components.ActuaFormRow
 import com.azimulkabir.actua.ui.components.ActuaNoteEditorSheet
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
+import com.azimulkabir.actua.ui.components.LocalCategoryEmojis
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.ui.theme.AmountTypography
 import com.azimulkabir.actua.ui.theme.PillShape
@@ -147,6 +149,7 @@ import androidx.compose.ui.res.stringResource
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.ui.celebrations.LocalCelebrate
 import com.azimulkabir.actua.ui.navigation.floatingBarClearance
+import com.azimulkabir.actua.data.preferences.reservesCategoryIconSlot
 
 private val sampleTransactions = listOf(
     Transaction("1", "Today", "Agora Super Shop", "Groceries", "Everyday account", -2_450, true),
@@ -228,6 +231,7 @@ fun TransactionsScreen(
     onUpcomingAction: (Transaction, UpcomingTransactionAction) -> Unit = { _, _ -> },
     hasFab: Boolean = true,
     categoryOptions: List<String> = emptyList(),
+    categorizeChoices: PickerChoices = PickerChoices.EMPTY,
     onCategorizeMultiple: (List<Transaction>, String) -> Unit = { _, _ -> },
     accountOptions: List<String> = emptyList(),
     onMoveMultiple: (List<Transaction>, String) -> Unit = { _, _ -> },
@@ -938,16 +942,25 @@ fun TransactionsScreen(
                         modifier = Modifier.padding(horizontal = Spacing.screenHorizontal + Spacing.xs))
                 } else {
                     val toCategorize = selectedTransactions
+                    val emojis = LocalCategoryEmojis.current
+                    val reserveIconSlot = remember(emojis, categoryOptions, categorizeChoices) {
+                        reservesCategoryIconSlot(emojis, categoryOptions.asSequence().map { categorizeChoices.choice(it)?.id })
+                    }
                     ActuaSheetCard {
                         categoryOptions.forEachIndexed { index, category ->
                             if (index > 0) ActuaCardDivider(inset = Spacing.lg)
-                            Action(category) {
-                                showCategorizePicker = false
-                                confirmReconciled(toCategorize) {
-                                    onCategorizeMultiple(toCategorize, category)
-                                    selectionModeOn = false
-                                }
-                            }
+                            ActuaSheetAction(
+                                label = category,
+                                categoryEmoji = emojis[categorizeChoices.choice(category)?.id],
+                                reserveCategoryIconSlot = reserveIconSlot,
+                                onClick = {
+                                    showCategorizePicker = false
+                                    confirmReconciled(toCategorize) {
+                                        onCategorizeMultiple(toCategorize, category)
+                                        selectionModeOn = false
+                                    }
+                                },
+                            )
                         }
                     }
                 }

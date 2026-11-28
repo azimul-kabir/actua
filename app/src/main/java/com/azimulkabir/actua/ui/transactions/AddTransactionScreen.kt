@@ -116,6 +116,8 @@ import com.azimulkabir.actua.ui.components.ActuaGroupLabel
 import com.azimulkabir.actua.ui.components.ActuaHeroAmount
 import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
+import com.azimulkabir.actua.ui.components.CategoryIconLabel
+import com.azimulkabir.actua.ui.components.LocalCategoryEmojis
 import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.util.suspendRunCatching
 import java.time.Instant
@@ -124,6 +126,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import com.azimulkabir.actua.data.preferences.reservesCategoryIconSlot
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -453,6 +456,7 @@ fun AddTransactionScreen(
                         PickerTextField(
                             label = stringResource(R.string.transaction_category), value = category, options = categoryOptions,
                             sections = categoryChoices.sections,
+                            iconCategories = categoryChoices,
                             supportingValues = categoryBalanceLabels,
                             onValueChange = { category = it; categoryIsExplicit = it.isNotBlank() },
                             autoOpen = walkStep == AddStep.Category,
@@ -550,6 +554,7 @@ fun AddTransactionScreen(
                                         value = line.category,
                                         options = categoryOptions,
                                         sections = categoryChoices.sections,
+                                        iconCategories = categoryChoices,
                                         supportingValues = categoryBalanceLabels,
                                         onValueChange = { value -> update(line.copy(category = value)) },
                                         rowIcon = Icons.Outlined.Category,
@@ -1111,6 +1116,7 @@ internal fun PickerTextField(
     /** Headed option groups (e.g. category groups) listed in order instead of A–Z; see [browsePickerGroups]. */
     sections: List<Pair<String, List<String>>> = emptyList(),
     supportingValues: Map<String, String> = emptyMap(),
+    iconCategories: PickerChoices = PickerChoices.EMPTY,
     onFindNearby: (suspend () -> NearbyPayeeSearchResult)? = null,
     onSavePayeeLocation: (suspend (String) -> PayeeLocationSaveResult)? = null,
     onForgetPayeeLocation: (suspend (String) -> Boolean)? = null,
@@ -1256,6 +1262,7 @@ internal fun PickerTextField(
         suggested = suggested,
         sections = sections,
         supportingValues = supportingValues,
+        iconCategories = iconCategories,
         onFindNearby = onFindNearby,
         onForgetPayeeLocation = onForgetPayeeLocation,
         onNearbyResult = { result ->
@@ -1305,6 +1312,7 @@ private fun SearchableTransactionPicker(
     suggested: List<String>,
     sections: List<Pair<String, List<String>>>,
     supportingValues: Map<String, String>,
+    iconCategories: PickerChoices,
     onFindNearby: (suspend () -> NearbyPayeeSearchResult)?,
     onForgetPayeeLocation: (suspend (String) -> Boolean)?,
     onNearbyResult: (NearbyPayeeSearchResult) -> Unit,
@@ -1370,6 +1378,15 @@ private fun SearchableTransactionPicker(
             sections,
         )
     }
+    val categoryEmojis = LocalCategoryEmojis.current
+    val optionEmojis = remember(categoryEmojis, iconCategories) {
+        if (categoryEmojis.isEmpty()) emptyMap() else iconCategories.choices.mapNotNull {
+            categoryEmojis[it.id]?.let { emoji -> it.label to emoji }
+        }.toMap()
+    }
+    val reserveIconSlot = remember(optionEmojis, query, uniqueOptions, searchResults) {
+        reservesCategoryIconSlot(optionEmojis, (if (query.isBlank()) uniqueOptions else searchResults).asSequence())
+    }
     val addValueFormat = stringResource(R.string.picker_add_value)
 
     Dialog(
@@ -1410,6 +1427,7 @@ private fun SearchableTransactionPicker(
                         item {
                             PickerGroup(
                                 listOf(selected), selected, supportingValues = supportingValues,
+                                optionEmojis = optionEmojis, reserveIconSlot = reserveIconSlot,
                                 onSelect = onSelect,
                             )
                         }
@@ -1501,6 +1519,7 @@ private fun SearchableTransactionPicker(
                             PickerGroup(
                                 options = searchResults,
                                 selected = selected,
+                                optionEmojis = optionEmojis, reserveIconSlot = reserveIconSlot,
                                 displayText = { it.removePrefix("Transfer: ") },
                                 supportingValues = supportingValues,
                                 onSelect = onSelect,
@@ -1513,6 +1532,7 @@ private fun SearchableTransactionPicker(
                             PickerGroup(
                                 options = transferOptions,
                                 selected = selected,
+                                optionEmojis = optionEmojis, reserveIconSlot = reserveIconSlot,
                                 displayText = { it.removePrefix("Transfer: ") },
                                 supportingValues = supportingValues,
                                 onSelect = onSelect,
@@ -1540,6 +1560,7 @@ private fun SearchableTransactionPicker(
                             item(key = "browse-group-$index") {
                                 PickerGroup(
                                     entries, selected, supportingValues = supportingValues,
+                                    optionEmojis = optionEmojis, reserveIconSlot = reserveIconSlot,
                                     onSelect = onSelect,
                                 )
                             }
@@ -1711,12 +1732,16 @@ private fun PickerGroup(
     selected: String,
     displayText: (String) -> String = { it },
     supportingValues: Map<String, String> = emptyMap(),
+    optionEmojis: Map<String, String> = emptyMap(),
+    reserveIconSlot: Boolean = false,
     onSelect: (String) -> Unit,
 ) {
     ActuaFormCard {
         options.forEachIndexed { index, option ->
             PickerRow(
                 text = displayText(option),
+                emoji = optionEmojis[option],
+                reserveIconSlot = reserveIconSlot,
                 supportingText = supportingValues[option],
                 selected = option == selected,
             ) { onSelect(option) }
@@ -1773,6 +1798,8 @@ private fun PickerRow(
     text: String,
     supportingText: String? = null,
     selected: Boolean,
+    emoji: String? = null,
+    reserveIconSlot: Boolean = false,
     onClick: () -> Unit,
 ) {
     Row(
@@ -1781,8 +1808,10 @@ private fun PickerRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RadioButton(selected = selected, onClick = onClick)
-        Text(
+        CategoryIconLabel(
             text,
+            emoji = emoji,
+            reserveSlot = reserveIconSlot,
             style = MaterialTheme.typography.bodyLarge,
             maxLines = 1,
             modifier = Modifier.weight(1f).padding(horizontal = 4.dp),

@@ -90,6 +90,10 @@ class BudgetDisplayOptionsSheetTest {
 
         assertFalse(options.showGoalIcons)
         assertTrue(options.showBalancePills)
+
+        compose.onNodeWithText(label(R.string.budget_show_category_icons)).performScrollTo().performClick()
+
+        assertTrue(options.showCategoryIcons)
     }
 
     @Test fun statusDotsFollowTheSharedSetting() {

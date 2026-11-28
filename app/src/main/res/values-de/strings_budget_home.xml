@@ -18,6 +18,14 @@
     <string name="budget_show_group_totals">Gruppensummen anzeigen</string>
     <string name="budget_show_balance_pills">Saldo-Labels anzeigen</string>
     <string name="budget_show_goal_icons">Zielsymbole anzeigen</string>
+    <string name="budget_show_category_icons">Kategoriesymbole anzeigen</string>
+    <string name="category_icon">Kategoriesymbol</string>
+    <string name="category_icon_emoji">Emoji</string>
+    <string name="category_icon_none">Keins</string>
+    <string name="category_icon_remove">Symbol entfernen</string>
+    <string name="category_icon_enter_emoji">Emoji eingeben</string>
+    <string name="category_icon_invalid_emoji">Genau ein Emoji eingeben</string>
+    <string name="category_icon_use_emoji">Emoji verwenden</string>
     <string name="budget_flat_table">Gruppen randlos</string>
     <string name="budget_flat_table_description">Zeigt jede Gruppe flach von Rand zu Rand, mit abgerundeten Ecken nur an den Enden. Nur Tabellenansicht.</string>
     <string name="budget_display_options_menu">Anzeigeoptionen</string>

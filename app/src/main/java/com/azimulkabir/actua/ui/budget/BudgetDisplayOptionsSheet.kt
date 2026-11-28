@@ -90,6 +90,10 @@ internal fun BudgetDisplayOptionsSheet(
                     onOptionsChange(options.copy(showGoalIcons = it))
                 }
                 OptionDivider()
+                OptionSwitchRow(stringResource(R.string.budget_show_category_icons), options.showCategoryIcons) {
+                    onOptionsChange(options.copy(showCategoryIcons = it))
+                }
+                OptionDivider()
                 OptionSwitchRow(stringResource(R.string.budget_show_group_totals), options.showGroupTotals) {
                     onOptionsChange(options.copy(showGroupTotals = it))
                 }

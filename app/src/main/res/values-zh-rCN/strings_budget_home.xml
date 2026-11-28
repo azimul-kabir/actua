@@ -18,6 +18,14 @@
     <string name="budget_show_group_totals">显示分组合计</string>
     <string name="budget_show_balance_pills">显示余额标签</string>
     <string name="budget_show_goal_icons">显示目标图标</string>
+    <string name="budget_show_category_icons">显示类别图标</string>
+    <string name="category_icon">类别图标</string>
+    <string name="category_icon_emoji">表情符号</string>
+    <string name="category_icon_none">无</string>
+    <string name="category_icon_remove">移除图标</string>
+    <string name="category_icon_enter_emoji">输入表情符号</string>
+    <string name="category_icon_invalid_emoji">请输入一个表情符号</string>
+    <string name="category_icon_use_emoji">使用表情符号</string>
     <string name="budget_flat_table">通栏分组</string>
     <string name="budget_flat_table_description">将每个分组平铺到屏幕两侧边缘，仅在两端保留圆角。仅适用于表格视图。</string>
     <string name="budget_display_options_menu">显示选项</string>

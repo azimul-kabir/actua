@@ -68,9 +68,12 @@ import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.minorUnitsPerWhole
+import com.azimulkabir.actua.ui.components.CategoryIconLabel
+import com.azimulkabir.actua.ui.components.LocalCategoryEmojis
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.ui.theme.Spacing
 import java.time.LocalDate
+import com.azimulkabir.actua.data.preferences.reservesCategoryIconSlot
 
 @Composable
 fun RulesScreen(
@@ -581,7 +584,11 @@ internal fun RuleValueEditor(field: String, op: String, value: RuleValue, option
         "category_group" -> data.categoryGroups; else -> emptyList() }
     when (RuleSchema.type(field)) {
         RuleFieldType.ID -> {
-            if (op in setOf("oneOf", "notOneOf")) MultiChoice(value.list.orEmpty(), choices) { onChange(RuleValue.ListValue(it), options) }
+            val emojis = if (field == "category") LocalCategoryEmojis.current else emptyMap()
+            val reserveIconSlot = remember(emojis, choices) {
+                reservesCategoryIconSlot(emojis, choices.asSequence().map { it.id })
+            }
+            if (op in setOf("oneOf", "notOneOf")) MultiChoice(value.list.orEmpty(), choices, emojis, reserveIconSlot) { onChange(RuleValue.ListValue(it), options) }
             else {
                 val selectedName = data.names[value.text] ?: choices.firstOrNull { it.id == value.text }?.name
                 ActuaMenuRow(
@@ -590,6 +597,7 @@ internal fun RuleValueEditor(field: String, op: String, value: RuleValue, option
                     value = selectedName ?: stringResource(R.string.fs_select_value),
                     valueIsPlaceholder = selectedName == null,
                     choices = choices.map { it.name to it.id },
+                    optionLabel = { name, id -> CategoryIconLabel(name, emojis[id], reserveIconSlot) },
                 ) { onChange(RuleValue.Text(it), options) }
             }
         }
@@ -656,7 +664,13 @@ internal fun NumberInput(label: String, cents: Double?, onChange: (Double) -> Un
 
 /** A form row listing how many [choices] are selected; its menu toggles each one. */
 @Composable
-internal fun MultiChoice(selected: List<RuleValue>, choices: List<RuleChoice>, onChange: (List<RuleValue>) -> Unit) {
+internal fun MultiChoice(
+    selected: List<RuleValue>,
+    choices: List<RuleChoice>,
+    emojis: Map<String, String>,
+    reserveIconSlot: Boolean,
+    onChange: (List<RuleValue>) -> Unit,
+) {
     var open by remember { mutableStateOf(false) }
     val ids = selected.mapNotNull { it.text }.toSet()
     Box {
@@ -669,7 +683,7 @@ internal fun MultiChoice(selected: List<RuleValue>, choices: List<RuleChoice>, o
             onClick = { open = true },
         )
         DropdownMenu(open, { open = false }) { choices.forEach { choice ->
-            DropdownMenuItem(text = { Text(choice.name) }, leadingIcon = { Checkbox(choice.id in ids, null) }, onClick = {
+            DropdownMenuItem(text = { CategoryIconLabel(choice.name, emojis[choice.id], reserveIconSlot) }, leadingIcon = { Checkbox(choice.id in ids, null) }, onClick = {
                 val updated = if (choice.id in ids) ids - choice.id else ids + choice.id
                 onChange(updated.map { RuleValue.Text(it) })
             })

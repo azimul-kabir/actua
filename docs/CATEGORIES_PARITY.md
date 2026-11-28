@@ -180,3 +180,9 @@ Tests: `ActualBudgetReadModelTest.transactionsInAMergedCategoryReportTheTargetCa
 | [#926](https://github.com/azimul-kabir/actua/issues/926) | P2 | Deleting a category with transactions or budget amounts doesn't transfer them (fixed) |
 | [#927](https://github.com/azimul-kabir/actua/issues/927) | Lower | Moving or creating a category copies its group's hidden flag onto it (fixed) |
 | [#928](https://github.com/azimul-kabir/actua/issues/928) | Lower | Category rename/move and group rename allow duplicate names (fixed) |
+
+## Category icons
+
+Actua can show optional emoji before category names. Actual has no category icon field.
+The choices live in device preferences per budget and category ID, outside budget backups,
+exports and sync. Deleted categories are omitted when reading icons for a live category list.
