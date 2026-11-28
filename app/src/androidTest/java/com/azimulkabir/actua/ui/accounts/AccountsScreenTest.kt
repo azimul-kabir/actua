@@ -156,7 +156,7 @@ class AccountsScreenTest {
 
         compose.onNodeWithText("Checking").performTouchInput { longClick() }
         compose.onNodeWithText(action).performClick()
-        compose.onNodeWithText("💳").performScrollTo().performClick()
+        compose.onNodeWithText("🏦").performScrollTo().performClick()
         compose.onNodeWithTag(ACCOUNT_EMOJI_ICON_TAG, useUnmergedTree = true).assertExists()
         compose.onNodeWithTag(ACCOUNT_TYPE_ICON_TAG, useUnmergedTree = true).assertDoesNotExist()
 
