@@ -7,7 +7,6 @@ import android.database.sqlite.SQLiteDatabase
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.rule.GrantPermissionRule
 import androidx.work.testing.TestListenableWorkerBuilder
 import androidx.work.workDataOf
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
@@ -22,7 +21,6 @@ import org.junit.Assert.assertTrue
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.UUID
@@ -30,10 +28,6 @@ import java.util.UUID
 /** One-tap import of a captured row from its notification (#1046). */
 @RunWith(AndroidJUnit4::class)
 class CapturedImportTest {
-    @get:Rule val notificationPermission = GrantPermissionRule.grant(
-        *if (Build.VERSION.SDK_INT >= 33) arrayOf(Manifest.permission.POST_NOTIFICATIONS) else emptyArray(),
-    )
-
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
     private val store = NotificationImportPreferences(context)
     private val coffee = ImportCandidate(1, 20261012, "Coffee", "Imported from com.bank.app", -500, sourceLabel = "com.bank.app")
@@ -115,6 +109,11 @@ class CapturedImportTest {
     }
 
     @Test fun notificationsOpenReviewUntilTheImportSucceeds() = withBudget { rows ->
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            InstrumentationRegistry.getInstrumentation().uiAutomation.grantRuntimePermission(
+                context.packageName, Manifest.permission.POST_NOTIFICATIONS,
+            )
+        }
         val manager = context.getSystemService(NotificationManager::class.java)
         val queueId = requireNotNull(store.enqueue(coffee).queueId)
         val failedQueueId = requireNotNull(store.enqueue(coffee.copy(payee = "Fuel")).queueId)
