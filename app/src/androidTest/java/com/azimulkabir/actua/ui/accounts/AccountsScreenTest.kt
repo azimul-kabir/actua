@@ -7,6 +7,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -19,6 +20,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.azimulkabir.actua.R
@@ -89,10 +91,14 @@ class AccountsScreenTest {
         val checking = Account("Checking", 10_000, "checking", id = "checking")
         val savings = Account("Savings", 20_000, "savings", id = "savings")
         var showIcons by mutableStateOf(true)
+        var fontScale by mutableStateOf(1f)
 
         compose.setContent {
             MaterialTheme {
-                CompositionLocalProvider(LocalAccountEmojis provides mapOf(checking.id to "💳")) {
+                CompositionLocalProvider(
+                    LocalAccountEmojis provides mapOf(checking.id to "💳"),
+                    LocalDensity provides Density(LocalDensity.current.density, fontScale),
+                ) {
                     AccountsScreen(
                         accounts = listOf(checking, savings),
                         showMonthlySummary = false,
@@ -105,17 +111,24 @@ class AccountsScreenTest {
 
         compose.onAllNodesWithTag(ACCOUNT_TYPE_ICON_TAG, useUnmergedTree = true).assertCountEquals(1)
         compose.onAllNodesWithTag(ACCOUNT_EMOJI_ICON_TAG, useUnmergedTree = true).assertCountEquals(1)
-        val shownNameStart = compose.onNodeWithText("Checking").getUnclippedBoundsInRoot().left
-        assertEquals(shownNameStart, compose.onNodeWithText("Savings").getUnclippedBoundsInRoot().left)
+        val checkingName = compose.onNodeWithText("Checking", useUnmergedTree = true)
+        val savingsName = compose.onNodeWithText("Savings", useUnmergedTree = true)
+        val shownNameStart = checkingName.getUnclippedBoundsInRoot().left
+        assertEquals(shownNameStart, savingsName.getUnclippedBoundsInRoot().left)
+
+        compose.runOnIdle { fontScale = 1.5f }
+        val scaledNameStart = checkingName.getUnclippedBoundsInRoot().left
+        assertTrue(scaledNameStart > shownNameStart)
+        assertEquals(scaledNameStart, savingsName.getUnclippedBoundsInRoot().left)
 
         compose.onNodeWithContentDescription("Account display options").performClick()
         compose.onNodeWithText(context.getString(R.string.account_show_icons)).performClick()
 
         compose.onAllNodesWithTag(ACCOUNT_TYPE_ICON_TAG, useUnmergedTree = true).assertCountEquals(0)
         compose.onAllNodesWithTag(ACCOUNT_EMOJI_ICON_TAG, useUnmergedTree = true).assertCountEquals(0)
-        val hiddenNameStart = compose.onNodeWithText("Checking").getUnclippedBoundsInRoot().left
+        val hiddenNameStart = checkingName.getUnclippedBoundsInRoot().left
         assertTrue(hiddenNameStart < shownNameStart)
-        assertEquals(hiddenNameStart, compose.onNodeWithText("Savings").getUnclippedBoundsInRoot().left)
+        assertEquals(hiddenNameStart, savingsName.getUnclippedBoundsInRoot().left)
     }
 
     @Test fun longPressChangesTheIconAndDefaultRestoresTheAccountType() {
