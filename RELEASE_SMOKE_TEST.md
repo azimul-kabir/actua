@@ -48,7 +48,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 ## Budget and category flows
 
 - [ ] Edit a category to choose an emoji, then turn on **Show category icons** in Budget display options.
-  Check the Budget layouts, Manage Categories and category pickers. Try a keyboard emoji and reject
+  Long-press a category and open **Category icon**. Check that the emoji is fully visible in
+  the Budget layouts, Manage Categories and category pickers. Try a keyboard emoji and reject
   plain text and two emoji. Verify **None** clears the icon, turning the option off removes the slot,
   and another budget has its own icons.
 

@@ -221,14 +221,7 @@ internal fun EditCategoryDialog(
     val renameState = rememberSaveableStateHolder()
     var showIcons by rememberSaveable(categoryId) { mutableStateOf(false) }
     if (showIcons && editor != null && categoryId != null) {
-        CategoryIconPicker(
-            currentEmoji = editor.emojis[categoryId],
-            onDismiss = { showIcons = false },
-            onSelect = { icon ->
-                editor.set(categoryId, icon)
-                showIcons = false
-            },
-        )
+        EditCategoryIconSheet(categoryId) { showIcons = false }
     } else renameState.SaveableStateProvider(currentName) {
         RenameDialog(
             title = title,

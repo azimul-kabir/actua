@@ -207,6 +207,8 @@ import com.azimulkabir.actua.ui.components.ActuaSheetAction
 import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.ui.components.CategoryIconLabel
 import com.azimulkabir.actua.ui.components.EditCategoryDialog
+import com.azimulkabir.actua.ui.components.EditCategoryIconSheet
+import com.azimulkabir.actua.ui.components.LocalCategoryIconEditor
 import com.azimulkabir.actua.ui.components.LocalCategoryEmojis
 import com.azimulkabir.actua.model.BudgetProgressState
 import com.azimulkabir.actua.model.TargetFunding
@@ -367,6 +369,8 @@ fun BudgetScreen(
     val storedBudgetId = remember(context) { ActiveBudgetStore(context).budgetId ?: "no-budget" }
     val collapsedGroupsKey = "collapsed_groups_$storedBudgetId"
     var selectedCategory by remember { mutableStateOf<BudgetCategory?>(null) }
+    var editingCategoryIconId by remember(storedBudgetId) { mutableStateOf<String?>(null) }
+    val categoryIconEditor = LocalCategoryIconEditor.current
     var selectedGroup by remember { mutableStateOf<BudgetGroup?>(null) }
     var showAddSheet by remember { mutableStateOf(false) }
     var collapsedGroups by remember(storedBudgetId) {
@@ -767,6 +771,9 @@ fun BudgetScreen(
             category = category,
             onDismiss = { selectedCategory = null },
             onRename = { selectedCategory = null; renamingCategory = parent to category },
+            onEditIcon = category.id?.takeIf { displayOptions.showCategoryIcons && categoryIconEditor != null }?.let { id ->
+                { selectedCategory = null; editingCategoryIconId = id }
+            },
             onEditBudget = { selectedCategory = null; editingBudget = parent to category },
             onSetTarget = { selectedCategory = null; onEditAutomations(parent, category) },
             onDetails = { selectedCategory = null; categoryDetails = parent to category },
@@ -806,6 +813,7 @@ fun BudgetScreen(
             },
         )
     }
+    editingCategoryIconId?.let { EditCategoryIconSheet(it) { editingCategoryIconId = null } }
     selectedGroup?.let { group ->
         GroupActionsSheet(
             group = group,
@@ -3859,6 +3867,7 @@ private fun CategoryActionsSheet(
     category: BudgetCategory,
     onDismiss: () -> Unit,
     onRename: () -> Unit,
+    onEditIcon: (() -> Unit)? = null,
     onEditBudget: () -> Unit,
     onSetTarget: () -> Unit,
     onDetails: () -> Unit,
@@ -3882,6 +3891,11 @@ private fun CategoryActionsSheet(
     ModalBottomSheet(onDismissRequest = onDismiss) {
         ActuaSheetContent {
             ActuaSheetTitle(category.name)
+            if (onEditIcon != null) {
+                ActuaSheetCard {
+                    ActuaSheetAction(stringResource(R.string.category_icon), icon = Icons.Outlined.Category, onClick = onEditIcon)
+                }
+            }
             ActuaSheetCard {
                 if (!category.isIncome) {
                     ActuaSheetAction(stringResource(R.string.budget_edit_budgeted), icon = Icons.Outlined.Calculate, onClick = onEditBudget)

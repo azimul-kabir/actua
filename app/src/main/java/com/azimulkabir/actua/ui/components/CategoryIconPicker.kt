@@ -36,9 +36,23 @@ import com.azimulkabir.actua.ui.theme.Spacing
 internal class CategoryIconEditor(
     val emojis: Map<String, String>,
     val set: (categoryId: String, key: String?) -> Unit,
+    val showIcons: Boolean = false,
 )
 
 internal val LocalCategoryIconEditor = compositionLocalOf<CategoryIconEditor?> { null }
+
+@Composable
+internal fun EditCategoryIconSheet(categoryId: String, onDismiss: () -> Unit) {
+    val editor = LocalCategoryIconEditor.current ?: return
+    CategoryIconPicker(
+        currentEmoji = editor.emojis[categoryId],
+        onDismiss = onDismiss,
+        onSelect = { key ->
+            editor.set(categoryId, key)
+            onDismiss()
+        },
+    )
+}
 
 private val curatedEmoji = listOf(
     "🍕", "🍎", "☕", "🍔", "🛒", "🏠", "🚗", "🚌", "🚲", "✈️",

@@ -786,12 +786,16 @@ fun AppNavigation(
             icon?.takeIf { it.source == "emoji" }?.let { category.id to it.value }
         }.toMap()
     }
-    val categoryIconEditor = remember(activeBudgetId, categoryEmojis, iconPreferences) {
+    val categoryIconEditor = remember(activeBudgetId, categoryEmojis, iconPreferences, budgetDisplay.showCategoryIcons) {
         activeBudgetId?.let { budgetId ->
-            CategoryIconEditor(categoryEmojis) { id, key ->
-                iconPreferences.setCategory(budgetId, id, key)
-                categoryIconKeys = iconPreferences.categories(budgetId)
-            }
+            CategoryIconEditor(
+                emojis = categoryEmojis,
+                set = { id, key ->
+                    iconPreferences.setCategory(budgetId, id, key)
+                    categoryIconKeys = iconPreferences.categories(budgetId)
+                },
+                showIcons = budgetDisplay.showCategoryIcons,
+            )
         }
     }
     val onBudgetDisplayChange: (BudgetDisplayOptions) -> Unit = {

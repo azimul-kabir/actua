@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
@@ -44,6 +45,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.ui.navigation.floatingBarClearance
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.budget.CategoryDeletePlan
 import com.azimulkabir.actua.data.budget.CategoryDragReorder
 import com.azimulkabir.actua.data.budget.CategoryReorderPlanner
@@ -59,6 +61,8 @@ import com.azimulkabir.actua.ui.components.RenameDialog
 import com.azimulkabir.actua.ui.components.dragReorderHandle
 import com.azimulkabir.actua.ui.components.CategoryIconLabel
 import com.azimulkabir.actua.ui.components.EditCategoryDialog
+import com.azimulkabir.actua.ui.components.EditCategoryIconSheet
+import com.azimulkabir.actua.ui.components.LocalCategoryIconEditor
 import com.azimulkabir.actua.ui.components.LocalCategoryEmojis
 import kotlinx.coroutines.launch
 import com.azimulkabir.actua.data.preferences.reservesCategoryIconSlot
@@ -113,6 +117,8 @@ fun ManageCategoriesScreen(
     val rowHeightPx = with(density) { ROW_HEIGHT_DP.dp.toPx() }
 
     var renamingGroup by remember { mutableStateOf<ActualCategoryGroup?>(null) }
+    var editingCategoryIconId by remember { mutableStateOf<String?>(null) }
+    val showCategoryIcons = LocalCategoryIconEditor.current?.showIcons == true
     var renamingCategory by remember { mutableStateOf<Pair<ActualCategoryGroup, ActualCategory>?>(null) }
     var addingCategoryTo by remember { mutableStateOf<ActualCategoryGroup?>(null) }
     var addingGroup by remember { mutableStateOf(false) }
@@ -224,6 +230,7 @@ fun ManageCategoriesScreen(
                                 onMoveUp = { stepByButton(category.id, -1) },
                                 onMoveDown = { stepByButton(category.id, +1) },
                                 onRename = { renamingCategory = group to category },
+                                onEditIcon = if (showCategoryIcons) ({ editingCategoryIconId = category.id }) else null,
                                 onMoveToGroup = { movingCategory = group to category },
                                 onToggleHidden = { onSetCategoryHidden(group.name, category.name, !category.hidden) },
                                 onDelete = { deletingCategory = group to category },
@@ -235,6 +242,7 @@ fun ManageCategoriesScreen(
         }
     }
 
+    editingCategoryIconId?.let { EditCategoryIconSheet(it) { editingCategoryIconId = null } }
     renamingGroup?.let { group ->
         RenameDialog(
             title = "Rename group",
@@ -372,6 +380,7 @@ private fun CategoryManageRow(
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
     onRename: () -> Unit,
+    onEditIcon: (() -> Unit)?,
     onMoveToGroup: () -> Unit,
     onToggleHidden: () -> Unit,
     onDelete: () -> Unit,
@@ -400,7 +409,7 @@ private fun CategoryManageRow(
             overflow = TextOverflow.Ellipsis,
             color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
-                .combinedClickable(onClick = onRename, onLongClick = onRename)
+                .combinedClickable(onClick = onRename, onLongClick = if (onEditIcon != null) ({ menuExpanded = true }) else onRename)
                 .padding(start = 8.dp),
         )
         if (category.hidden) {
@@ -410,6 +419,12 @@ private fun CategoryManageRow(
         Box {
             IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "${category.name} category options") }
             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                if (onEditIcon != null) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.category_icon)) },
+                        onClick = { menuExpanded = false; onEditIcon() },
+                    )
+                }
                 DropdownMenuItem(text = { Text("Rename") }, onClick = { menuExpanded = false; onRename() })
                 DropdownMenuItem(text = { Text("Move to group") }, onClick = { menuExpanded = false; onMoveToGroup() })
                 DropdownMenuItem(
