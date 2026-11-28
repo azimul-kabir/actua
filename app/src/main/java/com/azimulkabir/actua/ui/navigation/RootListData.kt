@@ -8,6 +8,7 @@ import com.azimulkabir.actua.model.PickerChoices
 
 /** The account, payee, category, credit card and loan lists the root screen shares, loaded in one pass. */
 internal data class RootListData(
+    val budgetId: String?,
     val accounts: List<Account>,
     val hideReconciledAccountIds: Set<String>,
     val categoryNames: List<String>,
@@ -21,6 +22,7 @@ internal data class RootListData(
     companion object {
         /** What shows before the first load, and for a budget that has not loaded yet. */
         val Empty = RootListData(
+            budgetId = null,
             accounts = emptyList(),
             hideReconciledAccountIds = emptySet(),
             categoryNames = emptyList(),
@@ -34,8 +36,10 @@ internal data class RootListData(
 
         /** Blocking: call off the main thread. */
         fun load(repository: ActuaRepository): RootListData {
+            val budgetId = repository.activeMetadata?.id
             val loans = repository.loans()
             return RootListData(
+                budgetId = budgetId,
                 accounts = repository.accounts(),
                 hideReconciledAccountIds = repository.hideReconciledAccountIds(),
                 categoryNames = repository.categoryNames(),

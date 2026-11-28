@@ -186,6 +186,7 @@ import com.azimulkabir.actua.ui.components.formatStoredDate
 import com.azimulkabir.actua.ui.components.ActuaNoteEditorSheet
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
 import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
+import com.azimulkabir.actua.data.preferences.reservesCategoryIconSlot
 import com.azimulkabir.actua.ui.components.ActuaSwitchMenuItem
 import com.azimulkabir.actua.ui.settings.BudgetSelectionItem
 import com.azimulkabir.actua.ui.components.CategoryStatusDot
@@ -204,6 +205,9 @@ import com.azimulkabir.actua.ui.components.ActuaSheetContent
 import com.azimulkabir.actua.ui.components.ActuaSheetCard
 import com.azimulkabir.actua.ui.components.ActuaSheetAction
 import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
+import com.azimulkabir.actua.ui.components.CategoryIconLabel
+import com.azimulkabir.actua.ui.components.EditCategoryDialog
+import com.azimulkabir.actua.ui.components.LocalCategoryEmojis
 import com.azimulkabir.actua.model.BudgetProgressState
 import com.azimulkabir.actua.model.TargetFunding
 import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
@@ -487,6 +491,13 @@ fun BudgetScreen(
                 }
             }
 
+            val categoryEmojis = if (displayOptions.showCategoryIcons) LocalCategoryEmojis.current else emptyMap()
+            val reserveCategoryIconSlot = remember(categoryEmojis, visibleGroups, collapsedGroups, favoritesOnly) {
+                reservesCategoryIconSlot(categoryEmojis, visibleGroups.asSequence()
+                    .filter { (group, _, _) -> favoritesOnly || group.name !in collapsedGroups }
+                    .flatMap { (_, categories, _) -> categories.asSequence().map { it.id } })
+            }
+
             // One decision for every table header and row, so their columns stay lined up.
             val tableLayout = rememberTableLayout(
                 screenWidth - (if (tableStyle == TableStyle.Flat) TableRowPadding else Spacing.screenHorizontal + TableRowPadding) * 2,
@@ -505,6 +516,8 @@ fun BudgetScreen(
                     if (category.isIncome) {
                         IncomeBudgetCategoryRow(
                             category = category,
+                            emoji = categoryEmojis[category.id],
+                            reserveIconSlot = reserveCategoryIconSlot,
                             position = GroupPosition.of(index, count),
                             flat = tableStyle == TableStyle.Flat,
                             table = tableStyle != TableStyle.None,
@@ -515,6 +528,8 @@ fun BudgetScreen(
                     } else if (budgetView == "Plan") {
                         PlanBudgetCategoryRow(
                             category = category,
+                            emoji = categoryEmojis[category.id],
+                            reserveIconSlot = reserveCategoryIconSlot,
                             showSpendingDetails = showSpent,
                             showProgressBar = showProgressBars,
                             position = GroupPosition.of(index, count),
@@ -526,6 +541,8 @@ fun BudgetScreen(
                     } else {
                         CategoryRow(
                             category = category,
+                            emoji = categoryEmojis[category.id],
+                            reserveIconSlot = reserveCategoryIconSlot,
                             showSpent = showSpent,
                             stacked = tableStacked,
                             showProgressBar = showProgressBars,
@@ -942,8 +959,8 @@ fun BudgetScreen(
             },
         )
     }
-    renamingCategory?.let { (group, category) -> RenameDialog(stringResource(R.string.budget_rename_category), category.name,
-        onDismiss = { renamingCategory = null }, onSave = { name ->
+    renamingCategory?.let { (group, category) -> EditCategoryDialog(stringResource(R.string.budget_rename_category), category.name, category.id,
+        onDismiss = { renamingCategory = null }, onRename = { name ->
             onRenameCategory(group.name, category.name, name); renamingCategory = null
         }) }
     renamingGroup?.let { group -> RenameDialog(stringResource(R.string.budget_rename_group), group.name,
@@ -1699,6 +1716,8 @@ private fun PlanBudgetGroupHeader(
 @Composable
 private fun PlanBudgetCategoryRow(
     category: BudgetCategory,
+    emoji: String?,
+    reserveIconSlot: Boolean,
     showSpendingDetails: Boolean,
     showProgressBar: Boolean,
     position: GroupPosition,
@@ -1719,8 +1738,10 @@ private fun PlanBudgetCategoryRow(
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CategoryStatusDot(category.statusState(scheduleFunding), modifier = Modifier.padding(end = 8.dp))
-                    Text(
+                    CategoryIconLabel(
                         if (category.hidden) "${category.name} · Hidden" else category.name,
+                        emoji = emoji,
+                        reserveSlot = reserveIconSlot,
                         style = MaterialTheme.typography.bodyLarge,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -1833,6 +1854,8 @@ private fun IncomeBudgetGroupHeader(
 @Composable
 private fun IncomeBudgetCategoryRow(
     category: BudgetCategory,
+    emoji: String?,
+    reserveIconSlot: Boolean,
     position: GroupPosition,
     /** The table view's flat style (see [CategoryRow]); false for cards and in the Plan view. */
     flat: Boolean,
@@ -1849,8 +1872,10 @@ private fun IncomeBudgetCategoryRow(
             ).padding(horizontal = Spacing.lg, vertical = Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
+            CategoryIconLabel(
                 if (category.hidden) stringResource(R.string.budget_hidden_name, category.name) else category.name,
+                emoji = emoji,
+                reserveSlot = reserveIconSlot,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -2480,6 +2505,8 @@ private fun AmountColumn(
 @Composable
 private fun CategoryRow(
     category: BudgetCategory,
+    emoji: String?,
+    reserveIconSlot: Boolean,
     showSpent: Boolean,
     /** As [BudgetGroupHeader]'s: the amounts go under the name, sharing the full width. */
     stacked: Boolean,
@@ -2510,7 +2537,10 @@ private fun CategoryRow(
                 val name = @Composable { modifier: Modifier ->
                     Row(modifier = modifier.heightIn(min = TableRowMinHeight), verticalAlignment = Alignment.CenterVertically) {
                         CategoryStatusDot(category.statusState(scheduleFunding), modifier = Modifier.padding(end = 6.dp))
-                        Text(if (category.hidden) stringResource(R.string.budget_hidden_name, category.name) else category.name,
+                        CategoryIconLabel(
+                            if (category.hidden) stringResource(R.string.budget_hidden_name, category.name) else category.name,
+                            emoji = emoji,
+                            reserveSlot = reserveIconSlot,
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                             maxLines = if (stacked) 1 else 2, overflow = TextOverflow.Ellipsis)

@@ -18,6 +18,14 @@
     <string name="budget_show_group_totals">グループ合計を表示</string>
     <string name="budget_show_balance_pills">残高ピルを表示</string>
     <string name="budget_show_goal_icons">目標アイコンを表示</string>
+    <string name="budget_show_category_icons">カテゴリのアイコンを表示</string>
+    <string name="category_icon">カテゴリのアイコン</string>
+    <string name="category_icon_emoji">絵文字</string>
+    <string name="category_icon_none">なし</string>
+    <string name="category_icon_remove">アイコンを削除</string>
+    <string name="category_icon_enter_emoji">絵文字を入力</string>
+    <string name="category_icon_invalid_emoji">絵文字を1つ入力してください</string>
+    <string name="category_icon_use_emoji">絵文字を使用</string>
     <string name="budget_flat_table">端から端までのグループ</string>
     <string name="budget_flat_table_description">各グループを端から端まで平らに表示し、角丸は両端のみにします。テーブル表示のみ。</string>
     <string name="budget_display_options_menu">表示オプション</string>

@@ -79,6 +79,8 @@ import com.azimulkabir.actua.ui.components.withCurrencySymbol
 import com.azimulkabir.actua.ui.components.parseInputCents
 import com.azimulkabir.actua.ui.components.ActuaFormRow
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.CategoryIconLabel
+import com.azimulkabir.actua.ui.components.LocalCategoryEmojis
 import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.ui.theme.Spacing
 import androidx.compose.foundation.layout.heightIn
@@ -92,6 +94,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import com.azimulkabir.actua.data.preferences.reservesCategoryIconSlot
 
 /**
  * Dedicated full-page Budget Automation editor (issue #265).
@@ -109,7 +112,7 @@ fun BudgetAutomationScreen(
     month: String,
     hideDecimalPlaces: Boolean,
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
-    incomeCategories: List<String> = emptyList(),
+    incomeCategories: Map<String, String?> = emptyMap(),
     conventionalAmountEntry: Boolean = false,
     onBack: () -> Unit,
     onSave: (List<BudgetTarget>) -> Unit,
@@ -311,7 +314,7 @@ private fun AutomationEntryEditor(
     month: String,
     hideDecimalPlaces: Boolean,
     scheduleFunding: List<BudgetScheduleFunding>,
-    incomeCategories: List<String>,
+    incomeCategories: Map<String, String?>,
     usedSingletonTypes: Set<BudgetTarget.Type>,
     conventionalAmountEntry: Boolean,
     onBack: () -> Unit,
@@ -533,7 +536,7 @@ private fun ContributionEditor(
     month: String,
     hideDecimalPlaces: Boolean,
     scheduleFunding: List<BudgetScheduleFunding>,
-    incomeCategories: List<String>,
+    incomeCategories: Map<String, String?>,
     usedSingletonTypes: Set<BudgetTarget.Type>,
     conventionalAmountEntry: Boolean,
     onBack: () -> Unit,
@@ -754,9 +757,15 @@ private fun ContributionEditor(
                 Box {
                     ChoiceField("Income source", percentageSourceLabel(percentageSource)) { percentageSourceMenu = true }
                     DropdownMenu(expanded = percentageSourceMenu, onDismissRequest = { percentageSourceMenu = false }) {
-                        (listOf("available funds", "all income") + incomeCategories).distinct().forEach { source ->
+                        val presets = listOf("available funds", "all income")
+                        val categorySources = remember(incomeCategories) { incomeCategories - presets.toSet() }
+                        val emojis = LocalCategoryEmojis.current
+                        val reserveIconSlot = remember(emojis, categorySources) {
+                            reservesCategoryIconSlot(emojis, categorySources.values.asSequence())
+                        }
+                        (presets + categorySources.keys).forEach { source ->
                             DropdownMenuItem(
-                                text = { Text(percentageSourceLabel(source)) },
+                                text = { CategoryIconLabel(percentageSourceLabel(source), emojis[categorySources[source]], reserveIconSlot) },
                                 onClick = { percentageSource = source; percentageSourceMenu = false },
                             )
                         }

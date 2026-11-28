@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
@@ -56,7 +57,11 @@ import com.azimulkabir.actua.ui.components.MoveCategoryDialog
 import com.azimulkabir.actua.ui.components.NewCategoryDialog
 import com.azimulkabir.actua.ui.components.RenameDialog
 import com.azimulkabir.actua.ui.components.dragReorderHandle
+import com.azimulkabir.actua.ui.components.CategoryIconLabel
+import com.azimulkabir.actua.ui.components.EditCategoryDialog
+import com.azimulkabir.actua.ui.components.LocalCategoryEmojis
 import kotlinx.coroutines.launch
+import com.azimulkabir.actua.data.preferences.reservesCategoryIconSlot
 
 private const val ROW_HEIGHT_DP = 56
 private const val EDGE_SCROLL_ZONE_PX = 100f
@@ -116,6 +121,11 @@ fun ManageCategoriesScreen(
     var deletingGroup by remember { mutableStateOf<ActualCategoryGroup?>(null) }
 
     val rows = remember(localGroups) { flatten(localGroups) }
+    val categoryEmojis = LocalCategoryEmojis.current
+    val reserveCategoryIconSlot = remember(categoryEmojis, localGroups) {
+        reservesCategoryIconSlot(categoryEmojis, localGroups.asSequence()
+            .flatMap { group -> group.categories.asSequence().map { it.id } })
+    }
 
     fun onDragStart(categoryId: String) {
         draggingCategoryId = categoryId
@@ -201,6 +211,8 @@ fun ManageCategoriesScreen(
                         ) {
                             CategoryManageRow(
                                 category = category,
+                                emoji = categoryEmojis[category.id],
+                                reserveIconSlot = reserveCategoryIconSlot,
                                 isFirstInGroup = indexInGroup == 0,
                                 isLastInGroup = indexInGroup == group.categories.lastIndex,
                                 modifier = Modifier
@@ -232,11 +244,12 @@ fun ManageCategoriesScreen(
         )
     }
     renamingCategory?.let { (group, category) ->
-        RenameDialog(
+        EditCategoryDialog(
             title = "Rename category",
+            categoryId = category.id,
             currentName = category.name,
             onDismiss = { renamingCategory = null },
-            onSave = { name -> onRenameCategory(group.name, category.name, name); renamingCategory = null },
+            onRename = { name -> onRenameCategory(group.name, category.name, name); renamingCategory = null },
         )
     }
     addingCategoryTo?.let { group ->
@@ -348,6 +361,8 @@ private fun GroupManageRow(
 @Composable
 private fun CategoryManageRow(
     category: ActualCategory,
+    emoji: String?,
+    reserveIconSlot: Boolean,
     isFirstInGroup: Boolean,
     isLastInGroup: Boolean,
     modifier: Modifier = Modifier,
@@ -377,12 +392,16 @@ private fun CategoryManageRow(
                     onDragEnd = onDragEnd,
                 ),
         )
-        Text(
+        CategoryIconLabel(
             category.name,
+            emoji = emoji,
+            reserveSlot = reserveIconSlot,
             style = MaterialTheme.typography.bodyLarge,
             overflow = TextOverflow.Ellipsis,
             color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f).padding(start = 8.dp),
+            modifier = Modifier.weight(1f)
+                .combinedClickable(onClick = onRename, onLongClick = onRename)
+                .padding(start = 8.dp),
         )
         if (category.hidden) {
             Icon(Icons.Outlined.VisibilityOff, "Hidden category",

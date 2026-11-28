@@ -225,6 +225,7 @@ fun <T> ActuaMenuRow(
     choices: List<Pair<String, T>>,
     modifier: Modifier = Modifier,
     valueIsPlaceholder: Boolean = false,
+    optionLabel: @Composable (String, T) -> Unit = { text, _ -> Text(text) },
     onSelect: (T) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -246,7 +247,7 @@ fun <T> ActuaMenuRow(
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             choices.forEach { (text, choice) ->
                 DropdownMenuItem(
-                    text = { Text(text) },
+                    text = { optionLabel(text, choice) },
                     onClick = { expanded = false; onSelect(choice) },
                 )
             }
@@ -480,6 +481,8 @@ fun ActuaSheetAction(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     destructive: Boolean = false,
+    categoryEmoji: String? = null,
+    reserveCategoryIconSlot: Boolean = false,
 ) {
     val color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
     Row(
@@ -495,7 +498,10 @@ fun ActuaSheetAction(
                 tint = if (destructive) color else MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(Spacing.lg))
         }
-        Text(label, style = MaterialTheme.typography.bodyLarge, color = color)
+        CategoryIconLabel(
+            label, categoryEmoji, reserveCategoryIconSlot,
+            style = MaterialTheme.typography.bodyLarge, color = color,
+        )
     }
 }
 

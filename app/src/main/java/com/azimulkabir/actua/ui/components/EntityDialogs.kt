@@ -23,12 +23,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.budget.model.ActualAccountGroup
 import com.azimulkabir.actua.ui.theme.Spacing
 
@@ -201,5 +205,39 @@ private fun RadioOptions(
                 Text(option, modifier = Modifier.padding(start = Spacing.md))
             }
         }
+    }
+}
+
+/** Opens the device-local picker separately from saving the synced category name. */
+@Composable
+internal fun EditCategoryDialog(
+    title: String,
+    currentName: String,
+    categoryId: String?,
+    onDismiss: () -> Unit,
+    onRename: (String) -> Unit,
+) {
+    val editor = LocalCategoryIconEditor.current
+    val renameState = rememberSaveableStateHolder()
+    var showIcons by rememberSaveable(categoryId) { mutableStateOf(false) }
+    if (showIcons && editor != null && categoryId != null) {
+        CategoryIconPicker(
+            currentEmoji = editor.emojis[categoryId],
+            onDismiss = { showIcons = false },
+            onSelect = { icon ->
+                editor.set(categoryId, icon)
+                showIcons = false
+            },
+        )
+    } else renameState.SaveableStateProvider(currentName) {
+        RenameDialog(
+            title = title,
+            currentName = currentName,
+            onDismiss = onDismiss,
+            onSave = onRename,
+            extraAction = if (editor != null && categoryId != null) {
+                { TextButton(onClick = { showIcons = true }) { Text(stringResource(R.string.category_icon)) } }
+            } else null,
+        )
     }
 }

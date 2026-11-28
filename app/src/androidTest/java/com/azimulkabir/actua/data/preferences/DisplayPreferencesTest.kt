@@ -143,7 +143,7 @@ class DisplayPreferencesTest {
         val options = BudgetDisplayOptions(
             showOverview = false, showBudgetStatusBanners = false, showCategoryFilters = false, showSpent = false,
             showProgressBars = false, showGroupTotals = false, showBalancePills = false, showGoalIcons = false,
-            flatTable = false, hideFullySpent = true, showHidden = true,
+            showCategoryIcons = true, flatTable = false, hideFullySpent = true, showHidden = true,
         )
 
         preferences.budgetDisplayOptions = options

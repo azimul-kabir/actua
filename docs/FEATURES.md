@@ -23,6 +23,7 @@ Actual Budget, see [BACKEND_PARITY.md](../BACKEND_PARITY.md).
 - Rules and automatic categorization, run on manual entry, transfers, imports and bank sync as in Actual, including template, formula and split actions, split rule authoring, live matching preview, and 'Apply rule now' bulk execution
 - CSV, OFX, QFX, QIF, CAMT.053, XLSX, PDF, SMS and notification imports (statement files can also be shared or opened from other apps), plus a [Tasker plugin and intents](TRANSACTION_IMPORTS.md#tasker-and-other-automation-apps); captured transactions wait in a review queue with per-row, remembered and default accounts, optional empty payee and notes, optional review notifications, a launcher shortcut, an Accounts tab badge and a Mark as cleared choice remembered per budget
 - CSV export of an account register, of the transactions a filter or search shows, and of every Global Search match, in Actual's account-export layout
+- Optional category emoji icons in Budget, Manage Categories, and category pickers, stored per budget on this device
 - Payee management (rename, merge, delete, favorite, category learning), with suggested and location-aware payees
 - Global search, and transaction search that also matches amounts and dates
 - Optional app lock (biometrics or the device PIN, with a relock timeout) and a setting that hides Actua in the recents screen and blocks screenshots (see [docs/APP_LOCK.md](APP_LOCK.md))

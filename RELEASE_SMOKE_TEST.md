@@ -47,6 +47,11 @@ Use this checklist for release candidates before promoting a beta or stable buil
 
 ## Budget and category flows
 
+- [ ] Edit a category to choose an emoji, then turn on **Show category icons** in Budget display options.
+  Check the Budget layouts, Manage Categories and category pickers. Try a keyboard emoji and reject
+  plain text and two emoji. Verify **None** clears the icon, turning the option off removes the slot,
+  and another budget has its own icons.
+
 - [ ] Budget opens in the configured default Plan/Table view and month navigation works.
 - [ ] In the Budget table, tap a category name or blank row space for Details, Budgeted to edit, Spent to open that category's transactions for the selected month, and Balance to move money or cover overspending. Verify Details uses the same Back animation as the other screens, including opening Goals and returning to the same category. Long-press the name or any amount for category actions. Repeat with a stacked row at a large font scale and check the tap and long-press labels with TalkBack.
 - [ ] Ready to Budget/To Budget, Budgeted and Balance values agree with Actual for the test month.

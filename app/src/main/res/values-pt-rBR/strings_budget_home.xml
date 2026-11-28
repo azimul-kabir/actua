@@ -18,6 +18,14 @@
     <string name="budget_show_group_totals">Exibir totais dos grupos</string>
     <string name="budget_show_balance_pills">Exibir etiquetas de saldo</string>
     <string name="budget_show_goal_icons">Exibir ícones de meta</string>
+    <string name="budget_show_category_icons">Mostrar ícones de categorias</string>
+    <string name="category_icon">Ícone da categoria</string>
+    <string name="category_icon_emoji">Emoji</string>
+    <string name="category_icon_none">Nenhum</string>
+    <string name="category_icon_remove">Remover ícone</string>
+    <string name="category_icon_enter_emoji">Digite um emoji</string>
+    <string name="category_icon_invalid_emoji">Digite apenas um emoji</string>
+    <string name="category_icon_use_emoji">Usar emoji</string>
     <string name="budget_flat_table">Grupos de ponta a ponta</string>
     <string name="budget_flat_table_description">Desenha cada grupo plano, de borda a borda, com cantos arredondados apenas nas extremidades. Somente na visualização em tabela.</string>
     <string name="budget_display_options_menu">Opções de exibição</string>
