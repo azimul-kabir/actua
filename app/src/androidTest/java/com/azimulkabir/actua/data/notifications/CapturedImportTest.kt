@@ -16,6 +16,7 @@ import com.azimulkabir.actua.data.importing.ImportCandidate
 import com.azimulkabir.actua.data.importing.NotificationImportPreferences
 import com.azimulkabir.actua.data.sync.SyncSignals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import kotlinx.coroutines.delay
@@ -118,16 +119,19 @@ class CapturedImportTest {
         val queueId = requireNotNull(store.enqueue(coffee).queueId)
         val failedQueueId = requireNotNull(store.enqueue(coffee.copy(payee = "Fuel")).queueId)
         val notificationsWereEnabled = store.confirmNotificationsEnabled
+        val review = CapturedTransactionNotifications.reviewIntent(context, queueId)
+        val transactions = CapturedTransactionNotifications.transactionsIntent(context, queueId)
+        assertNotEquals(review, transactions)
         try {
             store.confirmNotificationsEnabled = true
             runBlocking {
                 TestListenableWorkerBuilder<CapturedTransactionNotifyWorker>(context)
                     .setInputData(workDataOf(CapturedTransactionNotifications.EXTRA_QUEUE_ID to queueId))
                     .build().doWork()
-                assertNotificationDestination(manager, queueId, CapturedTransactionNotifications.reviewIntent(context, queueId))
+                assertNotificationDestination(manager, queueId, review)
 
                 runImportWorker(queueId, "card")
-                assertNotificationDestination(manager, queueId, CapturedTransactionNotifications.transactionsIntent(context, queueId))
+                assertNotificationDestination(manager, queueId, transactions)
                 assertEquals(listOf("card" to -500L), rows())
 
                 runImportWorker(failedQueueId, "missing")
