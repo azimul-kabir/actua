@@ -36,6 +36,7 @@ fun ActuaScreenHeader(
     title: String,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
+    titleEmoji: String? = null,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     Row(
@@ -54,8 +55,10 @@ fun ActuaScreenHeader(
                 Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.fs_back))
             }
         }
-        Text(
+        CategoryIconLabel(
             title,
+            emoji = titleEmoji,
+            reserveSlot = titleEmoji != null,
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier
                 .weight(1f)

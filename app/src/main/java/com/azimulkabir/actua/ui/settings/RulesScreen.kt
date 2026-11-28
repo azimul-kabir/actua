@@ -70,6 +70,7 @@ import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.minorUnitsPerWhole
 import com.azimulkabir.actua.ui.components.CategoryIconLabel
 import com.azimulkabir.actua.ui.components.LocalCategoryEmojis
+import com.azimulkabir.actua.ui.accounts.LocalAccountEmojis
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.ui.theme.Spacing
 import java.time.LocalDate
@@ -584,9 +585,13 @@ internal fun RuleValueEditor(field: String, op: String, value: RuleValue, option
         "category_group" -> data.categoryGroups; else -> emptyList() }
     when (RuleSchema.type(field)) {
         RuleFieldType.ID -> {
-            val emojis = if (field == "category") LocalCategoryEmojis.current else emptyMap()
-            val reserveIconSlot = remember(emojis, choices) {
-                reservesCategoryIconSlot(emojis, choices.asSequence().map { it.id })
+            val emojis = when (field) {
+                "category" -> LocalCategoryEmojis.current
+                "account" -> LocalAccountEmojis.current
+                else -> emptyMap()
+            }
+            val reserveIconSlot = remember(field, emojis, choices) {
+                field == "category" && reservesCategoryIconSlot(emojis, choices.asSequence().map { it.id })
             }
             if (op in setOf("oneOf", "notOneOf")) MultiChoice(value.list.orEmpty(), choices, emojis, reserveIconSlot) { onChange(RuleValue.ListValue(it), options) }
             else {
@@ -597,7 +602,7 @@ internal fun RuleValueEditor(field: String, op: String, value: RuleValue, option
                     value = selectedName ?: stringResource(R.string.fs_select_value),
                     valueIsPlaceholder = selectedName == null,
                     choices = choices.map { it.name to it.id },
-                    optionLabel = { name, id -> CategoryIconLabel(name, emojis[id], reserveIconSlot) },
+                    optionLabel = { name, id -> CategoryIconLabel(name, emojis[id], reserveIconSlot || id in emojis) },
                 ) { onChange(RuleValue.Text(it), options) }
             }
         }
@@ -683,7 +688,7 @@ internal fun MultiChoice(
             onClick = { open = true },
         )
         DropdownMenu(open, { open = false }) { choices.forEach { choice ->
-            DropdownMenuItem(text = { CategoryIconLabel(choice.name, emojis[choice.id], reserveIconSlot) }, leadingIcon = { Checkbox(choice.id in ids, null) }, onClick = {
+            DropdownMenuItem(text = { CategoryIconLabel(choice.name, emojis[choice.id], reserveIconSlot || choice.id in emojis) }, leadingIcon = { Checkbox(choice.id in ids, null) }, onClick = {
                 val updated = if (choice.id in ids) ids - choice.id else ids + choice.id
                 onChange(updated.map { RuleValue.Text(it) })
             })

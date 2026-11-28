@@ -65,6 +65,7 @@ import com.azimulkabir.actua.data.budget.AccountGroupReorderPlanner
 import com.azimulkabir.actua.data.budget.ReorderChunk
 import com.azimulkabir.actua.data.budget.model.ActualAccount
 import com.azimulkabir.actua.data.budget.model.ActualAccountGroup
+import com.azimulkabir.actua.ui.components.CategoryIconLabel
 import com.azimulkabir.actua.ui.components.ActuaGroupedItem
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.GroupPosition
@@ -601,10 +602,12 @@ private fun AccountReorderRow(
                     onDragEnd = onDragEnd,
                 ),
         )
-        Text(
+        val emoji = LocalAccountEmojis.current[account.id]
+        CategoryIconLabel(
             account.name,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
+            emoji = emoji,
+            reserveSlot = emoji != null,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f).padding(start = 8.dp),
         )

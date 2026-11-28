@@ -391,4 +391,6 @@
     </plurals>
     <string name="home_greeting_open_home">ホームを開く</string>
     <string name="home_greeting_dismiss">あいさつを閉じる</string>
+    <string name="account_icon">口座アイコン</string>
+    <string name="account_show_icons">口座アイコンを表示</string>
 </resources>

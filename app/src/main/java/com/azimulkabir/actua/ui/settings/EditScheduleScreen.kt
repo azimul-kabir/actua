@@ -40,6 +40,7 @@ import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.schedules.*
 import com.azimulkabir.actua.model.Account
+import com.azimulkabir.actua.ui.accounts.LocalAccountEmojis
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
 import com.azimulkabir.actua.ui.components.ActuaFormRow
@@ -124,6 +125,13 @@ fun EditScheduleScreen(
     var showDelete by remember { mutableStateOf(false) }
     val unreadableDate = schedule?.dateCondition == ScheduleDateCondition.Unsupported && schedule.dateOp != null
     val accountId = accounts.firstOrNull { it.name == accountName && !it.closed }?.id
+    val accountEmojis = LocalAccountEmojis.current
+    val accountPickerEmojis = remember(accounts, accountEmojis) {
+        if (accountEmojis.isEmpty()) emptyMap()
+        else accounts.asSequence().filterNot { it.closed }.distinctBy { it.name }.mapNotNull { account ->
+            accountEmojis[account.id]?.let { account.name to it }
+        }.toMap()
+    }
     val amountValid = amountLow > 0 && (amountOp != ScheduleAmountOp.BETWEEN || amountHigh > 0)
     val canSave = accountId != null && amountValid && !unreadableDate
 
@@ -298,6 +306,7 @@ fun EditScheduleScreen(
                         value = accountName,
                         options = accounts.filterNot { it.closed }.map { it.name },
                         onValueChange = { accountName = it },
+                        pickerEmojis = accountPickerEmojis,
                         rowIcon = Icons.Outlined.AccountBalanceWallet,
                         placeholder = stringResource(R.string.fs_choose_account),
                     )

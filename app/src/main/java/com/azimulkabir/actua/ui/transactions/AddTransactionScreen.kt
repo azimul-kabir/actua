@@ -118,6 +118,7 @@ import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
 import com.azimulkabir.actua.ui.components.CategoryIconLabel
 import com.azimulkabir.actua.ui.components.LocalCategoryEmojis
+import com.azimulkabir.actua.ui.accounts.LocalAccountEmojis
 import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.util.suspendRunCatching
 import java.time.Instant
@@ -175,6 +176,15 @@ fun AddTransactionScreen(
     prefill: TransactionPrefill? = null,
 ) {
     // The form works in picker labels, which stay unique when Actual names repeat.
+    val accountEmojis = LocalAccountEmojis.current
+    val accountOptionEmojis = remember(accountEmojis, accountChoices) {
+        accountChoices.choices.mapNotNull { choice ->
+            accountEmojis[choice.id]?.let { choice.label to it }
+        }.toMap()
+    }
+    val transferOptionEmojis = remember(accountOptionEmojis) {
+        accountOptionEmojis.mapKeys { TRANSFER_PAYEE_PREFIX + it.key }
+    }
     val editingLabels = remember(editing, accountChoices, categoryChoices) {
         editing?.withChoiceLabels(accountChoices, categoryChoices)
     }
@@ -439,6 +449,7 @@ fun AddTransactionScreen(
                     label = stringResource(R.string.transaction_payee), value = payee,
                     options = payeeOptions.filterNot { it == TRANSFER_PAYEE_PREFIX + account },
                     suggested = suggestedPayees,
+                    pickerEmojis = transferOptionEmojis,
                     supportingValues = accountBalanceLabels.mapKeys { TRANSFER_PAYEE_PREFIX + it.key },
                     onValueChange = onPayeeChange,
                     allowCustom = true,
@@ -489,6 +500,7 @@ fun AddTransactionScreen(
                     label = stringResource(R.string.transaction_account),
                     value = account, options = accountOptions.filterNot { it == transferTarget },
                     supportingValues = accountBalanceLabels,
+                    pickerEmojis = accountOptionEmojis,
                     onValueChange = {
                         account = it
                         if (it in offBudgetAccountOptions && !isTransfer) {
@@ -623,6 +635,7 @@ fun AddTransactionScreen(
                                     label = stringResource(R.string.transaction_payee),
                                     value = line.payee,
                                     options = splitLinePayeeOptions(payeeOptions, account),
+                                    pickerEmojis = transferOptionEmojis,
                                     onValueChange = { value -> update(line.copy(payee = value)) },
                                     allowCustom = true,
                                     rowIcon = Icons.Outlined.Storefront,
@@ -1138,6 +1151,7 @@ internal fun PickerTextField(
     placeholder: String = "",
     /** Offers a separate picker action that passes an empty value to [onValueChange]. */
     clearOptionLabel: String? = null,
+    pickerEmojis: Map<String, String> = emptyMap(),
 ) {
     var showPicker by remember { mutableStateOf(false) }
     val locationStrings = payeeLocationStrings()
@@ -1243,6 +1257,7 @@ internal fun PickerTextField(
             valueIsPlaceholder = shown.isEmpty(),
             caption = locationActionMessage ?: rowCaption,
             supportingValue = supportingValues[value],
+            leadingEmoji = pickerEmojis[value],
             trailing = locationButton,
             onClick = { showPicker = true },
         )
@@ -1268,6 +1283,7 @@ internal fun PickerTextField(
         selected = value,
         options = options,
         clearOptionLabel = clearOptionLabel,
+        pickerEmojis = pickerEmojis,
         allowCustom = allowCustom,
         suggested = suggested,
         sections = sections,
@@ -1319,6 +1335,7 @@ private fun SearchableTransactionPicker(
     selected: String,
     options: List<String>,
     clearOptionLabel: String?,
+    pickerEmojis: Map<String, String>,
     allowCustom: Boolean,
     suggested: List<String>,
     sections: List<Pair<String, List<String>>>,
@@ -1390,13 +1407,13 @@ private fun SearchableTransactionPicker(
         )
     }
     val categoryEmojis = LocalCategoryEmojis.current
-    val optionEmojis = remember(categoryEmojis, iconCategories) {
-        if (categoryEmojis.isEmpty()) emptyMap() else iconCategories.choices.mapNotNull {
+    val optionEmojis = remember(categoryEmojis, iconCategories, pickerEmojis) {
+        if (categoryEmojis.isEmpty() || iconCategories.choices.isEmpty()) pickerEmojis else iconCategories.choices.mapNotNull {
             categoryEmojis[it.id]?.let { emoji -> it.label to emoji }
         }.toMap()
     }
-    val reserveIconSlot = remember(optionEmojis, query, uniqueOptions, searchResults) {
-        reservesCategoryIconSlot(optionEmojis, (if (query.isBlank()) uniqueOptions else searchResults).asSequence())
+    val reserveIconSlot = remember(iconCategories, optionEmojis, query, uniqueOptions, searchResults) {
+        iconCategories.choices.isNotEmpty() && reservesCategoryIconSlot(optionEmojis, (if (query.isBlank()) uniqueOptions else searchResults).asSequence())
     }
     val clearOption = clearOptionLabel?.takeIf { it.contains(query.trim(), ignoreCase = true) }
     val addValueFormat = stringResource(R.string.picker_add_value)
@@ -1832,7 +1849,7 @@ private fun PickerRow(
         CategoryIconLabel(
             text,
             emoji = emoji,
-            reserveSlot = reserveIconSlot,
+            reserveSlot = reserveIconSlot || emoji != null,
             style = MaterialTheme.typography.bodyLarge,
             maxLines = 1,
             modifier = Modifier.weight(1f).padding(horizontal = 4.dp),

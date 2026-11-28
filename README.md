@@ -40,7 +40,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Native Material You interface in English, French, German, Italian, Japanese, Russian, Simplified Chinese, Brazilian Portuguese and Spanish
 - Connect to your Actual server (password or OpenID) with offline budgets and encrypted sync, or use standalone on-device budgets with no server
 - Envelope and tracking budgets with targets, `#template` automations, one-tap cover for overspent categories and Actual's budget actions
-- Optional category emoji icons, stored on this device for each budget
+- Optional category and account emoji icons, stored on this device for each budget
 - Transactions with splits, transfers, merging and reconciliation, plus rules and automatic categorization as in Actual
 - Receipt scanning on your phone with Google ML Kit, in every build
 - Bank sync through your Actual server, and imports from CSV, OFX, QFX, QIF, CAMT.053, XLSX, PDF, SMS and notifications, including a Tasker plugin

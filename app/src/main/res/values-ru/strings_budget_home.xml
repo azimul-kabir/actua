@@ -430,4 +430,6 @@
     </plurals>
     <string name="home_greeting_open_home">Открыть главный экран</string>
     <string name="home_greeting_dismiss">Закрыть приветствие</string>
+    <string name="account_icon">Значок счёта</string>
+    <string name="account_show_icons">Показывать значки счетов</string>
 </resources>

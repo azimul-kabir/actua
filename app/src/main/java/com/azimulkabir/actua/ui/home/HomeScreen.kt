@@ -96,7 +96,10 @@ import com.azimulkabir.actua.model.ReportDashboardPage
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.categoryKey
 import com.azimulkabir.actua.ui.accounts.AccountMonthlySummaryCalculator
-import com.azimulkabir.actua.ui.accounts.accountTypeIcon
+import com.azimulkabir.actua.ui.accounts.AccountIconGlyph
+import com.azimulkabir.actua.ui.accounts.LocalAccountEmojis
+import com.azimulkabir.actua.ui.accounts.accountIconSize
+import com.azimulkabir.actua.ui.accounts.resolveAccountIcon
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
 import com.azimulkabir.actua.ui.components.ActuaFormRow
@@ -323,11 +326,13 @@ private fun FavoriteAccountsSection(accounts: List<Account>, hideDecimals: Boole
 
 @Composable
 private fun AccountRow(account: Account, hideDecimals: Boolean, showTypeIcon: Boolean, rowHeight: Dp, onClick: () -> Unit) {
+    val nameStyle = MaterialTheme.typography.bodyLarge
+    val icon = resolveAccountIcon(showTypeIcon, LocalAccountEmojis.current[account.id], account.type, isCreditCard = false)
     DashboardRow(onClick, Modifier.height(rowHeight)) {
-        if (showTypeIcon) {
+        if (icon != null) {
             Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer) {
-                Icon(accountTypeIcon(account.type, isCreditCard = false), null, Modifier.padding(Spacing.sm).size(20.dp))
+                AccountIconGlyph(icon, nameStyle, accountIconSize(nameStyle, 20.dp), Modifier.padding(Spacing.sm))
             }
             Spacer(Modifier.width(Spacing.md))
         }

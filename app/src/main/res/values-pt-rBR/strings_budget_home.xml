@@ -417,4 +417,6 @@
     </plurals>
     <string name="home_greeting_open_home">Abrir o Início</string>
     <string name="home_greeting_dismiss">Fechar saudação</string>
+    <string name="account_icon">Ícone da conta</string>
+    <string name="account_show_icons">Mostrar ícones das contas</string>
 </resources>

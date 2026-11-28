@@ -404,4 +404,6 @@
     </plurals>
     <string name="home_greeting_open_home">Start öffnen</string>
     <string name="home_greeting_dismiss">Begrüßung ausblenden</string>
+    <string name="account_icon">Kontosymbol</string>
+    <string name="account_show_icons">Kontosymbole anzeigen</string>
 </resources>

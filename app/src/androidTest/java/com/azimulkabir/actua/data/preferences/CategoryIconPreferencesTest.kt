@@ -35,6 +35,31 @@ class CategoryIconPreferencesTest {
         }
     }
 
+    @Test fun accountIconsAreScopedToTheBudgetAndEntityKind() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val preferences = IconPreferences(context)
+        val firstBudget = UUID.randomUUID().toString()
+        val secondBudget = UUID.randomUUID().toString()
+        val id = "shared-id"
+        try {
+            preferences.setAccount(firstBudget, id, "emoji:💳")
+            preferences.setAccount(secondBudget, id, "emoji:💰")
+            preferences.setCategory(firstBudget, id, "emoji:🍕")
+
+            val reopened = IconPreferences(context)
+            assertEquals(mapOf(id to "emoji:💳"), reopened.accounts(firstBudget))
+            assertEquals(mapOf(id to "emoji:💰"), reopened.accounts(secondBudget))
+            reopened.setAccount(firstBudget, id, null)
+            assertTrue(reopened.accounts(firstBudget).isEmpty())
+            assertEquals(mapOf(id to "emoji:🍕"), reopened.categories(firstBudget))
+            assertEquals(mapOf(id to "emoji:💰"), reopened.accounts(secondBudget))
+        } finally {
+            preferences.setAccount(firstBudget, id, null)
+            preferences.setAccount(secondBudget, id, null)
+            preferences.setCategory(firstBudget, id, null)
+        }
+    }
+
     @Test fun acceptsExactlyOneEmojiGrapheme() {
         listOf("🍕", "✈️", "👩‍💻", "👨‍👩‍👧‍👦", "👍🏽", "🇧🇩", "1️⃣", "🏳️‍🌈").forEach {
             assertTrue("Expected a single emoji: $it", isCategoryEmoji(it))

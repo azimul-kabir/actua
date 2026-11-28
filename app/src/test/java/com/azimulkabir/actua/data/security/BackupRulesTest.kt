@@ -17,8 +17,8 @@ class BackupRulesTest {
         "webdav_backup.xml",
     )
 
-    /** Also never copied: the receipt photo folder preference holds a permission grant that exists only on this device. */
-    private val deviceBoundStores = credentialStores + "actua-receipt-photo-folder.xml"
+    /** Also device-local: the receipt photo folder grant and the account/category icon choices. */
+    private val deviceBoundStores = credentialStores + setOf("actua-receipt-photo-folder.xml", "icon_preferences.xml")
 
     @Test
     fun `credential stores are excluded from cloud backup and device transfer`() {

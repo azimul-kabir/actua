@@ -391,4 +391,6 @@
     </plurals>
     <string name="home_greeting_open_home">打开主页</string>
     <string name="home_greeting_dismiss">关闭问候语</string>
+    <string name="account_icon">账户图标</string>
+    <string name="account_show_icons">显示账户图标</string>
 </resources>
