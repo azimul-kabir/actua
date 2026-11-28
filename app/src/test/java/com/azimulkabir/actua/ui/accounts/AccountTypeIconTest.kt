@@ -8,10 +8,19 @@ import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Savings
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
 
 class AccountTypeIconTest {
+    @Test fun chosenEmojiReplacesTheTypeIconWhenIconsAreShown() {
+        assertEquals(AccountIcon.Emoji("💳"), resolveAccountIcon(true, "💳", "checking", false))
+        assertEquals(AccountIcon.Type("checking", true), resolveAccountIcon(true, null, "checking", true))
+        assertNull(resolveAccountIcon(false, "💳", "checking", true))
+        assertNull(resolveAccountIcon(false, null, "checking", false))
+    }
+
     @Test fun creditCardStatusWinsOverTheAccountType() {
         assertSame(Icons.Outlined.CreditCard, accountTypeIcon("checking", isCreditCard = true))
     }

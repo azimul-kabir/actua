@@ -35,6 +35,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.model.Account
+import com.azimulkabir.actua.ui.components.CategoryIconLabel
 import com.azimulkabir.actua.ui.components.ActuaFormCard
 import com.azimulkabir.actua.ui.components.ActuaFormRow
 import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
@@ -74,6 +75,7 @@ internal fun CloseAccountSheet(
     var pickingAccount by rememberSaveable(account.id) { mutableStateOf(false) }
     var pickingCategory by rememberSaveable(account.id) { mutableStateOf(false) }
     var confirmingForce by rememberSaveable(account.id) { mutableStateOf(false) }
+    val accountEmojis = LocalAccountEmojis.current
     val transferAccount = transferTargets.firstOrNull { it.id == transferAccountId }
     val hasBalance = account.balanceCents != 0L
     val needsCategory = hasBalance && !account.offBudget && transferAccount?.offBudget == true
@@ -113,6 +115,7 @@ internal fun CloseAccountSheet(
                         icon = Icons.Outlined.AccountBalanceWallet,
                         label = "Transfer to",
                         value = transferAccount?.name,
+                        emoji = transferAccount?.let { accountEmojis[it.id] },
                         placeholder = "Select account…",
                         error = if (showErrors && transferAccount == null) "Transfer is required" else null,
                         onClick = { pickingAccount = true },
@@ -164,6 +167,7 @@ internal fun CloseAccountSheet(
         title = "Transfer balance to",
         sections = listOf(null to transferTargets.map { it.id to it.name }),
         selectedId = transferAccountId,
+        emojis = accountEmojis,
         onDismiss = { pickingAccount = false },
         onSelect = { transferAccountId = it; pickingAccount = false },
     )
@@ -195,6 +199,7 @@ private fun PickerField(
     value: String?,
     placeholder: String,
     error: String?,
+    emoji: String? = null,
     onClick: () -> Unit,
 ) {
     Column {
@@ -204,6 +209,7 @@ private fun PickerField(
                 label = label,
                 value = value ?: placeholder,
                 valueIsPlaceholder = value == null,
+                leadingEmoji = emoji,
                 onClick = onClick,
             )
         }
@@ -219,6 +225,7 @@ private fun OptionDialog(
     title: String,
     sections: List<Pair<String?, List<Pair<String, String>>>>,
     selectedId: String?,
+    emojis: Map<String, String> = emptyMap(),
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit,
 ) {
@@ -241,7 +248,10 @@ private fun OptionDialog(
                                 .clickable(role = Role.RadioButton) { onSelect(id) },
                         ) {
                             RadioButton(selected = id == selectedId, onClick = null)
-                            Text(name, modifier = Modifier.padding(start = 12.dp))
+                            CategoryIconLabel(
+                                name, emoji = emojis[id], reserveSlot = id in emojis,
+                                modifier = Modifier.padding(start = 12.dp),
+                            )
                         }
                     }
                 }

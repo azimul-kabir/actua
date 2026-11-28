@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.components
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,7 +45,7 @@ internal val LocalCategoryIconEditor = compositionLocalOf<CategoryIconEditor?> {
 @Composable
 internal fun EditCategoryIconSheet(categoryId: String, onDismiss: () -> Unit) {
     val editor = LocalCategoryIconEditor.current ?: return
-    CategoryIconPicker(
+    EmojiIconPicker(
         currentEmoji = editor.emojis[categoryId],
         onDismiss = onDismiss,
         onSelect = { key ->
@@ -62,20 +63,27 @@ private val curatedEmoji = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun CategoryIconPicker(currentEmoji: String?, onDismiss: () -> Unit, onSelect: (String?) -> Unit) {
+internal fun EmojiIconPicker(
+    currentEmoji: String?,
+    onDismiss: () -> Unit,
+    onSelect: (String?) -> Unit,
+    @StringRes title: Int = R.string.category_icon,
+    @StringRes resetTab: Int = R.string.category_icon_none,
+    @StringRes resetAction: Int = R.string.category_icon_remove,
+) {
     var none by rememberSaveable { mutableStateOf(false) }
     var input by rememberSaveable(currentEmoji) { mutableStateOf(currentEmoji.orEmpty()) }
     val valid = remember(input) { isCategoryEmoji(input) }
     val invalid = input.isNotEmpty() && !valid
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.imePadding().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.lg)) {
-            Text(stringResource(R.string.category_icon), style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(title), style = MaterialTheme.typography.titleLarge)
             PrimaryTabRow(selectedTabIndex = if (none) 1 else 0) {
                 Tab(selected = !none, onClick = { none = false }, text = { Text(stringResource(R.string.category_icon_emoji)) })
-                Tab(selected = none, onClick = { none = true }, text = { Text(stringResource(R.string.category_icon_none)) })
+                Tab(selected = none, onClick = { none = true }, text = { Text(stringResource(resetTab)) })
             }
             if (none) {
-                TextButton(onClick = { onSelect(null) }) { Text(stringResource(R.string.category_icon_remove)) }
+                TextButton(onClick = { onSelect(null) }) { Text(stringResource(resetAction)) }
             } else {
                 OutlinedTextField(
                     value = input,

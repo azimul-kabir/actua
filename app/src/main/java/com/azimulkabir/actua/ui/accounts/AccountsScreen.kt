@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.EmojiEmotions
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Add
@@ -77,6 +78,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -90,6 +92,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.model.Transaction
@@ -244,6 +247,8 @@ fun AccountsScreen(
     var accountMenuExpanded by remember { mutableStateOf(false) }
     var isEditMode by rememberSaveable { mutableStateOf(initialEditMode) }
     var showManageGroupsSheet by remember { mutableStateOf(false) }
+    val accountIconEditor = LocalAccountIconEditor.current
+    var editingIconAccountId by rememberSaveable(accountIconEditor?.budgetId) { mutableStateOf<String?>(null) }
     var renamingAccount by remember { mutableStateOf<Account?>(null) }
     var closingAccount by remember { mutableStateOf<Account?>(null) }
     var changingTypeAccount by remember { mutableStateOf<Account?>(null) }
@@ -337,7 +342,7 @@ fun AccountsScreen(
                                     onCheckedChange = onShowMonthlySummaryChange,
                                 )
                                 ActuaSwitchMenuItem(
-                                    label = "Account type icons",
+                                    label = stringResource(R.string.account_show_icons),
                                     checked = showAccountTypeIcons,
                                     onCheckedChange = onShowAccountTypeIconsChange,
                                 )
@@ -488,6 +493,9 @@ fun AccountsScreen(
             onViewTransactions = { selectedAccount = null; onAccountClick(account.name) },
             onRename = { selectedAccount = null; renamingAccount = account },
             onChangeType = { selectedAccount = null; changingTypeAccount = account },
+            onChangeIcon = if (accountIconEditor != null && !account.closed) {
+                { selectedAccount = null; editingIconAccountId = account.id }
+            } else null,
             onChangeGroup = { selectedAccount = null; changingGroupAccount = account },
             onClose = {
                 selectedAccount = null
@@ -524,8 +532,23 @@ fun AccountsScreen(
     ) { name, offBudget, balance, type, groupId ->
         onCreateAccount(name, offBudget, balance, type, groupId); showNewAccountDialog = false
     }
-    renamingAccount?.let { account -> RenameDialog("Rename account", account.name,
-        onDismiss = { renamingAccount = null }, onSave = { name -> onRenameAccount(account, name); renamingAccount = null }) }
+    renamingAccount?.let { account ->
+        RenameDialog(
+            "Rename account", account.name,
+            onDismiss = { renamingAccount = null },
+            onSave = { name -> onRenameAccount(account, name); renamingAccount = null },
+            extraAction = if (accountIconEditor != null && !account.closed) {
+                {
+                    TextButton(onClick = { editingIconAccountId = account.id }) {
+                        Text(stringResource(R.string.account_icon))
+                    }
+                }
+            } else null,
+        )
+    }
+    editingIconAccountId?.takeIf { id -> accounts.any { it.id == id && !it.closed } }?.let { id ->
+        EditAccountIconSheet(id, onDismiss = { editingIconAccountId = null })
+    }
     changingTypeAccount?.let { account -> ChangeAccountTypeDialog(account.name, account.type,
         onDismiss = { changingTypeAccount = null },
         onSave = { type -> onChangeAccountType(account, type); changingTypeAccount = null }) }
@@ -698,6 +721,7 @@ private fun AccountGroupHeader(
     }
 }
 
+internal const val ACCOUNT_EMOJI_ICON_TAG = "account-emoji-icon"
 internal const val ACCOUNT_TYPE_ICON_TAG = "account-type-icon"
 
 /** Display-only icon for an account row, from its credit-card status or free-text Actual account type. */
@@ -727,9 +751,12 @@ private fun AccountRow(
     showTypeIcon: Boolean = true,
 ) {
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val nameStyle = MaterialTheme.typography.bodyLarge
+    val icon = resolveAccountIcon(showTypeIcon, LocalAccountEmojis.current[account.id], account.type, creditCard != null)
+    val iconSize = if (icon != null) accountIconSize(nameStyle) else 0.dp
     ActuaGroupedItem(
         position = position,
-        dividerInset = if (showTypeIcon) Sizes.cardDividerInset else Spacing.lg,
+        dividerInset = if (icon != null) Spacing.lg + iconSize + Spacing.lg else Spacing.lg,
     ) {
         Row(
             modifier = Modifier.fillMaxWidth()
@@ -738,15 +765,15 @@ private fun AccountRow(
                 .padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (showTypeIcon) {
-                Icon(
-                    accountTypeIcon(account.type, creditCard != null), contentDescription = null, tint = muted,
-                    modifier = Modifier.testTag(ACCOUNT_TYPE_ICON_TAG),
+            if (icon != null) {
+                AccountIconGlyph(
+                    icon, nameStyle, iconSize, tint = muted,
+                    modifier = Modifier.testTag(if (icon is AccountIcon.Emoji) ACCOUNT_EMOJI_ICON_TAG else ACCOUNT_TYPE_ICON_TAG),
                 )
                 Spacer(Modifier.width(Spacing.lg))
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(account.name, style = MaterialTheme.typography.bodyLarge)
+                Text(account.name, style = nameStyle)
                 if (newTransactions > 0) Text(newBankTransactionsLabel(newTransactions),
                     style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 Text(creditCard?.let { "${it.cycle.dueShortSummary(dueDate = it.pendingStatementDue()?.dueDate)} · Spend ${formatMoneyCents(it.cycleSpendCents, hideDecimalPlaces)}" }
@@ -766,6 +793,7 @@ private fun AccountActionsSheet(
     onViewTransactions: () -> Unit,
     onRename: () -> Unit,
     onChangeType: () -> Unit,
+    onChangeIcon: (() -> Unit)?,
     onChangeGroup: () -> Unit,
     onClose: () -> Unit,
     favorite: Boolean,
@@ -784,6 +812,10 @@ private fun AccountActionsSheet(
                 AccountSheetAction(Icons.AutoMirrored.Outlined.ReceiptLong, "View transactions", onViewTransactions)
                 ActuaCardDivider()
                 AccountSheetAction(Icons.Outlined.Edit, "Rename account", onRename)
+                if (onChangeIcon != null) {
+                    ActuaCardDivider()
+                    AccountSheetAction(Icons.Outlined.EmojiEmotions, stringResource(R.string.account_icon), onChangeIcon)
+                }
                 ActuaCardDivider()
                 AccountSheetAction(Icons.Outlined.Category, "Change account type", onChangeType)
                 ActuaCardDivider()

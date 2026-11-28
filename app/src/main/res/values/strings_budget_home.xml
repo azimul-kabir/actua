@@ -21,6 +21,8 @@
     <string name="budget_show_category_icons">Show category icons</string>
     <string name="category_icon">Category icon</string>
     <string name="category_icon_emoji">Emoji</string>
+    <string name="account_icon">Account icon</string>
+    <string name="account_show_icons">Show account icons</string>
     <string name="category_icon_none">None</string>
     <string name="category_icon_remove">Remove icon</string>
     <string name="category_icon_enter_emoji">Enter an emoji</string>

@@ -321,7 +321,7 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(SHOW_ACCOUNTS_MONTHLY_SUMMARY, true)
         set(value) { preferences.edit().putBoolean(SHOW_ACCOUNTS_MONTHLY_SUMMARY, value).apply() }
 
-    /** Whether account rows in the Accounts tab show an icon for the account's type. */
+    /** Whether account displays show the chosen emoji or an account type icon. */
     var showAccountTypeIcons: Boolean
         get() = preferences.getBoolean(SHOW_ACCOUNT_TYPE_ICONS, true)
         set(value) { preferences.edit().putBoolean(SHOW_ACCOUNT_TYPE_ICONS, value).apply() }

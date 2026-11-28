@@ -19,6 +19,14 @@ Feature-by-feature audit of Actual Budget account behavior that Actua implements
   Android-only difference that other clients can't observe; **Divergence** = filed as an issue;
   **N/A** = upstream behavior Actua doesn't offer.
 
+## Account icons
+
+Account emoji are an Actua-only display preference ([#1887](https://github.com/azimul-kabir/actua/issues/1887)).
+Long-press an open account and choose **Account icon** to pick an emoji or restore the type icon with
+**Default**. **Show account icons** controls both styles. The choice lives in device-local
+preferences scoped to the local budget and account ID. Closed and deleted accounts do not contribute
+custom icons to the active UI. Actual's account rows, budget backups, and CRDT messages carry no icon data.
+
 ## 1. Create account
 
 Upstream: `createAccount` ([`LC/server/accounts/app.ts#L553-L590`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/accounts/app.ts#L553-L590)),

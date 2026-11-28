@@ -135,6 +135,7 @@ import com.azimulkabir.actua.ui.components.ActuaFormRow
 import com.azimulkabir.actua.ui.components.ActuaNoteEditorSheet
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.LocalCategoryEmojis
+import com.azimulkabir.actua.ui.accounts.LocalAccountEmojis
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.ui.theme.AmountTypography
 import com.azimulkabir.actua.ui.theme.PillShape
@@ -415,6 +416,7 @@ fun TransactionsScreen(
                 ?: if (showBackButton) stringResource(R.string.transactions_all_accounts)
                 else stringResource(R.string.transactions_title),
             onBack = if (showBackButton) onBack else null,
+            titleEmoji = account?.takeIf { categoryName == null }?.let { LocalAccountEmojis.current[it.id] },
         ) {
             Surface(
                 shape = MaterialTheme.shapes.extraLarge,

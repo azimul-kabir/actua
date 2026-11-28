@@ -125,6 +125,9 @@ import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
 import com.azimulkabir.actua.data.importing.NotificationImportPreferences
 import com.azimulkabir.actua.ui.accounts.AccountsScreen
 import com.azimulkabir.actua.ui.accounts.pendingCaptureBadge
+import com.azimulkabir.actua.ui.accounts.AccountIconEditor
+import com.azimulkabir.actua.ui.accounts.LocalAccountIconEditor
+import com.azimulkabir.actua.ui.accounts.LocalAccountEmojis
 import com.azimulkabir.actua.ui.accounts.CloseAccountOptions
 import com.azimulkabir.actua.ui.accounts.CloseCategoryGroup
 import com.azimulkabir.actua.ui.automation.BudgetAutomationScreen
@@ -817,6 +820,28 @@ fun AppNavigation(
     var groupTransactionsByDate by settingsPreferenceState.groupTransactionsByDate
     var showAccountsMonthlySummary by settingsPreferenceState.showAccountsMonthlySummary
     var showAccountTypeIcons by settingsPreferenceState.showAccountTypeIcons
+    var accountIconKeys by remember(activeBudgetId) {
+        mutableStateOf(activeBudgetId?.let(iconPreferences::accounts).orEmpty())
+    }
+    val accountEmojis = remember(activeBudgetId, rootLists.budgetId, accounts, accountIconKeys) {
+        if (rootLists.budgetId != activeBudgetId || accountIconKeys.isEmpty()) emptyMap()
+        else accounts.filterNot { it.closed }.mapNotNull { account ->
+            val icon = accountIconKeys[account.id]?.let(CategoryIcon::parse)
+            icon?.takeIf { it.source == "emoji" }?.let { account.id to it.value }
+        }.toMap()
+    }
+    val accountIconEditor = remember(activeBudgetId, rootLists.budgetId, accountEmojis, iconPreferences) {
+        activeBudgetId?.takeIf { it == rootLists.budgetId }?.let { budgetId ->
+            AccountIconEditor(
+                budgetId = budgetId,
+                emojis = accountEmojis,
+                set = { id, key ->
+                    iconPreferences.setAccount(budgetId, id, key)
+                    accountIconKeys = iconPreferences.accounts(budgetId)
+                },
+            )
+        }
+    }
     var conventionalAmountEntry by settingsPreferenceState.conventionalAmountEntry
     val receiptScanner = remember { createReceiptScanner(context) }
     // The scanned receipt photo the user chose to keep with the transaction being added. It stays a cache
@@ -1693,6 +1718,8 @@ fun AppNavigation(
             LocalFloatingTabBar provides !regularTabBar,
             LocalCategoryEmojis provides if (budgetDisplay.showCategoryIcons) categoryEmojis else emptyMap(),
             LocalCategoryIconEditor provides categoryIconEditor,
+            LocalAccountEmojis provides if (showAccountTypeIcons) accountEmojis else emptyMap(),
+            LocalAccountIconEditor provides accountIconEditor,
         ) {
         Box(Modifier.fillMaxSize().then(if (blurTabBar) Modifier.recordsBackdrop(tabBarBackdrop, MaterialTheme.colorScheme.background) else Modifier)) {
         // Root list screens run behind the transparent area around the floating pill and clear it

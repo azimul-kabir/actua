@@ -3,20 +3,29 @@ package com.azimulkabir.actua.ui.accounts
 import com.azimulkabir.actua.data.home.MonthStartRule
 import android.content.Context
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.azimulkabir.actua.R
+import com.azimulkabir.actua.data.preferences.CategoryIcon
 import com.azimulkabir.actua.model.Account
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -76,31 +85,74 @@ class AccountsScreenTest {
         assert(reorderClicked)
     }
 
-    @Test fun accountTypeIconsCanBeTurnedOffFromTheDisplayOptionsMenu() {
+    @Test fun chosenAndTypeIconsCanBothBeTurnedOffFromTheDisplayOptionsMenu() {
         val checking = Account("Checking", 10_000, "checking", id = "checking")
         val savings = Account("Savings", 20_000, "savings", id = "savings")
         var showIcons by mutableStateOf(true)
 
         compose.setContent {
             MaterialTheme {
-                AccountsScreen(
-                    accounts = listOf(checking, savings),
-                    showMonthlySummary = false,
-                    showAccountTypeIcons = showIcons,
-                    onShowAccountTypeIconsChange = { showIcons = it },
-                )
+                CompositionLocalProvider(LocalAccountEmojis provides mapOf(checking.id to "💳")) {
+                    AccountsScreen(
+                        accounts = listOf(checking, savings),
+                        showMonthlySummary = false,
+                        showAccountTypeIcons = showIcons,
+                        onShowAccountTypeIconsChange = { showIcons = it },
+                    )
+                }
             }
         }
 
-        compose.onAllNodesWithTag(ACCOUNT_TYPE_ICON_TAG, useUnmergedTree = true).assertCountEquals(2)
+        compose.onAllNodesWithTag(ACCOUNT_TYPE_ICON_TAG, useUnmergedTree = true).assertCountEquals(1)
+        compose.onAllNodesWithTag(ACCOUNT_EMOJI_ICON_TAG, useUnmergedTree = true).assertCountEquals(1)
+        val shownNameStart = compose.onNodeWithText("Checking").getUnclippedBoundsInRoot().left
+        assertEquals(shownNameStart, compose.onNodeWithText("Savings").getUnclippedBoundsInRoot().left)
 
         compose.onNodeWithContentDescription("Account display options").performClick()
-        compose.onNodeWithText("Account type icons").performClick()
+        compose.onNodeWithText(context.getString(R.string.account_show_icons)).performClick()
 
-        compose.runOnIdle { assert(!showIcons) }
         compose.onAllNodesWithTag(ACCOUNT_TYPE_ICON_TAG, useUnmergedTree = true).assertCountEquals(0)
-        compose.onAllNodesWithText("Checking").assertCountEquals(1)
-        compose.onAllNodesWithText("Savings").assertCountEquals(1)
+        compose.onAllNodesWithTag(ACCOUNT_EMOJI_ICON_TAG, useUnmergedTree = true).assertCountEquals(0)
+        val hiddenNameStart = compose.onNodeWithText("Checking").getUnclippedBoundsInRoot().left
+        assertTrue(hiddenNameStart < shownNameStart)
+        assertEquals(hiddenNameStart, compose.onNodeWithText("Savings").getUnclippedBoundsInRoot().left)
+    }
+
+    @Test fun longPressChangesTheIconAndDefaultRestoresTheAccountType() {
+        val checking = Account("Checking", 10_000, "checking", id = "checking")
+        var emojis by mutableStateOf(emptyMap<String, String>())
+        val action = context.getString(R.string.account_icon)
+
+        compose.setContent {
+            MaterialTheme {
+                CompositionLocalProvider(
+                    LocalAccountEmojis provides emojis,
+                    LocalAccountIconEditor provides AccountIconEditor(
+                        budgetId = "test-budget",
+                        emojis = emojis,
+                        set = { id, key ->
+                            emojis = if (key == null) emojis - id
+                            else emojis + (id to requireNotNull(CategoryIcon.parse(key)).value)
+                        },
+                    ),
+                ) {
+                    AccountsScreen(accounts = listOf(checking), showMonthlySummary = false)
+                }
+            }
+        }
+
+        compose.onNodeWithText("Checking").performTouchInput { longClick() }
+        compose.onNodeWithText(action).performClick()
+        compose.onNodeWithText("💳").performScrollTo().performClick()
+        compose.onNodeWithTag(ACCOUNT_EMOJI_ICON_TAG, useUnmergedTree = true).assertExists()
+        compose.onNodeWithTag(ACCOUNT_TYPE_ICON_TAG, useUnmergedTree = true).assertDoesNotExist()
+
+        compose.onNodeWithText("Checking").performTouchInput { longClick() }
+        compose.onNodeWithText(action).performClick()
+        compose.onNodeWithText(context.getString(R.string.settings_app_icon_default)).performClick()
+        compose.onNodeWithText(context.getString(R.string.reset_to_default)).performClick()
+        compose.onNodeWithTag(ACCOUNT_TYPE_ICON_TAG, useUnmergedTree = true).assertExists()
+        compose.onNodeWithTag(ACCOUNT_EMOJI_ICON_TAG, useUnmergedTree = true).assertDoesNotExist()
     }
 
     /** Regression coverage for issue #619: collapsing an account section survives leaving and returning to Accounts. */

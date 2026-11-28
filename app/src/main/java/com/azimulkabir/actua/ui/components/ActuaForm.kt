@@ -59,6 +59,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.azimulkabir.actua.ui.accounts.AccountIcon
+import com.azimulkabir.actua.ui.accounts.AccountIconGlyph
+import com.azimulkabir.actua.ui.accounts.accountIconSize
 import com.azimulkabir.actua.ui.theme.AmountTypography
 import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.ui.theme.Spacing
@@ -105,6 +108,7 @@ fun ActuaFormRow(
     enabled: Boolean = true,
     checked: Boolean? = null,
     trailing: (@Composable () -> Unit)? = null,
+    leadingEmoji: String? = null,
     onClick: (() -> Unit)? = null,
 ) {
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
@@ -121,7 +125,12 @@ fun ActuaFormRow(
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = null, tint = if (enabled) muted else muted.copy(alpha = 0.6f))
+        if (leadingEmoji == null) {
+            Icon(icon, contentDescription = null, tint = if (enabled) muted else muted.copy(alpha = 0.6f))
+        } else {
+            val nameStyle = MaterialTheme.typography.bodyLarge
+            AccountIconGlyph(AccountIcon.Emoji(leadingEmoji), nameStyle, accountIconSize(nameStyle))
+        }
         Spacer(Modifier.width(Spacing.lg))
         Column(Modifier.weight(1f)) {
             if (value == null) {
