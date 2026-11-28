@@ -6,7 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
-- Added optional emoji icons for categories ([#1886](https://github.com/azimul-kabir/actua/issues/1886))
+- Added optional emoji icons for categories ([#1892](https://github.com/azimul-kabir/actua/pull/1892))
 
 - Added custom capture patterns for international bank alerts ([#1890](https://github.com/azimul-kabir/actua/pull/1890))
 - Added a regular bottom navigation bar option under Settings → Display ([#1874](https://github.com/azimul-kabir/actua/pull/1874))
