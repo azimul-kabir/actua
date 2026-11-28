@@ -1461,8 +1461,32 @@ class ActualBudgetDatabase private constructor(
             }
 
             when (statusFilter) {
-                // Actual's `uncategorizedTransactions`: transfers count only when they leave the budget.
-                TransactionStatusFilter.UNCATEGORIZED -> append(" AND (c.name IS NULL OR c.name = '') AND (p.transfer_acct IS NULL OR pa.offbudget = 1) AND (t.isParent = 0 OR t.isParent IS NULL) AND COALESCE(acc.offbudget, 0) = 0")
+                // Actual's `uncategorizedTransactions` counts only transfers that leave the budget.
+                // The register displays split children under their parent.
+                TransactionStatusFilter.UNCATEGORIZED -> append(
+                    """
+                    AND COALESCE(acc.offbudget, 0) = 0
+                    AND (
+                        (COALESCE(t.isParent, 0) = 0 AND (c.name IS NULL OR c.name = '')
+                            AND (p.transfer_acct IS NULL OR pa.offbudget = 1))
+                        OR (t.isParent = 1 AND EXISTS (
+                            SELECT 1 FROM transactions child
+                            LEFT JOIN category_mapping child_cm ON child_cm.id = child.category
+                            LEFT JOIN categories child_c ON child_c.id = COALESCE(child_cm.transferId, child.category)
+                                AND COALESCE(child_c.tombstone, 0) = 0
+                            LEFT JOIN payee_mapping child_pm ON child_pm.id = child.description
+                            LEFT JOIN payees child_p ON child_p.id = COALESCE(child_pm.targetId, child.description)
+                                AND COALESCE(child_p.tombstone, 0) = 0
+                            LEFT JOIN accounts child_pa ON child_pa.id = child_p.transfer_acct
+                                AND COALESCE(child_pa.tombstone, 0) = 0
+                            WHERE child.parent_id = t.id AND child.isChild = 1
+                              AND COALESCE(child.tombstone, 0) = 0
+                              AND (child_c.name IS NULL OR child_c.name = '')
+                              AND (child_p.transfer_acct IS NULL OR child_pa.offbudget = 1)
+                        ))
+                    )
+                    """.trimIndent(),
+                )
                 TransactionStatusFilter.UNCLEARED -> append(" AND COALESCE(t.cleared, 0) = 0")
                 TransactionStatusFilter.CLEARED -> append(" AND COALESCE(t.cleared, 0) = 1 AND COALESCE(t.reconciled, 0) = 0")
                 TransactionStatusFilter.RECONCILED -> append(" AND COALESCE(t.reconciled, 0) = 1")

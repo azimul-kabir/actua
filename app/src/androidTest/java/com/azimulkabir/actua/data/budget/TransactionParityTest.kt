@@ -227,6 +227,73 @@ class TransactionParityTest {
     }
 
     @Test
+    fun clearingACategoryPersistsAndSyncsToUncategorized() {
+        val file = createDatabaseFile(false, emptyList())
+        try {
+            val messages = ActualBudgetDatabase.open(file).use { database ->
+                val original = requireNotNull(database.fetchTransaction("ordinary"))
+                assertEquals("grocery", original.categoryId)
+                assertEquals(-1_000L, database.categoryActivity("2026-09", "2026-09")["2026-09"]?.get("grocery"))
+
+                formService(database, "clear").save(ActualTransactionForm(
+                    accountId = "checking", type = ActualTransactionType.EXPENSE,
+                    amount = "10", payeeName = "Store", date = 20260901,
+                    cleared = true, categoryIsExplicit = true,
+                ), original)
+                transactionMessages(database)
+            }
+            assertEquals("0:", messages.single { it.row == "ordinary" && it.column == "category" }.value)
+            ActualBudgetDatabase.open(file).use(::assertOrdinaryTransactionIsUncategorized)
+            withDatabase { peer ->
+                peer.receiveMessages(messages)
+                assertOrdinaryTransactionIsUncategorized(peer)
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
+    fun clearingASplitLineShowsItsParentInTheUncategorizedRegister() = withDatabase { database ->
+        val service = formService(database, "clear-split")
+        val form = ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.EXPENSE,
+            amount = "10", payeeName = "Store", date = 20260910,
+            splits = listOf(
+                ActualSplitLineForm(categoryId = "grocery", amount = "6"),
+                ActualSplitLineForm(categoryId = "rent", amount = "4"),
+            ),
+        )
+        val id = requireNotNull(service.save(form))
+        val parent = requireNotNull(database.fetchTransaction(id))
+        val children = database.fetchChildTransactions(id).associateBy { it.categoryId }
+        val groceries = requireNotNull(children["grocery"])
+        val rent = requireNotNull(children["rent"])
+        assertTrue(database.fetchTransactions(statusFilter = TransactionStatusFilter.UNCATEGORIZED).isEmpty())
+
+        service.save(form.copy(splits = listOf(
+            form.splits[0].copy(childId = groceries.id, categoryId = null),
+            form.splits[1].copy(childId = rent.id),
+        )), parent)
+
+        val uncategorized = database.fetchTransactions(statusFilter = TransactionStatusFilter.UNCATEGORIZED).single()
+        assertEquals(id, uncategorized.id)
+        assertEquals(-1_000L, uncategorized.amountCents)
+        val lines = database.fetchChildTransactions(id).associateBy { it.id }
+        assertNull(requireNotNull(lines[groceries.id]).categoryId)
+        assertEquals("rent", requireNotNull(lines[rent.id]).categoryId)
+        assertEquals(mapOf("grocery" to -1_000L, "rent" to -400L), database.categoryActivity("2026-09", "2026-09")["2026-09"])
+    }
+
+    private fun assertOrdinaryTransactionIsUncategorized(database: ActualBudgetDatabase) {
+        val row = database.fetchTransactions(statusFilter = TransactionStatusFilter.UNCATEGORIZED).single()
+        assertEquals("ordinary", row.id)
+        assertEquals(-1_000L, row.amountCents)
+        assertNull(row.categoryId)
+        assertTrue(database.categoryActivity("2026-09", "2026-09").isEmpty())
+    }
+
+    @Test
     fun movingAStandardTransactionOffBudgetClearsItsCategory() = withDatabase { database ->
         val offBudget = ActualEntityWriter(database, idFactory = { "off-${UUID.randomUUID()}" })
             .createAccount("Brokerage", offBudget = true, startingBalanceCents = 0)
@@ -436,6 +503,28 @@ class TransactionParityTest {
         assertEquals("grocery", database.fetchTransaction(onBudget.id)?.categoryId)
         assertEquals(-5_000L, database.fetchTransaction(onBudget.id)?.amountCents)
         assertNull(database.fetchTransaction(offBudgetLeg.id)?.categoryId)
+    }
+
+    @Test
+    fun explicitClearFromTheOffBudgetLegClearsTheOnBudgetPartner() = withDatabase { database ->
+        val brokerage = offBudgetAccount(database)
+        val service = formService(database, "clear-transfer")
+        val form = ActualTransactionForm(
+            accountId = brokerage, type = ActualTransactionType.TRANSFER,
+            amount = "40", transferToAccountId = "checking", categoryId = "grocery", date = 20260910,
+        )
+        service.save(form)
+        val offBudget = database.fetchTransactions(brokerage).single { it.transferId != null }
+        val partnerId = requireNotNull(offBudget.transferId)
+        assertEquals("grocery", database.fetchTransaction(partnerId)?.categoryId)
+
+        service.save(form.copy(categoryId = null, categoryIsExplicit = true), offBudget)
+
+        val onBudget = database.fetchTransactions(statusFilter = TransactionStatusFilter.UNCATEGORIZED).single()
+        assertEquals(partnerId, onBudget.id)
+        assertEquals(4_000L, onBudget.amountCents)
+        assertNull(onBudget.categoryId)
+        assertNull(database.fetchTransaction(offBudget.id)?.categoryId)
     }
 
     @Test

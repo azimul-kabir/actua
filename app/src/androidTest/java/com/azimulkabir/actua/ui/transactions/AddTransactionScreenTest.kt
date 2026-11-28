@@ -13,6 +13,7 @@ import com.azimulkabir.actua.R
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.Type
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -76,6 +77,33 @@ class AddTransactionScreenTest {
 
         compose.onNodeWithText("Groceries").assertExists()
         compose.onNodeWithText("$42.00").assertExists()
+    }
+
+    @Test fun editingACategorizedTransactionCanClearItsCategory() {
+        val editing = Transaction(
+            id = "coffee", date = "20260920", payee = "Cafe", category = "Dining", account = "Checking",
+            amountCents = -450, amount = -4, type = Type.EXPENSE, cleared = false, categoryId = "dining",
+        )
+        var saved: Transaction? = null
+        compose.setContent {
+            MaterialTheme {
+                AddTransactionScreen(
+                    editing = editing, onBack = {}, onSave = { saved = it },
+                    accountOptions = listOf("Checking"), categoryOptions = listOf("Dining"),
+                )
+            }
+        }
+
+        compose.onNodeWithText("Dining").performScrollTo().performClick()
+        val uncategorized = strings.getString(R.string.transaction_uncategorized)
+        compose.onNodeWithText(uncategorized).performClick()
+        compose.onNodeWithText(uncategorized).assertExists()
+        compose.onNodeWithText(strings.getString(R.string.action_save)).performClick()
+
+        assertEquals(editing.id, saved?.id)
+        assertEquals("", saved?.category)
+        assertNull(saved?.categoryId)
+        assertEquals(true, saved?.categoryIsExplicit)
     }
 
     @Test fun zeroAmountTransactionCanBeSaved() {

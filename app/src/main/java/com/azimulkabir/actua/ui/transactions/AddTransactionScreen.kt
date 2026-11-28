@@ -196,7 +196,9 @@ fun AddTransactionScreen(
     var incoming by remember(editing, defaultType) { mutableStateOf(start.incoming) }
     var category by remember(editing, defaultCategory) {
         mutableStateOf(
-            editingLabels?.category
+            editingLabels?.category?.let { label ->
+                if (editing?.categoryId == null && label == "Uncategorized") "" else label
+            }
                 ?: defaultCategory?.let { categoryChoices.labelOf(null, it) }?.takeIf(categoryOptions::contains).orEmpty(),
         )
     }
@@ -218,7 +220,7 @@ fun AddTransactionScreen(
     var rulesApplied by remember(editing) { mutableStateOf(false) }
     // A picker choice is explicit and must survive a rule preview triggered by a later payee
     // edit; a category filled in by an earlier rule preview is not.
-    var categoryIsExplicit by remember(editing) { mutableStateOf(editing?.category?.isNotBlank() == true) }
+    var categoryIsExplicit by remember(editing) { mutableStateOf(editing != null && category.isNotBlank()) }
     val context = LocalContext.current
     val tagRepository = remember { ActiveTagRepository(context) }
     var tagVersion by remember { mutableStateOf(0L) }
@@ -244,7 +246,7 @@ fun AddTransactionScreen(
     val splitIsValid = !isSplit || (splitLines.size >= 2 && splitLines.all { line ->
         val lineTarget = transferTargetOf(line.payee)
         val lineCatNeeded = !isOffBudget && (lineTarget == null || lineTarget in offBudgetAccountOptions)
-        (!lineCatNeeded || line.category.isNotBlank()) && line.amountCents > 0
+        (!lineCatNeeded || line.childId != null || line.category.isNotBlank()) && line.amountCents > 0
     } && splitTotal == amountCents)
     val canSave = amountCents >= 0 && account.isNotBlank() && transferTarget != account && splitIsValid
     val categoryApplies = if (isTransfer) transferTakesCategory else !isSplit && !isOffBudget
@@ -289,6 +291,7 @@ fun AddTransactionScreen(
             when {
                 isTransfer -> if (transferTakesCategory) category else ""
                 isOffBudget -> ""
+                editing != null -> category
                 else -> category.ifBlank { "Uncategorized" }
             },
         )
@@ -458,7 +461,9 @@ fun AddTransactionScreen(
                             sections = categoryChoices.sections,
                             iconCategories = categoryChoices,
                             supportingValues = categoryBalanceLabels,
-                            onValueChange = { category = it; categoryIsExplicit = it.isNotBlank() },
+                            onValueChange = { category = it; categoryIsExplicit = true },
+                            clearOptionLabel = stringResource(R.string.transaction_uncategorized)
+                                .takeIf { editing != null && category.isNotBlank() },
                             autoOpen = walkStep == AddStep.Category,
                             onAutoOpenHandled = { autoStep = null },
                             onPicked = { if (editing == null) autoStep = AddStep.Account },
@@ -557,6 +562,8 @@ fun AddTransactionScreen(
                                         iconCategories = categoryChoices,
                                         supportingValues = categoryBalanceLabels,
                                         onValueChange = { value -> update(line.copy(category = value)) },
+                                        clearOptionLabel = stringResource(R.string.transaction_uncategorized)
+                                            .takeIf { line.childId != null && line.category.isNotBlank() },
                                         rowIcon = Icons.Outlined.Category,
                                         placeholder = stringResource(R.string.transaction_uncategorized),
                                     )
@@ -1129,6 +1136,8 @@ internal fun PickerTextField(
     rowValue: String? = null,
     rowCaption: String? = null,
     placeholder: String = "",
+    /** Offers a separate picker action that passes an empty value to [onValueChange]. */
+    clearOptionLabel: String? = null,
 ) {
     var showPicker by remember { mutableStateOf(false) }
     val locationStrings = payeeLocationStrings()
@@ -1258,6 +1267,7 @@ internal fun PickerTextField(
         title = label.removeSuffix(" (optional)"),
         selected = value,
         options = options,
+        clearOptionLabel = clearOptionLabel,
         allowCustom = allowCustom,
         suggested = suggested,
         sections = sections,
@@ -1308,6 +1318,7 @@ private fun SearchableTransactionPicker(
     title: String,
     selected: String,
     options: List<String>,
+    clearOptionLabel: String?,
     allowCustom: Boolean,
     suggested: List<String>,
     sections: List<Pair<String, List<String>>>,
@@ -1387,6 +1398,8 @@ private fun SearchableTransactionPicker(
     val reserveIconSlot = remember(optionEmojis, query, uniqueOptions, searchResults) {
         reservesCategoryIconSlot(optionEmojis, (if (query.isBlank()) uniqueOptions else searchResults).asSequence())
     }
+    val showClearOption = clearOptionLabel != null &&
+        clearOptionLabel.contains(query.trim(), ignoreCase = true)
     val addValueFormat = stringResource(R.string.picker_add_value)
 
     Dialog(
@@ -1429,6 +1442,15 @@ private fun SearchableTransactionPicker(
                                 listOf(selected), selected, supportingValues = supportingValues,
                                 optionEmojis = optionEmojis, reserveIconSlot = reserveIconSlot,
                                 onSelect = onSelect,
+                            )
+                        }
+                    }
+                    if (showClearOption && clearOptionLabel != null) {
+                        item {
+                            PickerGroup(
+                                options = listOf(clearOptionLabel),
+                                selected = "",
+                                onSelect = { onSelect("") },
                             )
                         }
                     }
@@ -1566,7 +1588,7 @@ private fun SearchableTransactionPicker(
                             }
                         }
                     }
-                    if (query.isNotBlank() && searchResults.isEmpty() && !allowCustom) {
+                    if (query.isNotBlank() && searchResults.isEmpty() && !allowCustom && !showClearOption) {
                         item {
                             Text(
                                 stringResource(R.string.picker_no_matches),

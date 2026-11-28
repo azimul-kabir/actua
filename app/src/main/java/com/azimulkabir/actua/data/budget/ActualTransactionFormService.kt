@@ -218,7 +218,9 @@ class ActualTransactionFormService(
         fun category(leg: ActualTransaction, account: String, other: String): String? =
             if (account !in offBudget && other in offBudget) {
                 // Saved from the off-budget leg, the form's category is meant for this partner leg.
-                if (leg.id == original.id || (form.accountId in offBudget && form.categoryId != null)) form.categoryId
+                if (leg.id == original.id ||
+                    (form.accountId in offBudget && (form.categoryId != null || form.categoryIsExplicit))
+                ) form.categoryId
                 else leg.categoryId
             } else null
         val source = sourceOriginal.copy(
