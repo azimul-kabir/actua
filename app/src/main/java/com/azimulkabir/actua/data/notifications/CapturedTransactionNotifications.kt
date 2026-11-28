@@ -45,6 +45,7 @@ import com.azimulkabir.actua.ui.components.formatMoneyCents
  */
 object CapturedTransactionNotifications {
     const val ACTION_REVIEW = "com.azimulkabir.actua.action.REVIEW_CAPTURED"
+    const val ACTION_VIEW_TRANSACTIONS = "com.azimulkabir.actua.action.VIEW_CAPTURED_TRANSACTIONS"
     const val ACTION_IMPORT = "com.azimulkabir.actua.action.IMPORT_CAPTURED"
     const val EXTRA_QUEUE_ID = "queueId"
     const val EXTRA_ACCOUNT_ID = "accountId"
@@ -82,7 +83,12 @@ object CapturedTransactionNotifications {
     internal fun allowed(context: Context) = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
-    internal fun post(context: Context, queueId: String, build: NotificationCompat.Builder.() -> Unit) {
+    internal fun post(
+        context: Context,
+        queueId: String,
+        contentIntent: PendingIntent,
+        build: NotificationCompat.Builder.() -> Unit,
+    ) {
         if (!allowed(context)) return
         val localized = context.withAppLanguage()
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(
@@ -100,7 +106,7 @@ object CapturedTransactionNotifications {
             .setSmallIcon(R.drawable.ic_stat_actua)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(publicVersion)
-            .setContentIntent(reviewIntent(context, queueId))
+            .setContentIntent(contentIntent)
             .setAutoCancel(true)
             .apply(build)
         try {
@@ -110,9 +116,15 @@ object CapturedTransactionNotifications {
         }
     }
 
-    internal fun reviewIntent(context: Context, queueId: String): PendingIntent = PendingIntent.getActivity(
+    internal fun reviewIntent(context: Context, queueId: String): PendingIntent =
+        launchIntent(context, queueId, ACTION_REVIEW)
+
+    internal fun transactionsIntent(context: Context, queueId: String): PendingIntent =
+        launchIntent(context, queueId, ACTION_VIEW_TRANSACTIONS)
+
+    private fun launchIntent(context: Context, queueId: String, action: String): PendingIntent = PendingIntent.getActivity(
         context, notificationId(queueId),
-        Intent(context, MainActivity::class.java).setAction(ACTION_REVIEW)
+        Intent(context, MainActivity::class.java).setAction(action)
             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
@@ -179,12 +191,12 @@ class CapturedTransactionNotifyWorker(context: Context, parameters: WorkerParame
         } finally {
             repository.close()
         }
-        CapturedTransactionNotifications.post(applicationContext, queueId) {
+        val review = CapturedTransactionNotifications.reviewIntent(applicationContext, queueId)
+        CapturedTransactionNotifications.post(applicationContext, queueId, review) {
             setContentTitle(content.title)
             setContentText(content.text)
             val localized = applicationContext.withAppLanguage()
-            addAction(0, localized.getString(R.string.captured_action_review),
-                CapturedTransactionNotifications.reviewIntent(applicationContext, queueId))
+            addAction(0, localized.getString(R.string.captured_action_review), review)
             content.importAccountId?.let { accountId ->
                 addAction(0, localized.getString(R.string.captured_action_import),
                     CapturedTransactionNotifications.importIntent(applicationContext, queueId, accountId))
@@ -269,7 +281,9 @@ class CapturedImportWorker(context: Context, parameters: WorkerParameters) : Cor
         val context = applicationContext
         val localized = context.withAppLanguage()
         when (val outcome = importCapturedTransaction(context, queueId, accountId)) {
-            is CapturedImportOutcome.Imported -> CapturedTransactionNotifications.post(context, queueId) {
+            is CapturedImportOutcome.Imported -> CapturedTransactionNotifications.post(
+                context, queueId, CapturedTransactionNotifications.transactionsIntent(context, queueId),
+            ) {
                 setContentTitle(outcome.candidate.payee.trim().takeIf(String::isNotEmpty)
                     ?.let { localized.getString(R.string.captured_imported_title, it) }
                     ?: localized.getString(R.string.captured_fallback_title))
@@ -277,11 +291,13 @@ class CapturedImportWorker(context: Context, parameters: WorkerParameters) : Cor
                 setTimeoutAfter(10_000)
             }
             CapturedImportOutcome.NotQueued -> CapturedTransactionNotifications.cancel(context, listOf(queueId))
-            is CapturedImportOutcome.Failed -> CapturedTransactionNotifications.post(context, queueId) {
-                setContentTitle(localized.getString(R.string.captured_import_failed_title))
-                setContentText(outcome.reason)
-                addAction(0, localized.getString(R.string.captured_action_review),
-                    CapturedTransactionNotifications.reviewIntent(context, queueId))
+            is CapturedImportOutcome.Failed -> {
+                val review = CapturedTransactionNotifications.reviewIntent(context, queueId)
+                CapturedTransactionNotifications.post(context, queueId, review) {
+                    setContentTitle(localized.getString(R.string.captured_import_failed_title))
+                    setContentText(outcome.reason)
+                    addAction(0, localized.getString(R.string.captured_action_review), review)
+                }
             }
         }
         return Result.success()

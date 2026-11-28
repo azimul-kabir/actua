@@ -25,6 +25,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Tap a successful import notification to open the All accounts register ([#1896](https://github.com/azimul-kabir/actua/pull/1896))
 - Fixed supporter widget bars and accented content ignoring the app accent ([#1882](https://github.com/azimul-kabir/actua/pull/1882))
 - Fixed the Spending trend and Income and spending widgets ignoring the custom month start day ([#1876](https://github.com/azimul-kabir/actua/pull/1876))
 - Fixed a crash while scrolling the Budget tab when two groups or categories share a name ([#1858](https://github.com/azimul-kabir/actua/pull/1858))

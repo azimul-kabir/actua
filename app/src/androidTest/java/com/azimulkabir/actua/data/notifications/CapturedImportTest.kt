@@ -1,16 +1,26 @@
 package com.azimulkabir.actua.data.notifications
 
+import android.Manifest
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.database.sqlite.SQLiteDatabase
+import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.work.testing.TestListenableWorkerBuilder
+import androidx.work.workDataOf
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.importing.ImportCandidate
 import com.azimulkabir.actua.data.importing.NotificationImportPreferences
 import com.azimulkabir.actua.data.sync.SyncSignals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.UUID
@@ -96,6 +106,63 @@ class CapturedImportTest {
         assertTrue(rows().isEmpty())
         assertEquals(listOf(tapped.queueId), store.queued().map { it.queueId })
         assertEquals(generation, SyncSignals.dataGeneration.value)
+    }
+
+    @Test fun notificationsOpenReviewUntilTheImportSucceeds() = withBudget { rows ->
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            InstrumentationRegistry.getInstrumentation().uiAutomation.grantRuntimePermission(
+                context.packageName, Manifest.permission.POST_NOTIFICATIONS,
+            )
+        }
+        val manager = context.getSystemService(NotificationManager::class.java)
+        val queueId = requireNotNull(store.enqueue(coffee).queueId)
+        val failedQueueId = requireNotNull(store.enqueue(coffee.copy(payee = "Fuel")).queueId)
+        val notificationsWereEnabled = store.confirmNotificationsEnabled
+        val review = CapturedTransactionNotifications.reviewIntent(context, queueId)
+        val transactions = CapturedTransactionNotifications.transactionsIntent(context, queueId)
+        assertNotEquals(review, transactions)
+        try {
+            store.confirmNotificationsEnabled = true
+            runBlocking {
+                TestListenableWorkerBuilder<CapturedTransactionNotifyWorker>(context)
+                    .setInputData(workDataOf(CapturedTransactionNotifications.EXTRA_QUEUE_ID to queueId))
+                    .build().doWork()
+                assertNotificationDestination(manager, queueId, review)
+
+                runImportWorker(queueId, "card")
+                assertNotificationDestination(manager, queueId, transactions)
+                assertEquals(listOf("card" to -500L), rows())
+
+                runImportWorker(failedQueueId, "missing")
+                assertNotificationDestination(
+                    manager, failedQueueId, CapturedTransactionNotifications.reviewIntent(context, failedQueueId),
+                )
+                assertEquals(listOf(failedQueueId), store.queued().map { it.queueId })
+            }
+        } finally {
+            store.confirmNotificationsEnabled = notificationsWereEnabled
+            CapturedTransactionNotifications.cancel(context, listOf(queueId, failedQueueId))
+        }
+    }
+
+    private suspend fun runImportWorker(queueId: String, accountId: String) {
+        TestListenableWorkerBuilder<CapturedImportWorker>(context)
+            .setInputData(workDataOf(
+                CapturedTransactionNotifications.EXTRA_QUEUE_ID to queueId,
+                CapturedTransactionNotifications.EXTRA_ACCOUNT_ID to accountId,
+            ))
+            .build().doWork()
+    }
+
+    private suspend fun assertNotificationDestination(
+        manager: NotificationManager,
+        queueId: String,
+        expected: PendingIntent,
+    ) = withTimeout(5_000) {
+        val id = CapturedTransactionNotifications.notificationId(queueId)
+        while (manager.activeNotifications.firstOrNull { it.id == id }?.notification?.contentIntent != expected) {
+            delay(50)
+        }
     }
 
     private fun withBudget(block: (rows: () -> List<Pair<String, Long>>) -> Unit) {

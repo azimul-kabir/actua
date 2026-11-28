@@ -80,6 +80,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -602,6 +603,7 @@ fun AppNavigation(
     // Actual's synced per-account `hide-reconciled-<accountId>` preference, shared with the PWA.
     val hideReconciledAccountIds = rootLists.hideReconciledAccountIds
     var showUpcomingTransactions by settingsPreferenceState.showUpcomingTransactions
+    var registerLaunchNonce by remember { mutableLongStateOf(0L) }
     var transactionStatusFilter by rememberSaveable { mutableStateOf(TransactionStatusFilter.ALL) }
     // The full history is loaded off the main thread, once per data change; the filtered list
     // below reuses it unless a status filter narrows it.
@@ -1303,6 +1305,17 @@ fun AppNavigation(
                 destination = MainDestination.Accounts
                 openCapturedReview()
             }
+            CapturedTransactionNotifications.ACTION_VIEW_TRANSACTIONS -> {
+                destination = MainDestination.Accounts
+                transactionAccount = null
+                transactionCategory = null
+                transactionMonth = null
+                transactionSearch = ""
+                transactionsReturnCategory = null
+                transactionStatusFilter = TransactionStatusFilter.ALL
+                registerLaunchNonce = request.nonce
+                detail = DetailDestination.Transactions
+            }
             WidgetActions.BUDGET -> {
                 destination = MainDestination.Budget
                 detail = DetailDestination.Main
@@ -1949,7 +1962,7 @@ fun AppNavigation(
                     }
                 },
             )
-            DetailDestination.Transactions -> TransactionsScreen(
+            DetailDestination.Transactions -> key(registerLaunchNonce) { TransactionsScreen(
                 accountName = transactionAccount,
                 newTransactionIds = openAccountId?.let { newBankTransactions[it] }.orEmpty(),
                 categoryName = transactionCategory,
@@ -2174,7 +2187,7 @@ fun AppNavigation(
                 recurringScheduleIds = upcomingRecurringScheduleIds,
                 onUpcomingAction = ::onUpcomingAction,
                 hasFab = hasFab,
-            )
+            ) }
             DetailDestination.EditTransaction -> {
             // Otherwise these are rebuilt from the whole account/payee lists on every
             // recomposition of this (very broad) composable while the editor is open, e.g. on
