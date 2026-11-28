@@ -103,7 +103,7 @@ asks for notification permission), each queued transaction also posts a notifica
 payee and amount, hidden on the lock screen unless the system allows private content. **Review**
 opens **Review captured**. **Import** appears only when the transaction already has an account (from its hint,
 the account last chosen for the same card or app, or the default account) and imports just that row through the same
-path as the review screen. Tapping the success notification opens **All transactions**. If the import
+path as the review screen. Tapping the success notification opens the **All accounts** register. If the import
 fails, the row stays queued and the notification opens **Review captured**. Captured data, parser settings, and capture state can be deleted together.
 
 Debit and credit keyword sets are configurable for different bank wording. Keywords match whole words, and wording that only names the card ("credit card", or the source app's own "<App> Credit" product) is ignored, so a purchase alert from a credit card isn't read as money in. Confidence is high when
