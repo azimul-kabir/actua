@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.azimulkabir.actua.R
+import com.azimulkabir.actua.model.PickerChoices
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.Type
 import org.junit.Assert.assertEquals
@@ -84,12 +85,14 @@ class AddTransactionScreenTest {
             id = "coffee", date = "20260920", payee = "Cafe", category = "Dining", account = "Checking",
             amountCents = -450, amount = -4, type = Type.EXPENSE, cleared = false, categoryId = "dining",
         )
+        val categories = PickerChoices.categories(listOf("Food" to ("dining" to "Dining")))
         var saved: Transaction? = null
         compose.setContent {
             MaterialTheme {
                 AddTransactionScreen(
                     editing = editing, onBack = {}, onSave = { saved = it },
-                    accountOptions = listOf("Checking"), categoryOptions = listOf("Dining"),
+                    accountOptions = listOf("Checking"), categoryOptions = categories.labels,
+                    categoryChoices = categories,
                 )
             }
         }

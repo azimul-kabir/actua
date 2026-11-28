@@ -1398,8 +1398,7 @@ private fun SearchableTransactionPicker(
     val reserveIconSlot = remember(optionEmojis, query, uniqueOptions, searchResults) {
         reservesCategoryIconSlot(optionEmojis, (if (query.isBlank()) uniqueOptions else searchResults).asSequence())
     }
-    val showClearOption = clearOptionLabel != null &&
-        clearOptionLabel.contains(query.trim(), ignoreCase = true)
+    val clearOption = clearOptionLabel?.takeIf { it.contains(query.trim(), ignoreCase = true) }
     val addValueFormat = stringResource(R.string.picker_add_value)
 
     Dialog(
@@ -1445,10 +1444,10 @@ private fun SearchableTransactionPicker(
                             )
                         }
                     }
-                    if (showClearOption && clearOptionLabel != null) {
+                    if (clearOption != null) {
                         item {
                             PickerGroup(
-                                options = listOf(clearOptionLabel),
+                                options = listOf(clearOption),
                                 selected = "",
                                 onSelect = { onSelect("") },
                             )
@@ -1588,7 +1587,7 @@ private fun SearchableTransactionPicker(
                             }
                         }
                     }
-                    if (query.isNotBlank() && searchResults.isEmpty() && !allowCustom && !showClearOption) {
+                    if (query.isNotBlank() && searchResults.isEmpty() && !allowCustom && clearOption == null) {
                         item {
                             Text(
                                 stringResource(R.string.picker_no_matches),
