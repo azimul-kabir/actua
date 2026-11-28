@@ -1,8 +1,15 @@
 package com.azimulkabir.actua.data.notifications
 
+import android.Manifest
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.database.sqlite.SQLiteDatabase
+import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.rule.GrantPermissionRule
+import androidx.work.testing.TestListenableWorkerBuilder
+import androidx.work.workDataOf
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.importing.ImportCandidate
@@ -11,6 +18,10 @@ import com.azimulkabir.actua.data.sync.SyncSignals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.UUID
@@ -18,6 +29,10 @@ import java.util.UUID
 /** One-tap import of a captured row from its notification (#1046). */
 @RunWith(AndroidJUnit4::class)
 class CapturedImportTest {
+    @get:Rule val notificationPermission = GrantPermissionRule.grant(
+        *if (Build.VERSION.SDK_INT >= 33) arrayOf(Manifest.permission.POST_NOTIFICATIONS) else emptyArray(),
+    )
+
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
     private val store = NotificationImportPreferences(context)
     private val coffee = ImportCandidate(1, 20261012, "Coffee", "Imported from com.bank.app", -500, sourceLabel = "com.bank.app")
@@ -96,6 +111,55 @@ class CapturedImportTest {
         assertTrue(rows().isEmpty())
         assertEquals(listOf(tapped.queueId), store.queued().map { it.queueId })
         assertEquals(generation, SyncSignals.dataGeneration.value)
+    }
+
+    @Test fun notificationsOpenReviewUntilTheImportSucceeds() = withBudget { rows ->
+        val manager = context.getSystemService(NotificationManager::class.java)
+        val queueId = requireNotNull(store.enqueue(coffee).queueId)
+        val failedQueueId = requireNotNull(store.enqueue(coffee.copy(payee = "Fuel")).queueId)
+        val notificationsWereEnabled = store.confirmNotificationsEnabled
+        try {
+            store.confirmNotificationsEnabled = true
+            runBlocking {
+                TestListenableWorkerBuilder<CapturedTransactionNotifyWorker>(context)
+                    .setInputData(workDataOf(CapturedTransactionNotifications.EXTRA_QUEUE_ID to queueId))
+                    .build().doWork()
+                assertNotificationDestination(manager, queueId, CapturedTransactionNotifications.reviewIntent(context, queueId))
+
+                runImportWorker(queueId, "card")
+                assertNotificationDestination(manager, queueId, CapturedTransactionNotifications.transactionsIntent(context, queueId))
+                assertEquals(listOf("card" to -500L), rows())
+
+                runImportWorker(failedQueueId, "missing")
+                assertNotificationDestination(
+                    manager, failedQueueId, CapturedTransactionNotifications.reviewIntent(context, failedQueueId),
+                )
+                assertEquals(listOf(failedQueueId), store.queued().map { it.queueId })
+            }
+        } finally {
+            store.confirmNotificationsEnabled = notificationsWereEnabled
+            CapturedTransactionNotifications.cancel(context, listOf(queueId, failedQueueId))
+        }
+    }
+
+    private suspend fun runImportWorker(queueId: String, accountId: String) {
+        TestListenableWorkerBuilder<CapturedImportWorker>(context)
+            .setInputData(workDataOf(
+                CapturedTransactionNotifications.EXTRA_QUEUE_ID to queueId,
+                CapturedTransactionNotifications.EXTRA_ACCOUNT_ID to accountId,
+            ))
+            .build().doWork()
+    }
+
+    private suspend fun assertNotificationDestination(
+        manager: NotificationManager,
+        queueId: String,
+        expected: PendingIntent,
+    ) = withTimeout(5_000) {
+        val id = CapturedTransactionNotifications.notificationId(queueId)
+        while (manager.activeNotifications.firstOrNull { it.id == id }?.notification?.contentIntent != expected) {
+            delay(50)
+        }
     }
 
     private fun withBudget(block: (rows: () -> List<Pair<String, Long>>) -> Unit) {

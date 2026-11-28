@@ -154,8 +154,10 @@ class MainActivity : AppCompatActivity() {
             ?.let { AppLaunchRequest(CreditCardDueLaunch.ACTION, getStringExtra(CreditCardDueLaunch.EXTRA_ACCOUNT_ID)) }
         ?: takeIf { action == ScheduleReminderLaunch.ACTION }
             ?.let { AppLaunchRequest(ScheduleReminderLaunch.ACTION, getStringExtra(ScheduleReminderLaunch.EXTRA_SCHEDULE_ID)) }
-        ?: takeIf { action == CapturedTransactionNotifications.ACTION_REVIEW }
-            ?.let { AppLaunchRequest(CapturedTransactionNotifications.ACTION_REVIEW, null) }
+        ?: action?.takeIf {
+            it == CapturedTransactionNotifications.ACTION_REVIEW ||
+                it == CapturedTransactionNotifications.ACTION_VIEW_TRANSACTIONS
+        }?.let { AppLaunchRequest(it, null) }
         ?: takeIf { action == Intent.ACTION_SEND && type?.startsWith("text/") == true }
             ?.getStringExtra(Intent.EXTRA_TEXT)?.takeIf(String::isNotBlank)
             ?.let { AppLaunchRequest(SHARED_IMPORT_ACTION, it) }
